@@ -20,10 +20,10 @@ fi
 echo "Running preparation pipeline..."
 cd /app/backend
 python3 prepare.py \
-    --model "$MODEL_BIN" \
+    --fasttext "$MODEL_BIN" \
     --output "$DATA_DIR" \
-    --vocab-size "$VOCAB_SIZE" \
-    --num-games "$NUM_GAMES"
+    --games "$NUM_GAMES" \
+    --vocab-size "$VOCAB_SIZE"
 
 echo "=== Data preparation complete ==="
 echo "Vocabulary size: $(python3 -c "import json; print(len(json.load(open('$DATA_DIR/vocabulary.json'))))")"

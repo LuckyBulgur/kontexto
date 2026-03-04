@@ -20,7 +20,7 @@ def data_dir():
         with open(os.path.join(tmpdir, "vocabulary.json"), "w", encoding="utf-8") as f:
             json.dump(vocab, f)
 
-        lemma_map = {"äpfel": "apfel", "häuser": "haus", "autos": "auto"}
+        lemma_map = {"äpfel": "apfel", "häuser": "haus", "autos": "auto", "haus": "heim"}
         with open(os.path.join(tmpdir, "lemma_map.json"), "w", encoding="utf-8") as f:
             json.dump(lemma_map, f)
 
@@ -84,6 +84,10 @@ class TestNormalizeWord:
     def test_word_not_in_vocab(self, gs):
         # Word in bloom but not in vocab or lemma_map
         assert gs.normalize_word("qwertz") is None
+
+    def test_vocab_word_not_remapped_even_if_in_lemma_map(self, gs):
+        """'haus' is in vocab AND in lemma_map (-> 'heim'). Should stay 'haus'."""
+        assert gs.normalize_word("haus") == "haus"
 
 
 class TestGuess:
