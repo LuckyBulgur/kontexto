@@ -18,13 +18,20 @@ def _make_fake_vectors(n_words=100, dim=10):
     ]
     extra = ["der", "die", "und", "123abc", "a", "http://x.com"]
     all_words = base_words + extra
-    return {w: np.random.rand(dim).astype(np.float32) for w in all_words[:n_words]}
+    vectors = {w: np.random.rand(dim).astype(np.float32) for w in all_words[:n_words]}
+    # Build raw_words set: include lowercase and capitalized forms for base words (nouns)
+    raw_words = set()
+    for w in all_words[:n_words]:
+        raw_words.add(w)
+        if w.isalpha() and len(w) >= 2:
+            raw_words.add(w[0].upper() + w[1:])
+    return vectors, raw_words
 
 
 def test_run_pipeline_creates_all_files():
-    fake_vectors = _make_fake_vectors(n_words=53, dim=10)
+    fake_vectors, fake_raw_words = _make_fake_vectors(n_words=53, dim=10)
     with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("prepare.load_fasttext_vectors", return_value=fake_vectors):
+        with patch("prepare.load_fasttext_vectors", return_value=(fake_vectors, fake_raw_words)):
             run_pipeline(output_dir=tmpdir, num_games=3, fasttext_path="fake.bin", start_date="2026-03-04")
         assert os.path.isfile(os.path.join(tmpdir, "vocabulary.json"))
         assert os.path.isfile(os.path.join(tmpdir, "lemma_map.json"))
@@ -36,9 +43,9 @@ def test_run_pipeline_creates_all_files():
 
 
 def test_run_pipeline_vocabulary_is_filtered():
-    fake_vectors = _make_fake_vectors(n_words=53, dim=10)
+    fake_vectors, fake_raw_words = _make_fake_vectors(n_words=53, dim=10)
     with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("prepare.load_fasttext_vectors", return_value=fake_vectors):
+        with patch("prepare.load_fasttext_vectors", return_value=(fake_vectors, fake_raw_words)):
             run_pipeline(output_dir=tmpdir, num_games=1, fasttext_path="fake.bin", start_date="2026-03-04")
         with open(os.path.join(tmpdir, "vocabulary.json")) as f:
             vocab = json.load(f)
@@ -51,9 +58,9 @@ def test_run_pipeline_vocabulary_is_filtered():
 
 
 def test_run_pipeline_game_ranks_are_valid():
-    fake_vectors = _make_fake_vectors(n_words=53, dim=10)
+    fake_vectors, fake_raw_words = _make_fake_vectors(n_words=53, dim=10)
     with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("prepare.load_fasttext_vectors", return_value=fake_vectors):
+        with patch("prepare.load_fasttext_vectors", return_value=(fake_vectors, fake_raw_words)):
             run_pipeline(output_dir=tmpdir, num_games=1, fasttext_path="fake.bin", start_date="2026-03-04")
         with open(os.path.join(tmpdir, "vocabulary.json")) as f:
             vocab = json.load(f)

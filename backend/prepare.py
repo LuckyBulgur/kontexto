@@ -34,11 +34,11 @@ GERMAN_STOPWORDS = {
 _ALPHA_RE = re.compile(r"^[a-zäöüß]+$")
 
 
-def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2) -> dict[str, np.ndarray]:
+def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_length: int = 25, vocab_size: int = 0) -> dict[str, np.ndarray]:
     filtered: dict[str, np.ndarray] = {}
     for word, vec in words.items():
         w = word.lower()
-        if len(w) < min_length:
+        if len(w) < min_length or len(w) > max_length:
             continue
         if not _ALPHA_RE.match(w):
             continue
@@ -46,6 +46,8 @@ def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2) -> dict
             continue
         if w not in filtered:
             filtered[w] = vec
+        if vocab_size > 0 and len(filtered) >= vocab_size:
+            break
     return filtered
 
 
@@ -80,44 +82,60 @@ def create_lemma_map(vocab: list[str]) -> dict[str, str]:
     return lemma_map
 
 
-def load_fasttext_vectors(path: str) -> dict[str, np.ndarray]:
+def load_fasttext_vectors(path: str) -> tuple[dict[str, np.ndarray], set[str]]:
     if path.endswith(".bin"):
         import fasttext
         model = fasttext.load_model(path)
         words = model.get_words()
-        return {w: model.get_word_vector(w) for w in words}
+        raw_words = set(words)
+        return {w: model.get_word_vector(w) for w in words}, raw_words
     else:
         vectors: dict[str, np.ndarray] = {}
+        raw_words: set[str] = set()
         with open(path, "r", encoding="utf-8") as f:
             f.readline()
             for line in f:
                 parts = line.rstrip().split(" ")
                 word = parts[0]
+                raw_words.add(word)
                 vec = np.array([float(x) for x in parts[1:]], dtype=np.float32)
                 vectors[word] = vec
-        return vectors
+        return vectors, raw_words
 
 
-def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int = 2000) -> list[str]:
-    candidates = [w for w in vocab if 3 <= len(w) <= 15 and w in vectors]
+def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int = 2000, raw_words: set[str] | None = None) -> list[str]:
+    candidates = []
+    for w in vocab:
+        if len(w) < 3 or len(w) > 15:
+            continue
+        if w not in vectors:
+            continue
+        if raw_words is not None:
+            capitalized = w[0].upper() + w[1:]
+            if capitalized not in raw_words:
+                continue
+        lemma = simplemma.lemmatize(w, lang="de")
+        if lemma != w:
+            continue
+        candidates.append(w)
     rng = random.Random(42)
     rng.shuffle(candidates)
     return candidates[:n]
 
 
-def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str) -> None:
+def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 50000) -> None:
     print(f"Loading vectors from {fasttext_path}...")
-    raw_vectors = load_fasttext_vectors(fasttext_path)
+    raw_vectors, raw_words = load_fasttext_vectors(fasttext_path)
     print(f"  Loaded {len(raw_vectors)} raw vectors.")
 
     print("Filtering vocabulary...")
-    filtered = filter_vocabulary(raw_vectors)
+    filtered = filter_vocabulary(raw_vectors, vocab_size=vocab_size)
     vocab_list = sorted(filtered.keys())
     vocab_index = {w: i for i, w in enumerate(vocab_list)}
-    print(f"  Filtered to {len(vocab_list)} words.")
+    print(f"  Filtered to {len(vocab_list)} words (max {vocab_size}).")
 
-    print("Selecting target words...")
-    targets = select_target_words(vocab_list, filtered, n=min(num_games * 2, len(vocab_list)))
+    print("Selecting target words (nouns only)...")
+    targets = select_target_words(vocab_list, filtered, n=min(num_games * 2, len(vocab_list)), raw_words=raw_words)
     if len(targets) < num_games:
         raise ValueError(f"Not enough target words ({len(targets)}) for {num_games} games.")
     targets = targets[:num_games]
@@ -162,5 +180,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="data", help="Output directory")
     parser.add_argument("--games", type=int, default=1000, help="Number of games to generate")
     parser.add_argument("--start-date", default="2026-03-04", help="Start date (YYYY-MM-DD)")
+    parser.add_argument("--vocab-size", type=int, default=50000, help="Max vocabulary size")
     args = parser.parse_args()
-    run_pipeline(output_dir=args.output, num_games=args.games, fasttext_path=args.fasttext, start_date=args.start_date)
+    run_pipeline(output_dir=args.output, num_games=args.games, fasttext_path=args.fasttext, start_date=args.start_date, vocab_size=args.vocab_size)
