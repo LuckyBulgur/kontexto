@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from game import GameState
@@ -40,6 +41,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Kontexto API", lifespan=lifespan)
+
+if os.environ.get("KONTEXTO_DEV"):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.post("/api/guess", response_model=GuessResponse)
