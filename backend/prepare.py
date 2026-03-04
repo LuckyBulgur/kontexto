@@ -44,6 +44,8 @@ def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_len
             continue
         if w in GERMAN_STOPWORDS:
             continue
+        if not simplemma.is_known(w, lang="de"):
+            continue
         if w not in filtered:
             filtered[w] = vec
         if vocab_size > 0 and len(filtered) >= vocab_size:

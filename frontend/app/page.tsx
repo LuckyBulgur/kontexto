@@ -4,22 +4,22 @@ import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
-import TipButton from "@/components/TipButton";
+import SettingsModal from "@/components/SettingsModal";
 import WinDialog from "@/components/WinDialog";
 import { submitGuess, getTip, getGameInfo } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty } from "@/lib/storage";
-import { GameState, Guess, SortMode, Difficulty } from "@/lib/types";
+import { GameState, Guess, Difficulty } from "@/lib/types";
 
 export default function Home() {
   const [gameNumber, setGameNumber] = useState(0);
   const [total, setTotal] = useState(0);
   const [gameState, setGameState] = useState<GameState>({ gameNumber: 0, guesses: [], tips: 0, solved: false });
-  const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [showWin, setShowWin] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -112,27 +112,17 @@ export default function Home() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
-      <Header gameNumber={gameNumber} theme={theme} onThemeToggle={handleThemeToggle} />
+      <Header onTip={handleTip} tipDisabled={gameState.solved} onSettingsOpen={() => setShowSettings(true)} />
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
+        <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
+          <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
+          <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
+        </div>
         <GuessInput onGuess={handleGuess} disabled={gameState.solved} error={error} />
-        <div className="flex gap-2">
-          <button onClick={() => setSortMode("rank")}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${sortMode === "rank" ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-700"}`}>
-            Nach Rang
-          </button>
-          <button onClick={() => setSortMode("chronological")}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${sortMode === "chronological" ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-700"}`}>
-            Chronologisch
-          </button>
-        </div>
-        <GuessList guesses={gameState.guesses} total={total} sortMode={sortMode} latestWord={latestWord} />
-        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Versuche: {gameState.guesses.length} &middot; Tipps: {gameState.tips}
-          </span>
-          <TipButton onTip={handleTip} disabled={gameState.solved} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} tipCount={gameState.tips} />
-        </div>
+        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} />
       </main>
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeToggle={handleThemeToggle} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} />
       {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
     </div>
   );
