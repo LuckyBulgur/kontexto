@@ -1,15 +1,18 @@
 "use client";
-import { Guess } from "@/lib/types";
+import { Guess, SortMode } from "@/lib/types";
 import GuessBar from "./GuessBar";
 
 interface GuessListProps {
   guesses: Guess[];
   total: number;
   latestWord?: string;
+  sortMode: SortMode;
 }
 
-export default function GuessList({ guesses, total, latestWord }: GuessListProps) {
-  const sorted = [...guesses].sort((a, b) => a.rank - b.rank);
+export default function GuessList({ guesses, total, latestWord, sortMode }: GuessListProps) {
+  const sorted = sortMode === "rank"
+    ? [...guesses].sort((a, b) => a.rank - b.rank)
+    : [...guesses];
   if (sorted.length === 0) {
     return <div className="text-center text-muted-foreground py-8">Gib dein erstes Wort ein!</div>;
   }

@@ -47,3 +47,17 @@ export function saveDifficulty(difficulty: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(DIFFICULTY_KEY, difficulty);
 }
+
+const SORT_KEY = "kontexto_sort";
+
+export function loadSortMode(): "rank" | "chronological" {
+  if (typeof window === "undefined") return "rank";
+  const saved = localStorage.getItem(SORT_KEY);
+  if (saved === "rank" || saved === "chronological") return saved;
+  return "rank";
+}
+
+export function saveSortMode(mode: "rank" | "chronological"): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SORT_KEY, mode);
+}
