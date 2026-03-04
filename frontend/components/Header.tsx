@@ -17,12 +17,12 @@ interface HeaderProps {
 export default function Header({ onTip, onSettingsOpen, tipDisabled }: HeaderProps) {
   return (
     <header className="relative flex items-center justify-center px-4 py-3 border-b">
-      <h1 className="text-xl font-bold tracking-wider">KONTEXTO</h1>
+      <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
       <div className="absolute right-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Menü">
-              <EllipsisVertical className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Menü">
+              <EllipsisVertical className="!h-6 !w-6" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
