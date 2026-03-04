@@ -47,13 +47,10 @@ export default function Home() {
     if (gameState.gameNumber > 0) saveGameState(gameState);
   }, [gameState]);
 
-  const handleThemeToggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      saveTheme(next);
-      document.documentElement.classList.toggle("dark", next === "dark");
-      return next;
-    });
+  const handleThemeChange = useCallback((t: "light" | "dark") => {
+    setTheme(t);
+    saveTheme(t);
+    document.documentElement.classList.toggle("dark", t === "dark");
   }, []);
 
   const handleDifficultyChange = useCallback((d: Difficulty) => {
@@ -122,7 +119,7 @@ export default function Home() {
         <GuessInput onGuess={handleGuess} disabled={gameState.solved} error={error} />
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} />
       </main>
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeToggle={handleThemeToggle} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} />
       {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
     </div>
   );
