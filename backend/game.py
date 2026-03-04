@@ -64,17 +64,21 @@ class GameState:
         return (today - self.start_date).days + 1
 
     def normalize_word(self, word: str) -> str | None:
-        """Normalize a word: lowercase, lemmatize, check existence."""
+        """Normalize a word: lowercase, check vocab first, lemma as fallback."""
         w = word.strip().lower()
 
         if w not in self.bloom:
             return None
 
-        if w in self.lemma_map:
-            w = self.lemma_map[w]
-
+        # Direct vocab match takes priority
         if w in self.vocabulary:
             return w
+
+        # Fallback: try lemma mapping
+        if w in self.lemma_map:
+            lemma = self.lemma_map[w]
+            if lemma in self.vocabulary:
+                return lemma
 
         return None
 
