@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Data (large files)
+data/games/
+data/bloom.bin
+data/vocabulary.json
+data/lemma_map.json
+data/target_words.json
+data/metadata.json
+*.bin
+*.bin.gz
+*.vec
+*.vec.gz
+cc.de.300.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
