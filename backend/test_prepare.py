@@ -87,3 +87,39 @@ def test_create_lemma_map():
     assert isinstance(lmap, dict)
     for inflected, base in lmap.items():
         assert base in vocab
+
+
+def test_filter_vocabulary_respects_max_length():
+    from prepare import filter_vocabulary
+    fake_words = {
+        "hund": np.random.rand(300),
+        "blechbearbeitungsmaschinenreinigung": np.random.rand(300),
+        "katze": np.random.rand(300),
+    }
+    result = filter_vocabulary(fake_words, max_length=25)
+    assert "hund" in result
+    assert "katze" in result
+    assert "blechbearbeitungsmaschinenreinigung" not in result
+
+
+def test_filter_vocabulary_respects_vocab_size():
+    from prepare import filter_vocabulary
+    # Generate purely alphabetic words (no digits) so they pass the alpha regex
+    alphabet = "abcdefghijklmnopqrstuvwxyz"
+    words = []
+    for i in range(100):
+        a, b = divmod(i, 26)
+        words.append(f"wort{alphabet[a]}{alphabet[b]}")
+    fake_words = {w: np.random.rand(300) for w in words}
+    result = filter_vocabulary(fake_words, vocab_size=10)
+    assert len(result) == 10
+
+
+def test_select_target_words_prefers_nouns():
+    from prepare import select_target_words
+    vocab = ["apfel", "birne", "schnell", "laufen", "haus", "kirsche"]
+    vectors = {w: np.random.rand(300) for w in vocab}
+    raw_words = {"Apfel", "apfel", "Birne", "birne", "schnell", "laufen", "Haus", "haus", "Kirsche", "kirsche"}
+    result = select_target_words(vocab, vectors, raw_words=raw_words, n=10)
+    for w in result:
+        assert w[0].upper() + w[1:] in raw_words
