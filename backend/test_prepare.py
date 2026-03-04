@@ -104,15 +104,34 @@ def test_filter_vocabulary_respects_max_length():
 
 def test_filter_vocabulary_respects_vocab_size():
     from prepare import filter_vocabulary
-    # Generate purely alphabetic words (no digits) so they pass the alpha regex
-    alphabet = "abcdefghijklmnopqrstuvwxyz"
-    words = []
-    for i in range(100):
-        a, b = divmod(i, 26)
-        words.append(f"wort{alphabet[a]}{alphabet[b]}")
+    # Use real German words that pass simplemma.is_known check
+    words = [
+        "hund", "katze", "maus", "haus", "baum", "berg", "feld", "wald",
+        "fluss", "stadt", "land", "meer", "fisch", "vogel", "blume",
+        "sonne", "mond", "stern", "wolke", "regen",
+    ]
     fake_words = {w: np.random.rand(300) for w in words}
     result = filter_vocabulary(fake_words, vocab_size=10)
     assert len(result) == 10
+
+
+def test_filter_vocabulary_removes_english_words():
+    from prepare import filter_vocabulary
+    fake_words = {
+        "hund": np.random.rand(300),
+        "employer": np.random.rand(300),
+        "strategic": np.random.rand(300),
+        "katze": np.random.rand(300),
+        "leverage": np.random.rand(300),
+        "voice": np.random.rand(300),
+    }
+    result = filter_vocabulary(fake_words)
+    assert "hund" in result
+    assert "katze" in result
+    assert "employer" not in result
+    assert "strategic" not in result
+    assert "leverage" not in result
+    assert "voice" not in result
 
 
 def test_select_target_words_prefers_nouns():
