@@ -22,7 +22,7 @@ export default function Header({ onTip, onSettingsOpen, tipDisabled }: HeaderPro
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Menü">
-              <EllipsisVertical className="!h-6 !w-6" />
+              <EllipsisVertical className="h-6! w-6!" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
