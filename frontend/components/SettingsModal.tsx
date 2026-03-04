@@ -1,5 +1,5 @@
 "use client";
-import { Difficulty } from "@/lib/types";
+import { Difficulty, SortMode } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ interface SettingsModalProps {
   onThemeChange: (t: "light" | "dark") => void;
   difficulty: Difficulty;
   onDifficultyChange: (d: Difficulty) => void;
+  sortMode: SortMode;
+  onSortModeChange: (s: SortMode) => void;
 }
 
 export default function SettingsModal({
@@ -32,6 +34,8 @@ export default function SettingsModal({
   onThemeChange,
   difficulty,
   onDifficultyChange,
+  sortMode,
+  onSortModeChange,
 }: SettingsModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -69,6 +73,20 @@ export default function SettingsModal({
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Spieloptionen</span>
               <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Sortierung</Label>
+              <p className="text-xs text-muted-foreground">Reihenfolge der geratenen W&ouml;rter in der Liste</p>
+              <Select value={sortMode} onValueChange={(v) => onSortModeChange(v as SortMode)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rank">&Auml;hnlichkeit</SelectItem>
+                  <SelectItem value="chronological">Reihenfolge</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

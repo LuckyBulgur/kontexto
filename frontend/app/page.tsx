@@ -7,8 +7,8 @@ import GuessList from "@/components/GuessList";
 import SettingsModal from "@/components/SettingsModal";
 import WinDialog from "@/components/WinDialog";
 import { submitGuess, getTip, getGameInfo } from "@/lib/api";
-import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty } from "@/lib/storage";
-import { GameState, Guess, Difficulty } from "@/lib/types";
+import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
+import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 
 export default function Home() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -16,6 +16,7 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState>({ gameNumber: 0, guesses: [], tips: 0, solved: false });
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [showWin, setShowWin] = useState(false);
@@ -27,6 +28,7 @@ export default function Home() {
     setTheme(initTheme);
     document.documentElement.classList.toggle("dark", initTheme === "dark");
     setDifficulty(loadDifficulty() as Difficulty);
+    setSortMode(loadSortMode());
 
     getGameInfo()
       .then((info) => {
@@ -56,6 +58,11 @@ export default function Home() {
   const handleDifficultyChange = useCallback((d: Difficulty) => {
     setDifficulty(d);
     saveDifficulty(d);
+  }, []);
+
+  const handleSortModeChange = useCallback((s: SortMode) => {
+    setSortMode(s);
+    saveSortMode(s);
   }, []);
 
   const addGuess = useCallback((guess: Guess) => {
@@ -117,9 +124,9 @@ export default function Home() {
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
         </div>
         <GuessInput onGuess={handleGuess} disabled={gameState.solved} error={error} />
-        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} />
+        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} sortMode={sortMode} />
       </main>
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
     </div>
   );
