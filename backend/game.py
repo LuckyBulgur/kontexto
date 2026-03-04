@@ -1,0 +1,122 @@
+"""Game logic for Kontexto.
+
+Loads pre-computed data and provides guess/tip/game-info operations.
+All lookups are O(1) dict lookups after initial load.
+"""
+
+import json
+import os
+import pickle
+import random
+from datetime import date
+
+import numpy as np
+
+
+class GameState:
+    """Holds all game data in memory for fast lookups."""
+
+    def __init__(self, data_dir: str) -> None:
+        self.data_dir = data_dir
+
+        with open(os.path.join(data_dir, "vocabulary.json"), encoding="utf-8") as f:
+            self.vocabulary: dict[str, int] = json.load(f)
+        self.index_to_word: list[str] = [""] * len(self.vocabulary)
+        for word, idx in self.vocabulary.items():
+            self.index_to_word[idx] = word
+
+        with open(os.path.join(data_dir, "lemma_map.json"), encoding="utf-8") as f:
+            self.lemma_map: dict[str, str] = json.load(f)
+
+        with open(os.path.join(data_dir, "bloom.bin"), "rb") as f:
+            self.bloom = pickle.load(f)
+
+        with open(os.path.join(data_dir, "target_words.json"), encoding="utf-8") as f:
+            self.target_words: list[str] = json.load(f)
+
+        with open(os.path.join(data_dir, "metadata.json"), encoding="utf-8") as f:
+            self.metadata: dict = json.load(f)
+
+        self.start_date = date.fromisoformat(self.metadata["start_date"])
+
+        self.current_game_number: int = 0
+        self.current_rankings: dict[str, int] = {}
+
+    def load_game(self, game_number: int) -> None:
+        """Load rankings for a specific game into memory."""
+        if game_number == self.current_game_number:
+            return
+
+        path = os.path.join(self.data_dir, "games", f"{game_number:04d}.npz")
+        data = np.load(path)
+        ranks = data["ranks"]
+
+        self.current_rankings = {
+            self.index_to_word[i]: int(ranks[i])
+            for i in range(len(ranks))
+        }
+        self.current_game_number = game_number
+
+    def get_game_number(self, today: date | None = None) -> int:
+        """Calculate today's game number from the start date."""
+        if today is None:
+            today = date.today()
+        return (today - self.start_date).days + 1
+
+    def normalize_word(self, word: str) -> str | None:
+        """Normalize a word: lowercase, lemmatize, check existence."""
+        w = word.strip().lower()
+
+        if w not in self.bloom:
+            return None
+
+        if w in self.lemma_map:
+            w = self.lemma_map[w]
+
+        if w in self.vocabulary:
+            return w
+
+        return None
+
+    def guess(self, word: str) -> dict | None:
+        """Process a guess and return its rank."""
+        normalized = self.normalize_word(word)
+        if normalized is None:
+            return None
+
+        rank = self.current_rankings.get(normalized)
+        if rank is None:
+            return None
+
+        return {
+            "word": normalized,
+            "rank": rank,
+            "total": len(self.current_rankings),
+        }
+
+    def get_tip(self, difficulty: str, best_rank: int) -> dict | None:
+        """Get a hint word based on difficulty level."""
+        if difficulty == "easy":
+            target_rank = max(1, best_rank // 2)
+        elif difficulty == "medium":
+            target_rank = max(1, best_rank - 1)
+        else:  # hard
+            target_rank = random.randint(1, max(1, best_rank - 1))
+
+        best_word = None
+        best_diff = float("inf")
+        for word, rank in self.current_rankings.items():
+            diff = abs(rank - target_rank)
+            if diff < best_diff:
+                best_diff = diff
+                best_word = word
+                if diff == 0:
+                    break
+
+        if best_word is None:
+            return None
+
+        return {
+            "word": best_word,
+            "rank": self.current_rankings[best_word],
+        }
