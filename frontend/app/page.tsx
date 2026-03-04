@@ -107,14 +107,14 @@ export default function Home() {
   }, [gameState.guesses, difficulty, addGuess]);
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><div className="text-gray-400 dark:text-gray-500 text-lg">Laden...</div></div>;
+    return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground text-lg">Laden...</div></div>;
   }
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
       <Header onTip={handleTip} tipDisabled={gameState.solved} onSettingsOpen={() => setShowSettings(true)} />
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
-        <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+        <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
           <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
           <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
