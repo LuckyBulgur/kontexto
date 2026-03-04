@@ -1,10 +1,11 @@
 # --- Stage 1: Build frontend ---
 FROM node:20-alpine AS frontend-build
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ .
-RUN npm run build
+RUN pnpm run build
 
 # --- Stage 2: Prepare data ---
 FROM python:3.12-slim AS data-build
