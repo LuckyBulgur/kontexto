@@ -16,7 +16,7 @@ interface HeaderProps {
 
 export default function Header({ onTip, onSettingsOpen, tipDisabled }: HeaderProps) {
   return (
-    <header className="relative flex items-center justify-center px-4 py-3 border-b">
+    <header className="relative flex items-center justify-center px-4 pt-5 pb-1">
       <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
       <div className="absolute right-4">
         <DropdownMenu>
