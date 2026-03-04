@@ -38,7 +38,7 @@ export default function WinDialog({ gameNumber, guesses, tipCount, onClose }: Wi
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm text-center">
-        <DialogHeader>
+        <DialogHeader className="text-center sm:text-center items-center">
           <div className="text-4xl mb-2">&#127881;</div>
           <DialogTitle className="text-2xl">Gel&ouml;st!</DialogTitle>
           <DialogDescription className="sr-only">Spielergebnis und Countdown</DialogDescription>
