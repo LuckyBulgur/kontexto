@@ -32,8 +32,8 @@ cc.de.300.*
 CLAUDE.md
 .claude/
 
-# Docs/Plans
-docs/plans/
+# Docs
+docs/
 
 # OS
 .DS_Store
