@@ -28,6 +28,13 @@ cc.de.300.*
 .vscode/
 .idea/
 
+# Claude
+CLAUDE.md
+.claude/
+
+# Docs/Plans
+docs/plans/
+
 # OS
 .DS_Store
 Thumbs.db
