@@ -31,6 +31,8 @@ export default function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
+  const [pendingWord, setPendingWord] = useState<string | undefined>();
+  const [podestError, setPodestError] = useState<{ word: string; message: string } | undefined>();
   const [showWin, setShowWin] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -97,22 +99,26 @@ export default function Home() {
 
   const handleGuess = useCallback(async (word: string) => {
     setError(null);
+    setPodestError(undefined);
     if (gameState.guesses.some((g) => g.word === word.toLowerCase())) {
       setError("Wort bereits geraten!");
       return;
     }
+    setPendingWord(word.toLowerCase());
     try {
       const result = await submitGuess(word, pastGame);
       addGuess({ word: result.word, rank: result.rank, isTip: false });
       setTotal(result.total);
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "unknown_word") {
-        setError("Wort nicht im Wörterbuch");
+        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
       } else if (e instanceof Error && e.message === "stopword") {
-        setError("Dieses Wort zählt nicht – es ist zu allgemein");
+        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht – es ist zu allgemein" });
       } else {
         setError("Fehler bei der Verbindung");
       }
+    } finally {
+      setPendingWord(undefined);
     }
   }, [gameState.guesses, addGuess, pastGame]);
 
@@ -245,7 +251,7 @@ export default function Home() {
             </Accordion>
           </div>
         )}
-        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} sortMode={sortMode} />
+        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} sortMode={sortMode} />
       </main>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
