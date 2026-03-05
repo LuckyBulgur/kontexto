@@ -41,6 +41,7 @@ class GameState:
 
         self.current_game_number: int = 0
         self.current_rankings: dict[str, int] = {}
+        self.rank_to_word: list[str] = []
 
     def load_game(self, game_number: int) -> None:
         """Load rankings for a specific game into memory."""
@@ -55,6 +56,9 @@ class GameState:
             self.index_to_word[i]: int(ranks[i])
             for i in range(len(ranks))
         }
+        self.rank_to_word = [""] * (len(ranks) + 1)
+        for word, rank in self.current_rankings.items():
+            self.rank_to_word[rank] = word
         self.current_game_number = game_number
 
     def get_game_number(self, today: date | None = None) -> int:
@@ -112,22 +116,13 @@ class GameState:
         else:  # hard
             target_rank = random.randint(1, max(1, best_rank - 1))
 
-        best_word = None
-        best_diff = float("inf")
-        for word, rank in self.current_rankings.items():
-            diff = abs(rank - target_rank)
-            if diff < best_diff:
-                best_diff = diff
-                best_word = word
-                if diff == 0:
-                    break
-
-        if best_word is None:
-            return None
+        max_rank = len(self.rank_to_word) - 1
+        target_rank = min(target_rank, max_rank)
+        best_word = self.rank_to_word[target_rank]
 
         return {
             "word": best_word,
-            "rank": self.current_rankings[best_word],
+            "rank": target_rank,
         }
 
     def get_target_word(self, game_number: int) -> str:
