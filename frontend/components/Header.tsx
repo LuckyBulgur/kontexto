@@ -1,5 +1,13 @@
 "use client";
-import { EllipsisVertical } from "lucide-react";
+import {
+  EllipsisVertical,
+  Lightbulb,
+  Flag,
+  BookOpen,
+  CircleHelp,
+  Settings,
+  Info,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,23 +50,29 @@ export default function Header({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onTip} disabled={tipDisabled}>
+              <Lightbulb className="h-4 w-4" />
               Tipp
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onGiveUp} disabled={giveUpDisabled} className="text-destructive focus:text-destructive">
+              <Flag className="h-4 w-4" />
               Aufgeben
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onHowToPlayOpen}>
+              <BookOpen className="h-4 w-4" />
               Spielanleitung
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onFAQOpen}>
+              <CircleHelp className="h-4 w-4" />
               FAQ
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onSettingsOpen}>
+              <Settings className="h-4 w-4" />
               Einstellungen
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCreditsOpen}>
+              <Info className="h-4 w-4" />
               Credits
             </DropdownMenuItem>
           </DropdownMenuContent>
