@@ -51,21 +51,23 @@ RUN sed -i '/^user /d' /etc/nginx/nginx.conf && \
 
 EXPOSE 8080
 
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
+
 COPY <<'ENTRYPOINT' /app/entrypoint.sh
 #!/bin/bash
 set -e
 
+# Fix volume permissions (volume mounts as root)
+chown -R appuser:appuser /app/data
 mkdir -p /app/data/games
 
 if [ ! -f /app/data/metadata.json ]; then
     echo "No data found. Running data preparation..."
-    bash /app/scripts/prepare-data.sh /app/data
+    gosu appuser bash /app/scripts/prepare-data.sh /app/data
 fi
 
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+exec gosu appuser /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 ENTRYPOINT
 RUN chmod +x /app/entrypoint.sh
-
-USER appuser
 
 CMD ["/app/entrypoint.sh"]
