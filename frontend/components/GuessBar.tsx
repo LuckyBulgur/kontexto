@@ -19,7 +19,7 @@ export default function GuessBar({ word, rank, total, isNew }: GuessBarProps) {
   const color = getRankColor(rank);
   const width = getBarWidth(rank, total);
   return (
-    <div className={cn("relative flex items-center h-10 rounded-lg overflow-hidden mb-1 transition-all", isNew && "animate-slideIn")}>
+    <div className={cn("relative flex items-center h-10 rounded-lg mb-1 transition-all", isNew && "animate-slideIn ring-2 ring-white")}>
       <div
         className={cn("absolute inset-y-0 left-0 rounded-lg transition-all duration-500", COLOR_CLASSES[color])}
         style={{ width: `${width}%` }}
