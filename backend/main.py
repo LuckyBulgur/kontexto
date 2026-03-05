@@ -2,14 +2,14 @@
 
 import os
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from game import GameState
-from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse, RevealResponse
+from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse, RevealResponse, PastGamesResponse
 
 _game_state: GameState | None = None
 
@@ -28,6 +28,21 @@ def _get_current_game_number() -> int:
     if forced:
         return int(forced)
     return gs.get_game_number()
+
+
+def _resolve_game_number(game: int | None) -> int:
+    """Resolve game number: None means today's game, otherwise validate."""
+    if game is None:
+        return _get_current_game_number()
+    gs = _get_game_state()
+    total = gs.metadata.get("total_games", len(gs.target_words))
+    if game < 1 or game > total:
+        raise ValueError(f"Spiel {game} existiert nicht (1-{total})")
+    # Check that the game date is in the past
+    game_date = gs.start_date + timedelta(days=game - 1)
+    if game_date >= date.today():
+        raise ValueError(f"Spiel {game} ist noch nicht verfügbar")
+    return game
 
 
 @asynccontextmanager
@@ -52,9 +67,12 @@ if os.environ.get("KONTEXTO_DEV"):
 
 
 @app.post("/api/guess", response_model=GuessResponse)
-async def guess(req: GuessRequest):
+async def guess(req: GuessRequest, game: int | None = Query(None)):
     gs = _get_game_state()
-    game_num = _get_current_game_number()
+    try:
+        game_num = _resolve_game_number(game)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
 
     result = gs.guess(req.word)
@@ -70,9 +88,13 @@ async def guess(req: GuessRequest):
 async def tip(
     difficulty: str = Query("easy", pattern="^(easy|medium|hard)$"),
     best_rank: int = Query(1000, ge=1),
+    game: int | None = Query(None),
 ):
     gs = _get_game_state()
-    game_num = _get_current_game_number()
+    try:
+        game_num = _resolve_game_number(game)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
 
     result = gs.get_tip(difficulty=difficulty, best_rank=best_rank)
@@ -96,9 +118,26 @@ async def game_info():
     }
 
 
-@app.get("/api/reveal", response_model=RevealResponse)
-async def reveal():
+@app.get("/api/games", response_model=PastGamesResponse)
+async def past_games():
     gs = _get_game_state()
-    game_num = _get_current_game_number()
+    today_game = _get_current_game_number()
+    yesterday = date.today() - timedelta(days=1)
+    games = []
+    current = yesterday
+    while current >= gs.start_date:
+        game_num = gs.get_game_number(current)
+        games.append({"gameNumber": game_num, "date": current.isoformat()})
+        current -= timedelta(days=1)
+    return {"games": games, "todayGame": today_game}
+
+
+@app.get("/api/reveal", response_model=RevealResponse)
+async def reveal(game: int | None = Query(None)):
+    gs = _get_game_state()
+    try:
+        game_num = _resolve_game_number(game)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
     return {"word": gs.get_target_word(game_num)}

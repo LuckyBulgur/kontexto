@@ -11,6 +11,7 @@ import FAQDialog from "@/components/FAQDialog";
 import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
 import GiveUpResultDialog from "@/components/GiveUpResultDialog";
+import PastGamesDialog from "@/components/PastGamesDialog";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
@@ -31,6 +32,8 @@ export default function Home() {
   const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [showGiveUpResult, setShowGiveUpResult] = useState(false);
+  const [showPastGames, setShowPastGames] = useState(false);
+  const [pastGame, setPastGame] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,8 +60,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (gameState.gameNumber > 0) saveGameState(gameState);
-  }, [gameState]);
+    if (gameState.gameNumber > 0 && pastGame === null) saveGameState(gameState);
+  }, [gameState, pastGame]);
 
   const handleThemeChange = useCallback((t: "light" | "dark") => {
     setTheme(t);
@@ -93,7 +96,7 @@ export default function Home() {
       return;
     }
     try {
-      const result = await submitGuess(word);
+      const result = await submitGuess(word, pastGame);
       addGuess({ word: result.word, rank: result.rank, isTip: false });
       setTotal(result.total);
     } catch (e: unknown) {
@@ -103,7 +106,7 @@ export default function Home() {
         setError("Fehler bei der Verbindung");
       }
     }
-  }, [gameState.guesses, addGuess]);
+  }, [gameState.guesses, addGuess, pastGame]);
 
   const handleTip = useCallback(async () => {
     setError(null);
@@ -111,7 +114,7 @@ export default function Home() {
       ? Math.min(...gameState.guesses.map((g) => g.rank))
       : 10000;
     try {
-      const result = await getTip(difficulty, bestRank);
+      const result = await getTip(difficulty, bestRank, pastGame);
       if (gameState.guesses.some((g) => g.word === result.word)) return;
       setGameState((prev) => ({ ...prev, tips: prev.tips + 1 }));
       addGuess({ word: result.word, rank: result.rank, isTip: true });
@@ -119,12 +122,12 @@ export default function Home() {
     } catch {
       setError("Tipp konnte nicht geladen werden");
     }
-  }, [gameState.guesses, difficulty, addGuess]);
+  }, [gameState.guesses, difficulty, addGuess, pastGame]);
 
   const handleGiveUp = useCallback(async () => {
     setShowGiveUp(false);
     try {
-      const result = await revealAnswer();
+      const result = await revealAnswer(pastGame);
       setGameState((prev) => ({
         ...prev,
         guesses: [...prev.guesses, { word: result.word, rank: 1, isTip: false }],
@@ -135,6 +138,30 @@ export default function Home() {
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
+  }, [pastGame]);
+
+  const handleSelectPastGame = useCallback((selectedGame: number) => {
+    setPastGame(selectedGame);
+    setGameNumber(selectedGame);
+    setGameState({ gameNumber: selectedGame, guesses: [], tips: 0, solved: false });
+    setError(null);
+    setLatestWord(undefined);
+    setShowWin(false);
+    setShowGiveUpResult(false);
+  }, []);
+
+  const handleBackToToday = useCallback(() => {
+    setPastGame(null);
+    getGameInfo().then((info) => {
+      setGameNumber(info.gameNumber);
+      setTotal(info.total);
+      const saved = loadGameState(info.gameNumber);
+      setGameState(saved);
+      setError(null);
+      setLatestWord(undefined);
+      setShowWin(saved.solved);
+      setShowGiveUpResult(!!saved.givenUp);
+    });
   }, []);
 
   const gameOver = gameState.solved || !!gameState.givenUp;
@@ -152,9 +179,18 @@ export default function Home() {
         onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
         onCreditsOpen={() => setShowCredits(true)}
+        onPastGamesOpen={() => setShowPastGames(true)}
         tipDisabled={gameOver}
         giveUpDisabled={gameOver}
       />
+      {pastGame !== null && (
+        <button
+          onClick={handleBackToToday}
+          className="mx-4 mt-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+        >
+          Du spielst Spiel #{pastGame} · Zurück zum heutigen Spiel
+        </button>
+      )}
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
         <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
           <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
@@ -171,6 +207,7 @@ export default function Home() {
       <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       {showGiveUpResult && <GiveUpResultDialog gameNumber={gameNumber} word={gameState.guesses.find((g) => g.rank === 1)?.word ?? ""} guessCount={gameState.guesses.length} onClose={() => setShowGiveUpResult(false)} />}
+      <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
     </div>
   );
 }

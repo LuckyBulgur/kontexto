@@ -29,3 +29,13 @@ class GameInfoResponse(BaseModel):
 
 class RevealResponse(BaseModel):
     word: str
+
+
+class PastGameEntry(BaseModel):
+    gameNumber: int
+    date: str
+
+
+class PastGamesResponse(BaseModel):
+    games: list[PastGameEntry]
+    todayGame: int

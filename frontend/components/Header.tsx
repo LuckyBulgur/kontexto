@@ -7,6 +7,7 @@ import {
   CircleHelp,
   Settings,
   Info,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ interface HeaderProps {
   onFAQOpen: () => void;
   onSettingsOpen: () => void;
   onCreditsOpen: () => void;
+  onPastGamesOpen: () => void;
   tipDisabled?: boolean;
   giveUpDisabled?: boolean;
 }
@@ -35,6 +37,7 @@ export default function Header({
   onFAQOpen,
   onSettingsOpen,
   onCreditsOpen,
+  onPastGamesOpen,
   tipDisabled,
   giveUpDisabled,
 }: HeaderProps) {
@@ -65,6 +68,10 @@ export default function Header({
             <DropdownMenuItem onClick={onFAQOpen}>
               <CircleHelp className="h-4 w-4" />
               FAQ
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onPastGamesOpen}>
+              <History className="h-4 w-4" />
+              Vergangene Spiele
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onSettingsOpen}>
