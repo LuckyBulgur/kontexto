@@ -198,6 +198,32 @@ export default function Home() {
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
         </div>
         <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} />
+        {gameState.guesses.length === 0 && !gameOver && (
+          <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
+            <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
+            <p>
+              Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
+            </p>
+            <div className="space-y-1">
+              <h4 className="font-medium text-foreground text-sm">Rang-System</h4>
+              <p>
+                Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit. Je niedriger der Rang, desto näher bist du dran.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-medium text-foreground text-sm">Farben</h4>
+              <ul className="space-y-1 list-none">
+                <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün — sehr nah (Rang 1–300)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb — auf dem richtigen Weg (Rang 301–1500)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot — noch weit entfernt (Rang 1501+)</li>
+              </ul>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-medium text-foreground text-sm">Tipps</h4>
+              <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
+            </div>
+          </div>
+        )}
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} sortMode={sortMode} />
       </main>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
