@@ -52,7 +52,7 @@ chmod 600 "$DEPLOY_HOME/.ssh/authorized_keys"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_HOME/.ssh"
 echo "SSH-Verzeichnis fuer '$DEPLOY_USER' wurde eingerichtet."
 
-systemctl restart sshd
+systemctl restart ssh
 echo "SSH-Dienst wurde neu gestartet."
 echo ""
 
