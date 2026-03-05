@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { HeartCrack } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ export default function GiveUpResultDialog({ gameNumber, word, guessCount, onClo
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm text-center">
         <DialogHeader className="text-center sm:text-center items-center">
-          <div className="text-4xl mb-2">&#128166;</div>
+          <HeartCrack size={40} className="mb-2 text-red-500" />
           <DialogTitle className="text-2xl">Aufgegeben</DialogTitle>
           <DialogDescription className="sr-only">Spielergebnis nach Aufgabe</DialogDescription>
         </DialogHeader>
