@@ -180,7 +180,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare Kontexto game data")
     parser.add_argument("--fasttext", default="cc.de.300.bin", help="Path to fastText model file")
     parser.add_argument("--output", default="data", help="Output directory")
-    parser.add_argument("--games", type=int, default=1000, help="Number of games to generate")
+    parser.add_argument("--games", type=int, default=5000, help="Number of games to generate")
     parser.add_argument("--start-date", default="2026-03-04", help="Start date (YYYY-MM-DD)")
     parser.add_argument("--vocab-size", type=int, default=50000, help="Max vocabulary size")
     args = parser.parse_args()
