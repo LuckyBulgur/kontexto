@@ -40,9 +40,9 @@ echo ""
 
 # --- Schritt 4/5: SSH haerten ---
 echo "=== Schritt 4/5: SSH haerten ==="
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-echo "SSH-Konfiguration wurde angepasst (Root-Login und Passwort-Authentifizierung deaktiviert)."
+echo "SSH-Konfiguration wurde angepasst (Root-Login nur per Key, Passwort-Auth deaktiviert)."
 
 DEPLOY_HOME=$(eval echo "~$DEPLOY_USER")
 mkdir -p "$DEPLOY_HOME/.ssh"
