@@ -58,8 +58,8 @@ COPY <<'ENTRYPOINT' /app/entrypoint.sh
 set -e
 
 # Fix volume permissions (volume mounts as root)
-chown -R appuser:appuser /app/data
 mkdir -p /app/data/games
+chown -R appuser:appuser /app/data
 
 if [ ! -f /app/data/metadata.json ]; then
     echo "No data found. Running data preparation..."
