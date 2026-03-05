@@ -50,5 +50,5 @@ jobs:
             docker compose up --build -d
             docker image prune -f
             sleep 5
-            curl -f http://localhost:8080/api/game
+            curl -f http://localhost/api/game
             echo "Deploy successful!"

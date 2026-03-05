@@ -1,8 +1,21 @@
 services:
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - kontexto
+    restart: unless-stopped
+
   kontexto:
     build: .
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - kontexto-data:/app/data
     environment:
@@ -11,3 +24,5 @@ services:
 
 volumes:
   kontexto-data:
+  caddy-data:
+  caddy-config:

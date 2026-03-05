@@ -1,0 +1,3 @@
+kontexto.de {
+    reverse_proxy kontexto:8080
+}
