@@ -45,8 +45,8 @@ COPY --from=frontend-build /app/frontend/out /app/frontend/out
 # Configure nginx for non-root: remove user directive, fix pid path
 RUN sed -i '/^user /d' /etc/nginx/nginx.conf && \
     sed -i 's|pid /run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
+    mkdir -p /var/cache/nginx /tmp/nginx && \
     chown -R appuser:appuser /var/log/nginx /var/lib/nginx /var/cache/nginx && \
-    mkdir -p /tmp/nginx && \
     chown -R appuser:appuser /app /tmp/nginx
 
 EXPOSE 8080
