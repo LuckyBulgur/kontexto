@@ -213,9 +213,9 @@ export default function Home() {
             <div className="space-y-1">
               <h4 className="font-medium text-foreground text-sm">Farben</h4>
               <ul className="space-y-1 list-none">
-                <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün — sehr nah (Rang 1–300)</li>
-                <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb — auf dem richtigen Weg (Rang 301–1500)</li>
-                <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot — noch weit entfernt (Rang 1501+)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün - sehr nah (Rang 1-300)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb - auf dem richtigen Weg (Rang 301-1500)</li>
+                <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot - noch weit entfernt (Rang 1501+)</li>
               </ul>
             </div>
             <div className="space-y-1">
