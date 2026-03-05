@@ -77,6 +77,11 @@ async def guess(req: GuessRequest, game: int | None = Query(None)):
 
     result = gs.guess(req.word)
     if result is None:
+        if gs.is_stopword(req.word):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
+            )
         return JSONResponse(
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},

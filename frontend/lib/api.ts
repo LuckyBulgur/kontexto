@@ -10,6 +10,7 @@ export async function submitGuess(word: string, game?: number | null): Promise<G
     body: JSON.stringify({ word }),
   });
   if (res.status === 404) throw new Error("unknown_word");
+  if (res.status === 422) throw new Error("stopword");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

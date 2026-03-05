@@ -11,24 +11,21 @@ from pybloom_live import BloomFilter
 import simplemma
 
 GERMAN_STOPWORDS = {
+    # Artikel
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer", "eines",
-    "einem", "einen", "und", "oder", "aber", "doch", "wenn", "weil", "dass",
-    "als", "wie", "auch", "noch", "schon", "nur", "nicht", "kein", "keine",
-    "keiner", "keines", "keinem", "keinen", "ich", "du", "er", "sie", "es",
-    "wir", "ihr", "sie", "mir", "dir", "ihm", "uns", "euch", "ihnen",
-    "mein", "dein", "sein", "unser", "euer", "mich", "dich", "sich",
-    "von", "mit", "auf", "für", "aus", "bei", "nach", "seit", "vor",
-    "bis", "durch", "gegen", "ohne", "um", "über", "unter", "zwischen",
-    "neben", "hinter", "ist", "sind", "war", "waren", "hat", "haben",
-    "wird", "werden", "kann", "können", "muss", "müssen", "soll", "sollen",
-    "will", "wollen", "darf", "dürfen", "mag", "mögen", "wurde", "würde",
-    "hätte", "wäre", "zum", "zur", "im", "am", "ans", "ins", "vom",
-    "beim", "aufs", "fürs", "ums", "übers", "unters", "so", "da", "hier",
-    "dort", "dann", "wann", "wo", "was", "wer", "wen", "wem", "welch",
-    "diese", "dieser", "dieses", "diesem", "diesen", "jede", "jeder",
-    "jedes", "jedem", "jeden", "alle", "alles", "allem", "allen", "aller",
-    "man", "mehr", "sehr", "viel", "viele", "ganz", "gar", "ja", "nein",
-    "zu", "an", "ab", "in",
+    "einem", "einen",
+    # Konjunktionen
+    "und", "oder", "dass",
+    # Pronomen
+    "ich", "du", "er", "sie", "es", "wir", "ihr", "mir", "dir", "ihm",
+    "uns", "euch", "ihnen", "mich", "dich", "sich",
+    # Präpositionen
+    "von", "mit", "auf", "für", "aus", "bei", "nach", "zu", "an", "in",
+    "um", "bis", "zum", "zur", "im", "am", "ans", "ins", "vom", "beim",
+    # Hilfsverben
+    "ist", "sind", "war", "hat", "bin",
+    # Partikel
+    "nicht",
 }
 
 _ALPHA_RE = re.compile(r"^[a-zäöüß]+$")
