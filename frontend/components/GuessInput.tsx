@@ -7,9 +7,10 @@ interface GuessInputProps {
   onGuess: (word: string) => void;
   disabled?: boolean;
   error?: string | null;
+  placeholder?: string;
 }
 
-export default function GuessInput({ onGuess, disabled, error }: GuessInputProps) {
+export default function GuessInput({ onGuess, disabled, error, placeholder = "Wort eingeben..." }: GuessInputProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -30,7 +31,7 @@ export default function GuessInput({ onGuess, disabled, error }: GuessInputProps
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Wort eingeben..."
+          placeholder={placeholder}
           disabled={disabled}
           autoComplete="off"
           autoCapitalize="off"
