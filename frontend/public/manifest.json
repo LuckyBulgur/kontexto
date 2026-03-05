@@ -1,0 +1,17 @@
+{
+  "name": "Kontexto",
+  "short_name": "Kontexto",
+  "description": "Deutsches Wort-Ratespiel basierend auf semantischer Ähnlichkeit",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
