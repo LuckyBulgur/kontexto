@@ -200,7 +200,7 @@ export default function Home() {
         </button>
       )}
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
-        <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
           <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
           <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
