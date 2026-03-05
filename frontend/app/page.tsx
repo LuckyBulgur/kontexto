@@ -101,7 +101,7 @@ export default function Home() {
     setError(null);
     setPodestError(undefined);
     if (gameState.guesses.some((g) => g.word === word.toLowerCase())) {
-      setError("Wort bereits geraten!");
+      setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten!" });
       return;
     }
     setPendingWord(word.toLowerCase());
