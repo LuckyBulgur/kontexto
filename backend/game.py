@@ -12,6 +12,8 @@ from datetime import date
 
 import numpy as np
 
+from prepare import GERMAN_STOPWORDS
+
 
 class GameState:
     """Holds all game data in memory for fast lookups."""
@@ -71,6 +73,9 @@ class GameState:
         days = (today - self.start_date).days + 1
         total = self.metadata.get("total_games", len(self.target_words))
         return ((days - 1) % total) + 1
+
+    def is_stopword(self, word: str) -> bool:
+        return word.strip().lower() in GERMAN_STOPWORDS
 
     def normalize_word(self, word: str) -> str | None:
         """Normalize a word: lowercase, check vocab first, lemma as fallback."""

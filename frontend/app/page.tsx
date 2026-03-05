@@ -108,6 +108,8 @@ export default function Home() {
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "unknown_word") {
         setError("Wort nicht im Wörterbuch");
+      } else if (e instanceof Error && e.message === "stopword") {
+        setError("Dieses Wort zählt nicht – es ist zu allgemein");
       } else {
         setError("Fehler bei der Verbindung");
       }
