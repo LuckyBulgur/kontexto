@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     q: "Wie wird die Ähnlichkeit berechnet?",
-    a: "Wir verwenden fastText-Worteinbettungen, die auf großen deutschen Textkorpora trainiert wurden. Die Ähnlichkeit basiert auf dem Kontext, in dem Wörter typischerweise verwendet werden — nicht auf Buchstabenähnlichkeit.",
+    a: "Wir verwenden fastText-Worteinbettungen, die auf großen deutschen Textkorpora trainiert wurden. Die Ähnlichkeit basiert auf dem Kontext, in dem Wörter typischerweise verwendet werden, nicht auf Buchstabenähnlichkeit.",
   },
   {
     q: "Wann gibt es ein neues Wort?",
