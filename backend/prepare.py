@@ -90,6 +90,18 @@ def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_len
     return filtered, frequency_order
 
 
+def postprocess_vectors(vectors: dict[str, np.ndarray], n_components: int = 3) -> dict[str, np.ndarray]:
+    """Remove mean and top principal components from vectors (All-but-the-Top)."""
+    words = list(vectors.keys())
+    mat = np.array([vectors[w] for w in words], dtype=np.float32)
+    mean = mat.mean(axis=0)
+    mat -= mean
+    u, s, vt = np.linalg.svd(mat, full_matrices=False)
+    top = vt[:n_components]
+    mat -= mat @ top.T @ top
+    return {w: mat[i] for i, w in enumerate(words)}
+
+
 def compute_rankings(target_word: str, vocab_list: list[str], vectors: dict[str, np.ndarray]) -> np.ndarray:
     target_vec = vectors[target_word]
     target_norm = target_vec / np.linalg.norm(target_vec)
@@ -178,6 +190,10 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     vocab_list = sorted(filtered.keys())
     vocab_index = {w: i for i, w in enumerate(vocab_list)}
     print(f"  Filtered to {len(vocab_list)} words (max {vocab_size}).")
+
+    print("Post-processing vectors (All-but-the-Top)...")
+    filtered = postprocess_vectors(filtered)
+    print(f"  Removed mean and top 3 principal components.")
 
     print("Selecting target words (frequent words)...")
     targets = select_target_words(vocab_list, filtered, n=min(num_games * 2, len(vocab_list)), frequency_order=frequency_order)
