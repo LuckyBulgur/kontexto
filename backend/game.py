@@ -112,21 +112,35 @@ class GameState:
             "total": len(self.current_rankings),
         }
 
-    def get_tip(self, difficulty: str, best_rank: int) -> dict | None:
-        """Get a hint word based on difficulty level."""
+    def get_tip(self, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
+        """Get a hint word based on difficulty level.
+
+        Never returns rank 1 (the answer). If the computed rank was already
+        guessed, searches upward for the next unguessed rank.
+        """
+        if guessed_ranks is None:
+            guessed_ranks = []
+        guessed_set = set(guessed_ranks) | {1}  # always exclude rank 1
+
         if difficulty == "easy":
-            target_rank = max(1, best_rank // 2)
+            target_rank = max(2, best_rank // 2)
         elif difficulty == "medium":
-            target_rank = max(1, best_rank - 1)
+            target_rank = max(2, best_rank - 1)
         else:  # hard
-            target_rank = random.randint(1, max(1, best_rank - 1))
+            target_rank = random.randint(2, max(2, best_rank - 1))
 
         max_rank = len(self.rank_to_word) - 1
         target_rank = min(target_rank, max_rank)
-        best_word = self.rank_to_word[target_rank]
+
+        # Search upward for an unguessed rank
+        while target_rank <= max_rank and target_rank in guessed_set:
+            target_rank += 1
+
+        if target_rank > max_rank:
+            return None
 
         return {
-            "word": best_word,
+            "word": self.rank_to_word[target_rank],
             "rank": target_rank,
         }
 
