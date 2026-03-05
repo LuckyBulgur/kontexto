@@ -213,7 +213,7 @@ export default function Home() {
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
         </div>
         <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
-        {gameState.guesses.length === 0 && !gameOver && (
+        {gameState.guesses.length === 0 && !gameOver && !podestError && (
           <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
             <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
             <p>
@@ -239,7 +239,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        {gameState.guesses.length === 0 && !gameOver && (
+        {gameState.guesses.length === 0 && !gameOver && !podestError && (
           <div className="rounded-xl border bg-card p-5 text-sm">
             <h3 className="text-base font-semibold text-foreground mb-2">Häufige Fragen</h3>
             <Accordion type="single" collapsible>
