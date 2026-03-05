@@ -34,8 +34,9 @@ GERMAN_STOPWORDS = {
 _ALPHA_RE = re.compile(r"^[a-zäöüß]+$")
 
 
-def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_length: int = 25, vocab_size: int = 0) -> dict[str, np.ndarray]:
+def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_length: int = 25, vocab_size: int = 0) -> tuple[dict[str, np.ndarray], list[str]]:
     filtered: dict[str, np.ndarray] = {}
+    frequency_order: list[str] = []
     for word, vec in words.items():
         w = word.lower()
         if len(w) < min_length or len(w) > max_length:
@@ -48,9 +49,10 @@ def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_len
             continue
         if w not in filtered:
             filtered[w] = vec
+            frequency_order.append(w)
         if vocab_size > 0 and len(filtered) >= vocab_size:
             break
-    return filtered
+    return filtered, frequency_order
 
 
 def compute_rankings(target_word: str, vocab_list: list[str], vectors: dict[str, np.ndarray]) -> np.ndarray:
@@ -105,8 +107,8 @@ def load_fasttext_vectors(path: str) -> tuple[dict[str, np.ndarray], set[str]]:
         return vectors, raw_words
 
 
-def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int = 2000, raw_words: set[str] | None = None) -> list[str]:
-    candidates = []
+def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int = 2000, raw_words: set[str] | None = None, frequency_order: list[str] | None = None) -> list[str]:
+    candidates = set()
     for w in vocab:
         if len(w) < 3 or len(w) > 15:
             continue
@@ -119,10 +121,19 @@ def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int
         lemma = simplemma.lemmatize(w, lang="de")
         if lemma != w:
             continue
-        candidates.append(w)
+        candidates.add(w)
+    # Prefer frequent words as targets: walk frequency_order and pick candidates
+    if frequency_order is not None:
+        ordered = [w for w in frequency_order if w in candidates]
+    else:
+        ordered = list(candidates)
     rng = random.Random(42)
-    rng.shuffle(candidates)
-    return candidates[:n]
+    rng.shuffle(ordered)
+    # Sort so most frequent come first, then shuffle within that constraint
+    if frequency_order is not None:
+        freq_rank = {w: i for i, w in enumerate(frequency_order)}
+        ordered.sort(key=lambda w: freq_rank.get(w, len(frequency_order)))
+    return ordered[:n]
 
 
 def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 50000) -> None:
@@ -131,13 +142,13 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     print(f"  Loaded {len(raw_vectors)} raw vectors.")
 
     print("Filtering vocabulary...")
-    filtered = filter_vocabulary(raw_vectors, vocab_size=vocab_size)
+    filtered, frequency_order = filter_vocabulary(raw_vectors, vocab_size=vocab_size)
     vocab_list = sorted(filtered.keys())
     vocab_index = {w: i for i, w in enumerate(vocab_list)}
     print(f"  Filtered to {len(vocab_list)} words (max {vocab_size}).")
 
-    print("Selecting target words (nouns only)...")
-    targets = select_target_words(vocab_list, filtered, n=min(num_games * 2, len(vocab_list)), raw_words=raw_words)
+    print("Selecting target words (frequent nouns)...")
+    targets = select_target_words(vocab_list, filtered, n=min(num_games * 2, len(vocab_list)), raw_words=raw_words, frequency_order=frequency_order)
     if len(targets) < num_games:
         raise ValueError(f"Not enough target words ({len(targets)}) for {num_games} games.")
     targets = targets[:num_games]
@@ -180,7 +191,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare Kontexto game data")
     parser.add_argument("--fasttext", default="cc.de.300.bin", help="Path to fastText model file")
     parser.add_argument("--output", default="data", help="Output directory")
-    parser.add_argument("--games", type=int, default=5000, help="Number of games to generate")
+    parser.add_argument("--games", type=int, default=3000, help="Number of games to generate")
     parser.add_argument("--start-date", default="2026-03-04", help="Start date (YYYY-MM-DD)")
     parser.add_argument("--vocab-size", type=int, default=50000, help="Max vocabulary size")
     args = parser.parse_args()
