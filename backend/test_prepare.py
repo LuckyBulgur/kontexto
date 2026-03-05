@@ -134,11 +134,14 @@ def test_filter_vocabulary_removes_english_words():
     assert "voice" not in result
 
 
-def test_select_target_words_prefers_nouns():
+def test_select_target_words_prefers_frequent():
     from prepare import select_target_words
-    vocab = ["apfel", "birne", "schnell", "laufen", "haus", "kirsche"]
+    # Use words whose lemma == word (simplemma keeps these unchanged)
+    vocab = ["laufen", "schnell", "offen", "warm", "kalt", "lang"]
     vectors = {w: np.random.rand(300) for w in vocab}
-    raw_words = {"Apfel", "apfel", "Birne", "birne", "schnell", "laufen", "Haus", "haus", "Kirsche", "kirsche"}
-    result = select_target_words(vocab, vectors, raw_words=raw_words, n=10)
+    frequency_order = ["schnell", "laufen", "warm", "kalt", "offen", "lang"]
+    result = select_target_words(vocab, vectors, n=3, frequency_order=frequency_order)
+    assert len(result) == 3
+    # Most frequent words should be selected
     for w in result:
-        assert w[0].upper() + w[1:] in raw_words
+        assert w in frequency_order[:3]
