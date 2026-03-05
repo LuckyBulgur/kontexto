@@ -8,7 +8,9 @@ import {
   Settings,
   Info,
   History,
+  Shield,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -81,6 +83,12 @@ export default function Header({
             <DropdownMenuItem onClick={onCreditsOpen}>
               <Info className="h-4 w-4" />
               Credits
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/datenschutz">
+                <Shield className="h-4 w-4" />
+                Datenschutz
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
