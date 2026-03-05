@@ -27,6 +27,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends nginx supervisor wget && \
     rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
 COPY backend/requirements.txt backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
@@ -39,7 +42,14 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY --from=frontend-build /app/frontend/out /app/frontend/out
 
-EXPOSE 80
+# Configure nginx for non-root: remove user directive, fix pid path
+RUN sed -i '/^user /d' /etc/nginx/nginx.conf && \
+    sed -i 's|pid /run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
+    chown -R appuser:appuser /var/log/nginx /var/lib/nginx /var/cache/nginx && \
+    mkdir -p /tmp/nginx && \
+    chown -R appuser:appuser /app /tmp/nginx
+
+EXPOSE 8080
 
 COPY <<'ENTRYPOINT' /app/entrypoint.sh
 #!/bin/bash
@@ -53,5 +63,7 @@ fi
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 ENTRYPOINT
 RUN chmod +x /app/entrypoint.sh
+
+USER appuser
 
 CMD ["/app/entrypoint.sh"]
