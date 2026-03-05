@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from game import GameState
-from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse, RevealResponse, PastGamesResponse
+from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse, RevealResponse, PastGamesResponse, ClosestWordsResponse
 
 _game_state: GameState | None = None
 
@@ -47,9 +47,7 @@ def _resolve_game_number(game: int | None) -> int:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    gs = _get_game_state()
-    game_num = _get_current_game_number()
-    gs.load_game(game_num)
+    _get_game_state()
     yield
     global _game_state
     _game_state = None
@@ -75,13 +73,14 @@ async def guess(req: GuessRequest, game: int | None = Query(None)):
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
 
-    result = gs.guess(req.word)
+    if gs.is_stopword(req.word):
+        return JSONResponse(
+            status_code=422,
+            content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
+        )
+
+    result = gs.guess(req.word, game_num)
     if result is None:
-        if gs.is_stopword(req.word):
-            return JSONResponse(
-                status_code=422,
-                content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
-            )
         return JSONResponse(
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
@@ -104,7 +103,7 @@ async def tip(
     gs.load_game(game_num)
 
     parsed_ranks = [int(r) for r in guessed_ranks.split(",") if r.strip().isdigit()]
-    result = gs.get_tip(difficulty=difficulty, best_rank=best_rank, guessed_ranks=parsed_ranks)
+    result = gs.get_tip(game_number=game_num, difficulty=difficulty, best_rank=best_rank, guessed_ranks=parsed_ranks)
     if result is None:
         return JSONResponse(
             status_code=404,
@@ -148,3 +147,15 @@ async def reveal(game: int | None = Query(None)):
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
     return {"word": gs.get_target_word(game_num)}
+
+
+@app.get("/api/closest", response_model=ClosestWordsResponse)
+async def closest_words(game: int | None = Query(None)):
+    gs = _get_game_state()
+    try:
+        game_num = _resolve_game_number(game)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
+    gs.load_game(game_num)
+
+    return {"words": gs.get_closest_words(game_num), "gameNumber": game_num}

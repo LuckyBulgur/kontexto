@@ -5,15 +5,15 @@ import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
 import SettingsModal from "@/components/SettingsModal";
-import WinDialog from "@/components/WinDialog";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog, { faqs } from "@/components/FAQDialog";
 import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
-import GiveUpResultDialog from "@/components/GiveUpResultDialog";
 import PastGamesDialog from "@/components/PastGamesDialog";
+import GameResultCard from "@/components/GameResultCard";
+import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
-import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
+import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed } from "@/lib/storage";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import {
   Accordion,
@@ -33,14 +33,14 @@ export default function Home() {
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [podestError, setPodestError] = useState<{ word: string; message: string } | undefined>();
-  const [showWin, setShowWin] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showFAQ, setShowFAQ] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
-  const [showGiveUpResult, setShowGiveUpResult] = useState(false);
   const [showPastGames, setShowPastGames] = useState(false);
+  const [showClosestWords, setShowClosestWords] = useState(false);
   const [pastGame, setPastGame] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,8 +57,7 @@ export default function Home() {
         setTotal(info.total);
         const saved = loadGameState(info.gameNumber);
         setGameState(saved);
-        if (saved.solved) setShowWin(true);
-        if (saved.givenUp) setShowGiveUpResult(true);
+        if (saved.solved || saved.givenUp) setShowResult(true);
         setLoading(false);
       })
       .catch(() => {
@@ -94,8 +93,13 @@ export default function Home() {
       solved: prev.solved || guess.rank === 1,
     }));
     setLatestWord(guess.word);
-    if (guess.rank === 1) setTimeout(() => setShowWin(true), 500);
-  }, []);
+    if (guess.rank === 1) {
+      if (pastGame === null) {
+        recordGamePlayed(new Date().toISOString().slice(0, 10));
+      }
+      setTimeout(() => setShowResult(true), 500);
+    }
+  }, [pastGame]);
 
   const handleGuess = useCallback(async (word: string) => {
     setError(null);
@@ -107,6 +111,10 @@ export default function Home() {
     setPendingWord(word.toLowerCase());
     try {
       const result = await submitGuess(word, pastGame);
+      if (gameState.guesses.some((g) => g.word === result.word)) {
+        setPodestError({ word: result.word, message: "Wort bereits geraten!" });
+        return;
+      }
       addGuess({ word: result.word, rank: result.rank, isTip: false });
       setTotal(result.total);
     } catch (e: unknown) {
@@ -149,7 +157,10 @@ export default function Home() {
         givenUp: true,
       }));
       setLatestWord(result.word);
-      setTimeout(() => setShowGiveUpResult(true), 500);
+      if (pastGame === null) {
+        recordGamePlayed(new Date().toISOString().slice(0, 10));
+      }
+      setTimeout(() => setShowResult(true), 500);
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
@@ -161,8 +172,7 @@ export default function Home() {
     setGameState({ gameNumber: selectedGame, guesses: [], tips: 0, solved: false });
     setError(null);
     setLatestWord(undefined);
-    setShowWin(false);
-    setShowGiveUpResult(false);
+    setShowResult(false);
   }, []);
 
   const handleBackToToday = useCallback(() => {
@@ -174,12 +184,12 @@ export default function Home() {
       setGameState(saved);
       setError(null);
       setLatestWord(undefined);
-      setShowWin(saved.solved);
-      setShowGiveUpResult(!!saved.givenUp);
+      setShowResult(saved.solved || !!saved.givenUp);
     });
   }, []);
 
   const gameOver = gameState.solved || !!gameState.givenUp;
+  const isWin = gameState.solved && !gameState.givenUp;
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground text-lg">Laden...</div></div>;
@@ -197,6 +207,7 @@ export default function Home() {
         onPastGamesOpen={() => setShowPastGames(true)}
         tipDisabled={gameOver}
         giveUpDisabled={gameOver}
+        showCountdown={gameOver}
       />
       {pastGame !== null && (
         <button
@@ -207,61 +218,73 @@ export default function Home() {
         </button>
       )}
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
-        <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
-          <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
-          <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
-          <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
-        </div>
-        <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
-        {gameState.guesses.length === 0 && !gameOver && !podestError && (
-          <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
-            <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
-            <p>
-              Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
-            </p>
-            <div className="space-y-1">
-              <h4 className="font-medium text-foreground text-sm">Rang-System</h4>
-              <p>
-                Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit. Je niedriger der Rang, desto näher bist du dran.
-              </p>
+        {gameOver && showResult ? (
+          <GameResultCard
+            gameNumber={gameNumber}
+            guesses={gameState.guesses}
+            tipCount={gameState.tips}
+            isWin={isWin}
+            onOpenPastGames={() => setShowPastGames(true)}
+            onOpenClosestWords={() => setShowClosestWords(true)}
+          />
+        ) : (
+          <>
+            <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+              <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
+              <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
+              <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
             </div>
-            <div className="space-y-1">
-              <h4 className="font-medium text-foreground text-sm">Farben</h4>
-              <ul className="space-y-1 list-none">
-                <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün - sehr nah (Rang 1-300)</li>
-                <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb - auf dem richtigen Weg (Rang 301-1500)</li>
-                <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot - noch weit entfernt (Rang 1501+)</li>
-              </ul>
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-medium text-foreground text-sm">Tipps</h4>
-              <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
-            </div>
-          </div>
-        )}
-        {gameState.guesses.length === 0 && !gameOver && !podestError && (
-          <div className="rounded-xl border bg-card p-5 text-sm">
-            <h3 className="text-base font-semibold text-foreground mb-2">Häufige Fragen</h3>
-            <Accordion type="single" collapsible>
-              {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`faq-${i}`}>
-                  <AccordionTrigger className="text-sm text-left">{faq.q}</AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
+            <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
+            {gameState.guesses.length === 0 && !gameOver && !podestError && (
+              <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
+                <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
+                <p>
+                  Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
+                </p>
+                <div className="space-y-1">
+                  <h4 className="font-medium text-foreground text-sm">Rang-System</h4>
+                  <p>
+                    Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit. Je niedriger der Rang, desto näher bist du dran.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-medium text-foreground text-sm">Farben</h4>
+                  <ul className="space-y-1 list-none">
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün - sehr nah (Rang 1-300)</li>
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb - auf dem richtigen Weg (Rang 301-1500)</li>
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot - noch weit entfernt (Rang 1501+)</li>
+                  </ul>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-medium text-foreground text-sm">Tipps</h4>
+                  <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
+                </div>
+              </div>
+            )}
+            {gameState.guesses.length === 0 && !gameOver && !podestError && (
+              <div className="rounded-xl border bg-card p-5 text-sm">
+                <h3 className="text-base font-semibold text-foreground mb-2">Häufige Fragen</h3>
+                <Accordion type="single" collapsible>
+                  {faqs.map((faq, i) => (
+                    <AccordionItem key={i} value={`faq-${i}`}>
+                      <AccordionTrigger className="text-sm text-left">{faq.q}</AccordionTrigger>
+                      <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
+          </>
         )}
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} sortMode={sortMode} />
       </main>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
-      {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
       <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
       <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
-      {showGiveUpResult && <GiveUpResultDialog gameNumber={gameNumber} word={gameState.guesses.find((g) => g.rank === 1)?.word ?? ""} guessCount={gameState.guesses.length} onClose={() => setShowGiveUpResult(false)} />}
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
+      <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} pastGame={pastGame} />
     </div>
   );
 }

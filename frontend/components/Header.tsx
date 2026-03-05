@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import {
   EllipsisVertical,
   Lightbulb,
@@ -30,6 +31,18 @@ interface HeaderProps {
   onPastGamesOpen: () => void;
   tipDisabled?: boolean;
   giveUpDisabled?: boolean;
+  showCountdown?: boolean;
+}
+
+function getTimeUntilMidnight(): string {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight.getTime() - now.getTime();
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 export default function Header({
@@ -42,10 +55,20 @@ export default function Header({
   onPastGamesOpen,
   tipDisabled,
   giveUpDisabled,
+  showCountdown,
 }: HeaderProps) {
+  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+
+  useEffect(() => {
+    if (!showCountdown) return;
+    const interval = setInterval(() => setCountdown(getTimeUntilMidnight()), 1000);
+    return () => clearInterval(interval);
+  }, [showCountdown]);
+
   return (
-    <header className="relative flex items-center justify-center px-4 pt-5 pb-1">
-      <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
+    <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
+      <div className="relative flex items-center justify-center w-full">
+        <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
       <div className="absolute right-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -93,6 +116,10 @@ export default function Header({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      </div>
+      {showCountdown && (
+        <p className="text-xs text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
+      )}
     </header>
   );
 }

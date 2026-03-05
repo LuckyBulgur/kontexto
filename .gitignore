@@ -35,6 +35,9 @@ CLAUDE.md
 # Docs
 docs/
 
+# Docker
+docker-compose.override.yml
+
 # OS
 .DS_Store
 Thumbs.db

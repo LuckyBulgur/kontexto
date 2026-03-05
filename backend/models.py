@@ -39,3 +39,13 @@ class PastGameEntry(BaseModel):
 class PastGamesResponse(BaseModel):
     games: list[PastGameEntry]
     todayGame: int
+
+
+class ClosestWordEntry(BaseModel):
+    word: str
+    rank: int
+
+
+class ClosestWordsResponse(BaseModel):
+    words: list[ClosestWordEntry]
+    gameNumber: int

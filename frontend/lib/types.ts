@@ -46,6 +46,22 @@ export interface PastGamesResponse {
 export type SortMode = "rank" | "chronological";
 export type Difficulty = "easy" | "medium" | "hard";
 
+export interface StreakData {
+  datesPlayed: string[];
+  currentStreak: number;
+  longestStreak: number;
+}
+
+export interface ClosestWordEntry {
+  word: string;
+  rank: number;
+}
+
+export interface ClosestWordsResponse {
+  words: ClosestWordEntry[];
+  gameNumber: number;
+}
+
 export function getRankColor(rank: number): "green" | "yellow" | "red" {
   if (rank <= 300) return "green";
   if (rank <= 1500) return "yellow";

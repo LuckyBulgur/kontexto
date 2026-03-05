@@ -92,39 +92,39 @@ class TestNormalizeWord:
 
 class TestGuess:
     def test_valid_guess(self, gs):
-        result = gs.guess("apfel")
+        result = gs.guess("apfel", 1)
         assert result is not None
         assert result["word"] == "apfel"
         assert result["rank"] == 1
         assert result["total"] == 5
 
     def test_lemmatized_guess(self, gs):
-        result = gs.guess("Äpfel")
+        result = gs.guess("Äpfel", 1)
         assert result is not None
         assert result["word"] == "apfel"
         assert result["rank"] == 1
 
     def test_unknown_guess(self, gs):
-        assert gs.guess("xyz123") is None
+        assert gs.guess("xyz123", 1) is None
 
 
 class TestGetTip:
     def test_easy_tip(self, gs):
-        result = gs.get_tip(difficulty="easy", best_rank=4)
+        result = gs.get_tip(game_number=1, difficulty="easy", best_rank=4)
         assert result is not None
         assert result["rank"] <= 4
 
     def test_medium_tip(self, gs):
-        result = gs.get_tip(difficulty="medium", best_rank=4)
+        result = gs.get_tip(game_number=1, difficulty="medium", best_rank=4)
         assert result is not None
         assert result["rank"] <= 4
 
     def test_hard_tip(self, gs):
-        result = gs.get_tip(difficulty="hard", best_rank=4)
+        result = gs.get_tip(game_number=1, difficulty="hard", best_rank=4)
         assert result is not None
 
     def test_tip_returns_word_and_rank(self, gs):
-        result = gs.get_tip(difficulty="easy", best_rank=1000)
+        result = gs.get_tip(game_number=1, difficulty="easy", best_rank=1000)
         assert "word" in result
         assert "rank" in result
 
@@ -152,14 +152,29 @@ class TestGetGameNumber:
         assert gs.get_game_number(date(2026, 1, 7)) == 1
 
 
+class TestGetClosestWords:
+    def test_returns_closest_words(self, gs):
+        result = gs.get_closest_words(1)
+        assert len(result) == 5
+        assert result[0]["rank"] == 1
+        assert result[0]["word"] == "apfel"
+        assert result[4]["rank"] == 5
+
+    def test_words_ordered_by_rank(self, gs):
+        result = gs.get_closest_words(1)
+        ranks = [r["rank"] for r in result]
+        assert ranks == sorted(ranks)
+
+
 class TestLoadGame:
     def test_load_caches(self, data_dir):
         state = GameState(data_dir)
         state.load_game(1)
-        assert state.current_game_number == 1
-        assert len(state.current_rankings) == 5
+        rankings, rank_to_word = state._get_game(1)
+        assert len(rankings) == 5
 
     def test_load_same_game_skips(self, gs):
-        rankings_before = gs.current_rankings
+        rankings_before, _ = gs._get_game(1)
         gs.load_game(1)
-        assert gs.current_rankings is rankings_before
+        rankings_after, _ = gs._get_game(1)
+        assert rankings_after is rankings_before
