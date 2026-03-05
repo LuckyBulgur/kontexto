@@ -127,8 +127,9 @@ export default function Home() {
     const bestRank = gameState.guesses.length > 0
       ? Math.min(...gameState.guesses.map((g) => g.rank))
       : 10000;
+    const guessedRanks = gameState.guesses.map((g) => g.rank);
     try {
-      const result = await getTip(difficulty, bestRank, pastGame);
+      const result = await getTip(difficulty, bestRank, pastGame, guessedRanks);
       if (gameState.guesses.some((g) => g.word === result.word)) return;
       setGameState((prev) => ({ ...prev, tips: prev.tips + 1 }));
       addGuess({ word: result.word, rank: result.rank, isTip: true });

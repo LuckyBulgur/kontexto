@@ -15,9 +15,10 @@ export async function submitGuess(word: string, game?: number | null): Promise<G
   return res.json();
 }
 
-export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null): Promise<TipResult> {
+export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null, guessedRanks?: number[]): Promise<TipResult> {
   const gameParam = game ? `&game=${game}` : "";
-  const res = await fetch(`${API_BASE}/tip?difficulty=${difficulty}&best_rank=${bestRank}${gameParam}`);
+  const ranksParam = guessedRanks && guessedRanks.length > 0 ? `&guessed_ranks=${guessedRanks.join(",")}` : "";
+  const res = await fetch(`${API_BASE}/tip?difficulty=${difficulty}&best_rank=${bestRank}${gameParam}${ranksParam}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

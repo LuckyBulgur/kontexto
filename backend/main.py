@@ -94,6 +94,7 @@ async def tip(
     difficulty: str = Query("easy", pattern="^(easy|medium|hard)$"),
     best_rank: int = Query(1000, ge=1),
     game: int | None = Query(None),
+    guessed_ranks: str = Query(""),
 ):
     gs = _get_game_state()
     try:
@@ -102,7 +103,8 @@ async def tip(
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
 
-    result = gs.get_tip(difficulty=difficulty, best_rank=best_rank)
+    parsed_ranks = [int(r) for r in guessed_ranks.split(",") if r.strip().isdigit()]
+    result = gs.get_tip(difficulty=difficulty, best_rank=best_rank, guessed_ranks=parsed_ranks)
     if result is None:
         return JSONResponse(
             status_code=404,
