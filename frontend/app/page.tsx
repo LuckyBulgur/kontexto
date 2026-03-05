@@ -10,6 +10,7 @@ import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
 import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
+import GiveUpResultDialog from "@/components/GiveUpResultDialog";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
@@ -29,6 +30,7 @@ export default function Home() {
   const [showFAQ, setShowFAQ] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
+  const [showGiveUpResult, setShowGiveUpResult] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function Home() {
         const saved = loadGameState(info.gameNumber);
         setGameState(saved);
         if (saved.solved) setShowWin(true);
+        if (saved.givenUp) setShowGiveUpResult(true);
         setLoading(false);
       })
       .catch(() => {
@@ -128,6 +131,7 @@ export default function Home() {
         givenUp: true,
       }));
       setLatestWord(result.word);
+      setTimeout(() => setShowGiveUpResult(true), 500);
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
@@ -166,6 +170,7 @@ export default function Home() {
       <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
       <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
+      {showGiveUpResult && <GiveUpResultDialog gameNumber={gameNumber} word={gameState.guesses.find((g) => g.rank === 1)?.word ?? ""} guessCount={gameState.guesses.length} onClose={() => setShowGiveUpResult(false)} />}
     </div>
   );
 }
