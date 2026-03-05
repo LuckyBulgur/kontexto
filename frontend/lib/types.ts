@@ -33,6 +33,16 @@ export interface GameState {
   givenUp?: boolean;
 }
 
+export interface PastGame {
+  gameNumber: number;
+  date: string;
+}
+
+export interface PastGamesResponse {
+  games: PastGame[];
+  todayGame: number;
+}
+
 export type SortMode = "rank" | "chronological";
 export type Difficulty = "easy" | "medium" | "hard";
 
