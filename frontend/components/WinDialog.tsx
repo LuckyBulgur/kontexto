@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { PartyPopper } from "lucide-react";
 import { Guess } from "@/lib/types";
 import ShareButton from "./ShareButton";
 import {
@@ -39,7 +40,7 @@ export default function WinDialog({ gameNumber, guesses, tipCount, onClose }: Wi
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm text-center">
         <DialogHeader className="text-center sm:text-center items-center">
-          <div className="text-4xl mb-2">&#127881;</div>
+          <PartyPopper size={40} className="mb-2 text-green-500" />
           <DialogTitle className="text-2xl">Gel&ouml;st!</DialogTitle>
           <DialogDescription className="sr-only">Spielergebnis und Countdown</DialogDescription>
         </DialogHeader>
