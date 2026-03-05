@@ -5,7 +5,7 @@ def test_filter_vocabulary_removes_short_words():
     from prepare import filter_vocabulary
     fake_words = {"a": np.random.rand(300), "ab": np.random.rand(300),
                   "hund": np.random.rand(300), "katze": np.random.rand(300), "x": np.random.rand(300)}
-    result = filter_vocabulary(fake_words)
+    result, _ = filter_vocabulary(fake_words)
     assert "a" not in result
     assert "x" not in result
     assert "hund" in result
@@ -17,7 +17,7 @@ def test_filter_vocabulary_removes_non_alpha():
     fake_words = {"hund": np.random.rand(300), "test123": np.random.rand(300),
                   "hello-world": np.random.rand(300), "küche": np.random.rand(300),
                   "http://x": np.random.rand(300), "12345": np.random.rand(300)}
-    result = filter_vocabulary(fake_words)
+    result, _ = filter_vocabulary(fake_words)
     assert "hund" in result
     assert "küche" in result
     assert "test123" not in result
@@ -29,7 +29,7 @@ def test_filter_vocabulary_removes_stopwords():
     from prepare import filter_vocabulary
     fake_words = {"der": np.random.rand(300), "die": np.random.rand(300),
                   "und": np.random.rand(300), "hund": np.random.rand(300), "oder": np.random.rand(300)}
-    result = filter_vocabulary(fake_words)
+    result, _ = filter_vocabulary(fake_words)
     assert "der" not in result
     assert "die" not in result
     assert "und" not in result
@@ -39,7 +39,7 @@ def test_filter_vocabulary_removes_stopwords():
 def test_filter_vocabulary_lowercases():
     from prepare import filter_vocabulary
     fake_words = {"Hund": np.random.rand(300), "KATZE": np.random.rand(300), "Schule": np.random.rand(300)}
-    result = filter_vocabulary(fake_words)
+    result, _ = filter_vocabulary(fake_words)
     assert "hund" in result
     assert "katze" in result
     assert "schule" in result
@@ -96,7 +96,7 @@ def test_filter_vocabulary_respects_max_length():
         "blechbearbeitungsmaschinenreinigung": np.random.rand(300),
         "katze": np.random.rand(300),
     }
-    result = filter_vocabulary(fake_words, max_length=25)
+    result, _ = filter_vocabulary(fake_words, max_length=25)
     assert "hund" in result
     assert "katze" in result
     assert "blechbearbeitungsmaschinenreinigung" not in result
@@ -111,7 +111,7 @@ def test_filter_vocabulary_respects_vocab_size():
         "sonne", "mond", "stern", "wolke", "regen",
     ]
     fake_words = {w: np.random.rand(300) for w in words}
-    result = filter_vocabulary(fake_words, vocab_size=10)
+    result, _ = filter_vocabulary(fake_words, vocab_size=10)
     assert len(result) == 10
 
 
@@ -125,7 +125,7 @@ def test_filter_vocabulary_removes_english_words():
         "leverage": np.random.rand(300),
         "voice": np.random.rand(300),
     }
-    result = filter_vocabulary(fake_words)
+    result, _ = filter_vocabulary(fake_words)
     assert "hund" in result
     assert "katze" in result
     assert "employer" not in result
