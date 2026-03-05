@@ -21,11 +21,16 @@ export interface Guess {
   isTip: boolean;
 }
 
+export interface RevealResult {
+  word: string;
+}
+
 export interface GameState {
   gameNumber: number;
   guesses: Guess[];
   tips: number;
   solved: boolean;
+  givenUp?: boolean;
 }
 
 export type SortMode = "rank" | "chronological";

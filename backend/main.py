@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from game import GameState
-from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse
+from models import GuessRequest, GuessResponse, TipResponse, GameInfoResponse, RevealResponse
 
 _game_state: GameState | None = None
 
@@ -94,3 +94,11 @@ async def game_info():
         "date": date.today().isoformat(),
         "total": gs.metadata["vocab_size"],
     }
+
+
+@app.get("/api/reveal", response_model=RevealResponse)
+async def reveal():
+    gs = _get_game_state()
+    game_num = _get_current_game_number()
+
+    return {"word": gs.get_target_word(game_num)}

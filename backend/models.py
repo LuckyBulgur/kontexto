@@ -25,3 +25,7 @@ class GameInfoResponse(BaseModel):
     gameNumber: int
     date: str
     total: int
+
+
+class RevealResponse(BaseModel):
+    word: str

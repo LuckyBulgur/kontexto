@@ -124,3 +124,7 @@ class GameState:
             "word": best_word,
             "rank": self.current_rankings[best_word],
         }
+
+    def get_target_word(self, game_number: int) -> str:
+        """Return the target word for the given game number."""
+        return self.target_words[game_number - 1]
