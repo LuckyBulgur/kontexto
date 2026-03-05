@@ -14,7 +14,7 @@ export default function GuessList({ guesses, total, latestWord, sortMode }: Gues
     ? [...guesses].sort((a, b) => a.rank - b.rank)
     : [...guesses];
   if (sorted.length === 0) {
-    return <div className="text-center text-muted-foreground py-8">Gib dein erstes Wort ein!</div>;
+    return null;
   }
   return (
     <div className="space-y-0.5">

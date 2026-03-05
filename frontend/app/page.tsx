@@ -7,7 +7,7 @@ import GuessList from "@/components/GuessList";
 import SettingsModal from "@/components/SettingsModal";
 import WinDialog from "@/components/WinDialog";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
-import FAQDialog from "@/components/FAQDialog";
+import FAQDialog, { faqs } from "@/components/FAQDialog";
 import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
 import GiveUpResultDialog from "@/components/GiveUpResultDialog";
@@ -15,6 +15,12 @@ import PastGamesDialog from "@/components/PastGamesDialog";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function Home() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -197,7 +203,7 @@ export default function Home() {
           <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
         </div>
-        <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} />
+        <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
         {gameState.guesses.length === 0 && !gameOver && (
           <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
             <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
@@ -222,6 +228,19 @@ export default function Home() {
               <h4 className="font-medium text-foreground text-sm">Tipps</h4>
               <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
             </div>
+          </div>
+        )}
+        {gameState.guesses.length === 0 && !gameOver && (
+          <div className="rounded-xl border bg-card p-5 text-sm">
+            <h3 className="text-base font-semibold text-foreground mb-2">Häufige Fragen</h3>
+            <Accordion type="single" collapsible>
+              {faqs.map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-sm text-left">{faq.q}</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         )}
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} sortMode={sortMode} />

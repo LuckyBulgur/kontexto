@@ -12,7 +12,7 @@ interface FAQDialogProps {
   onClose: () => void;
 }
 
-const faqs = [
+export const faqs = [
   {
     q: "Was ist Kontexto?",
     a: "Kontexto ist ein Wortratespiel, bei dem du das geheime Wort anhand von Bedeutungsähnlichkeit erraten musst. Die Ähnlichkeit wird durch KI-basierte Worteinbettungen berechnet.",
