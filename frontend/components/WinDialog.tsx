@@ -44,6 +44,7 @@ export default function WinDialog({ gameNumber, guesses, tipCount, onClose }: Wi
           <DialogTitle className="text-2xl">Gel&ouml;st!</DialogTitle>
           <DialogDescription className="sr-only">Spielergebnis und Countdown</DialogDescription>
         </DialogHeader>
+        <p className="text-2xl font-bold capitalize">{guesses.find((g) => g.rank === 1)?.word}</p>
         <p className="text-muted-foreground">Kontexto #{gameNumber}</p>
         <p className="text-muted-foreground">Versuche: {guesses.length} &middot; Tipps: {tipCount}</p>
         <div className="flex justify-center py-2">
