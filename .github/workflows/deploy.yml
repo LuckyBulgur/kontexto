@@ -1,0 +1,31 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/kontexto
+            git pull origin master
+            docker compose up --build -d
+            docker image prune -f
+            sleep 5
+            curl -f http://localhost:8080/api/game
+            echo "Deploy successful!"
