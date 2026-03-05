@@ -53,5 +53,6 @@ export function getRankColor(rank: number): "green" | "yellow" | "red" {
 }
 
 export function getBarWidth(rank: number, total: number): number {
+  if (rank === 1) return 100;
   return Math.max(5, 100 * (1 - rank / total));
 }
