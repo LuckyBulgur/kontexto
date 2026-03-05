@@ -240,7 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--fasttext", default="cc.de.300.bin", help="Path to fastText model file")
     parser.add_argument("--output", default="data", help="Output directory")
     parser.add_argument("--games", type=int, default=3000, help="Number of games to generate")
-    parser.add_argument("--start-date", default="2026-03-05", help="Start date (YYYY-MM-DD)")
+    parser.add_argument("--start-date", default="2026-03-06", help="Start date (YYYY-MM-DD)")
     parser.add_argument("--vocab-size", type=int, default=100000, help="Max vocabulary size")
     args = parser.parse_args()
     run_pipeline(output_dir=args.output, num_games=args.games, fasttext_path=args.fasttext, start_date=args.start_date, vocab_size=args.vocab_size)
