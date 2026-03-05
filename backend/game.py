@@ -58,10 +58,15 @@ class GameState:
         self.current_game_number = game_number
 
     def get_game_number(self, today: date | None = None) -> int:
-        """Calculate today's game number from the start date."""
+        """Calculate today's game number from the start date.
+
+        Wraps around when pre-computed games are exhausted.
+        """
         if today is None:
             today = date.today()
-        return (today - self.start_date).days + 1
+        days = (today - self.start_date).days + 1
+        total = self.metadata.get("total_games", len(self.target_words))
+        return ((days - 1) % total) + 1
 
     def normalize_word(self, word: str) -> str | None:
         """Normalize a word: lowercase, check vocab first, lemma as fallback."""
@@ -127,4 +132,6 @@ class GameState:
 
     def get_target_word(self, game_number: int) -> str:
         """Return the target word for the given game number."""
+        if game_number < 1 or game_number > len(self.target_words):
+            raise ValueError(f"Game {game_number} not available (1-{len(self.target_words)})")
         return self.target_words[game_number - 1]

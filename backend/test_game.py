@@ -34,7 +34,7 @@ def data_dir():
         with open(os.path.join(tmpdir, "target_words.json"), "w", encoding="utf-8") as f:
             json.dump(targets, f)
 
-        metadata = {"start_date": "2026-01-01", "vocab_size": 5}
+        metadata = {"start_date": "2026-01-01", "vocab_size": 5, "total_games": 3}
         with open(os.path.join(tmpdir, "metadata.json"), "w", encoding="utf-8") as f:
             json.dump(metadata, f)
 
@@ -132,13 +132,24 @@ class TestGetTip:
 class TestGetGameNumber:
     def test_game_number_from_date(self, gs):
         from datetime import date
-        test_date = date(2026, 1, 10)
-        assert gs.get_game_number(test_date) == 10
+        test_date = date(2026, 1, 3)
+        assert gs.get_game_number(test_date) == 3
 
     def test_game_number_day_one(self, gs):
         from datetime import date
         test_date = date(2026, 1, 1)
         assert gs.get_game_number(test_date) == 1
+
+    def test_game_number_wraps_around(self, gs):
+        from datetime import date
+        # Day 4 with 3 total_games → ((4-1) % 3) + 1 = 1
+        assert gs.get_game_number(date(2026, 1, 4)) == 1
+        # Day 5 → ((5-1) % 3) + 1 = 2
+        assert gs.get_game_number(date(2026, 1, 5)) == 2
+        # Day 6 → ((6-1) % 3) + 1 = 3
+        assert gs.get_game_number(date(2026, 1, 6)) == 3
+        # Day 7 → wraps again to 1
+        assert gs.get_game_number(date(2026, 1, 7)) == 1
 
 
 class TestLoadGame:

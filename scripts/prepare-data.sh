@@ -6,7 +6,7 @@ MODEL_URL="https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.de.300.bin.g
 MODEL_PATH="/tmp/cc.de.300.bin.gz"
 MODEL_BIN="/tmp/cc.de.300.bin"
 VOCAB_SIZE="${VOCAB_SIZE:-50000}"
-NUM_GAMES="${NUM_GAMES:-500}"
+NUM_GAMES="${NUM_GAMES:-1000}"
 
 echo "=== Kontexto Data Preparation ==="
 
