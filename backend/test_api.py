@@ -113,3 +113,11 @@ class TestGameInfoEndpoint:
         assert data["gameNumber"] == 1
         assert data["total"] == 5
         assert "date" in data
+
+
+class TestRevealEndpoint:
+    def test_reveal(self, client):
+        resp = client.get("/api/reveal")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["word"] == "apfel"

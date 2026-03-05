@@ -1,4 +1,4 @@
-import { GuessResult, TipResult, GameInfo, Difficulty } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -21,6 +21,12 @@ export async function getTip(difficulty: Difficulty, bestRank: number): Promise<
 
 export async function getGameInfo(): Promise<GameInfo> {
   const res = await fetch(`${API_BASE}/game`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function revealAnswer(): Promise<RevealResult> {
+  const res = await fetch(`${API_BASE}/reveal`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

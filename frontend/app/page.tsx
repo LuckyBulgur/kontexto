@@ -6,7 +6,11 @@ import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
 import SettingsModal from "@/components/SettingsModal";
 import WinDialog from "@/components/WinDialog";
-import { submitGuess, getTip, getGameInfo } from "@/lib/api";
+import HowToPlayDialog from "@/components/HowToPlayDialog";
+import FAQDialog from "@/components/FAQDialog";
+import CreditsDialog from "@/components/CreditsDialog";
+import GiveUpDialog from "@/components/GiveUpDialog";
+import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode } from "@/lib/storage";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 
@@ -21,6 +25,10 @@ export default function Home() {
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [showWin, setShowWin] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
+  const [showGiveUp, setShowGiveUp] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,7 +95,7 @@ export default function Home() {
       setTotal(result.total);
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "unknown_word") {
-        setError("Wort nicht im W\u00f6rterbuch");
+        setError("Wort nicht im Wörterbuch");
       } else {
         setError("Fehler bei der Verbindung");
       }
@@ -110,24 +118,54 @@ export default function Home() {
     }
   }, [gameState.guesses, difficulty, addGuess]);
 
+  const handleGiveUp = useCallback(async () => {
+    setShowGiveUp(false);
+    try {
+      const result = await revealAnswer();
+      setGameState((prev) => ({
+        ...prev,
+        guesses: [...prev.guesses, { word: result.word, rank: 1, isTip: false }],
+        givenUp: true,
+      }));
+      setLatestWord(result.word);
+    } catch {
+      setError("Lösungswort konnte nicht geladen werden");
+    }
+  }, []);
+
+  const gameOver = gameState.solved || !!gameState.givenUp;
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground text-lg">Laden...</div></div>;
   }
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
-      <Header onTip={handleTip} tipDisabled={gameState.solved} onSettingsOpen={() => setShowSettings(true)} />
+      <Header
+        onTip={handleTip}
+        onGiveUp={() => setShowGiveUp(true)}
+        onHowToPlayOpen={() => setShowHowToPlay(true)}
+        onFAQOpen={() => setShowFAQ(true)}
+        onSettingsOpen={() => setShowSettings(true)}
+        onCreditsOpen={() => setShowCredits(true)}
+        tipDisabled={gameOver}
+        giveUpDisabled={gameOver}
+      />
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
         <div className="flex items-center gap-4 pt-2 pb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
           <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
           <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
           <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
         </div>
-        <GuessInput onGuess={handleGuess} disabled={gameState.solved} error={error} />
+        <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} />
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} sortMode={sortMode} />
       </main>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       {showWin && <WinDialog gameNumber={gameNumber} guesses={gameState.guesses} tipCount={gameState.tips} onClose={() => setShowWin(false)} />}
+      <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
+      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
+      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
+      <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
     </div>
   );
 }
