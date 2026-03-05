@@ -66,7 +66,7 @@ if [ ! -f /app/data/metadata.json ]; then
     gosu appuser bash /app/scripts/prepare-data.sh /app/data
 fi
 
-exec gosu appuser /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 ENTRYPOINT
 RUN chmod +x /app/entrypoint.sh
 
