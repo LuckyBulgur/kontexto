@@ -126,7 +126,7 @@ def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int
     return ordered[:n]
 
 
-def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 50000) -> None:
+def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 100000) -> None:
     print(f"Loading vectors from {fasttext_path}...")
     raw_vectors, raw_words = load_fasttext_vectors(fasttext_path)
     print(f"  Loaded {len(raw_vectors)} raw vectors.")
