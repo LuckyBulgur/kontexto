@@ -55,6 +55,8 @@ COPY <<'ENTRYPOINT' /app/entrypoint.sh
 #!/bin/bash
 set -e
 
+mkdir -p /app/data/games
+
 if [ ! -f /app/data/metadata.json ]; then
     echo "No data found. Running data preparation..."
     bash /app/scripts/prepare-data.sh /app/data
