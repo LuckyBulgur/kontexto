@@ -1,4 +1,4 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -38,6 +38,13 @@ export async function revealAnswer(game?: number | null): Promise<RevealResult> 
 
 export async function getPastGames(): Promise<PastGamesResponse> {
   const res = await fetch(`${API_BASE}/games`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function getClosestWords(game?: number | null): Promise<ClosestWordsResponse> {
+  const gameParam = game ? `?game=${game}` : "";
+  const res = await fetch(`${API_BASE}/closest${gameParam}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

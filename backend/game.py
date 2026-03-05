@@ -41,27 +41,29 @@ class GameState:
 
         self.start_date = date.fromisoformat(self.metadata["start_date"])
 
-        self.current_game_number: int = 0
-        self.current_rankings: dict[str, int] = {}
-        self.rank_to_word: list[str] = []
+        self._game_cache: dict[int, tuple[dict[str, int], list[str]]] = {}
 
     def load_game(self, game_number: int) -> None:
-        """Load rankings for a specific game into memory."""
-        if game_number == self.current_game_number:
+        """Load rankings for a specific game into cache."""
+        if game_number in self._game_cache:
             return
 
         path = os.path.join(self.data_dir, "games", f"{game_number:04d}.npz")
         data = np.load(path)
         ranks = data["ranks"]
 
-        self.current_rankings = {
+        rankings = {
             self.index_to_word[i]: int(ranks[i])
             for i in range(len(ranks))
         }
-        self.rank_to_word = [""] * (len(ranks) + 1)
-        for word, rank in self.current_rankings.items():
-            self.rank_to_word[rank] = word
-        self.current_game_number = game_number
+        rank_to_word = [""] * (len(ranks) + 1)
+        for word, rank in rankings.items():
+            rank_to_word[rank] = word
+        self._game_cache[game_number] = (rankings, rank_to_word)
+
+    def _get_game(self, game_number: int) -> tuple[dict[str, int], list[str]]:
+        """Get rankings and rank_to_word for a game (must be loaded first)."""
+        return self._game_cache[game_number]
 
     def get_game_number(self, today: date | None = None) -> int:
         """Calculate today's game number from the start date.
@@ -96,28 +98,31 @@ class GameState:
 
         return None
 
-    def guess(self, word: str) -> dict | None:
+    def guess(self, word: str, game_number: int) -> dict | None:
         """Process a guess and return its rank."""
         normalized = self.normalize_word(word)
         if normalized is None:
             return None
 
-        rank = self.current_rankings.get(normalized)
+        rankings, _ = self._get_game(game_number)
+        rank = rankings.get(normalized)
         if rank is None:
             return None
 
         return {
             "word": normalized,
             "rank": rank,
-            "total": len(self.current_rankings),
+            "total": len(rankings),
         }
 
-    def get_tip(self, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
+    def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
         """Get a hint word based on difficulty level.
 
         Never returns rank 1 (the answer). If the computed rank was already
         guessed, searches upward for the next unguessed rank.
         """
+        rankings, rank_to_word = self._get_game(game_number)
+
         if guessed_ranks is None:
             guessed_ranks = []
         guessed_set = set(guessed_ranks) | {1}  # always exclude rank 1
@@ -129,18 +134,25 @@ class GameState:
         else:  # hard
             target_rank = random.randint(2, max(2, best_rank - 1))
 
-        max_rank = len(self.rank_to_word) - 1
+        max_rank = len(rank_to_word) - 1
         target_rank = min(target_rank, max_rank)
 
-        # Search upward for an unguessed rank
-        while target_rank <= max_rank and target_rank in guessed_set:
-            target_rank += 1
-
-        if target_rank > max_rank:
-            return None
+        # Search both directions for an unguessed rank
+        lo, hi = target_rank, target_rank
+        while True:
+            if lo >= 2 and lo not in guessed_set:
+                target_rank = lo
+                break
+            if hi <= max_rank and hi not in guessed_set:
+                target_rank = hi
+                break
+            lo -= 1
+            hi += 1
+            if lo < 2 and hi > max_rank:
+                return None
 
         return {
-            "word": self.rank_to_word[target_rank],
+            "word": rank_to_word[target_rank],
             "rank": target_rank,
         }
 
@@ -149,3 +161,13 @@ class GameState:
         if game_number < 1 or game_number > len(self.target_words):
             raise ValueError(f"Game {game_number} not available (1-{len(self.target_words)})")
         return self.target_words[game_number - 1]
+
+    def get_closest_words(self, game_number: int) -> list[dict]:
+        """Return the 500 closest words for the given game."""
+        _, rank_to_word = self._get_game(game_number)
+        result = []
+        for rank in range(1, min(501, len(rank_to_word))):
+            word = rank_to_word[rank]
+            if word:
+                result.append({"word": word, "rank": rank})
+        return result

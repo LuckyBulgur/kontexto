@@ -56,12 +56,12 @@ def test_compute_rankings_returns_correct_ranks():
     assert ranks[2] == 3
 
 
-def test_compute_rankings_dtype_is_uint16():
+def test_compute_rankings_dtype_is_uint32():
     from prepare import compute_rankings
     vectors = {"target": np.array([1.0, 0.0]), "other": np.array([0.5, 0.5])}
     vocab_list = ["target", "other"]
     ranks = compute_rankings("target", vocab_list, vectors)
-    assert ranks.dtype == np.uint16
+    assert ranks.dtype == np.uint32
 
 
 def test_create_bloom_filter_contains_known_words():

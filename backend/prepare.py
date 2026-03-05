@@ -28,6 +28,44 @@ GERMAN_STOPWORDS = {
     "nicht",
 }
 
+# Words that should never be target words (but remain in vocabulary for guessing)
+# Adverbs, particles, conjunctions, pronouns, function words
+EXCLUDED_TARGET_WORDS = {
+    # Adverbien / Partikel
+    "auch", "noch", "schon", "nur", "sehr", "mehr", "ganz", "gar", "ja", "nein",
+    "so", "da", "hier", "dort", "dann", "wann", "wo", "nun", "bereits", "etwa",
+    "fast", "kaum", "eher", "wohl", "denn", "mal", "eben", "halt", "bloß",
+    "doch", "aber", "zwar", "sogar", "allerdings", "jedoch", "dennoch", "trotzdem",
+    "immer", "nie", "oft", "manchmal", "selten", "vielleicht", "wahrscheinlich",
+    "natürlich", "sicherlich", "tatsächlich", "eigentlich", "übrigens", "jedenfalls",
+    "anscheinend", "offenbar", "durchaus", "insofern", "inzwischen", "weiterhin",
+    "zudem", "überdies", "ebenfalls", "ebenso", "deshalb", "deswegen", "daher",
+    "also", "nämlich", "sowohl", "zumindest", "wenigstens", "jetzt", "heute",
+    "gestern", "morgen", "bald", "gerade", "vorher", "nachher", "oben", "unten",
+    "vorn", "hinten", "rechts", "links", "außen", "innen", "überall", "nirgends",
+    "irgendwo", "damals", "seither", "seitdem", "dabei", "dazu",
+    "davon", "dafür", "dagegen", "darauf", "darin", "daraus", "damit", "danach",
+    "daneben", "darunter", "darüber", "davor", "dazwischen", "hierher", "dorthin",
+    # Konjunktionen
+    "wenn", "weil", "obwohl", "während", "als", "wie", "ob", "falls", "damit",
+    "sondern", "bevor", "nachdem", "sobald", "solange", "sofern", "indem",
+    # Pronomen / Determiners
+    "diese", "dieser", "dieses", "diesem", "diesen", "jede", "jeder", "jedes",
+    "jedem", "jeden", "alle", "alles", "allem", "allen", "aller", "man",
+    "kein", "keine", "keiner", "keines", "keinem", "keinen",
+    "mein", "dein", "sein", "unser", "euer",
+    "was", "wer", "wen", "wem", "welch", "welche", "welcher", "welches",
+    "etwas", "nichts", "jemand", "niemand", "irgendwas", "irgendwer",
+    # Hilfs-/Modalverben
+    "haben", "sein", "werden", "können", "müssen", "sollen", "wollen",
+    "dürfen", "mögen", "wurde", "würde", "hätte", "wäre",
+    # Sonstige Funktionswörter
+    "viel", "viele", "wenig", "wenige", "andere", "anderer", "anderes",
+    "anderem", "anderen", "einige", "einiger", "einiges", "einigem", "einigen",
+    "mehrere", "mehrerer", "mehreres", "mehrerem", "mehreren",
+    "selbst", "selber", "zusammen", "allein", "gegenseitig",
+}
+
 _ALPHA_RE = re.compile(r"^[a-zäöüß]+$")
 
 
@@ -61,8 +99,8 @@ def compute_rankings(target_word: str, vocab_list: list[str], vectors: dict[str,
     mat_normed = mat / norms
     similarities = mat_normed @ target_norm.astype(np.float32)
     order = np.argsort(-similarities)
-    ranks = np.empty(len(vocab_list), dtype=np.uint16)
-    ranks[order] = np.arange(1, len(vocab_list) + 1, dtype=np.uint16)
+    ranks = np.empty(len(vocab_list), dtype=np.uint32)
+    ranks[order] = np.arange(1, len(vocab_list) + 1, dtype=np.uint32)
     return ranks
 
 
@@ -77,7 +115,7 @@ def create_lemma_map(vocab: list[str]) -> dict[str, str]:
     vocab_set = set(vocab)
     lemma_map: dict[str, str] = {}
     for word in vocab:
-        lemma = simplemma.lemmatize(word, lang="de")
+        lemma = simplemma.lemmatize(word, lang="de").lower()
         if lemma != word and lemma in vocab_set:
             lemma_map[word] = lemma
     return lemma_map
@@ -111,19 +149,23 @@ def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int
             continue
         if w not in vectors:
             continue
+        if w in EXCLUDED_TARGET_WORDS:
+            continue
+        # Only allow base forms as targets (skip inflected forms)
+        lemma = simplemma.lemmatize(w, lang="de")
+        if lemma.lower() != w:
+            continue
         candidates.add(w)
-    # Prefer frequent words as targets: walk frequency_order and pick candidates
+    # Select the most frequent candidates, then shuffle for varied difficulty
     if frequency_order is not None:
         ordered = [w for w in frequency_order if w in candidates]
     else:
         ordered = list(candidates)
+    # Take top N by frequency, then shuffle so difficulty varies day to day
+    ordered = ordered[:n]
     rng = random.Random(42)
     rng.shuffle(ordered)
-    # Sort so most frequent come first, then shuffle within that constraint
-    if frequency_order is not None:
-        freq_rank = {w: i for i, w in enumerate(frequency_order)}
-        ordered.sort(key=lambda w: freq_rank.get(w, len(frequency_order)))
-    return ordered[:n]
+    return ordered
 
 
 def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 100000) -> None:
@@ -149,7 +191,7 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     print(f"  Mapped {len(lemma_map)} inflected forms.")
 
     print("Creating bloom filter...")
-    all_known_words = set(vocab_list) | set(lemma_map.keys())
+    all_known_words = set(vocab_list) | set(lemma_map.keys()) | GERMAN_STOPWORDS
     bf = create_bloom_filter(list(all_known_words))
 
     os.makedirs(output_dir, exist_ok=True)
@@ -183,6 +225,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="data", help="Output directory")
     parser.add_argument("--games", type=int, default=3000, help="Number of games to generate")
     parser.add_argument("--start-date", default="2026-03-05", help="Start date (YYYY-MM-DD)")
-    parser.add_argument("--vocab-size", type=int, default=50000, help="Max vocabulary size")
+    parser.add_argument("--vocab-size", type=int, default=100000, help="Max vocabulary size")
     args = parser.parse_args()
     run_pipeline(output_dir=args.output, num_games=args.games, fasttext_path=args.fasttext, start_date=args.start_date, vocab_size=args.vocab_size)

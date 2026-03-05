@@ -67,7 +67,7 @@ def test_run_pipeline_game_ranks_are_valid():
         n_words = len(vocab)
         data = np.load(os.path.join(tmpdir, "games", "0001.npz"))
         ranks = data["ranks"]
-        assert ranks.dtype == np.uint16
+        assert ranks.dtype == np.uint32
         assert len(ranks) == n_words
         assert ranks.min() == 1
         assert ranks.max() == n_words
