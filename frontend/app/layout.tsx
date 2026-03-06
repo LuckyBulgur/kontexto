@@ -1,26 +1,33 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { faqs } from "@/lib/faqs";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kontexto.de"),
-  title: "Kontexto - Deutsches Wort-Ratespiel",
+  title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
   description:
-    "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit. Teste dein Sprachgefühl und errate das Zielwort anhand von Bedeutungsnähe.",
+    "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel. Errate das Zielwort anhand von Bedeutungsähnlichkeit - kostenlos und ohne Anmeldung.",
   keywords: [
+    "Kontexto",
+    "Contexto",
+    "Contexto deutsch",
+    "Contexto auf deutsch",
+    "Contexto german",
     "Wort-Ratespiel",
     "Wortspiel",
-    "deutsches Spiel",
+    "deutsches Wortspiel",
     "semantische Ähnlichkeit",
     "tägliches Rätsel",
-    "Kontexto",
     "Worträtsel",
     "Sprachspiel",
     "Wörter raten",
-    "Bedeutung",
+    "Wort des Tages",
+    "Wortspiel online",
+    "kostenloses Wortspiel",
   ],
   authors: [{ name: "Kontexto" }],
   creator: "Kontexto",
@@ -29,9 +36,9 @@ export const metadata: Metadata = {
     languages: { "de-DE": "/" },
   },
   openGraph: {
-    title: "Kontexto - Deutsches Wort-Ratespiel",
+    title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
     description:
-      "Finde das geheime Wort! Teste dein Sprachgefühl im täglichen Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
+      "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel basierend auf Bedeutungsähnlichkeit.",
     type: "website",
     locale: "de_DE",
     url: "https://kontexto.de",
@@ -47,9 +54,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Kontexto - Deutsches Wort-Ratespiel",
+    title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
     description:
-      "Finde das geheime Wort! Teste dein Sprachgefühl im täglichen Wort-Ratespiel.",
+      "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel.",
     images: ["/icon-512.png"],
   },
   robots: {
@@ -94,6 +101,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 "@type": "Organization",
                 name: "Kontexto",
               },
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqs.map((faq) => ({
+                "@type": "Question",
+                name: faq.q,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: faq.a,
+                },
+              })),
             }),
           }}
         />
