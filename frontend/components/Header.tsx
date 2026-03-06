@@ -11,6 +11,7 @@ import {
   History,
   Shield,
   Swords,
+  Copy,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,13 @@ interface HeaderProps {
   tipDisabled?: boolean;
   giveUpDisabled?: boolean;
   showCountdown?: boolean;
+  /** Duel mode props */
+  subtitle?: string;
+  onCopyLink?: () => void;
+  hideTip?: boolean;
+  hideGiveUp?: boolean;
+  hidePastGames?: boolean;
+  hideDuelCreate?: boolean;
 }
 
 function getTimeUntilMidnight(): string {
@@ -57,6 +65,12 @@ export default function Header({
   tipDisabled,
   giveUpDisabled,
   showCountdown,
+  subtitle,
+  onCopyLink,
+  hideTip,
+  hideGiveUp,
+  hidePastGames,
+  hideDuelCreate,
 }: HeaderProps) {
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
 
@@ -78,14 +92,24 @@ export default function Header({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onTip} disabled={tipDisabled}>
-              <Lightbulb className="h-4 w-4" />
-              Tipp
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onGiveUp} disabled={giveUpDisabled} className="text-destructive focus:text-destructive">
-              <Flag className="h-4 w-4" />
-              Aufgeben
-            </DropdownMenuItem>
+            {!hideTip && (
+              <DropdownMenuItem onClick={onTip} disabled={tipDisabled}>
+                <Lightbulb className="h-4 w-4" />
+                Tipp
+              </DropdownMenuItem>
+            )}
+            {!hideGiveUp && (
+              <DropdownMenuItem onClick={onGiveUp} disabled={giveUpDisabled} className="text-destructive focus:text-destructive">
+                <Flag className="h-4 w-4" />
+                Aufgeben
+              </DropdownMenuItem>
+            )}
+            {onCopyLink && (
+              <DropdownMenuItem onClick={onCopyLink}>
+                <Copy className="h-4 w-4" />
+                Link kopieren
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onHowToPlayOpen}>
               <BookOpen className="h-4 w-4" />
@@ -95,16 +119,20 @@ export default function Header({
               <CircleHelp className="h-4 w-4" />
               FAQ
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/duel/create/">
-                <Swords className="h-4 w-4" />
-                Duell erstellen
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onPastGamesOpen}>
-              <History className="h-4 w-4" />
-              Vergangene Spiele
-            </DropdownMenuItem>
+            {!hideDuelCreate && (
+              <DropdownMenuItem asChild>
+                <Link href="/duel/create/">
+                  <Swords className="h-4 w-4" />
+                  Duell erstellen
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {!hidePastGames && (
+              <DropdownMenuItem onClick={onPastGamesOpen}>
+                <History className="h-4 w-4" />
+                Vergangene Spiele
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onSettingsOpen}>
               <Settings className="h-4 w-4" />
@@ -124,6 +152,9 @@ export default function Header({
         </DropdownMenu>
       </div>
       </div>
+      {subtitle && (
+        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      )}
       {showCountdown && (
         <p className="text-xs text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
       )}

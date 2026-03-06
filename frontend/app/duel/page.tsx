@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
+import HowToPlayDialog from "@/components/HowToPlayDialog";
+import FAQDialog from "@/components/FAQDialog";
+import SettingsModal from "@/components/SettingsModal";
+import CreditsDialog from "@/components/CreditsDialog";
 import PlayerBar from "@/components/duel/PlayerBar";
 import JoinDialog from "@/components/duel/JoinDialog";
 import DuelResultCard from "@/components/duel/DuelResultCard";
@@ -17,10 +22,8 @@ import {
 } from "@/lib/duel-api";
 import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
-import { loadDifficulty, loadSortMode } from "@/lib/storage";
+import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 function getDuelIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
@@ -54,12 +57,19 @@ export default function DuelPage() {
   const [joinLoading, setJoinLoading] = useState(false);
   const [needsJoin, setNeedsJoin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [difficulty] = useState<Difficulty>(() =>
+  const [difficulty, setDifficulty] = useState<Difficulty>(() =>
     typeof window !== "undefined" ? (loadDifficulty() as Difficulty) : "easy"
   );
-  const [sortMode] = useState<SortMode>(() =>
+  const [sortMode, setSortMode] = useState<SortMode>(() =>
     typeof window !== "undefined" ? loadSortMode() : "rank"
   );
+  const [theme, setTheme] = useState<"light" | "dark">(() =>
+    typeof window !== "undefined" ? loadTheme() : "light"
+  );
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
 
   const solved = guesses.some((g) => g.rank === 1);
 
@@ -354,30 +364,22 @@ export default function DuelPage() {
 
   return (
     <div className="max-w-4xl mx-auto min-h-screen flex flex-col">
-      <header className="flex flex-col items-center px-4 pt-5 pb-1">
-        <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Duell · Spiel #{duelState?.game_number}
-        </p>
-      </header>
-
-      {/* Invite link */}
-      <div className="px-4 mt-2">
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-          <span className="text-xs text-muted-foreground truncate flex-1">
-            {typeof window !== "undefined" &&
-              `${window.location.origin}/duel/${duelId}/`}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyLink}
-            className="shrink-0"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <Header
+        onTip={handleTip}
+        onGiveUp={() => {}}
+        onHowToPlayOpen={() => setShowHowToPlay(true)}
+        onFAQOpen={() => setShowFAQ(true)}
+        onSettingsOpen={() => setShowSettings(true)}
+        onCreditsOpen={() => setShowCredits(true)}
+        onPastGamesOpen={() => {}}
+        tipDisabled={solved || !duelState?.tips_allowed}
+        giveUpDisabled
+        onCopyLink={handleCopyLink}
+        hideTip={!duelState?.tips_allowed}
+        hideGiveUp
+        hidePastGames
+        hideDuelCreate
+      />
 
       <div className="flex flex-col md:flex-row flex-1 px-4 py-4 gap-4">
         <div className="flex-1 flex flex-col gap-4">
@@ -396,24 +398,18 @@ export default function DuelPage() {
             />
           ) : (
             <>
-              <div className="flex items-center gap-4 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+                <span>Duell</span>
+                <span>Spiel: <span className="text-[18px] font-bold">#{duelState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
                   <span className="text-[18px] font-bold">{guesses.length}</span>
                 </span>
                 {duelState?.tips_allowed && (
-                  <>
-                    <span>
-                      Tipps:{" "}
-                      <span className="text-[18px] font-bold">{tipCount}</span>
-                    </span>
-                    <button
-                      onClick={handleTip}
-                      className="ml-auto text-primary hover:underline normal-case text-xs"
-                    >
-                      Tipp
-                    </button>
-                  </>
+                  <span>
+                    Tipps:{" "}
+                    <span className="text-[18px] font-bold">{tipCount}</span>
+                  </span>
                 )}
               </div>
               <GuessInput onGuess={handleGuess} disabled={solved} error={error} />
@@ -435,6 +431,20 @@ export default function DuelPage() {
           <PlayerBar players={players} currentNickname={nickname ?? ""} />
         </div>
       </div>
+
+      <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
+      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        theme={theme}
+        onThemeChange={(t) => { setTheme(t); saveTheme(t); document.documentElement.classList.toggle("dark", t === "dark"); }}
+        difficulty={difficulty}
+        onDifficultyChange={(d) => { setDifficulty(d); saveDifficulty(d); }}
+        sortMode={sortMode}
+        onSortModeChange={(s) => { setSortMode(s); saveSortMode(s); }}
+      />
+      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
     </div>
   );
 }
