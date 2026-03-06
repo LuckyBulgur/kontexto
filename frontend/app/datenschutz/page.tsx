@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Datenschutzerklärung - Kontexto",
+export const metadata: Metadata = {
+  title: "Datenschutz - Kontexto",
+  description:
+    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel. Keine Cookies, kein Tracking.",
+  alternates: {
+    canonical: "/datenschutz/",
+  },
 };
 
 export default function DatenschutzPage() {

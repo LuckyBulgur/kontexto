@@ -1,0 +1,16 @@
+# Kontexto
+
+> Ein taegliches deutsches Wort-Ratespiel basierend auf semantischer Aehnlichkeit.
+
+Kontexto ist ein kostenloses, taegliches Wortspiel auf Deutsch. Spieler versuchen, ein geheimes Zielwort zu erraten. Nach jeder Eingabe wird angezeigt, wie semantisch nah das geratene Wort am Zielwort ist (Rang 1-10000). Je niedriger der Rang, desto naeher ist man am Zielwort. Das Spiel nutzt KI-basierte Wort-Embeddings (fastText) um die Bedeutungsaehnlichkeit zwischen Woertern zu berechnen.
+
+## Funktionen
+- Taegliches neues Raetsel
+- Drei Schwierigkeitsgrade (Leicht, Mittel, Schwer)
+- Tipp-System basierend auf Schwierigkeitsgrad
+- Statistiken und Spielverlauf
+- Dark Mode
+- Kein Account noetig, keine Cookies, datenschutzfreundlich
+
+## URL
+https://kontexto.de
