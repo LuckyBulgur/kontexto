@@ -6,19 +6,62 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kontexto.de"),
   title: "Kontexto - Deutsches Wort-Ratespiel",
-  description: "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
+  description:
+    "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit. Teste dein Sprachgefühl und errate das Zielwort anhand von Bedeutungsnähe.",
+  keywords: [
+    "Wort-Ratespiel",
+    "Wortspiel",
+    "deutsches Spiel",
+    "semantische Ähnlichkeit",
+    "tägliches Rätsel",
+    "Kontexto",
+    "Worträtsel",
+    "Sprachspiel",
+    "Wörter raten",
+    "Bedeutung",
+  ],
+  authors: [{ name: "Kontexto" }],
+  creator: "Kontexto",
+  alternates: {
+    canonical: "/",
+    languages: { "de-DE": "/" },
+  },
   openGraph: {
     title: "Kontexto - Deutsches Wort-Ratespiel",
-    description: "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
+    description:
+      "Finde das geheime Wort! Teste dein Sprachgefühl im täglichen Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
     type: "website",
     locale: "de_DE",
+    url: "https://kontexto.de",
     siteName: "Kontexto",
+    images: [
+      {
+        url: "/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Kontexto Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary",
     title: "Kontexto - Deutsches Wort-Ratespiel",
-    description: "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
+    description:
+      "Finde das geheime Wort! Teste dein Sprachgefühl im täglichen Wort-Ratespiel.",
+    images: ["/icon-512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   other: {
     "theme-color": "#ffffff",
@@ -29,6 +72,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Kontexto",
+              url: "https://kontexto.de",
+              description:
+                "Finde das geheime Wort! Ein tägliches Wort-Ratespiel basierend auf semantischer Ähnlichkeit.",
+              applicationCategory: "GameApplication",
+              operatingSystem: "Web",
+              inLanguage: "de",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "EUR",
+              },
+              author: {
+                "@type": "Organization",
+                name: "Kontexto",
+              },
+            }),
+          }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
