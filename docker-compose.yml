@@ -20,6 +20,7 @@ services:
       - kontexto-data:/app/data
     environment:
       - KONTEXTO_DATA_DIR=/app/data
+      - TZ=Europe/Berlin
     restart: unless-stopped
 
 volumes:
