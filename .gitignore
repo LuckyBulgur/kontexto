@@ -18,6 +18,7 @@ data/vocabulary.json
 data/lemma_map.json
 data/target_words.json
 data/metadata.json
+data/duels.db
 *.bin
 *.bin.gz
 *.vec
