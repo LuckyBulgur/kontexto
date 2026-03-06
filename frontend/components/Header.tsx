@@ -10,6 +10,7 @@ import {
   Info,
   History,
   Shield,
+  Swords,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,12 @@ export default function Header({
             <DropdownMenuItem onClick={onFAQOpen}>
               <CircleHelp className="h-4 w-4" />
               FAQ
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/duel/create/">
+                <Swords className="h-4 w-4" />
+                Duell erstellen
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onPastGamesOpen}>
               <History className="h-4 w-4" />
