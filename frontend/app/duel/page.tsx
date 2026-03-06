@@ -222,12 +222,28 @@ export default function DuelPage() {
           });
           return;
         }
-        setGuesses((prev) => [
-          ...prev,
-          { word: result.word, rank: result.rank, isTip: false },
-        ]);
+        const newGuess = { word: result.word, rank: result.rank, isTip: false };
+        setGuesses((prev) => [...prev, newGuess]);
         setTotal(result.total);
         setLatestWord(result.word);
+        // Update own stats in players list
+        if (nickname) {
+          setPlayers((prev) =>
+            prev.map((p) =>
+              p.nickname === nickname
+                ? {
+                    ...p,
+                    best_rank:
+                      p.best_rank === null
+                        ? result.rank
+                        : Math.min(p.best_rank, result.rank),
+                    guess_count: p.guess_count + 1,
+                    solved: p.solved || result.rank === 1,
+                  }
+                : p
+            )
+          );
+        }
       } catch (e: unknown) {
         if (e instanceof Error && e.message === "unknown_word") {
           setPodestError({
@@ -246,7 +262,7 @@ export default function DuelPage() {
         setPendingWord(undefined);
       }
     },
-    [duelId, playerToken, guesses]
+    [duelId, playerToken, guesses, nickname]
   );
 
   // Tip
@@ -265,6 +281,24 @@ export default function DuelPage() {
         { word: result.word, rank: result.rank, isTip: true },
       ]);
       setLatestWord(result.word);
+      // Update own stats in players list for tip
+      if (nickname) {
+        setPlayers((prev) =>
+          prev.map((p) =>
+            p.nickname === nickname
+              ? {
+                  ...p,
+                  best_rank:
+                    p.best_rank === null
+                      ? result.rank
+                      : Math.min(p.best_rank, result.rank),
+                  guess_count: p.guess_count + 1,
+                  solved: p.solved || result.rank === 1,
+                }
+              : p
+          )
+        );
+      }
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "tips_disabled") {
         setError("Tipps sind in diesem Duell deaktiviert");
@@ -272,7 +306,7 @@ export default function DuelPage() {
         setError("Tipp konnte nicht geladen werden");
       }
     }
-  }, [duelId, duelState, guesses, difficulty]);
+  }, [duelId, duelState, guesses, difficulty, nickname]);
 
   // Copy link
   const handleCopyLink = useCallback(() => {
