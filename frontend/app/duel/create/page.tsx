@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createDuel } from "@/lib/duel-api";
 import { getGameInfo } from "@/lib/api";
+import { ArrowLeft } from "lucide-react";
 
 export default function DuelCreatePage() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
-  const [gameNumber, setGameNumber] = useState<number>(0);
+  const [gameMode, setGameMode] = useState<"today" | "random">("today");
   const [tipsAllowed, setTipsAllowed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [todayGame, setTodayGame] = useState(0);
@@ -20,16 +21,19 @@ export default function DuelCreatePage() {
 
   useEffect(() => {
     getGameInfo().then((info) => {
-      setGameNumber(info.gameNumber);
       setTodayGame(info.gameNumber);
     });
   }, []);
 
   const handleCreate = async () => {
-    if (!nickname.trim() || !gameNumber) return;
+    if (!nickname.trim() || !todayGame) return;
     setLoading(true);
     setError(null);
     try {
+      const gameNumber =
+        gameMode === "today"
+          ? todayGame
+          : Math.floor(Math.random() * 5000) + 1;
       const result = await createDuel(gameNumber, nickname.trim(), tipsAllowed);
       localStorage.setItem(
         `kontexto_duel_${result.duel_id}`,
@@ -45,8 +49,15 @@ export default function DuelCreatePage() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
-      <header className="flex flex-col items-center px-4 pt-5 pb-1">
-        <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
+      <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
+        <div className="relative flex items-center justify-center w-full">
+          <a href="/" className="absolute left-4">
+            <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
+              <ArrowLeft className="h-6! w-6!" />
+            </Button>
+          </a>
+          <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">Duell erstellen</p>
       </header>
 
@@ -65,18 +76,25 @@ export default function DuelCreatePage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="game">Spiel-Nummer</Label>
-            <Input
-              id="game"
-              type="number"
-              value={gameNumber || ""}
-              onChange={(e) => setGameNumber(Number(e.target.value))}
-              min={1}
-              max={todayGame}
-            />
-            <p className="text-xs text-muted-foreground">
-              Heutiges Spiel: #{todayGame}
-            </p>
+            <Label>Spiel</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={gameMode === "today" ? "default" : "outline"}
+                onClick={() => setGameMode("today")}
+                className="w-full"
+              >
+                Heutiges Spiel
+              </Button>
+              <Button
+                type="button"
+                variant={gameMode === "random" ? "default" : "outline"}
+                onClick={() => setGameMode("random")}
+                className="w-full"
+              >
+                Zufälliges Spiel
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -92,7 +110,7 @@ export default function DuelCreatePage() {
 
           <Button
             onClick={handleCreate}
-            disabled={loading || !nickname.trim() || !gameNumber}
+            disabled={loading || !nickname.trim() || !todayGame}
             className="w-full"
           >
             {loading ? "Erstelle..." : "Duell erstellen"}

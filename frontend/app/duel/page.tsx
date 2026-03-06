@@ -1,6 +1,34 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import confetti from "canvas-confetti";
+
+function fireConfetti() {
+  const duration = 3000;
+  const animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+  function randomInRange(min: number, max: number) {
+    return Math.random() * (max - min) + min;
+  }
+
+  const interval = setInterval(() => {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) return clearInterval(interval);
+
+    const particleCount = 50 * (timeLeft / duration);
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+    });
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+    });
+  }, 250);
+}
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
@@ -72,7 +100,6 @@ export default function DuelPage() {
   const [showCredits, setShowCredits] = useState(false);
 
   const solved = guesses.some((g) => g.rank === 1);
-
   // Extract duel ID from URL
   useEffect(() => {
     const id = getDuelIdFromPath();
@@ -104,13 +131,13 @@ export default function DuelPage() {
           ])
             .then(([history, info]) => {
               setNickname(info.nickname);
-              setGuesses(
-                history.map((h) => ({
-                  word: h.word,
-                  rank: h.rank,
-                  isTip: false,
-                }))
-              );
+              const loaded = history.map((h) => ({
+                word: h.word,
+                rank: h.rank,
+                isTip: false,
+              }));
+              setGuesses(loaded);
+              if (loaded.some((g) => g.rank === 1)) setTimeout(fireConfetti, 300);
               setLoading(false);
             })
             .catch(() => {
@@ -236,6 +263,9 @@ export default function DuelPage() {
         setGuesses((prev) => [...prev, newGuess]);
         setTotal(result.total);
         setLatestWord(result.word);
+        if (result.rank === 1) {
+          fireConfetti();
+        }
         // Update own stats in players list
         if (nickname) {
           setPlayers((prev) =>
@@ -291,6 +321,9 @@ export default function DuelPage() {
         { word: result.word, rank: result.rank, isTip: true },
       ]);
       setLatestWord(result.word);
+      if (result.rank === 1) {
+        fireConfetti();
+      }
       // Update own stats in players list for tip
       if (nickname) {
         setPlayers((prev) =>
@@ -379,6 +412,7 @@ export default function DuelPage() {
         hideGiveUp
         hidePastGames
         hideDuelCreate
+        backHref="/"
       />
 
       <div className="flex flex-col md:flex-row flex-1 px-4 py-4 gap-4">

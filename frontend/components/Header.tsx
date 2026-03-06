@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   EllipsisVertical,
   Lightbulb,
   Flag,
@@ -41,6 +42,7 @@ interface HeaderProps {
   hideGiveUp?: boolean;
   hidePastGames?: boolean;
   hideDuelCreate?: boolean;
+  backHref?: string;
 }
 
 function getTimeUntilMidnight(): string {
@@ -71,6 +73,7 @@ export default function Header({
   hideGiveUp,
   hidePastGames,
   hideDuelCreate,
+  backHref,
 }: HeaderProps) {
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
 
@@ -83,6 +86,13 @@ export default function Header({
   return (
     <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
       <div className="relative flex items-center justify-center w-full">
+        {backHref && (
+          <a href={backHref} className="absolute left-4">
+            <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
+              <ArrowLeft className="h-6! w-6!" />
+            </Button>
+          </a>
+        )}
         <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
       <div className="absolute right-4">
         <DropdownMenu>
