@@ -73,7 +73,6 @@ export default function DuelPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [players, setPlayers] = useState<DuelPlayer[]>([]);
   const [guesses, setGuesses] = useState<Guess[]>([]);
-  const [tipCount, setTipCount] = useState(0);
   const [total, setTotal] = useState(0);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
@@ -165,7 +164,7 @@ export default function DuelPage() {
       setPlayers((prev) =>
         prev.map((p) =>
           p.nickname === msg.nickname
-            ? { ...p, best_rank: msg.best_rank, guess_count: msg.guess_count }
+            ? { ...p, best_rank: msg.best_rank, guess_count: msg.guess_count, tip_count: msg.tip_count }
             : p
         )
       );
@@ -173,7 +172,7 @@ export default function DuelPage() {
       setPlayers((prev) =>
         prev.map((p) =>
           p.nickname === msg.nickname
-            ? { ...p, solved: true, guess_count: msg.guess_count }
+            ? { ...p, solved: true, guess_count: msg.guess_count, tip_count: msg.tip_count }
             : p
         )
       );
@@ -186,6 +185,7 @@ export default function DuelPage() {
             nickname: msg.nickname,
             best_rank: null,
             guess_count: 0,
+            tip_count: 0,
             solved: false,
             connected: true,
           },
@@ -307,15 +307,14 @@ export default function DuelPage() {
 
   // Tip
   const handleTip = useCallback(async () => {
-    if (!duelId || !duelState?.tips_allowed) return;
+    if (!duelId || !playerToken || !duelState?.tips_allowed) return;
     setError(null);
     const bestRank =
       guesses.length > 0 ? Math.min(...guesses.map((g) => g.rank)) : 10000;
     const guessedRanks = guesses.map((g) => g.rank);
     try {
-      const result = await getDuelTip(duelId, difficulty, bestRank, guessedRanks);
+      const result = await getDuelTip(duelId, difficulty, bestRank, playerToken, guessedRanks);
       if (guesses.some((g) => g.word === result.word)) return;
-      setTipCount((prev) => prev + 1);
       setGuesses((prev) => [
         ...prev,
         { word: result.word, rank: result.rank, isTip: true },
@@ -336,6 +335,7 @@ export default function DuelPage() {
                       ? result.rank
                       : Math.min(p.best_rank, result.rank),
                   guess_count: p.guess_count + 1,
+                  tip_count: p.tip_count + 1,
                   solved: p.solved || result.rank === 1,
                 }
               : p
@@ -349,7 +349,7 @@ export default function DuelPage() {
         setError("Tipp konnte nicht geladen werden");
       }
     }
-  }, [duelId, duelState, guesses, difficulty, nickname]);
+  }, [duelId, playerToken, duelState, guesses, difficulty, nickname]);
 
   // Copy link
   const handleCopyLink = useCallback(() => {
@@ -426,7 +426,6 @@ export default function DuelPage() {
             <DuelResultCard
               gameNumber={duelState?.game_number ?? 0}
               guesses={guesses}
-              tipCount={tipCount}
               players={players}
               currentNickname={nickname ?? ""}
             />
@@ -442,7 +441,7 @@ export default function DuelPage() {
                 {duelState?.tips_allowed && (
                   <span>
                     Tipps:{" "}
-                    <span className="text-[18px] font-bold">{tipCount}</span>
+                    <span className="text-[18px] font-bold">{players.find((p) => p.nickname === nickname)?.tip_count ?? 0}</span>
                   </span>
                 )}
               </div>

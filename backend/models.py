@@ -70,6 +70,7 @@ class DuelPlayerInfo(BaseModel):
     nickname: str
     best_rank: int | None
     guess_count: int
+    tip_count: int
     solved: bool
     connected: bool
 

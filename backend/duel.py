@@ -59,7 +59,7 @@ async def get_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict | None:
         return None
 
     cursor = await db.execute(
-        "SELECT nickname, best_rank, guess_count, solved, connected "
+        "SELECT nickname, best_rank, guess_count, tip_count, solved, connected "
         "FROM duel_players WHERE duel_id = ?",
         (duel_id,),
     )
@@ -68,6 +68,7 @@ async def get_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict | None:
             "nickname": row["nickname"],
             "best_rank": row["best_rank"],
             "guess_count": row["guess_count"],
+            "tip_count": row["tip_count"],
             "solved": bool(row["solved"]),
             "connected": bool(row["connected"]),
         }
@@ -121,6 +122,47 @@ async def record_guess(
     }
 
 
+async def record_tip(
+    db: aiosqlite.Connection,
+    duel_id: str,
+    player_token: str,
+    word: str,
+    rank: int,
+) -> dict | None:
+    cursor = await db.execute(
+        "SELECT id, best_rank, guess_count, tip_count, nickname FROM duel_players "
+        "WHERE duel_id = ? AND player_token = ?",
+        (duel_id, player_token),
+    )
+    player = await cursor.fetchone()
+    if not player:
+        return None
+
+    await db.execute(
+        "INSERT INTO duel_guesses (duel_id, player_token, word, rank) VALUES (?, ?, ?, ?)",
+        (duel_id, player_token, word, rank),
+    )
+
+    new_best = rank if player["best_rank"] is None else min(player["best_rank"], rank)
+    new_count = player["guess_count"] + 1
+    new_tip_count = player["tip_count"] + 1
+    solved = rank == 1
+
+    await db.execute(
+        "UPDATE duel_players SET best_rank = ?, guess_count = ?, tip_count = ?, solved = ? WHERE id = ?",
+        (new_best, new_count, new_tip_count, solved, player["id"]),
+    )
+    await db.commit()
+
+    return {
+        "nickname": player["nickname"],
+        "best_rank": new_best,
+        "guess_count": new_count,
+        "tip_count": new_tip_count,
+        "solved": solved,
+    }
+
+
 async def get_player_history(
     db: aiosqlite.Connection, duel_id: str, player_token: str
 ) -> list[dict]:
@@ -135,7 +177,7 @@ async def get_player_history(
 async def get_player_info(db: aiosqlite.Connection, player_token: str) -> dict | None:
     """Get player's duel_id, nickname, and stats by token."""
     cursor = await db.execute(
-        "SELECT duel_id, nickname, best_rank, guess_count, solved "
+        "SELECT duel_id, nickname, best_rank, guess_count, tip_count, solved "
         "FROM duel_players WHERE player_token = ?",
         (player_token,),
     )

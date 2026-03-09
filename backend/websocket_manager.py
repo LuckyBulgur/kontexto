@@ -70,7 +70,7 @@ class DuelConnectionManager:
                 try:
                     for duel_id in list(self.connections.keys()):
                         cursor = await db.execute(
-                            "SELECT player_token, nickname, best_rank, guess_count, solved, connected "
+                            "SELECT player_token, nickname, best_rank, guess_count, tip_count, solved, connected "
                             "FROM duel_players WHERE duel_id = ?",
                             (duel_id,),
                         )
@@ -85,6 +85,7 @@ class DuelConnectionManager:
                                 "nickname": p["nickname"],
                                 "best_rank": p["best_rank"],
                                 "guess_count": p["guess_count"],
+                                "tip_count": p["tip_count"],
                                 "solved": bool(p["solved"]),
                                 "connected": bool(p["connected"]),
                             }
@@ -104,11 +105,13 @@ class DuelConnectionManager:
                                         "type": "player_solved",
                                         "nickname": p["nickname"],
                                         "guess_count": p["guess_count"],
+                                        "tip_count": p["tip_count"],
                                     },
                                 )
                             elif (
                                 old.get("best_rank") != state["best_rank"]
                                 or old.get("guess_count") != state["guess_count"]
+                                or old.get("tip_count") != state["tip_count"]
                             ):
                                 await self.broadcast(
                                     duel_id,
@@ -117,6 +120,7 @@ class DuelConnectionManager:
                                         "nickname": p["nickname"],
                                         "best_rank": p["best_rank"],
                                         "guess_count": p["guess_count"],
+                                        "tip_count": p["tip_count"],
                                     },
                                     exclude_token=token,
                                 )

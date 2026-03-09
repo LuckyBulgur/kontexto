@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS duel_players (
     player_token TEXT NOT NULL UNIQUE,
     best_rank INTEGER,
     guess_count INTEGER NOT NULL DEFAULT 0,
+    tip_count INTEGER NOT NULL DEFAULT 0,
     solved BOOLEAN NOT NULL DEFAULT 0,
     connected BOOLEAN NOT NULL DEFAULT 0
 );
@@ -41,6 +42,11 @@ async def init_db(db_path: str) -> None:
         await db.execute("PRAGMA journal_mode=WAL")
         await db.execute("PRAGMA foreign_keys=ON")
         await db.executescript(_SCHEMA)
+        # Migration: add tip_count column if missing
+        try:
+            await db.execute("ALTER TABLE duel_players ADD COLUMN tip_count INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass  # column already exists
         await db.commit()
     finally:
         await db.close()
