@@ -317,7 +317,7 @@ class TestDuelEndpoints:
             "game_number": 1, "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.get(
-            f"/api/duel/{created['duel_id']}/tip?difficulty=easy&best_rank=5"
+            f"/api/duel/{created['duel_id']}/tip?token={created['player_token']}&difficulty=easy&best_rank=5"
         )
         assert resp.status_code == 200
 
@@ -326,7 +326,7 @@ class TestDuelEndpoints:
             "game_number": 1, "nickname": "Alice", "tips_allowed": False,
         }).json()
         resp = api_client.get(
-            f"/api/duel/{created['duel_id']}/tip?difficulty=easy&best_rank=5"
+            f"/api/duel/{created['duel_id']}/tip?token={created['player_token']}&difficulty=easy&best_rank=5"
         )
         assert resp.status_code == 403
 

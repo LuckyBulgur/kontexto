@@ -206,7 +206,7 @@ export default function DuelPage() {
     }
   }, []);
 
-  const { connected: wsConnected } = useDuelWebSocket({
+  useDuelWebSocket({
     duelId,
     token: playerToken,
     onMessage: handleWsMessage,
