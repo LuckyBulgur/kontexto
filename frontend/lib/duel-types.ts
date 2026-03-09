@@ -2,6 +2,7 @@ export interface DuelPlayer {
   nickname: string;
   best_rank: number | null;
   guess_count: number;
+  tip_count: number;
   solved: boolean;
   connected: boolean;
 }
@@ -30,8 +31,8 @@ export interface DuelGuessHistoryEntry {
 
 export type DuelWsMessage =
   | { type: "player_joined"; nickname: string }
-  | { type: "rank_update"; nickname: string; best_rank: number; guess_count: number }
-  | { type: "player_solved"; nickname: string; guess_count: number }
+  | { type: "rank_update"; nickname: string; best_rank: number; guess_count: number; tip_count: number }
+  | { type: "player_solved"; nickname: string; guess_count: number; tip_count: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string }
   | { type: "state"; players: DuelPlayer[] };

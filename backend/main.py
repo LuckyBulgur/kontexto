@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from database import init_db, get_db
 from duel import (
-    create_duel, join_duel, get_duel_state, record_guess,
+    create_duel, join_duel, get_duel_state, record_guess, record_tip,
     get_player_history, get_player_info, cleanup_stale_duels,
     set_player_connected,
 )
@@ -310,6 +310,7 @@ async def duel_history_endpoint(duel_id: str, token: str = Query(...)):
 @app.get("/api/duel/{duel_id}/tip", response_model=TipResponse)
 async def duel_tip_endpoint(
     duel_id: str,
+    token: str = Query(...),
     difficulty: str = Query("easy", pattern="^(easy|medium|hard)$"),
     best_rank: int = Query(1000, ge=1),
     guessed_ranks: str = Query(""),
@@ -338,6 +339,8 @@ async def duel_tip_endpoint(
                 status_code=404,
                 content={"error": "no_tip", "message": "Kein Tipp verfugbar"},
             )
+
+        await record_tip(db, duel_id, token, result["word"], result["rank"])
         return result
     finally:
         await db.close()

@@ -6,7 +6,6 @@ import { DuelPlayer } from "@/lib/duel-types";
 interface DuelResultCardProps {
   gameNumber: number;
   guesses: Guess[];
-  tipCount: number;
   players: DuelPlayer[];
   currentNickname: string;
 }
@@ -14,7 +13,6 @@ interface DuelResultCardProps {
 export default function DuelResultCard({
   gameNumber,
   guesses,
-  tipCount,
   players,
   currentNickname,
 }: DuelResultCardProps) {
@@ -56,10 +54,12 @@ export default function DuelResultCard({
                 <span>
                   <span className="text-green-500 font-bold">Gelöst</span> ·{" "}
                   {p.guess_count} Versuche
+                  {p.tip_count > 0 && ` (${p.tip_count} Tipps)`}
                 </span>
               ) : (
                 <span>
                   Nicht gelöst · Bester Rang: #{p.best_rank ?? "—"}
+                  {p.tip_count > 0 && ` · ${p.tip_count} Tipps`}
                 </span>
               )}
             </div>

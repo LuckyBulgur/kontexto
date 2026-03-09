@@ -77,13 +77,14 @@ export async function getDuelTip(
   duelId: string,
   difficulty: string,
   bestRank: number,
+  playerToken: string,
   guessedRanks?: number[]
 ): Promise<TipResult> {
   const ranksParam = guessedRanks?.length
     ? `&guessed_ranks=${guessedRanks.join(",")}`
     : "";
   const res = await fetch(
-    `${API_BASE}/duel/${duelId}/tip?difficulty=${difficulty}&best_rank=${bestRank}${ranksParam}`
+    `${API_BASE}/duel/${duelId}/tip?token=${playerToken}&difficulty=${difficulty}&best_rank=${bestRank}${ranksParam}`
   );
   if (res.status === 403) throw new Error("tips_disabled");
   if (!res.ok) throw new Error(`API error: ${res.status}`);

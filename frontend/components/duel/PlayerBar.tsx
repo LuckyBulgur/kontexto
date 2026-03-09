@@ -95,6 +95,7 @@ function PlayerEntry({
         )}
         <span className="text-xs text-muted-foreground">
           {player.guess_count}x
+          {player.tip_count > 0 && ` · ${player.tip_count}T`}
         </span>
       </div>
     </div>
@@ -142,6 +143,9 @@ function PlayerChip({
           #{player.best_rank}
         </span>
       ) : null}
+      {player.tip_count > 0 && (
+        <span className="text-muted-foreground text-[10px]">{player.tip_count}T</span>
+      )}
     </div>
   );
 }
