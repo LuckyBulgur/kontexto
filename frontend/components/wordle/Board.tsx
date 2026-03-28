@@ -1,0 +1,55 @@
+"use client";
+
+import type { TileColor } from "@/lib/wordle-types";
+import TileRow from "./TileRow";
+
+interface BoardProps {
+  guesses: string[];
+  evaluations: TileColor[][];
+  currentGuess: string;
+  currentRow: number;
+  shakeRow?: number | null;
+  wonRow?: number | null;
+}
+
+export default function Board({ guesses, evaluations, currentGuess, currentRow, shakeRow, wonRow }: BoardProps) {
+  const rows = Array.from({ length: 6 }, (_, i) => {
+    if (i < guesses.length) {
+      // Submitted row
+      return {
+        letters: [...guesses[i]],
+        colors: evaluations[i],
+        shake: false,
+        bounce: wonRow === i,
+        pop: false,
+      };
+    }
+    if (i === currentRow) {
+      // Current input row
+      return {
+        letters: [...currentGuess],
+        colors: undefined,
+        shake: shakeRow === i,
+        bounce: false,
+        pop: currentGuess.length > 0,
+      };
+    }
+    // Empty row
+    return { letters: [], colors: undefined, shake: false, bounce: false, pop: false };
+  });
+
+  return (
+    <div className="flex flex-col gap-1.5 items-center py-4">
+      {rows.map((row, i) => (
+        <TileRow
+          key={i}
+          letters={row.letters}
+          colors={row.colors}
+          shake={row.shake}
+          bounce={row.bounce}
+          pop={row.pop}
+        />
+      ))}
+    </div>
+  );
+}
