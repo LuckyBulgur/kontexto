@@ -33,3 +33,45 @@
     cursor: pointer;
   }
 }
+
+/* Wordle animations */
+@keyframes wordle-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wordle-flip {
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+@keyframes wordle-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes wordle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+}
+
+.animate-wordle-pop {
+  animation: wordle-pop 100ms ease-in-out;
+}
+
+.animate-wordle-flip {
+  animation: wordle-flip 500ms ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.animate-wordle-shake {
+  animation: wordle-shake 600ms ease-in-out;
+}
+
+.animate-wordle-bounce {
+  animation: wordle-bounce 400ms ease-in-out;
+  animation-fill-mode: both;
+}
