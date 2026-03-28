@@ -5,7 +5,8 @@ import os
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+import aiosqlite
+from fastapi import Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -23,10 +24,29 @@ from models import (
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
 )
-from websocket_manager import manager as ws_manager
+from websocket_manager import manager as ws_manager, wordle_manager as wordle_ws_manager
+from wordle import WordleState, evaluate, validate_hard_mode
+from wordle_models import (
+    WordleGuessRequest, WordleGuessResponse, WordleGameResponse,
+    WordleRevealResponse, WordleCreateDuelRequest, WordleCreateDuelResponse,
+    WordleJoinDuelRequest, WordleJoinDuelResponse, WordleDuelGuessRequest,
+    WordleDuelStateResponse, WordleDuelHistoryResponse,
+)
+from wordle_duel import (
+    create_wordle_duel, join_wordle_duel, record_wordle_guess,
+    get_wordle_duel_state, get_wordle_player_history,
+    cleanup_stale_wordle_duels,
+)
 
 _game_state: GameState | None = None
 _db_path: str | None = None
+_wordle_state: WordleState | None = None
+
+
+def get_wordle_state() -> WordleState:
+    if _wordle_state is None:
+        raise RuntimeError("WordleState not initialized")
+    return _wordle_state
 
 
 def _get_game_state() -> GameState:
@@ -63,14 +83,19 @@ def _resolve_game_number(game: int | None) -> int:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _get_game_state()
-    global _db_path
+    global _db_path, _wordle_state
     data_dir = os.environ.get("KONTEXTO_DATA_DIR", "data")
     _db_path = os.path.join(data_dir, "duels.db")
     await init_db(_db_path)
 
+    wordle_dir = os.path.join(data_dir, "wordle")
+    if os.path.isdir(wordle_dir):
+        _wordle_state = WordleState(data_dir)
+
     tasks = []
     if os.environ.get("KONTEXTO_WS_MODE"):
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
+        tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_cleanup_loop()))
 
     yield
@@ -79,6 +104,7 @@ async def lifespan(app: FastAPI):
         t.cancel()
     global _game_state
     _game_state = None
+    _wordle_state = None
 
 
 async def _cleanup_loop():
@@ -89,6 +115,7 @@ async def _cleanup_loop():
             db = await get_db(_db_path)
             try:
                 await cleanup_stale_duels(db)
+                await cleanup_stale_wordle_duels(db)
             finally:
                 await db.close()
         except Exception:
@@ -366,3 +393,124 @@ async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(
             await websocket.receive_text()
     except WebSocketDisconnect:
         await ws_manager.disconnect(duel_id, token, _db_path)
+
+
+# --- Wordle single-player endpoints ---
+
+
+@app.get("/api/wordle/game")
+async def wordle_game(ws: WordleState = Depends(get_wordle_state)) -> WordleGameResponse:
+    return WordleGameResponse(game_number=ws.get_game_number())
+
+
+@app.post("/api/wordle/guess")
+async def wordle_guess(
+    req: WordleGuessRequest, ws: WordleState = Depends(get_wordle_state)
+) -> WordleGuessResponse:
+    word = req.word.lower().strip()
+    if not ws.is_valid_word(word):
+        return WordleGuessResponse(valid=False, error="not_in_word_list")
+    if req.hard_mode and req.previous:
+        previous = [(p.word.lower(), p.result) for p in req.previous]
+        violation = validate_hard_mode(word, previous)
+        if violation:
+            return WordleGuessResponse(
+                valid=False, error="hard_mode_violation", message=violation
+            )
+    solution = ws.get_solution(req.game_number)
+    result = evaluate(word, solution)
+    return WordleGuessResponse(valid=True, result=result)
+
+
+@app.get("/api/wordle/reveal")
+async def wordle_reveal(
+    game_number: int, ws: WordleState = Depends(get_wordle_state)
+) -> WordleRevealResponse:
+    return WordleRevealResponse(word=ws.get_solution(game_number))
+
+
+# --- Wordle duel endpoints ---
+
+
+@app.post("/api/wordle/duel")
+async def wordle_create_duel(req: WordleCreateDuelRequest) -> WordleCreateDuelResponse:
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        result = await create_wordle_duel(
+            db, nickname=req.nickname, game_number=req.game_number
+        )
+    return WordleCreateDuelResponse(**result)
+
+
+@app.post("/api/wordle/duel/{duel_id}/join")
+async def wordle_join_duel(
+    duel_id: str, req: WordleJoinDuelRequest
+) -> WordleJoinDuelResponse:
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        result = await join_wordle_duel(db, duel_id=duel_id, nickname=req.nickname)
+    return WordleJoinDuelResponse(**result)
+
+
+@app.get("/api/wordle/duel/{duel_id}")
+async def wordle_duel_state(duel_id: str) -> WordleDuelStateResponse:
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        state = await get_wordle_duel_state(db, duel_id)
+    return WordleDuelStateResponse(**state)
+
+
+@app.post("/api/wordle/duel/{duel_id}/guess")
+async def wordle_duel_guess(
+    duel_id: str,
+    req: WordleDuelGuessRequest,
+    ws: WordleState = Depends(get_wordle_state),
+) -> WordleGuessResponse:
+    word = req.word.lower().strip()
+    if not ws.is_valid_word(word):
+        return WordleGuessResponse(valid=False, error="not_in_word_list")
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        state = await get_wordle_duel_state(db, duel_id)
+        solution = ws.get_solution(state["game_number"])
+        result = evaluate(word, solution)
+        await record_wordle_guess(
+            db,
+            duel_id=duel_id,
+            player_token=req.player_token,
+            word=word,
+            result=result,
+        )
+    return WordleGuessResponse(valid=True, result=result)
+
+
+@app.get("/api/wordle/duel/{duel_id}/history")
+async def wordle_duel_history(
+    duel_id: str, token: str
+) -> WordleDuelHistoryResponse:
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        guesses = await get_wordle_player_history(db, duel_id, token)
+    return WordleDuelHistoryResponse(guesses=guesses)
+
+
+@app.websocket("/ws/wordle/duel/{duel_id}")
+async def wordle_duel_websocket(
+    websocket: WebSocket, duel_id: str, token: str = Query(...)
+):
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            state = await get_wordle_duel_state(db, duel_id)
+        except ValueError:
+            await websocket.close(code=4004)
+            return
+
+    await wordle_ws_manager.connect(duel_id, token, websocket, _db_path)
+    await websocket.send_json({"type": "state", "players": state["players"]})
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await wordle_ws_manager.disconnect(duel_id, token, _db_path)
