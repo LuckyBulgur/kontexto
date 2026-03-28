@@ -66,6 +66,11 @@ if [ ! -f /app/data/metadata.json ]; then
     gosu appuser bash /app/scripts/prepare-data.sh /app/data
 fi
 
+if [ ! -f /app/data/wordle/solutions.json ]; then
+    echo "No Wordle data found. Running Wordle data preparation..."
+    gosu appuser python3 /app/scripts/prepare-wordle-data.py
+fi
+
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 ENTRYPOINT
 RUN chmod +x /app/entrypoint.sh
