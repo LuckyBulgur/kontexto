@@ -192,15 +192,17 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
   }
 
   return (
-    <div className="flex flex-col items-center max-w-lg mx-auto">
-      <Board
-        guesses={guesses}
-        evaluations={evaluations}
-        currentGuess={currentGuess}
-        currentRow={guesses.length}
-        shakeRow={shakeRow}
-        wonRow={wonRow}
-      />
+    <div className="flex flex-col items-center justify-center max-w-lg mx-auto gap-6" style={{ height: "calc(100vh - 57px)" }}>
+      <div style={{ marginTop: "-8vh" }}>
+        <Board
+          guesses={guesses}
+          evaluations={evaluations}
+          currentGuess={currentGuess}
+          currentRow={guesses.length}
+          shakeRow={shakeRow}
+          wonRow={wonRow}
+        />
+      </div>
       <Keyboard letterStates={letterStates} onKey={handleKey} />
     </div>
   );

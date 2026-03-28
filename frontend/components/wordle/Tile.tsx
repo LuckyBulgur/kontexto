@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import type { TileColor } from "@/lib/wordle-types";
 
 const COLOR_MAP: Record<TileColor, string> = {
-  GREEN: "bg-green-600 border-green-600 text-white",
-  YELLOW: "bg-yellow-500 border-yellow-500 text-white",
+  GREEN: "bg-green-600 border-green-600 text-white dark:bg-[#538d4e] dark:border-[#538d4e]",
+  YELLOW: "bg-yellow-500 border-yellow-500 text-white dark:bg-[#b59f3b] dark:border-[#b59f3b]",
   GRAY: "bg-zinc-500 border-zinc-500 text-white dark:bg-zinc-600 dark:border-zinc-600",
 };
 
@@ -22,19 +22,20 @@ interface TileProps {
 }
 
 export default function Tile({ letter, color, flipDelay = 0, pop = false, bounce = false, bounceDelay = 0 }: TileProps) {
-  const [flipped, setFlipped] = useState(false);
-  const [showColor, setShowColor] = useState(false);
+  // If color is already set on mount, show immediately (e.g. loaded from saved state)
+  const [mountedWithColor] = useState(() => !!color);
+  const [flipped, setFlipped] = useState(mountedWithColor);
+  const [showColor, setShowColor] = useState(mountedWithColor);
 
   useEffect(() => {
-    if (!color || flipped) return;
+    if (!color || mountedWithColor) return;
     const flipTimer = setTimeout(() => setFlipped(true), flipDelay);
-    // Color shows at halfway point of flip
     const colorTimer = setTimeout(() => setShowColor(true), flipDelay + 250);
     return () => {
       clearTimeout(flipTimer);
       clearTimeout(colorTimer);
     };
-  }, [color, flipDelay, flipped]);
+  }, [color, flipDelay, mountedWithColor]);
 
   const baseClasses = "w-[58px] h-[58px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl font-bold uppercase select-none";
 

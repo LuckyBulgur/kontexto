@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import Board from "@/components/wordle/Board";
 import Keyboard from "@/components/wordle/Keyboard";
@@ -253,8 +253,6 @@ export default function WordleDuelPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      <Toaster position="top-center" />
-
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
         <Link href="/wordle" className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
           ← Wördle
