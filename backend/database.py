@@ -32,6 +32,33 @@ CREATE TABLE IF NOT EXISTS duel_guesses (
     rank INTEGER NOT NULL,
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS wordle_duels (
+    id TEXT PRIMARY KEY,
+    game_number INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS wordle_duel_players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    duel_id TEXT NOT NULL REFERENCES wordle_duels(id) ON DELETE CASCADE,
+    nickname TEXT NOT NULL,
+    player_token TEXT UNIQUE NOT NULL,
+    guesses_used INTEGER DEFAULT 0,
+    solved BOOLEAN DEFAULT 0,
+    connected BOOLEAN DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS wordle_duel_guesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    duel_id TEXT NOT NULL REFERENCES wordle_duels(id) ON DELETE CASCADE,
+    player_token TEXT NOT NULL,
+    word TEXT NOT NULL,
+    result TEXT NOT NULL,
+    guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
