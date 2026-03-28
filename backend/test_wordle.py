@@ -38,25 +38,34 @@ class TestEvaluate:
 
 class TestValidateHardMode:
     def test_valid_guess(self):
-        previous = [("stern", ["GRAY", "GRAY", "GREEN", "GRAY", "GRAY"])]
-        assert validate_hard_mode("herze", previous) is None
+        # 'h' GREEN at pos 0 -> new guess must have 'h' at pos 0
+        previous = [("hallo", ["GREEN", "GRAY", "GRAY", "GRAY", "GRAY"])]
+        assert validate_hard_mode("heute", previous) is None  # h at pos 0 ✓
 
     def test_green_must_stay(self):
-        previous = [("stern", ["GRAY", "GRAY", "GREEN", "GRAY", "GRAY"])]
-        result = validate_hard_mode("hallo", previous)
+        # 'h' GREEN at pos 0 -> must have 'h' at pos 0
+        previous = [("hallo", ["GREEN", "GRAY", "GRAY", "GRAY", "GRAY"])]
+        result = validate_hard_mode("stern", previous)  # no h at pos 0
         assert result is not None
-        assert "Position 3" in result
-        assert "E" in result
+        assert "Position 1" in result
+        assert "H" in result
+
+    def test_green_wrong_position_rejected(self):
+        # 'h' GREEN at pos 0 -> must be at pos 0, not just present anywhere
+        previous = [("hallo", ["GREEN", "GRAY", "GRAY", "GRAY", "GRAY"])]
+        result = validate_hard_mode("lehre", previous)  # has 'h' but at pos 2, not 0
+        assert result is not None
+        assert "Position 1" in result
 
     def test_yellow_must_be_included(self):
         previous = [("stern", ["YELLOW", "GRAY", "GRAY", "GRAY", "GRAY"])]
-        result = validate_hard_mode("hallo", previous)
+        result = validate_hard_mode("hallo", previous)  # no 's'
         assert result is not None
         assert "S" in result
 
     def test_yellow_included_different_position(self):
         previous = [("stern", ["YELLOW", "GRAY", "GRAY", "GRAY", "GRAY"])]
-        assert validate_hard_mode("basis", previous) is None
+        assert validate_hard_mode("basis", previous) is None  # has 's'
 
     def test_gray_no_restriction(self):
         previous = [("stern", ["GRAY", "GRAY", "GRAY", "GRAY", "GRAY"])]
@@ -64,9 +73,10 @@ class TestValidateHardMode:
 
     def test_multiple_previous_guesses(self):
         previous = [
-            ("stern", ["GRAY", "GRAY", "GREEN", "GRAY", "GRAY"]),
-            ("berge", ["GRAY", "YELLOW", "GREEN", "GRAY", "GRAY"]),
+            ("hallo", ["GREEN", "GRAY", "GRAY", "YELLOW", "GRAY"]),  # h at pos 0 GREEN, l YELLOW
+            ("hilfe", ["GREEN", "GRAY", "GRAY", "GRAY", "YELLOW"]),  # h at pos 0 GREEN, e YELLOW
         ]
-        assert validate_hard_mode("kerze", previous) is None
-        result = validate_hard_mode("kehle", previous)
-        assert result is not None  # missing 'r'
+        # Must have: h at pos 0, l somewhere, e somewhere
+        assert validate_hard_mode("heule", previous) is None  # h at 0, e at 1+4, l at 3 ✓ (wait u at 2, l at 3, e at 4)
+        result = validate_hard_mode("hunde", previous)
+        assert result is not None  # missing 'l'

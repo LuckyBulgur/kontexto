@@ -34,7 +34,7 @@ def validate_hard_mode(guess: str, previous: list[tuple[str, list[str]]]) -> str
     """Check hard mode constraints. Returns error message or None if valid."""
     for prev_guess, prev_result in previous:
         for i, color in enumerate(prev_result):
-            if color == "GREEN" and prev_guess[i] not in guess:
+            if color == "GREEN" and guess[i] != prev_guess[i]:
                 return f"Position {i + 1} muss '{prev_guess[i].upper()}' sein"
             if color == "YELLOW" and prev_guess[i] not in guess:
                 return f"'{prev_guess[i].upper()}' muss enthalten sein"
