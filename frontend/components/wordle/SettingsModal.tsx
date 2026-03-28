@@ -3,27 +3,51 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  theme: "light" | "dark";
+  onThemeChange: (t: "light" | "dark") => void;
   hardMode: boolean;
   onHardModeChange: (enabled: boolean) => void;
   canToggleHardMode: boolean;
 }
 
-export default function SettingsModal({ open, onOpenChange, hardMode, onHardModeChange, canToggleHardMode }: SettingsModalProps) {
+export default function SettingsModal({ open, onOpenChange, theme, onThemeChange, hardMode, onHardModeChange, canToggleHardMode }: SettingsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Einstellungen</DialogTitle>
         </DialogHeader>
-        <div className="flex items-center justify-between py-3">
+
+        <div className="space-y-2 py-2">
+          <Label className="text-sm font-medium">Design</Label>
+          <p className="text-xs text-zinc-500">Wechsle zwischen hellem und dunklem Design</p>
+          <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Hell</SelectItem>
+              <SelectItem value="dark">Dunkel</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-700">
           <div>
             <Label>Hard Mode</Label>
             <p className="text-xs text-zinc-500">
-              Enth&#252;llte Hinweise m&#252;ssen in folgenden Versuchen verwendet werden.
+              Enthüllte Hinweise müssen in folgenden Versuchen verwendet werden.
             </p>
           </div>
           <Switch

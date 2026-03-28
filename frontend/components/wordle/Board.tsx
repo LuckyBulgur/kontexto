@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import type { TileColor } from "@/lib/wordle-types";
 import TileRow from "./TileRow";
 
@@ -13,6 +14,9 @@ interface BoardProps {
 }
 
 export default function Board({ guesses, evaluations, currentGuess, currentRow, shakeRow, wonRow }: BoardProps) {
+  const prevLengthRef = useRef(0);
+  const isAdding = currentGuess.length > prevLengthRef.current;
+  useEffect(() => { prevLengthRef.current = currentGuess.length; }, [currentGuess]);
   const rows = Array.from({ length: 6 }, (_, i) => {
     if (i < guesses.length) {
       // Submitted row
@@ -31,7 +35,7 @@ export default function Board({ guesses, evaluations, currentGuess, currentRow, 
         colors: undefined,
         shake: shakeRow === i,
         bounce: false,
-        pop: currentGuess.length > 0,
+        pop: isAdding,
       };
     }
     // Empty row

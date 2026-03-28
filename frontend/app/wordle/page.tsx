@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Toaster } from "sonner";
+import { useState, useCallback, useEffect } from "react";
 import WordleGame from "@/components/wordle/WordleGame";
 import StatsModal from "@/components/wordle/StatsModal";
 import HelpModal from "@/components/wordle/HelpModal";
 import SettingsModal from "@/components/wordle/SettingsModal";
 import { loadHardMode, saveHardMode, loadWordleState } from "@/lib/wordle-storage";
+import { loadTheme, saveTheme } from "@/lib/storage";
 import { getWordleGame } from "@/lib/wordle-api";
 import { BarChart3, CircleHelp, Settings, Swords } from "lucide-react";
 import type { TileColor } from "@/lib/wordle-types";
@@ -16,7 +16,20 @@ export default function WordlePage() {
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [hardMode, setHardMode] = useState(loadHardMode());
+
+  useEffect(() => {
+    const t = loadTheme();
+    setTheme(t);
+    document.documentElement.classList.toggle("dark", t === "dark");
+  }, []);
+
+  const handleThemeChange = useCallback((t: "light" | "dark") => {
+    setTheme(t);
+    saveTheme(t);
+    document.documentElement.classList.toggle("dark", t === "dark");
+  }, []);
   const [gameData, setGameData] = useState<{
     gameNumber: number;
     guesses: string[];
@@ -50,8 +63,6 @@ export default function WordlePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      <Toaster position="top-center" />
-
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-2">
@@ -92,6 +103,8 @@ export default function WordlePage() {
       <SettingsModal
         open={showSettings}
         onOpenChange={setShowSettings}
+        theme={theme}
+        onThemeChange={handleThemeChange}
         hardMode={hardMode}
         onHardModeChange={handleHardModeChange}
         canToggleHardMode={canToggleHardMode}
