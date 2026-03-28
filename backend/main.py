@@ -93,7 +93,9 @@ async def lifespan(app: FastAPI):
         _wordle_state = WordleState(data_dir)
 
     tasks = []
-    if os.environ.get("KONTEXTO_WS_MODE"):
+    is_ws_mode = os.environ.get("KONTEXTO_WS_MODE")
+    is_dev = os.environ.get("KONTEXTO_DEV")
+    if is_ws_mode or is_dev:
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_cleanup_loop()))
