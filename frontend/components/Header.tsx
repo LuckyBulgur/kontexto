@@ -15,6 +15,7 @@ import {
   Copy,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -75,6 +76,7 @@ export default function Header({
   hideDuelCreate,
   backHref,
 }: HeaderProps) {
+  const pathname = usePathname();
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
 
   useEffect(() => {
@@ -93,7 +95,15 @@ export default function Header({
             </Button>
           </a>
         )}
-        <h1 className="text-[24px] font-bold tracking-wider">KONTEXTO</h1>
+        <div className="flex items-center gap-1 text-[20px] font-bold tracking-wider">
+          <Link href="/" className={pathname.startsWith("/wordle") ? "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" : ""}>
+            KONTEXTO
+          </Link>
+          <span className="text-zinc-300 dark:text-zinc-600">|</span>
+          <Link href="/wordle" className={!pathname.startsWith("/wordle") ? "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" : ""}>
+            WÖRDLE
+          </Link>
+        </div>
       <div className="absolute right-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
