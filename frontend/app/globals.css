@@ -75,3 +75,12 @@
   animation: wordle-bounce 400ms ease-in-out;
   animation-fill-mode: both;
 }
+
+@keyframes wordle-fade-in {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-wordle-fade-in {
+  animation: wordle-fade-in 200ms ease-out;
+}
