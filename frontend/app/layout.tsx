@@ -9,71 +9,23 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kontexto.de"),
-  title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
+  title: {
+    default: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
+    template: "%s | Kontexto",
+  },
   description:
     "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel. Errate das Zielwort anhand von Bedeutungsähnlichkeit - kostenlos und ohne Anmeldung.",
-  keywords: [
-    "Kontexto",
-    "Contexto",
-    "Contexto deutsch",
-    "Contexto auf deutsch",
-    "Contexto german",
-    "Wort-Ratespiel",
-    "Wortspiel",
-    "deutsches Wortspiel",
-    "semantische Ähnlichkeit",
-    "tägliches Rätsel",
-    "Worträtsel",
-    "Sprachspiel",
-    "Wörter raten",
-    "Wort des Tages",
-    "Wortspiel online",
-    "kostenloses Wortspiel",
-  ],
+  applicationName: "Kontexto",
   authors: [{ name: "Kontexto" }],
   creator: "Kontexto",
-  alternates: {
-    canonical: "/",
-    languages: { "de-DE": "/" },
-  },
-  openGraph: {
-    title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
-    description:
-      "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel basierend auf Bedeutungsähnlichkeit.",
-    type: "website",
-    locale: "de_DE",
-    url: "https://kontexto.de",
-    siteName: "Kontexto",
-    images: [
-      {
-        url: "/icon-512.png",
-        width: 512,
-        height: 512,
-        alt: "Kontexto Logo",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary",
-    title: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
-    description:
-      "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel.",
-    images: ["/icon-512.png"],
-  },
+  alternates: { languages: { "de-DE": "/", "x-default": "/" } },
+  openGraph: { type: "website", locale: "de_DE", siteName: "Kontexto", url: "https://kontexto.de" },
+  twitter: { card: "summary_large_image" },
   robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
-  other: {
-    "theme-color": "#ffffff",
-  },
+  other: { "theme-color": "#ffffff" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
