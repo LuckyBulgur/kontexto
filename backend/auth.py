@@ -14,12 +14,10 @@ import time
 
 import pyotp
 
+from server_secret import server_secret as _server_secret
+
 # Session token validity (seconds).
 SESSION_TTL = 12 * 60 * 60  # 12 hours
-
-
-def _server_secret() -> bytes:
-    return os.environ.get("KONTEXTO_SERVER_SECRET", "kontexto-dev-secret").encode()
 
 
 def _totp_secret() -> str | None:
