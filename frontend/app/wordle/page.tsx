@@ -8,7 +8,7 @@ import SettingsModal from "@/components/wordle/SettingsModal";
 import { loadHardMode, saveHardMode, loadWordleState } from "@/lib/wordle-storage";
 import { loadTheme, saveTheme } from "@/lib/storage";
 import { getWordleGame } from "@/lib/wordle-api";
-import { BarChart3, CircleHelp, Settings, Swords } from "lucide-react";
+import { BarChart3, CircleHelp, Dices, Settings, Swords } from "lucide-react";
 import type { TileColor } from "@/lib/wordle-types";
 import Link from "next/link";
 
@@ -18,6 +18,21 @@ export default function WordlePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [hardMode, setHardMode] = useState(loadHardMode());
+  const [roundMode, setRoundMode] = useState<"daily" | "random">("daily");
+  const [randomSeed, setRandomSeed] = useState<number | null>(null);
+  const [roundKey, setRoundKey] = useState(0);
+
+  const startRandomRound = useCallback(() => {
+    setRoundMode("random");
+    setRandomSeed(Math.floor(Math.random() * 5000) + 1);
+    setRoundKey((k) => k + 1);
+  }, []);
+
+  const backToDaily = useCallback(() => {
+    setRoundMode("daily");
+    setRandomSeed(null);
+    setRoundKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     const t = loadTheme();
@@ -76,6 +91,9 @@ export default function WordlePage() {
           <span>W&#214;RDLE</span>
         </div>
         <div className="flex items-center gap-1">
+          <button onClick={startRandomRound} aria-label="Zufallsspiel" className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
+            <Dices className="w-5 h-5" />
+          </button>
           <Link href="/wordle/duel/create" className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
             <Swords className="w-5 h-5" />
           </Link>
@@ -88,7 +106,21 @@ export default function WordlePage() {
         </div>
       </header>
 
-      <WordleGame onGameEnd={handleGameEnd} />
+      {roundMode === "random" && (
+        <div className="flex items-center justify-center gap-3 px-4 py-2 text-sm bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+          <span className="text-zinc-500">Zufallsspiel #{randomSeed}</span>
+          <button onClick={backToDaily} className="font-medium text-zinc-700 dark:text-zinc-200 hover:underline">
+            Zum Tagesspiel
+          </button>
+        </div>
+      )}
+
+      <WordleGame
+        key={roundKey}
+        mode={roundMode}
+        gameNumber={randomSeed}
+        onGameEnd={handleGameEnd}
+      />
 
       <StatsModal
         open={showStats}

@@ -54,6 +54,7 @@ class WordleDuelPlayerInfo(BaseModel):
 
 class WordleJoinDuelResponse(BaseModel):
     player_token: str
+    nickname: str
     players: list[WordleDuelPlayerInfo]
     game_number: int
 

@@ -8,7 +8,8 @@ import Keyboard from "./Keyboard";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
 import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
 import {
-  loadWordleState, saveWordleState, loadHardMode,
+  loadWordleState, saveWordleState,
+  loadWordleRandomState, saveWordleRandomState, loadHardMode,
   updateStatsAfterGame,
   type WordleGameState,
 } from "@/lib/wordle-storage";
@@ -16,11 +17,13 @@ import {
 const WIN_MESSAGES = ["Genial!", "Gro\u00DFartig!", "Stark!", "Gut!", "Knapp!", "Gerade so!"];
 
 interface WordleGameProps {
+  mode?: "daily" | "random";
+  gameNumber?: number | null;
   onStatsOpen?: () => void;
   onGameEnd?: (won: boolean, guessCount: number) => void;
 }
 
-export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) {
+export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumber = null, onStatsOpen, onGameEnd }: WordleGameProps) {
   const [gameNumber, setGameNumber] = useState<number | null>(null);
   const [guesses, setGuesses] = useState<string[]>([]);
   const [evaluations, setEvaluations] = useState<TileColor[][]>([]);
@@ -32,11 +35,14 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
   const [submitting, setSubmitting] = useState(false);
   const hardMode = loadHardMode();
 
+  const loadState = mode === "random" ? loadWordleRandomState : loadWordleState;
+  const saveState = mode === "random" ? saveWordleRandomState : saveWordleState;
+
   // Load game on mount
   useEffect(() => {
-    getWordleGame().then(({ game_number }) => {
+    const init = (game_number: number) => {
       setGameNumber(game_number);
-      const saved = loadWordleState(game_number);
+      const saved = loadState(game_number);
       if (saved) {
         setGuesses(saved.guesses);
         setEvaluations(saved.evaluations);
@@ -60,7 +66,13 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
         }
         setLetterStates(states);
       }
-    });
+    };
+
+    if (mode === "random") {
+      if (forcedGameNumber !== null) init(forcedGameNumber);
+    } else {
+      getWordleGame().then(({ game_number }) => init(game_number));
+    }
   }, []);
 
   const updateLetterStates = useCallback((guess: string, evaluation: TileColor[]) => {
@@ -131,7 +143,7 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
         evaluations: newEvaluations,
         status: newStatus,
       };
-      saveWordleState(state);
+      saveState(state);
 
       if (won) {
         // Delay win effects until flip animation completes (~1.8s)
@@ -139,8 +151,10 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
           setWonRow(newGuesses.length - 1);
           toast(WIN_MESSAGES[newGuesses.length - 1] || "Gewonnen!");
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-          updateStatsAfterGame(gameNumber, true, newGuesses.length);
-          onGameEnd?.(true, newGuesses.length);
+          if (mode === "daily") {
+            updateStatsAfterGame(gameNumber, true, newGuesses.length);
+            onGameEnd?.(true, newGuesses.length);
+          }
         }, 1800);
       } else if (lost) {
         setTimeout(async () => {
@@ -150,14 +164,16 @@ export default function WordleGame({ onStatsOpen, onGameEnd }: WordleGameProps) 
             const { word } = await revealWordleAnswer(gameNumber);
             toast(word.toUpperCase(), { duration: 5000 });
           } catch {}
-          updateStatsAfterGame(gameNumber, false, 6);
-          onGameEnd?.(false, 6);
+          if (mode === "daily") {
+            updateStatsAfterGame(gameNumber, false, 6);
+            onGameEnd?.(false, 6);
+          }
         }, 1800);
       }
     } finally {
       setSubmitting(false);
     }
-  }, [gameNumber, currentGuess, guesses, evaluations, submitting, gameStatus, hardMode, shake, updateLetterStates, onGameEnd]);
+  }, [gameNumber, currentGuess, guesses, evaluations, submitting, gameStatus, hardMode, shake, updateLetterStates, onGameEnd, mode, saveState]);
 
   const handleKey = useCallback((key: string) => {
     if (gameStatus !== "playing") return;

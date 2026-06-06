@@ -44,14 +44,28 @@ async def join_wordle_duel(
     if not row:
         raise ValueError("Duel not found")
     game_number = row["game_number"]
+
+    # Ensure the nickname is unique within the duel — identity (self/opponent
+    # boards) is keyed by nickname on the client, so collisions break the game.
+    cursor = await db.execute(
+        "SELECT nickname FROM wordle_duel_players WHERE duel_id = ?", (duel_id,)
+    )
+    taken = {r["nickname"] for r in await cursor.fetchall()}
+    unique_nickname = nickname
+    suffix = 2
+    while unique_nickname in taken:
+        unique_nickname = f"{nickname} ({suffix})"
+        suffix += 1
+
     await db.execute(
         "INSERT INTO wordle_duel_players (duel_id, nickname, player_token) VALUES (?, ?, ?)",
-        (duel_id, nickname, player_token),
+        (duel_id, unique_nickname, player_token),
     )
     await db.commit()
     state = await get_wordle_duel_state(db, duel_id)
     return {
         "player_token": player_token,
+        "nickname": unique_nickname,
         "players": state["players"],
         "game_number": game_number,
     }
