@@ -1,6 +1,8 @@
 import GameClient from "@/components/GameClient";
 import HomeContent from "@/components/seo/HomeContent";
+import StructuredData from "@/components/StructuredData";
 import { buildMetadata } from "@/lib/seo";
+import { gameSchema, faqSchema } from "@/lib/structured-data";
 
 export const metadata = buildMetadata({
   path: "/",
@@ -12,6 +14,8 @@ export const metadata = buildMetadata({
 export default function Home() {
   return (
     <>
+      <StructuredData data={gameSchema()} />
+      <StructuredData data={faqSchema()} />
       <GameClient />
       <HomeContent />
     </>
