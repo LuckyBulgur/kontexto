@@ -1,24 +1,22 @@
 # pnpm settings. As of pnpm 10+, settings such as `overrides` are read from this
 # file and no longer from the "pnpm" field in package.json.
 
-# These overrides pin the React type packages to versions matching react@19.2.x
-# so transitive deps cannot pull in mismatched @types/react(-dom).
+# Pin the React type packages to versions matching react@19.2.x so transitive
+# deps cannot pull in mismatched @types/react(-dom).
 overrides:
   '@types/react': 19.2.14
   '@types/react-dom': 19.2.3
 
-# pnpm 10+ blocks dependency lifecycle (build) scripts by default as a
-# supply-chain safeguard. None of these are needed for our build: the frontend
-# is a static export (output: "export"), so next/image never invokes `sharp`;
-# `msw` is a test-only service-worker mock; `unrs-resolver` is ESLint's resolver
-# and ships prebuilt binaries. We intentionally keep their scripts blocked and
-# acknowledge them here so installs stay warning-free.
-ignoredBuiltDependencies:
-  - msw
-  - sharp
-  - unrs-resolver
-
+# pnpm 11 blocks dependency lifecycle (build) scripts by default as a
+# supply-chain safeguard and fails the install with ERR_PNPM_IGNORED_BUILDS
+# until every such dependency is explicitly decided here. `allowBuilds`
+# (introduced in pnpm 11, replacing onlyBuiltDependencies/ignoredBuiltDependencies)
+# maps a package to true (run its scripts) or false (keep blocked, acknowledged).
+# None of these are needed for our build: the frontend is a static export
+# (output: "export"), so next/image never invokes `sharp`; `msw` is a test-only
+# service-worker mock; `unrs-resolver` is ESLint's resolver and ships prebuilt
+# binaries. We keep all three blocked.
 allowBuilds:
-  msw: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  msw: false
+  sharp: false
+  unrs-resolver: false
