@@ -2,14 +2,22 @@
 
 import asyncio
 import os
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import aiosqlite
-from fastapi import Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import analytics
+import auth
+from analytics_models import (
+    AdminLoginRequest, AdminLoginResponse, BeaconRequest, BeaconResponse,
+    BeaconTokenResponse,
+)
 from database import init_db, get_db
 from duel import (
     create_duel, join_duel, get_duel_state, record_guess, record_tip,
@@ -110,7 +118,7 @@ async def lifespan(app: FastAPI):
 
 
 async def _cleanup_loop():
-    """Run cleanup every 5 minutes."""
+    """Run cleanup + analytics aggregation every 5 minutes (single WS worker)."""
     while True:
         await asyncio.sleep(300)
         try:
@@ -118,10 +126,27 @@ async def _cleanup_loop():
             try:
                 await cleanup_stale_duels(db)
                 await cleanup_stale_wordle_duels(db)
+                await analytics.aggregate_daily(db)
+                await analytics.prune_old_events(db)
             finally:
                 await db.close()
         except Exception:
             pass
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _client_ip(request: Request) -> str:
+    """Real client IP as seen by nginx (X-Real-IP / first X-Forwarded-For hop)."""
+    real = request.headers.get("x-real-ip")
+    if real:
+        return real.strip()
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "0.0.0.0"
 
 
 app = FastAPI(title="Kontexto API", lifespan=lifespan)
@@ -156,6 +181,9 @@ async def guess(req: GuessRequest, game: int | None = Query(None)):
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
+    await analytics.record_action(_db_path, "guesses", "kontexto", word=result["word"])
+    if result["rank"] == 1:
+        await analytics.record_action(_db_path, "solves", "kontexto")
     return result
 
 
@@ -180,6 +208,7 @@ async def tip(
             status_code=404,
             content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
         )
+    await analytics.record_action(_db_path, "hints", "kontexto")
     return result
 
 
@@ -217,6 +246,7 @@ async def reveal(game: int | None = Query(None)):
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
+    await analytics.record_action(_db_path, "reveals", "kontexto")
     return {"word": gs.get_target_word(game_num)}
 
 
@@ -321,6 +351,9 @@ async def duel_guess_endpoint(duel_id: str, req: DuelGuessRequest):
             )
 
         await record_guess(db, duel_id, req.player_token, result["word"], result["rank"])
+        await analytics.record_action(_db_path, "guesses", "duel", word=result["word"])
+        if result["rank"] == 1:
+            await analytics.record_action(_db_path, "solves", "duel")
         return result
     finally:
         await db.close()
@@ -421,6 +454,9 @@ async def wordle_guess(
             )
     solution = ws.get_solution(req.game_number)
     result = evaluate(word, solution)
+    await analytics.record_action(_db_path, "guesses", "wordle")
+    if word == solution:
+        await analytics.record_action(_db_path, "solves", "wordle")
     return WordleGuessResponse(valid=True, result=result)
 
 
@@ -428,6 +464,7 @@ async def wordle_guess(
 async def wordle_reveal(
     game_number: int, ws: WordleState = Depends(get_wordle_state)
 ) -> WordleRevealResponse:
+    await analytics.record_action(_db_path, "reveals", "wordle")
     return WordleRevealResponse(word=ws.get_solution(game_number))
 
 
@@ -483,6 +520,9 @@ async def wordle_duel_guess(
             word=word,
             result=result,
         )
+    await analytics.record_action(_db_path, "guesses", "duel")
+    if word == solution:
+        await analytics.record_action(_db_path, "solves", "duel")
     return WordleGuessResponse(valid=True, result=result)
 
 
@@ -516,3 +556,69 @@ async def wordle_duel_websocket(
             await websocket.receive_text()
     except WebSocketDisconnect:
         await wordle_ws_manager.disconnect(duel_id, token, _db_path)
+
+
+# --- Analytics (pageview beacon) ---------------------------------------------
+
+
+@app.get("/api/collect/token", response_model=BeaconTokenResponse)
+async def collect_token(request: Request):
+    """Issue a short-lived, IP-bound beacon token for the requesting client."""
+    now = _now()
+    fp = analytics.compute_fingerprint(_client_ip(request), request.headers.get("user-agent", ""), now)
+    return {"token": analytics.make_beacon_token(fp, now)}
+
+
+@app.post("/api/collect", response_model=BeaconResponse)
+async def collect(req: BeaconRequest, request: Request):
+    """Record a pageview beacon. Identity/device/geo are derived server-side."""
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_pageview(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            referrer=req.referrer or request.headers.get("referer"),
+            page=req.page,
+            token=req.token,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+# --- Admin (TOTP-protected statistics dashboard) -----------------------------
+
+_login_attempts: dict[str, list[float]] = defaultdict(list)
+_LOGIN_MAX = 10
+_LOGIN_WINDOW = 300  # seconds
+
+
+def _login_rate_limited(ip: str) -> bool:
+    now = time.time()
+    attempts = [t for t in _login_attempts[ip] if now - t < _LOGIN_WINDOW]
+    attempts.append(now)
+    _login_attempts[ip] = attempts
+    return len(attempts) > _LOGIN_MAX
+
+
+@app.post("/api/admin/login", response_model=AdminLoginResponse)
+async def admin_login(req: AdminLoginRequest, request: Request):
+    if _login_rate_limited(_client_ip(request)):
+        return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
+    if not auth.verify_totp(req.code):
+        return JSONResponse(status_code=401, content={"error": "invalid_code", "message": "Code ungültig"})
+    return {"token": auth.issue_session_token()}
+
+
+@app.get("/api/admin/stats")
+async def admin_stats(authorization: str = Header(default="")):
+    token = authorization[7:] if authorization.lower().startswith("bearer ") else authorization
+    if not auth.verify_session_token(token):
+        return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    db = await get_db(_db_path)
+    try:
+        return await analytics.get_stats(db, _now())
+    finally:
+        await db.close()

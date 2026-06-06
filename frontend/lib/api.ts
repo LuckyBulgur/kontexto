@@ -1,4 +1,4 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, StatsData } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -45,6 +45,30 @@ export async function getPastGames(): Promise<PastGamesResponse> {
 export async function getClosestWords(game?: number | null): Promise<ClosestWordsResponse> {
   const gameParam = game ? `?game=${game}` : "";
   const res = await fetch(`${API_BASE}/closest${gameParam}`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+// --- Admin (TOTP-protected statistics) ---
+
+export async function adminLogin(code: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (res.status === 401) throw new Error("invalid_code");
+  if (res.status === 429) throw new Error("rate_limited");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return data.token as string;
+}
+
+export async function getAdminStats(token: string): Promise<StatsData> {
+  const res = await fetch(`${API_BASE}/admin/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

@@ -59,6 +59,52 @@ CREATE TABLE IF NOT EXISTS wordle_duel_guesses (
     result TEXT NOT NULL,
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Analytics: raw pageview/beacon events (short retention, pruned by background job)
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TIMESTAMP NOT NULL,
+    event_type TEXT NOT NULL,
+    page TEXT NOT NULL,
+    fp_hash TEXT NOT NULL,
+    ua_class TEXT NOT NULL,
+    device TEXT,
+    browser TEXT,
+    country TEXT,
+    referrer_domain TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_ts ON analytics_events(ts);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_fp ON analytics_events(fp_hash, ts);
+
+-- Analytics: permanent per-day rollups derived from events (unique_visitors, pageviews)
+CREATE TABLE IF NOT EXISTS analytics_daily (
+    date TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    dimension TEXT NOT NULL DEFAULT '*',
+    value INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (date, metric, dimension)
+);
+
+-- Analytics: server-authoritative action counters (guesses, solves, hints, reveals, games)
+CREATE TABLE IF NOT EXISTS analytics_counters (
+    date TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    dimension TEXT NOT NULL DEFAULT '*',
+    value INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (date, metric, dimension)
+);
+
+-- Analytics: aggregate count of guessed words across all users (top words)
+CREATE TABLE IF NOT EXISTS analytics_word_counts (
+    word TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0
+);
+
+-- Analytics: misc key/value metadata (e.g. last aggregation run)
+CREATE TABLE IF NOT EXISTS analytics_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 """
 
 
