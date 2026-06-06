@@ -41,5 +41,10 @@ for (const [file] of routes) {
   ok(html.includes('hreflang="de-de"'), `${file}: missing de-DE hreflang`);
 }
 
+const robotsTxt = await read("robots.txt");
+ok(robotsTxt.includes("Disallow: /admin/"), "robots.txt: /admin/ not disallowed");
+const sm = await read("sitemap.xml");
+ok(sm.includes("/wordle/"), "sitemap: missing /wordle/");
+
 if (failures.length) { console.error("SEO CHECK FAILED:\n" + failures.map(f => " - " + f).join("\n")); process.exit(1); }
 console.log("SEO check passed.");
