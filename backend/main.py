@@ -139,14 +139,16 @@ def _now() -> datetime:
 
 
 def _client_ip(request: Request) -> str:
-    """Real client IP as seen by nginx (X-Real-IP / first X-Forwarded-For hop)."""
-    real = request.headers.get("x-real-ip")
-    if real:
-        return real.strip()
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "0.0.0.0"
+    """Real, non-spoofable client IP behind the Caddy->nginx proxy chain.
+
+    Resolved from the trusted hop of X-Forwarded-For; client-supplied left-hand
+    entries are ignored. See analytics.client_ip_from_headers for details.
+    """
+    return analytics.client_ip_from_headers(
+        request.headers.get("x-forwarded-for"),
+        request.headers.get("x-real-ip"),
+        request.client.host if request.client else None,
+    )
 
 
 app = FastAPI(title="Kontexto API", lifespan=lifespan)
@@ -590,26 +592,42 @@ async def collect(req: BeaconRequest, request: Request):
 
 # --- Admin (TOTP-protected statistics dashboard) -----------------------------
 
-_login_attempts: dict[str, list[float]] = defaultdict(list)
-_LOGIN_MAX = 10
-_LOGIN_WINDOW = 300  # seconds
+# Per-IP failed-login tracking (in-memory fast path; keyed on the trustworthy IP).
+_login_failures_by_ip: dict[str, list[float]] = defaultdict(list)
+_LOGIN_IP_FAIL_MAX = 8
+_LOGIN_FAIL_WINDOW = 600  # seconds
 
 
-def _login_rate_limited(ip: str) -> bool:
+def _login_ip_blocked(ip: str) -> bool:
     now = time.time()
-    attempts = [t for t in _login_attempts[ip] if now - t < _LOGIN_WINDOW]
-    attempts.append(now)
-    _login_attempts[ip] = attempts
-    return len(attempts) > _LOGIN_MAX
+    fails = [t for t in _login_failures_by_ip[ip] if now - t < _LOGIN_FAIL_WINDOW]
+    _login_failures_by_ip[ip] = fails
+    return len(fails) >= _LOGIN_IP_FAIL_MAX
+
+
+def _record_login_ip_failure(ip: str) -> None:
+    _login_failures_by_ip[ip].append(time.time())
 
 
 @app.post("/api/admin/login", response_model=AdminLoginResponse)
 async def admin_login(req: AdminLoginRequest, request: Request):
-    if _login_rate_limited(_client_ip(request)):
+    ip = _client_ip(request)
+    # Fast path: block a single source that has already failed too often.
+    if _login_ip_blocked(ip):
         return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
-    if not auth.verify_totp(req.code):
+    db = await get_db(_db_path)
+    try:
+        # Global backstop: stop distributed brute force across many spoofed IPs.
+        if await analytics.login_failures(db, _now()) >= analytics.GLOBAL_LOGIN_FAIL_MAX:
+            return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
+        if auth.verify_totp(req.code):
+            return {"token": auth.issue_session_token()}
+        # Failed: record against both the per-IP and the global counters.
+        _record_login_ip_failure(ip)
+        await analytics.record_login_failure(db, _now())
         return JSONResponse(status_code=401, content={"error": "invalid_code", "message": "Code ungültig"})
-    return {"token": auth.issue_session_token()}
+    finally:
+        await db.close()
 
 
 @app.get("/api/admin/stats")
