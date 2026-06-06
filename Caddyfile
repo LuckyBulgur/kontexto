@@ -1,3 +1,7 @@
 kontexto.de {
     reverse_proxy kontexto:8080
 }
+
+www.kontexto.de {
+    redir https://kontexto.de{uri} permanent
+}
