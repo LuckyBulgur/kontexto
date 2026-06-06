@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import StructuredData from "@/components/StructuredData";
@@ -51,6 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toaster />
         <Analytics />
       </body>
+      <Script
+        id="google-adsense"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3545758989514084"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
     </html>
   );
 }
