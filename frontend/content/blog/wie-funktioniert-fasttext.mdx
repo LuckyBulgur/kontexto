@@ -1,0 +1,35 @@
+# Wie funktioniert die KI-Wortähnlichkeit (fastText)?
+
+Wenn du bei Kontexto das Wort „Hund" eingibst und einen Rang von 12 bekommst, aber „Hundert" auf Rang 4.200 landet, dann steckt dahinter kein Zufall und keine Handarbeit. Der Unterschied wird von einem KI-Modell namens fastText berechnet, das Sprache auf eine mathematisch greifbare Weise darstellt. Dieser Artikel erklärt, wie das funktioniert – ohne Vorkenntnisse in Mathematik oder Informatik.
+
+## Was sind Worteinbettungen?
+
+Stell dir vor, jedes Wort der deutschen Sprache wäre ein Punkt in einem riesigen, mehrdimensionalen Raum. Wörter, die in ähnlichen Kontexten auftauchen – in denselben Sätzen, neben denselben anderen Wörtern – liegen in diesem Raum nahe beieinander. Wörter mit völlig unterschiedlichen Bedeutungen liegen weit voneinander entfernt.
+
+Genau das sind Worteinbettungen (englisch: word embeddings): numerische Vektoren, die die Bedeutung eines Wortes als Liste von Zahlen kodieren. Ein Vektor für „Katze" könnte hunderte von Dimensionen haben, aber der entscheidende Punkt ist: Der Vektor für „Hund" liegt in diesem hochdimensionalen Raum sehr nah daneben.
+
+## Wie lernt fastText diese Vektoren?
+
+fastText, ein von Facebook AI Research (Meta) entwickeltes Modell, wird auf riesigen deutschen Textkorpora trainiert – Millionen von Sätzen aus Nachrichtentexten, Wikipedia, Büchern und dem Web. Dabei analysiert das Modell immer wieder, welche Wörter gemeinsam auftreten und welche nicht.
+
+Der Schlüsselgedanke: Wörter, die denselben sprachlichen Kontext teilen, erhalten ähnliche Vektoren. „Meer" und „Ozean" tauchen in Texten über Wasser, Schiffe und Küsten auf. „Tisch" und „Stuhl" erscheinen in Texten über Möbel und Wohnräume. Das Modell erkennt diese Muster und kodiert sie als räumliche Nähe.
+
+Ein Vorteil von fastText gegenüber älteren Modellen: Es berücksichtigt auch Teilwörter (Subwörter). Das bedeutet, es kann auch seltene oder zusammengesetzte Wörter einschätzen, die es vielleicht nie vollständig gesehen hat – ein großer Pluspunkt für die deutsche Sprache mit ihrer ausgeprägten Wortbildung.
+
+## Kosinus-Ähnlichkeit und der Rang
+
+Wenn du ein Wort bei Kontexto eingibst, berechnet das System die sogenannte Kosinus-Ähnlichkeit zwischen dem Vektor deines Wortes und dem Vektor des Zielworts. Dieser Wert liegt immer zwischen −1 und 1; je näher an 1, desto ähnlicher sind die Bedeutungen.
+
+Alle Wörter des deutschen Wortschatzes werden anhand dieser Ähnlichkeit sortiert. Das Zielwort selbst erhält Rang 1. Die nächsten ähnlichsten Wörter erhalten die Ränge 2, 3, 4 und so weiter. Dein Tipp bekommt den Rang, den es in dieser sortierten Liste hat – das ist die Zahl, die Kontexto dir nach jeder Eingabe anzeigt.
+
+## Das Beispiel: Hund, Katze, Hundert
+
+Der Unterschied zwischen „Hund" (Rang 12) und „Hundert" (Rang 4.200) beim Zielwort „Tier" erklärt sich so: „Hund" taucht in Texten über Tiere, Haustiere, Tierarztbesuche und Hundehalter auf – denselben Kontexten, in denen auch „Tier" erscheint. Die Vektoren liegen nahe beieinander.
+
+„Hundert" hingegen erscheint in Texten über Zahlen, Mengen und Statistiken. Obwohl das Wort dieselben ersten fünf Buchstaben enthält, hat es semantisch nichts mit Tieren zu tun. Die Vektoren liegen weit voneinander entfernt.
+
+Das zeigt den fundamentalen Unterschied zu Wordle: Buchstaben spielen bei Kontexto keine Rolle. Nur der sprachliche Kontext zählt.
+
+## Mehr über Kontexto
+
+Wenn du mehr über die Hintergründe des Spiels erfahren möchtest, findest du weitere Details auf der [Über-Seite](/ueber/). Dort erklären wir auch, warum Kontexto auf deutschen Trainingsdaten basiert und was das für die Qualität der Ähnlichkeitsberechnung bedeutet.
