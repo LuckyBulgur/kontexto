@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import time
 from collections import defaultdict
@@ -47,6 +48,8 @@ from wordle_duel import (
     get_wordle_duel_state, get_wordle_player_history,
     cleanup_stale_wordle_duels,
 )
+
+logger = logging.getLogger(__name__)
 
 _game_state: GameState | None = None
 _db_path: str | None = None
@@ -112,6 +115,10 @@ async def lifespan(app: FastAPI):
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_cleanup_loop()))
+        # Exactly one worker (KONTEXTO_WS_MODE) runs analytics aggregation/pruning.
+        # Log it so a misconfiguration where it runs nowhere — rollups never built,
+        # raw events never pruned — is immediately visible at startup.
+        logger.info("analytics aggregation + cleanup loop active in this worker")
 
     yield
 
@@ -136,7 +143,7 @@ async def _cleanup_loop():
             finally:
                 await db.close()
         except Exception:
-            pass
+            logger.exception("cleanup/analytics aggregation cycle failed")
 
 
 def _now() -> datetime:

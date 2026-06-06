@@ -13,15 +13,21 @@ Design principles (see docs/superpowers/specs/2026-06-06-server-side-analytics-d
   User-Agent blocklist.
 """
 
+import asyncio
 import hashlib
 import hmac
+import logging
 import os
 import re
+import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
+from database import configure_connection
 from server_secret import server_secret as _server_secret
+
+logger = logging.getLogger(__name__)
 
 # --- Configuration -----------------------------------------------------------
 
@@ -40,6 +46,13 @@ TRUSTED_PROXY_HOPS = int(os.environ.get("KONTEXTO_TRUSTED_PROXY_HOPS", "2"))
 # Admin login brute-force backstop (global, across all workers).
 LOGIN_FAIL_WINDOW = 600  # 10 minutes
 GLOBAL_LOGIN_FAIL_MAX = 100  # block all login attempts past this many failures/window
+
+# Write resilience: even with a connection busy_timeout, a commit can still surface
+# a transient SQLITE_BUSY (e.g. against a concurrent WAL checkpoint). Retry a few
+# times with a short, growing backoff before giving up; a dropped write is then
+# logged, never swallowed silently.
+WRITE_RETRY_ATTEMPTS = 3
+WRITE_RETRY_BASE_DELAY = 0.05  # seconds, multiplied by the attempt number
 
 # Known crawler / non-human User-Agent markers (lowercased substring match).
 _BOT_MARKERS = (
@@ -187,6 +200,38 @@ def referrer_domain(referrer: str | None) -> str:
 
 # --- Recording ---------------------------------------------------------------
 
+def _is_locked_error(exc: BaseException) -> bool:
+    """True for the transient SQLITE_BUSY / 'database is locked' family."""
+    return isinstance(exc, sqlite3.OperationalError) and "lock" in str(exc).lower()
+
+
+async def _commit_with_retry(db: aiosqlite.Connection, write, *, description: str) -> bool:
+    """Run ``await write(db)`` then commit, retrying on lock contention.
+
+    Between attempts the transaction is rolled back so a retried write is never
+    applied twice. Returns True on success; on exhaustion the loss is logged and
+    False is returned (never silently swallowed). Non-lock errors propagate.
+    """
+    last_exc: sqlite3.OperationalError | None = None
+    for attempt in range(1, WRITE_RETRY_ATTEMPTS + 1):
+        try:
+            await write(db)
+            await db.commit()
+            return True
+        except sqlite3.OperationalError as exc:
+            if not _is_locked_error(exc):
+                raise
+            last_exc = exc
+            await db.rollback()
+            if attempt < WRITE_RETRY_ATTEMPTS:
+                await asyncio.sleep(WRITE_RETRY_BASE_DELAY * attempt)
+    logger.warning(
+        "analytics write '%s' dropped after %d attempts: %s",
+        description, WRITE_RETRY_ATTEMPTS, last_exc,
+    )
+    return False
+
+
 async def record_pageview(
     db: aiosqlite.Connection,
     *,
@@ -233,15 +278,17 @@ async def record_pageview(
     if (await cur.fetchone())[0] >= MAX_EVENTS_PER_FP_PER_DAY:
         return False, "rate_limited"
 
-    await db.execute(
-        "INSERT INTO analytics_events "
-        "(ts, event_type, page, fp_hash, ua_class, device, browser, country, referrer_domain) "
-        "VALUES (?, 'pageview', ?, ?, ?, ?, ?, ?, ?)",
-        (now.isoformat(), label, fp_hash, ua_class, device, browser,
-         country, referrer_domain(referrer)),
-    )
-    await db.commit()
-    return True, "ok"
+    async def _insert(conn: aiosqlite.Connection) -> None:
+        await conn.execute(
+            "INSERT INTO analytics_events "
+            "(ts, event_type, page, fp_hash, ua_class, device, browser, country, referrer_domain) "
+            "VALUES (?, 'pageview', ?, ?, ?, ?, ?, ?, ?)",
+            (now.isoformat(), label, fp_hash, ua_class, device, browser,
+             country, referrer_domain(referrer)),
+        )
+
+    accepted = await _commit_with_retry(db, _insert, description="record_pageview")
+    return (True, "ok") if accepted else (False, "write_failed")
 
 
 async def _bump(db: aiosqlite.Connection, table: str, date_str: str, metric: str, dimension: str, amount: int) -> None:
@@ -267,24 +314,31 @@ async def record_action(
     """
     now = now or datetime.now(timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
+    w = word.strip().lower()[:60] if (metric == "guesses" and word and word.strip()) else None
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        await _bump(conn, "analytics_counters", date_str, metric, dimension, 1)
+        if w:
+            await conn.execute(
+                "INSERT INTO analytics_word_counts (word, count) VALUES (?, 1) "
+                "ON CONFLICT(word) DO UPDATE SET count = count + 1",
+                (w,),
+            )
+
     try:
         db = await aiosqlite.connect(db_path)
         try:
-            await db.execute("PRAGMA journal_mode=WAL")
-            await _bump(db, "analytics_counters", date_str, metric, dimension, 1)
-            if metric == "guesses" and word:
-                w = word.strip().lower()[:60]
-                if w:
-                    await db.execute(
-                        "INSERT INTO analytics_word_counts (word, count) VALUES (?, 1) "
-                        "ON CONFLICT(word) DO UPDATE SET count = count + 1",
-                        (w,),
-                    )
-            await db.commit()
+            await configure_connection(db)
+            await _commit_with_retry(db, _write, description=f"record_action:{metric}/{dimension}")
         finally:
             await db.close()
     except Exception:
-        pass
+        # Analytics must never break a gameplay request, but the failure is logged
+        # (not silently swallowed) so lost counts are observable in the logs.
+        logger.exception(
+            "analytics record_action failed unexpectedly (metric=%s dimension=%s)",
+            metric, dimension,
+        )
 
 
 # --- Admin login brute-force backstop ----------------------------------------
@@ -396,12 +450,18 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     )
     visitors_timeline = [{"date": d, "value": v} for d, v in reversed(await cur.fetchall())]
 
-    # Pageviews per page over last 30 days (from rollups + today's live events).
+    # Pageviews per page over the last 30 days, computed live from raw events so
+    # the current (not-yet-aggregated) day is always included. The 30-day window
+    # sits inside the raw-event retention window (EVENT_RETENTION_DAYS), so this is
+    # exact and consistent with the live unique-visitor figures above.
+    pageviews_since = (today - timedelta(days=30)).isoformat()
     cur = await db.execute(
-        "SELECT dimension, SUM(value) FROM analytics_daily "
-        "WHERE metric = 'pageviews' GROUP BY dimension ORDER BY 2 DESC"
+        "SELECT page, COUNT(*) FROM analytics_events "
+        "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? "
+        "GROUP BY page ORDER BY 2 DESC",
+        (pageviews_since,),
     )
-    pageviews_by_page = {dim: total for dim, total in await cur.fetchall()}
+    pageviews_by_page = {page: count for page, count in await cur.fetchall()}
 
     # Action counters (server-authoritative): totals + today + per-day timeline.
     cur = await db.execute(
