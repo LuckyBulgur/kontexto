@@ -25,3 +25,6 @@ allowBuilds:
   msw: false
   sharp: false
   unrs-resolver: false
+  # esbuild ships a native binary installed via a postinstall script; required
+  # by Vitest (and Vite) for its JS/TS transform pipeline.
+  esbuild: true
