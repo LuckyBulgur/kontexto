@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getWordleGame, createWordleDuel } from "@/lib/wordle-api";
-import { saveDuelToken } from "@/lib/wordle-storage";
+import { saveDuelToken, saveDuelNickname } from "@/lib/wordle-storage";
 import Link from "next/link";
 
 export default function WordleDuelCreatePage() {
@@ -25,6 +25,7 @@ export default function WordleDuelCreatePage() {
     try {
       const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gameNumber);
       saveDuelToken(duel_id, player_token);
+      saveDuelNickname(duel_id, nickname.trim());
       router.push(`/wordle/duel/${duel_id}/`);
     } catch {
       setCreating(false);

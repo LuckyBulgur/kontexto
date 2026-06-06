@@ -8,7 +8,7 @@ from fastapi import WebSocket
 
 from database import get_db
 from duel import set_player_connected
-from wordle_duel import set_wordle_player_connected
+from wordle_duel import get_wordle_player_history, set_wordle_player_connected
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +233,30 @@ class WordleDuelConnectionManager:
                                     {"type": "player_joined", "nickname": p["nickname"]},
                                     exclude_token=token,
                                 )
-                            elif state["solved"] and not old.get("solved"):
+                                continue
+
+                            # New guesses: broadcast each new row with its colours.
+                            old_used = old.get("guesses_used", 0)
+                            if state["guesses_used"] > old_used:
+                                history = await get_wordle_player_history(
+                                    db, duel_id, token
+                                )
+                                for idx in range(old_used, state["guesses_used"]):
+                                    if idx >= len(history):
+                                        break
+                                    await self.broadcast(
+                                        duel_id,
+                                        {
+                                            "type": "guess_made",
+                                            "nickname": p["nickname"],
+                                            "guess_number": idx + 1,
+                                            "result": history[idx]["result"],
+                                        },
+                                        exclude_token=token,
+                                    )
+
+                            # Solved / failed are additional notifications.
+                            if state["solved"] and not old.get("solved"):
                                 await self.broadcast(
                                     duel_id,
                                     {
@@ -242,17 +265,20 @@ class WordleDuelConnectionManager:
                                         "guesses_used": p["guesses_used"],
                                     },
                                 )
-                            elif old.get("guesses_used") != state["guesses_used"]:
+                            elif (
+                                not state["solved"]
+                                and state["guesses_used"] >= 6
+                                and old_used < 6
+                            ):
                                 await self.broadcast(
                                     duel_id,
                                     {
-                                        "type": "guess_update",
+                                        "type": "player_failed",
                                         "nickname": p["nickname"],
-                                        "guesses_used": p["guesses_used"],
                                     },
-                                    exclude_token=token,
                                 )
-                            elif old.get("connected") != state["connected"]:
+
+                            if old.get("connected") != state["connected"]:
                                 msg_type = (
                                     "player_reconnected"
                                     if state["connected"]

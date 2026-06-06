@@ -22,6 +22,7 @@ export interface WordleDuelPlayer {
   guesses_used: number;
   solved: boolean;
   connected: boolean;
+  results?: TileColor[][];
 }
 
 export interface WordleDuelState {
