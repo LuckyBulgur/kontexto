@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TextPage from "@/components/seo/LegalLayout";
-import StructuredData from "@/components/StructuredData";
-import { breadcrumb } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
 import { getArchiveEntries } from "@/lib/archive";
 
@@ -61,14 +59,12 @@ export default async function ArchivTag({
       title={`Kontexto vom ${fmt(e.date)}`}
       breadcrumbName="Archiv"
       path={`/archiv/${e.date}/`}
+      breadcrumbItems={[
+        { name: "Start", path: "/" },
+        { name: "Archiv", path: "/archiv/" },
+        { name: fmt(e.date), path: `/archiv/${e.date}/` },
+      ]}
     >
-      <StructuredData
-        data={breadcrumb([
-          { name: "Start", path: "/" },
-          { name: "Archiv", path: "/archiv/" },
-          { name: fmt(e.date), path: `/archiv/${e.date}/` },
-        ])}
-      />
       <p>
         Rätsel <strong>#{e.gameNumber}</strong> vom {fmt(e.date)}.
       </p>
