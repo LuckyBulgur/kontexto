@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import confetti from "canvas-confetti";
 import Board from "@/components/wordle/Board";
 import Keyboard from "@/components/wordle/Keyboard";
 import OpponentBoard from "@/components/wordle/duel/OpponentBoard";
@@ -263,8 +262,9 @@ export default function WordleDuelPageClient() {
       );
 
       if (won) {
-        setTimeout(() => {
+        setTimeout(async () => {
           setWonRow(newGuesses.length - 1);
+          const confetti = (await import("canvas-confetti")).default;
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }, 1800);
       }

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import confetti from "canvas-confetti";
-
-function fireConfetti() {
+async function fireConfetti() {
+  const confetti = (await import("canvas-confetti")).default;
   const duration = 3000;
   const animationEnd = Date.now() + duration;
   const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };

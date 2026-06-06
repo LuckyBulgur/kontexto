@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import confetti from "canvas-confetti";
-
-function fireConfetti() {
+async function fireConfetti() {
+  const confetti = (await import("canvas-confetti")).default;
   const duration = 3000;
   const animationEnd = Date.now() + duration;
   const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
@@ -270,6 +269,8 @@ export default function GameClient() {
   const gameOver = gameState.solved || !!gameState.givenUp;
   const isWin = gameState.solved && !gameState.givenUp;
 
+  // Both the loading skeleton and the game container share min-h-screen so
+  // the "Laden…" → game swap doesn't cause a Cumulative Layout Shift (CLS).
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground text-lg">Laden...</div></div>;
   }
