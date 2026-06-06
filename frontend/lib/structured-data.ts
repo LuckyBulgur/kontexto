@@ -59,10 +59,3 @@ export function blogPostingSchema(p: { title: string; description: string; slug:
   };
 }
 
-export function archiveListSchema(entries: { date: string }[]) {
-  return {
-    "@context": "https://schema.org", "@type": "CollectionPage",
-    name: "Kontexto Archiv", url: `${SITE_URL}/archiv/`,
-    hasPart: entries.map((e) => ({ "@type": "WebPage", url: `${SITE_URL}/archiv/${e.date}/` })),
-  };
-}
