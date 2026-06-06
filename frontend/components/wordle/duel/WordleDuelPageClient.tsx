@@ -62,6 +62,21 @@ export default function WordleDuelPageClient() {
     }
   }, []);
 
+  // Inject noindex for ephemeral duel-id pages (e.g. /wordle/duel/<id>/) so
+  // they don't bloat the search index; the static /wordle/duel/ page stays indexable.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const duelIdx = parts.indexOf("duel");
+    const hasId = duelIdx >= 0 && Boolean(parts[duelIdx + 1]);
+    if (!hasId) return;
+    const m = document.createElement("meta");
+    m.name = "robots";
+    m.content = "noindex,follow";
+    document.head.appendChild(m);
+    return () => { document.head.removeChild(m); };
+  }, []);
+
   // Load initial state
   useEffect(() => {
     if (!duelId || !playerToken) return;

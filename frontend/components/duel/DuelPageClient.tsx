@@ -114,6 +114,20 @@ export default function DuelPageClient() {
     }
   }, []);
 
+  // Inject noindex for ephemeral duel-id pages (e.g. /duel/<id>/) so they
+  // don't bloat the search index; the static /duel/ landing page stays indexable.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const seg = window.location.pathname.split("/").filter(Boolean);
+    const hasId = seg[0] === "duel" && seg[1] && seg[1] !== "create";
+    if (!hasId) return;
+    const m = document.createElement("meta");
+    m.name = "robots";
+    m.content = "noindex,follow";
+    document.head.appendChild(m);
+    return () => { document.head.removeChild(m); };
+  }, []);
+
   // Load duel state and history
   useEffect(() => {
     if (!duelId) return;
