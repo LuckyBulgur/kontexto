@@ -21,6 +21,7 @@ import os
 import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import aiosqlite
 
@@ -28,6 +29,11 @@ from database import configure_connection
 from server_secret import server_secret as _server_secret
 
 logger = logging.getLogger(__name__)
+
+# Local timezone for human-friendly time breakdowns (peak hours, weekday/hour
+# heatmap). Raw event timestamps are stored in UTC; we project them to this zone
+# for display so "20 Uhr" means 20:00 for the (predominantly German) audience.
+DISPLAY_TZ = ZoneInfo("Europe/Berlin")
 
 # --- Configuration -----------------------------------------------------------
 
@@ -341,6 +347,157 @@ async def record_action(
         )
 
 
+async def record_game_stat(
+    db_path: str,
+    mode: str,
+    game_number: int,
+    metric: str,
+    now: datetime | None = None,
+) -> None:
+    """Increment a server-authoritative per-game counter (analytics_game_stats).
+
+    Mirrors record_action's resilience (own short-lived connection, lock-aware
+    commit retry, never breaks a gameplay request). ``metric`` is one of
+    {guesses, solves, reveals, hints}; this powers the dashboard's "hardest /
+    easiest target words" ranking (solve rate, avg guesses per word).
+    """
+    async def _write(conn: aiosqlite.Connection) -> None:
+        await conn.execute(
+            "INSERT INTO analytics_game_stats (mode, game_number, metric, value) VALUES (?, ?, ?, 1) "
+            "ON CONFLICT(mode, game_number, metric) DO UPDATE SET value = value + 1",
+            (mode, int(game_number), metric),
+        )
+
+    try:
+        db = await aiosqlite.connect(db_path)
+        try:
+            await configure_connection(db)
+            await _commit_with_retry(
+                db, _write, description=f"record_game_stat:{mode}/{game_number}/{metric}")
+        finally:
+            await db.close()
+    except Exception:
+        logger.exception(
+            "analytics record_game_stat failed unexpectedly (mode=%s game=%s metric=%s)",
+            mode, game_number, metric,
+        )
+
+
+# --- Completion beacon (client-reported distributions) -----------------------
+
+# The server is stateless across a single player's guesses, so attempt-count,
+# time-to-solve and give-up-rank distributions can only come from the client.
+# These are bucketed (never raw values), token-gated, deduplicated and clamped,
+# and clearly labelled "clientseitig gemeldet" in the dashboard. They feed ONLY
+# the distribution histograms -- the authoritative solve/reveal totals come from
+# the real handlers and are unaffected by this path.
+
+def _bucket_guesses(n: int) -> str:
+    for lo, hi, label in (
+        (1, 1, "1"), (2, 3, "2-3"), (4, 5, "4-5"), (6, 10, "6-10"),
+        (11, 20, "11-20"), (21, 50, "21-50"), (51, 100, "51-100"),
+    ):
+        if lo <= n <= hi:
+            return label
+    return "100+"
+
+
+def _bucket_duration(seconds: int) -> str:
+    minutes = seconds / 60
+    for hi, label in (
+        (1, "<1 Min"), (2, "1-2 Min"), (5, "2-5 Min"),
+        (10, "5-10 Min"), (20, "10-20 Min"), (45, "20-45 Min"),
+    ):
+        if minutes < hi:
+            return label
+    return "45+ Min"
+
+
+def _bucket_tips(n: int) -> str:
+    if n <= 0:
+        return "0"
+    if n <= 3:
+        return str(n)
+    if n <= 5:
+        return "4-5"
+    return "6+"
+
+
+def _bucket_rank(rank: int) -> str:
+    for hi, label in (
+        (10, "1-10"), (50, "11-50"), (200, "51-200"),
+        (1000, "201-1000"), (5000, "1001-5000"),
+    ):
+        if rank <= hi:
+            return label
+    return "5000+"
+
+
+async def record_completion(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    token: str,
+    mode: str,
+    game_number: int,
+    outcome: str,
+    guesses: int,
+    tips: int,
+    duration_seconds: int,
+    best_rank: int,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Record a client-reported game completion into the distribution histograms.
+
+    Hardened like the pageview beacon: requires a valid, fingerprint-bound token,
+    rejects bots, validates the enum payload, clamps every number, and dedups via
+    the analytics_completion_seen primary key (one accepted completion per
+    fingerprint / mode / game / outcome per day). Returns (accepted, reason).
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+    if mode not in ("kontexto", "wordle") or outcome not in ("solved", "gaveup"):
+        return False, "bad_payload"
+
+    guesses = max(1, min(int(guesses), 1000))
+    tips = max(0, min(int(tips), 1000))
+    duration_seconds = max(0, min(int(duration_seconds), 86400))
+    best_rank = max(1, min(int(best_rank), 10_000_000))
+    date_str = now.strftime("%Y-%m-%d")
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        # The primary key enforces dedup atomically; a duplicate raises
+        # IntegrityError (handled below) before any histogram is touched.
+        await conn.execute(
+            "INSERT INTO analytics_completion_seen "
+            "(fp_hash, mode, game_number, outcome, date, ts) VALUES (?, ?, ?, ?, ?, ?)",
+            (fp_hash, mode, int(game_number), outcome, date_str, now.isoformat()),
+        )
+        await _bump(conn, "analytics_counters", date_str,
+                    f"dist_guesses_{mode}", _bucket_guesses(guesses), 1)
+        await _bump(conn, "analytics_counters", date_str,
+                    f"dist_tips_{mode}", _bucket_tips(tips), 1)
+        if outcome == "solved":
+            await _bump(conn, "analytics_counters", date_str,
+                        f"dist_time_{mode}", _bucket_duration(duration_seconds), 1)
+        elif mode == "kontexto":
+            await _bump(conn, "analytics_counters", date_str,
+                        "dist_giveup_rank", _bucket_rank(best_rank), 1)
+
+    try:
+        accepted = await _commit_with_retry(db, _write, description=f"record_completion:{mode}")
+    except sqlite3.IntegrityError:
+        await db.rollback()
+        return False, "duplicate"
+    return (True, "ok") if accepted else (False, "write_failed")
+
+
 # --- Admin login brute-force backstop ----------------------------------------
 
 async def login_failures(db: aiosqlite.Connection, now: datetime | None = None,
@@ -409,10 +566,16 @@ async def aggregate_daily(db: aiosqlite.Connection, now: datetime | None = None)
 
 
 async def prune_old_events(db: aiosqlite.Connection, now: datetime | None = None) -> int:
-    """Delete raw events older than the retention window. Returns rows deleted."""
+    """Delete raw events older than the retention window. Returns rows deleted.
+
+    Also prunes the completion-beacon dedup ledger on the same schedule -- those
+    rows only exist to block same-day duplicates and need not outlive the raw
+    events.
+    """
     now = now or datetime.now(timezone.utc)
     cutoff = (now - timedelta(days=EVENT_RETENTION_DAYS)).isoformat()
     cur = await db.execute("DELETE FROM analytics_events WHERE ts < ?", (cutoff,))
+    await db.execute("DELETE FROM analytics_completion_seen WHERE ts < ?", (cutoff,))
     await db.commit()
     return cur.rowcount
 
@@ -522,11 +685,101 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "WHERE ua_class = 'human' AND referrer_domain != '' GROUP BY referrer_domain ORDER BY 2 DESC LIMIT 15"
     )
     referrers = {k: v for k, v in await cur.fetchall()}
+    # Peak hours + weekday/hour heatmap, projected to local (Berlin) time. Event
+    # timestamps are UTC; bucketing in SQL would report UTC hours, so we fetch the
+    # raw timestamps once and convert. Heatmap is [weekday 0=Mon..6=Sun][hour 0..23].
     cur = await db.execute(
-        "SELECT CAST(substr(ts, 12, 2) AS INTEGER) AS hour, COUNT(*) FROM analytics_events "
-        "WHERE ua_class = 'human' AND event_type = 'pageview' GROUP BY hour ORDER BY hour"
+        "SELECT ts FROM analytics_events "
+        "WHERE ua_class = 'human' AND event_type = 'pageview'"
     )
-    peak_hours = {str(h): c for h, c in await cur.fetchall()}
+    peak_hours = {str(h): 0 for h in range(24)}
+    activity_heatmap = [[0] * 24 for _ in range(7)]
+    for (ts,) in await cur.fetchall():
+        try:
+            dt = datetime.fromisoformat(ts)
+        except (ValueError, TypeError):
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        local = dt.astimezone(DISPLAY_TZ)
+        peak_hours[str(local.hour)] += 1
+        activity_heatmap[local.weekday()][local.hour] += 1
+
+    # Loyalty: visitors seen on >1 distinct day (within retention) are "returning".
+    cur = await db.execute(
+        "SELECT COUNT(DISTINCT substr(ts, 1, 10)) AS days FROM analytics_events "
+        "WHERE ua_class = 'human' GROUP BY fp_hash"
+    )
+    day_counts = [row[0] for row in await cur.fetchall()]
+    visitor_loyalty = {
+        "new": sum(1 for d in day_counts if d == 1),
+        "returning": sum(1 for d in day_counts if d > 1),
+    }
+    stickiness = round(visitors["today"] / visitors["month"], 3) if visitors["month"] else None
+
+    # Pageviews timeline (last 30 days) -- live from raw events, like pageviews_by_page.
+    cur = await db.execute(
+        "SELECT substr(ts, 1, 10) AS d, COUNT(*) FROM analytics_events "
+        "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? GROUP BY d ORDER BY d",
+        (pageviews_since,),
+    )
+    pageviews_timeline = [{"date": d, "value": v} for d, v in await cur.fetchall()]
+
+    # Solves + solve-rate timelines from authoritative counters.
+    cur = await db.execute(
+        "SELECT date, metric, SUM(value) FROM analytics_counters "
+        "WHERE metric IN ('solves', 'reveals') GROUP BY date, metric"
+    )
+    by_date: dict[str, dict[str, int]] = {}
+    for d, m, v in await cur.fetchall():
+        by_date.setdefault(d, {})[m] = v
+    recent_dates = sorted(by_date)[-30:]
+    solves_timeline = [{"date": d, "value": by_date[d].get("solves", 0)} for d in recent_dates]
+    solve_rate_timeline = []
+    for d in recent_dates:
+        s, r = by_date[d].get("solves", 0), by_date[d].get("reveals", 0)
+        fin = s + r
+        solve_rate_timeline.append({"date": d, "value": round(s / fin, 3) if fin else 0})
+
+    # Hint usage by difficulty, duels created by mode.
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = 'hints' GROUP BY dimension"
+    )
+    hints_by_difficulty = {dim: v for dim, v in await cur.fetchall()}
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = 'duels_created' GROUP BY dimension"
+    )
+    duels_created = {dim: v for dim, v in await cur.fetchall()}
+
+    # Client-reported distributions (attempts / time-to-solve / give-up rank / tips).
+    distributions: dict[str, dict[str, int]] = {}
+    cur = await db.execute(
+        "SELECT metric, dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric LIKE 'dist%' GROUP BY metric, dimension"
+    )
+    for metric, dim, val in await cur.fetchall():
+        distributions.setdefault(metric, {})[dim] = val
+
+    # Per-game (per target word) difficulty -- raw aggregation; the admin handler
+    # attaches the real target word and trims to hardest/easiest.
+    cur = await db.execute(
+        "SELECT mode, game_number, metric, value FROM analytics_game_stats"
+    )
+    per_game: dict[tuple[str, int], dict[str, int]] = {}
+    for mode, gn, metric, val in await cur.fetchall():
+        per_game.setdefault((mode, gn), {})[metric] = val
+    game_difficulty = []
+    for (mode, gn), m in per_game.items():
+        solves, reveals = m.get("solves", 0), m.get("reveals", 0)
+        guesses, hints = m.get("guesses", 0), m.get("hints", 0)
+        fin = solves + reveals
+        game_difficulty.append({
+            "mode": mode, "game_number": gn,
+            "guesses": guesses, "solves": solves, "reveals": reveals, "hints": hints,
+            "finished": fin,
+            "solve_rate": round(solves / fin, 3) if fin else None,
+            "avg_guesses": round(guesses / solves, 1) if solves else None,
+        })
 
     # Honesty note for the dashboard.
     cur = await db.execute(
@@ -539,19 +792,32 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "visitors": visitors,
         "visitors_timeline": visitors_timeline,
         "pageviews_by_page": pageviews_by_page,
+        "pageviews_timeline": pageviews_timeline,
         "counters_total": counters_total,
         "counters_today": counters_today,
         "guesses_timeline": guesses_timeline,
+        "solves_timeline": solves_timeline,
+        "solve_rate_timeline": solve_rate_timeline,
         "games_by_mode": games_by_mode,
+        "duels_created": duels_created,
         "engagement": engagement,
+        "hints_by_difficulty": hints_by_difficulty,
+        "distributions": distributions,
+        "game_difficulty": game_difficulty,
         "top_words": top_words,
         "devices": devices,
         "browsers": browsers,
         "referrers": referrers,
         "peak_hours": peak_hours,
+        "activity_heatmap": activity_heatmap,
+        "visitor_loyalty": visitor_loyalty,
+        "stickiness": stickiness,
         "bots_filtered": bots_filtered,
         "note": (
             "Unique-User cookieless via monatlich rotierendem Hash (IP+Browser, kein PII). "
-            "Guess-/Lösungs-/Hint-Zahlen sind server-seitig und nicht durch Beacons fälschbar."
+            "Guess-, Lösungs-, Hint- und Reveal-Zahlen sind server-seitig erhoben und nicht "
+            "durch Beacons fälschbar. Verteilungen (Versuche, Zeit bis Lösung, Aufgabe-Rang) "
+            "werden clientseitig gemeldet, sind token-gesichert, entdupliziert und gedeckelt. "
+            "Zeitangaben in lokaler Zeit (Europe/Berlin)."
         ),
     }
