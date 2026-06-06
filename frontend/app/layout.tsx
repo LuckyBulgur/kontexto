@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     index: true, follow: true,
     googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
-  other: { "theme-color": "#ffffff" },
+  other: { "theme-color": "#ffffff", "google-adsense-account": "ca-pub-3545758989514084" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
