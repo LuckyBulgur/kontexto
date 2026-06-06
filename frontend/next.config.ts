@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+import createMDX from "@next/mdx";
 
 // The app ships as a static export (`output: "export"`); dynamic duel URLs like
 // `/duel/<id>/` are resolved to the single `/duel` page client-side (the page
@@ -16,6 +17,7 @@ const config = (phase: string): NextConfig => {
   return {
     output: "export",
     trailingSlash: true,
+    pageExtensions: ["ts", "tsx", "mdx"],
     ...(isDevServer && {
       async rewrites() {
         return [
@@ -27,4 +29,6 @@ const config = (phase: string): NextConfig => {
   };
 };
 
-export default config;
+const withMDX = createMDX({});
+
+export default (phase: string) => withMDX(config(phase));
