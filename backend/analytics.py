@@ -30,6 +30,15 @@ EVENT_RETENTION_DAYS = 35
 # Hard ceiling of accepted pageviews per fingerprint per day (flood protection).
 MAX_EVENTS_PER_FP_PER_DAY = 300
 
+# Number of trusted reverse-proxy hops in front of the app. Production chain is
+# Caddy -> nginx (each appends one X-Forwarded-For entry), so the real client IP
+# is the entry at position -HOPS. Configurable in case the topology changes.
+TRUSTED_PROXY_HOPS = int(os.environ.get("KONTEXTO_TRUSTED_PROXY_HOPS", "2"))
+
+# Admin login brute-force backstop (global, across all workers).
+LOGIN_FAIL_WINDOW = 600  # 10 minutes
+GLOBAL_LOGIN_FAIL_MAX = 100  # block all login attempts past this many failures/window
+
 # Known crawler / non-human User-Agent markers (lowercased substring match).
 _BOT_MARKERS = (
     "bot", "spider", "crawl", "slurp", "headless", "phantom", "puppeteer",
@@ -62,6 +71,34 @@ def _salt_period(now: datetime) -> str:
 
 def _monthly_salt(now: datetime) -> bytes:
     return hmac.new(_server_secret(), _salt_period(now).encode(), hashlib.sha256).digest()
+
+
+def client_ip_from_headers(
+    x_forwarded_for: str | None,
+    x_real_ip: str | None,
+    peer: str | None,
+    hops: int | None = None,
+) -> str:
+    """Resolve the real, non-spoofable client IP behind trusted proxies.
+
+    Each trusted proxy appends the IP it received the connection from, so the
+    real client is at position -HOPS in the X-Forwarded-For chain. Entries to
+    the left of that are attacker-controlled and ignored. Falls back to the
+    raw peer for direct (non-proxied / dev) access.
+
+    NOTE: X-Real-IP is intentionally NOT trusted for identity here -- in the
+    Caddy->nginx chain nginx sets it to Caddy's IP (constant for all visitors),
+    which would collapse every visitor into one fingerprint.
+    """
+    hops = TRUSTED_PROXY_HOPS if hops is None else hops
+    if x_forwarded_for:
+        parts = [p.strip() for p in x_forwarded_for.split(",") if p.strip()]
+        if parts:
+            idx = len(parts) - hops
+            return parts[idx if idx >= 0 else 0]
+    if x_real_ip:
+        return x_real_ip.strip()
+    return peer or "0.0.0.0"
 
 
 def compute_fingerprint(ip: str, user_agent: str, now: datetime) -> str:
@@ -251,6 +288,28 @@ async def record_action(
             await db.close()
     except Exception:
         pass
+
+
+# --- Admin login brute-force backstop ----------------------------------------
+
+async def login_failures(db: aiosqlite.Connection, now: datetime | None = None,
+                         window: int = LOGIN_FAIL_WINDOW) -> int:
+    """Count global failed admin logins within the trailing window."""
+    now = now or datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=window)).isoformat()
+    cur = await db.execute(
+        "SELECT COUNT(*) FROM admin_login_failures WHERE ts >= ?", (cutoff,))
+    return (await cur.fetchone())[0]
+
+
+async def record_login_failure(db: aiosqlite.Connection, now: datetime | None = None) -> None:
+    """Record one failed admin login and opportunistically prune old rows."""
+    now = now or datetime.now(timezone.utc)
+    await db.execute("INSERT INTO admin_login_failures (ts) VALUES (?)", (now.isoformat(),))
+    await db.execute(
+        "DELETE FROM admin_login_failures WHERE ts < ?",
+        ((now - timedelta(hours=1)).isoformat(),))
+    await db.commit()
 
 
 # --- Aggregation & pruning (run in the single WS worker) ---------------------

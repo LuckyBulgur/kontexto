@@ -105,6 +105,13 @@ CREATE TABLE IF NOT EXISTS analytics_meta (
     key TEXT PRIMARY KEY,
     value TEXT
 );
+
+-- Admin: global failed-login timestamps (cross-worker brute-force backstop)
+CREATE TABLE IF NOT EXISTS admin_login_failures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_login_failures_ts ON admin_login_failures(ts);
 """
 
 

@@ -232,6 +232,51 @@ class TestAggregation:
         assert deleted == 1 and remaining == 0
 
 
+class TestClientIp:
+    def test_real_client_is_second_from_right(self):
+        # Caddy appends real client (U), nginx appends Caddy (C): "U, C".
+        assert analytics.client_ip_from_headers("203.0.113.7, 10.0.0.2", "10.0.0.2", "127.0.0.1", hops=2) == "203.0.113.7"
+
+    def test_spoofed_left_entries_ignored(self):
+        # Attacker prepends a fake hop; it must NOT be picked up.
+        xff = "1.2.3.4, 203.0.113.7, 10.0.0.2"  # spoof, realclient, caddy
+        assert analytics.client_ip_from_headers(xff, "10.0.0.2", "127.0.0.1", hops=2) == "203.0.113.7"
+
+    def test_x_real_ip_not_used_when_xff_present(self):
+        # X-Real-IP is Caddy's constant IP and must never be the identity.
+        assert analytics.client_ip_from_headers("203.0.113.7, 10.0.0.2", "10.0.0.2", None, hops=2) != "10.0.0.2"
+
+    def test_direct_access_falls_back_to_peer(self):
+        assert analytics.client_ip_from_headers(None, None, "198.51.100.9", hops=2) == "198.51.100.9"
+
+    def test_fewer_hops_than_expected_clamps(self):
+        assert analytics.client_ip_from_headers("203.0.113.7", None, "127.0.0.1", hops=2) == "203.0.113.7"
+
+
+class TestLoginBruteForceBackstop:
+    def test_failures_counted_within_window(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for _ in range(5):
+                    await analytics.record_login_failure(db, JAN)
+                return await analytics.login_failures(db, JAN)
+            finally:
+                await db.close()
+        assert run(go()) == 5
+
+    def test_old_failures_outside_window_ignored(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await analytics.record_login_failure(db, JAN)
+                later = datetime(2026, 1, 15, 12, 30, 0, tzinfo=timezone.utc)  # +30 min
+                return await analytics.login_failures(db, later)  # window = 10 min
+            finally:
+                await db.close()
+        assert run(go()) == 0
+
+
 class TestAdminAuth:
     def test_totp_login_and_session(self, monkeypatch):
         import pyotp
