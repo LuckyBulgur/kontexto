@@ -12,9 +12,17 @@ export interface ArchiveEntry {
 let cache: Promise<ArchiveEntry[]> | null = null;
 
 async function fetchArchiveEntries(): Promise<ArchiveEntry[]> {
-  const gamesRes = await fetch(`${BUILD_API_BASE}/games`).catch((err: unknown) => {
-    throw new Error(`archive build: /games fetch threw: ${String(err)}`);
-  });
+  let gamesRes: Response;
+  try {
+    gamesRes = await fetch(`${BUILD_API_BASE}/games`);
+  } catch (err: unknown) {
+    const msg = `archive build: /games fetch threw: ${String(err)}`;
+    if (process.env.KONTEXTO_REQUIRE_ARCHIVE === "1") {
+      throw new Error(msg);
+    }
+    console.warn(`[archive] ${msg} — returning empty archive (set KONTEXTO_REQUIRE_ARCHIVE=1 to fail-fast)`);
+    return [];
+  }
 
   if (!gamesRes.ok) {
     const msg = `archive build: /games -> HTTP ${gamesRes.status}`;
