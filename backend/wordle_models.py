@@ -49,6 +49,7 @@ class WordleDuelPlayerInfo(BaseModel):
     guesses_used: int
     solved: bool
     connected: bool
+    results: list[list[str]] = []
 
 
 class WordleJoinDuelResponse(BaseModel):

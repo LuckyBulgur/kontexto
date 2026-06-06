@@ -12,7 +12,7 @@ import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
 import {
   getWordleDuelState, submitWordleDuelGuess, getWordleDuelHistory, joinWordleDuel,
 } from "@/lib/wordle-api";
-import { loadDuelToken, saveDuelToken } from "@/lib/wordle-storage";
+import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,8 @@ export default function WordleDuelPage() {
       const token = loadDuelToken(id);
       if (token) {
         setPlayerToken(token);
+        const nick = loadDuelNickname(id);
+        if (nick) setNickname(nick);
       } else {
         setShowJoin(true);
       }
@@ -71,6 +73,18 @@ export default function WordleDuelPage() {
       const state = await getWordleDuelState(duelId);
       setPlayers(state.players);
       setGameNumber(state.game_number);
+
+      // Seed opponent boards with their already-played rows (colours only).
+      const myNick = loadDuelNickname(duelId);
+      setOpponentGuesses(() => {
+        const next = new Map<string, TileColor[][]>();
+        for (const p of state.players) {
+          if (p.nickname !== myNick && p.results && p.results.length > 0) {
+            next.set(p.nickname, p.results);
+          }
+        }
+        return next;
+      });
 
       const history = await getWordleDuelHistory(duelId, playerToken);
       const gs: string[] = [];
@@ -99,13 +113,6 @@ export default function WordleDuelPage() {
         }
       }
       setLetterStates(states);
-
-      // Find own nickname
-      const me = state.players.find((p) => {
-        // Match by guesses_used count as heuristic
-        return p.guesses_used === gs.length;
-      });
-      if (me) setNickname(me.nickname);
     };
     load();
   }, [duelId, playerToken]);
@@ -114,9 +121,23 @@ export default function WordleDuelPage() {
   const handleWsMessage = useCallback((msg: WordleDuelWsMessage) => {
     if (msg.type === "state") {
       setPlayers(msg.players);
+      const myNick = duelId ? loadDuelNickname(duelId) : null;
+      setOpponentGuesses((prev) => {
+        const next = new Map(prev);
+        for (const p of msg.players) {
+          if (p.nickname !== myNick && p.results && p.results.length > 0) {
+            next.set(p.nickname, p.results);
+          }
+        }
+        return next;
+      });
     } else if (msg.type === "player_joined") {
       toast(`${msg.nickname} ist beigetreten`);
-      setPlayers((prev) => [...prev, { nickname: msg.nickname, guesses_used: 0, solved: false, connected: true }]);
+      setPlayers((prev) =>
+        prev.some((p) => p.nickname === msg.nickname)
+          ? prev
+          : [...prev, { nickname: msg.nickname, guesses_used: 0, solved: false, connected: true }]
+      );
     } else if (msg.type === "guess_made") {
       setOpponentGuesses((prev) => {
         const next = new Map(prev);
@@ -143,7 +164,7 @@ export default function WordleDuelPage() {
         prev.map((p) => p.nickname === msg.nickname ? { ...p, connected: true } : p)
       );
     }
-  }, []);
+  }, [duelId]);
 
   useWordleDuelWs({ duelId, token: playerToken, onMessage: handleWsMessage });
 
@@ -153,6 +174,7 @@ export default function WordleDuelPage() {
     try {
       const resp = await joinWordleDuel(duelId, joinNickname.trim());
       saveDuelToken(duelId, resp.player_token);
+      saveDuelNickname(duelId, joinNickname.trim());
       setPlayerToken(resp.player_token);
       setNickname(joinNickname.trim());
       setPlayers(resp.players);

@@ -11,6 +11,7 @@ from wordle_duel import (
     join_wordle_duel,
     record_wordle_guess,
     get_wordle_duel_state,
+    get_wordle_player_history,
 )
 
 
@@ -90,6 +91,50 @@ class TestRecordGuess:
                 )
                 state = await get_wordle_duel_state(conn, created["duel_id"])
                 assert state["players"][0]["solved"] is True
+            finally:
+                await conn.close()
+        asyncio.get_event_loop().run_until_complete(_test())
+
+
+class TestDuelStateResults:
+    def test_state_includes_per_player_colour_results_in_order(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                g1 = ["GRAY", "GRAY", "GREEN", "GRAY", "GRAY"]
+                g2 = ["YELLOW", "GRAY", "GREEN", "GRAY", "GREEN"]
+                await record_wordle_guess(
+                    conn, duel_id=created["duel_id"],
+                    player_token=created["player_token"], word="stern", result=g1,
+                )
+                await record_wordle_guess(
+                    conn, duel_id=created["duel_id"],
+                    player_token=created["player_token"], word="storm", result=g2,
+                )
+                state = await get_wordle_duel_state(conn, created["duel_id"])
+                # Insertion order preserved (ORDER BY id), colours only.
+                assert state["players"][0]["results"] == [g1, g2]
+            finally:
+                await conn.close()
+        asyncio.get_event_loop().run_until_complete(_test())
+
+    def test_history_ordered_by_insertion(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                words = ["stern", "storm", "stark"]
+                for w in words:
+                    await record_wordle_guess(
+                        conn, duel_id=created["duel_id"],
+                        player_token=created["player_token"], word=w,
+                        result=["GRAY"] * 5,
+                    )
+                history = await get_wordle_player_history(
+                    conn, created["duel_id"], created["player_token"]
+                )
+                assert [h["word"] for h in history] == words
             finally:
                 await conn.close()
         asyncio.get_event_loop().run_until_complete(_test())

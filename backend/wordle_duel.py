@@ -96,20 +96,28 @@ async def get_wordle_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict:
     if not duel:
         raise ValueError("Duel not found")
     cursor = await db.execute(
-        "SELECT nickname, guesses_used, solved, connected "
+        "SELECT nickname, player_token, guesses_used, solved, connected "
         "FROM wordle_duel_players WHERE duel_id = ?",
         (duel_id,),
     )
     rows = await cursor.fetchall()
-    players = [
-        {
-            "nickname": r["nickname"],
-            "guesses_used": r["guesses_used"],
-            "solved": bool(r["solved"]),
-            "connected": bool(r["connected"]),
-        }
-        for r in rows
-    ]
+    players = []
+    for r in rows:
+        guess_cursor = await db.execute(
+            "SELECT result FROM wordle_duel_guesses "
+            "WHERE duel_id = ? AND player_token = ? ORDER BY id",
+            (duel_id, r["player_token"]),
+        )
+        guess_rows = await guess_cursor.fetchall()
+        players.append(
+            {
+                "nickname": r["nickname"],
+                "guesses_used": r["guesses_used"],
+                "solved": bool(r["solved"]),
+                "connected": bool(r["connected"]),
+                "results": [json.loads(g["result"]) for g in guess_rows],
+            }
+        )
     return {"game_number": duel["game_number"], "players": players}
 
 
@@ -118,7 +126,7 @@ async def get_wordle_player_history(
 ) -> list[dict]:
     cursor = await db.execute(
         "SELECT word, result, guessed_at FROM wordle_duel_guesses "
-        "WHERE duel_id = ? AND player_token = ? ORDER BY guessed_at",
+        "WHERE duel_id = ? AND player_token = ? ORDER BY id",
         (duel_id, player_token),
     )
     rows = await cursor.fetchall()

@@ -5,6 +5,7 @@ const KEYS = {
   stats: "wordle_stats",
   hardMode: "wordle_hard_mode",
   duelToken: (duelId: string) => `wordle_duel_${duelId}`,
+  duelNickname: (duelId: string) => `wordle_duel_nick_${duelId}`,
 };
 
 export interface WordleGameState {
@@ -77,4 +78,12 @@ export function loadDuelToken(duelId: string): string | null {
 
 export function saveDuelToken(duelId: string, token: string): void {
   localStorage.setItem(KEYS.duelToken(duelId), token);
+}
+
+export function loadDuelNickname(duelId: string): string | null {
+  return localStorage.getItem(KEYS.duelNickname(duelId));
+}
+
+export function saveDuelNickname(duelId: string, nickname: string): void {
+  localStorage.setItem(KEYS.duelNickname(duelId), nickname);
 }
