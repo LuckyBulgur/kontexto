@@ -13,6 +13,7 @@ import {
   Shield,
   Swords,
   Copy,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,6 +34,7 @@ interface HeaderProps {
   onSettingsOpen: () => void;
   onCreditsOpen: () => void;
   onPastGamesOpen: () => void;
+  onStatsOpen?: () => void;
   tipDisabled?: boolean;
   giveUpDisabled?: boolean;
   showCountdown?: boolean;
@@ -65,6 +67,7 @@ export default function Header({
   onSettingsOpen,
   onCreditsOpen,
   onPastGamesOpen,
+  onStatsOpen,
   tipDisabled,
   giveUpDisabled,
   showCountdown,
@@ -151,6 +154,12 @@ export default function Header({
               <DropdownMenuItem onClick={onPastGamesOpen}>
                 <History className="h-4 w-4" />
                 Vergangene Spiele
+              </DropdownMenuItem>
+            )}
+            {onStatsOpen && (
+              <DropdownMenuItem onClick={onStatsOpen}>
+                <BarChart3 className="h-4 w-4" />
+                Statistik
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />

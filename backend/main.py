@@ -500,6 +500,7 @@ async def wordle_create_duel(req: WordleCreateDuelRequest) -> WordleCreateDuelRe
         result = await create_wordle_duel(
             db, nickname=req.nickname, game_number=req.game_number
         )
+    await analytics.record_action(_db_path, "duels_created", "wordle")
     return WordleCreateDuelResponse(**result)
 
 
@@ -603,6 +604,35 @@ async def collect(req: BeaconRequest, request: Request):
             referrer=req.referrer or request.headers.get("referer"),
             page=req.page,
             token=req.token,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.post("/api/stats/complete", response_model=BeaconResponse)
+async def stats_complete(req: CompletionRequest, request: Request):
+    """Record a client-reported game completion (distribution histograms only).
+
+    Token-gated, deduplicated and clamped server-side. Never touches the
+    authoritative solve/reveal counters, which are incremented from the real
+    game handlers.
+    """
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_completion(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            token=req.token,
+            mode=req.mode,
+            game_number=req.game_number,
+            outcome=req.outcome,
+            guesses=req.guesses,
+            tips=req.tips,
+            duration_seconds=req.duration_seconds,
+            best_rank=req.best_rank,
             now=_now(),
         )
         return {"ok": accepted}
@@ -716,6 +746,25 @@ async def admin_stats(authorization: str = Header(default="")):
         return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
     db = await get_db(_db_path)
     try:
-        return await analytics.get_stats(db, _now())
+        stats = await analytics.get_stats(db, _now())
     finally:
         await db.close()
+
+    # Enrich per-game difficulty with the real target word (admin-only) and trim
+    # to the hardest/easiest Kontexto words with enough finished games to matter.
+    gs = _get_game_state()
+    raw = stats.pop("game_difficulty", [])
+    enriched = []
+    for g in raw:
+        if g["mode"] != "kontexto" or (g.get("finished") or 0) < 3 or g["solve_rate"] is None:
+            continue
+        try:
+            word = gs.get_target_word(g["game_number"])
+        except ValueError:
+            continue
+        enriched.append({**g, "word": word})
+    stats["game_difficulty"] = {
+        "hardest": sorted(enriched, key=lambda g: (g["solve_rate"], -g["finished"]))[:12],
+        "easiest": sorted(enriched, key=lambda g: (-g["solve_rate"], -g["finished"]))[:12],
+    }
+    return stats

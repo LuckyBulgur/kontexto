@@ -3,6 +3,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { loadWordleStats } from "@/lib/wordle-storage";
 import type { TileColor } from "@/lib/wordle-types";
+import { CalendarHeatmap, DistributionBars, StatTile } from "@/components/stats/PlayerStatViews";
+import { formatDecimal } from "@/lib/format";
 import ShareButton from "./ShareButton";
 
 interface StatsModalProps {
@@ -18,7 +20,11 @@ interface StatsModalProps {
 export default function StatsModal({ open, onOpenChange, gameNumber, guesses, evaluations, won, hardMode }: StatsModalProps) {
   const stats = loadWordleStats();
   const winPct = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
-  const maxDist = Math.max(...stats.distribution, 1);
+  const wins = stats.distribution.reduce((a, b) => a + b, 0);
+  const avgWin = wins > 0 ? stats.distribution.reduce((acc, c, i) => acc + (i + 1) * c, 0) / wins : null;
+  const distRows = stats.distribution.map((count, i) => ({ label: String(i + 1), value: count }));
+  const highlight = won && guesses.length >= 1 && guesses.length <= 6 ? String(guesses.length) : undefined;
+  const datesPlayed = stats.datesPlayed ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,41 +32,28 @@ export default function StatsModal({ open, onOpenChange, gameNumber, guesses, ev
         <DialogHeader>
           <DialogTitle>Statistiken</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-4 gap-4 text-center py-2">
-          <div>
-            <div className="text-2xl font-bold">{stats.played}</div>
-            <div className="text-xs text-zinc-500">Gespielt</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{winPct}</div>
-            <div className="text-xs text-zinc-500">Gewinn-%</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{stats.currentStreak}</div>
-            <div className="text-xs text-zinc-500">Aktuelle Serie</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{stats.maxStreak}</div>
-            <div className="text-xs text-zinc-500">Max Serie</div>
-          </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <StatTile label="Gespielt" value={stats.played} />
+          <StatTile label="Gewinn-%" value={winPct} />
+          <StatTile label="Aktuelle Serie" value={stats.currentStreak} />
+          <StatTile label="Max Serie" value={stats.maxStreak} />
         </div>
 
-        <div className="py-2">
-          <h4 className="text-sm font-semibold mb-2">Verteilung</h4>
-          {stats.distribution.map((count, i) => (
-            <div key={i} className="flex items-center gap-2 mb-1">
-              <span className="text-sm w-3 text-right">{i + 1}</span>
-              <div
-                className={`h-5 flex items-center justify-end px-1.5 text-xs text-white font-bold rounded-sm ${
-                  won && guesses.length === i + 1 ? "bg-green-600" : "bg-zinc-500"
-                }`}
-                style={{ width: `${Math.max((count / maxDist) * 100, 8)}%` }}
-              >
-                {count}
-              </div>
-            </div>
-          ))}
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <h4 className="text-sm font-semibold">Verteilung</h4>
+            <span className="text-xs text-muted-foreground">Ø {formatDecimal(avgWin)} Versuche</span>
+          </div>
+          <DistributionBars rows={distRows} highlightLabel={highlight} />
         </div>
+
+        {datesPlayed.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold">Gespielte Tage</h4>
+            <CalendarHeatmap dates={datesPlayed} />
+          </div>
+        )}
 
         {guesses.length > 0 && (
           <ShareButton

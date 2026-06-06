@@ -49,6 +49,8 @@ export interface WordleStats {
   maxStreak: number;
   distribution: number[];
   lastPlayed: number;
+  /** ISO "YYYY-MM-DD" of each day played; added for the calendar heatmap. */
+  datesPlayed?: string[];
 }
 
 export type WordleDuelWsMessage =

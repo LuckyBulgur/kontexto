@@ -3,9 +3,14 @@
 
 # Pin the React type packages to versions matching react@19.2.x so transitive
 # deps cannot pull in mismatched @types/react(-dom).
+#
+# `react-is` is pinned to the React 19 line because recharts (and its transitive
+# deps) otherwise resolve an older react-is (^16/^18), incompatible with React
+# 19's element checks. Matching it to React 19 is the documented fix.
 overrides:
   '@types/react': 19.2.14
   '@types/react-dom': 19.2.3
+  react-is: ^19.0.0
 
 # pnpm 11 blocks dependency lifecycle (build) scripts by default as a
 # supply-chain safeguard and fails the install with ERR_PNPM_IGNORED_BUILDS
