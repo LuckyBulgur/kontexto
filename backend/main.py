@@ -29,14 +29,12 @@ from duel import (
     set_player_connected,
 )
 from game import GameState
-import rating
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
-    RatingRequest, RatingAggregateResponse,
 )
 from websocket_manager import manager as ws_manager, wordle_manager as wordle_ws_manager
 from wordle import WordleState, evaluate, validate_hard_mode
@@ -640,36 +638,6 @@ async def stats_complete(req: CompletionRequest, request: Request):
         return {"ok": accepted}
     finally:
         await db.close()
-
-
-# --- Rating ------------------------------------------------------------------
-
-
-@app.post("/api/rating", response_model=RatingAggregateResponse)
-async def submit_rating(req: RatingRequest, request: Request):
-    """Record or update a rating (1–5) for a beacon-token.
-
-    Verifies the token is authentically issued for this client before
-    writing; returns the updated aggregate immediately so the caller can
-    display it without a second round-trip.
-    """
-    now = _now()
-    fp = analytics.compute_fingerprint(
-        _client_ip(request), request.headers.get("user-agent", ""), now
-    )
-    if not analytics.verify_beacon_token(req.token, fp, now):
-        return JSONResponse(
-            status_code=403,
-            content={"error": "invalid_token", "message": "Ungültiges oder abgelaufenes Token"},
-        )
-    await rating.record_rating(_db_path, req.token, req.value)
-    return await rating.get_aggregate(_db_path)
-
-
-@app.get("/api/rating", response_model=RatingAggregateResponse)
-async def get_rating():
-    """Return the current aggregate rating (ratingCount, ratingValue)."""
-    return await rating.get_aggregate(_db_path)
 
 
 # --- Admin (WebAuthn/passkey-protected statistics dashboard) -----------------

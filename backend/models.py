@@ -105,11 +105,3 @@ class DuelGuessHistoryResponse(BaseModel):
     guesses: list[DuelGuessHistoryEntry]
 
 
-class RatingRequest(BaseModel):
-    token: str = Field(..., max_length=64)
-    value: int = Field(..., ge=1, le=5)
-
-
-class RatingAggregateResponse(BaseModel):
-    ratingValue: float
-    ratingCount: int
