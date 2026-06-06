@@ -36,6 +36,11 @@ CLAUDE.md
 # Docs
 docs/
 
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
 # Docker
 docker-compose.override.yml
 

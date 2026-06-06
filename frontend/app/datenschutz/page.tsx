@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Datenschutz - Kontexto",
   description:
-    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel. Keine Cookies, kein Tracking.",
+    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel. Keine Cookies, keine Drittanbieter – nur anonyme, selbst gehostete Reichweitenmessung.",
   alternates: {
     canonical: "/datenschutz/",
   },
@@ -70,24 +70,37 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">5. Cookies</h2>
+            <h2 className="text-base font-semibold text-foreground">5. Anonyme Reichweitenmessung (Statistik)</h2>
+            <p>
+              Wir messen die Nutzung der Website, um sie zu verbessern. Diese Statistik wird vollständig auf unserem eigenen Server erstellt – es werden <strong className="text-foreground">keine Daten an Dritte</strong> übermittelt und <strong className="text-foreground">keine Cookies</strong> gesetzt.
+            </p>
+            <p>
+              Zur Unterscheidung von Besuchen bilden wir einen <strong className="text-foreground">anonymen, nicht umkehrbaren Hash-Wert</strong> aus deiner IP-Adresse und deinem Browser-Typ, kombiniert mit einem geheimen, monatlich wechselnden Schlüssel. Die <strong className="text-foreground">IP-Adresse selbst wird dabei nicht gespeichert</strong> und lässt sich aus dem Hash nicht wiederherstellen. Eine Identifizierung einzelner Personen ist nicht möglich.
+            </p>
+            <p>
+              Erfasst werden nur aggregierte Kennzahlen wie Seitenaufrufe, ungefähre Besucherzahlen, grobe Geräte-/Browser-Kategorie und Spiel-Statistiken (z. B. Anzahl der Rateversuche). Die zugrundeliegenden Einzeldaten werden nach spätestens 35 Tagen automatisch gelöscht; danach verbleiben ausschließlich anonyme Summenwerte. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer datenschutzfreundlichen Reichweitenmessung).
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-base font-semibold text-foreground">6. Cookies</h2>
             <p>
               Kontexto verwendet <strong className="text-foreground">keine Cookies</strong>. Weder eigene noch Cookies von Drittanbietern.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">6. Externe Dienste</h2>
+            <h2 className="text-base font-semibold text-foreground">7. Externe Dienste</h2>
             <p>
               Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
             <p>
-              Es werden keine externen Dienste, Analyse-Tools oder Tracking-Technologien eingesetzt.
+              Es werden <strong className="text-foreground">keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern</strong> (z. B. Google Analytics) eingesetzt. Die Reichweitenmessung erfolgt ausschließlich anonym auf unserem eigenen Server (siehe Punkt 5).
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">7. Deine Rechte</h2>
+            <h2 className="text-base font-semibold text-foreground">8. Deine Rechte</h2>
             <p>
               Du hast gemäß DSGVO das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde.
             </p>
@@ -97,14 +110,14 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">8. Änderungen</h2>
+            <h2 className="text-base font-semibold text-foreground">9. Änderungen</h2>
             <p>
               Diese Datenschutzerklärung kann gelegentlich aktualisiert werden. Die aktuelle Version ist stets auf dieser Seite abrufbar.
             </p>
           </section>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-8">Stand: März 2026</p>
+        <p className="text-xs text-muted-foreground mt-8">Stand: Juni 2026</p>
       </div>
     </div>
   );

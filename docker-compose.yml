@@ -21,6 +21,11 @@ services:
     environment:
       - KONTEXTO_DATA_DIR=/app/data
       - TZ=Europe/Berlin
+      # Analytics & admin dashboard. Set these in your environment / .env file.
+      # KONTEXTO_SERVER_SECRET: random secret for all analytics HMACs (fingerprint salt, tokens).
+      # KONTEXTO_ADMIN_TOTP_SECRET: base32 TOTP secret stored in 1Password (2FA for /admin/stats).
+      - KONTEXTO_SERVER_SECRET=${KONTEXTO_SERVER_SECRET:?set KONTEXTO_SERVER_SECRET}
+      - KONTEXTO_ADMIN_TOTP_SECRET=${KONTEXTO_ADMIN_TOTP_SECRET:?set KONTEXTO_ADMIN_TOTP_SECRET}
     restart: unless-stopped
 
 volumes:
