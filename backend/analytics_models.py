@@ -19,9 +19,20 @@ class BeaconResponse(BaseModel):
     ok: bool
 
 
-class AdminLoginRequest(BaseModel):
-    code: str = Field(..., max_length=16)
-
-
-class AdminLoginResponse(BaseModel):
+class AdminSessionResponse(BaseModel):
     token: str
+
+
+class WebAuthnVerifyRequest(BaseModel):
+    credential: dict
+    challenge_token: str = Field(..., max_length=4096)
+
+
+class RegisterOptionsRequest(BaseModel):
+    enroll_token: str = Field(..., max_length=256)
+
+
+class RegisterVerifyRequest(BaseModel):
+    credential: dict
+    challenge_token: str = Field(..., max_length=4096)
+    enroll_token: str = Field(..., max_length=256)

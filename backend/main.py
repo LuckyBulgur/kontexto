@@ -1,6 +1,7 @@
 """FastAPI application for Kontexto game API."""
 
 import asyncio
+import json
 import os
 import time
 from collections import defaultdict
@@ -15,8 +16,8 @@ from fastapi.responses import JSONResponse
 import analytics
 import auth
 from analytics_models import (
-    AdminLoginRequest, AdminLoginResponse, BeaconRequest, BeaconResponse,
-    BeaconTokenResponse,
+    AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
+    RegisterOptionsRequest, RegisterVerifyRequest, WebAuthnVerifyRequest,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -594,7 +595,7 @@ async def collect(req: BeaconRequest, request: Request):
         await db.close()
 
 
-# --- Admin (TOTP-protected statistics dashboard) -----------------------------
+# --- Admin (WebAuthn/passkey-protected statistics dashboard) -----------------
 
 # Per-IP failed-login tracking (in-memory fast path; keyed on the trustworthy IP).
 _login_failures_by_ip: dict[str, list[float]] = defaultdict(list)
@@ -613,23 +614,82 @@ def _record_login_ip_failure(ip: str) -> None:
     _login_failures_by_ip[ip].append(time.time())
 
 
-@app.post("/api/admin/login", response_model=AdminLoginResponse)
-async def admin_login(req: AdminLoginRequest, request: Request):
-    ip = _client_ip(request)
-    # Fast path: block a single source that has already failed too often.
+def _rate_limited_response():
+    return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
+
+
+async def _login_throttled(db, ip: str) -> bool:
+    """True if this IP or the global failure backstop is currently tripped."""
     if _login_ip_blocked(ip):
-        return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
+        return True
+    return await analytics.login_failures(db, _now()) >= analytics.GLOBAL_LOGIN_FAIL_MAX
+
+
+@app.post("/api/admin/webauthn/login/options")
+async def webauthn_login_options(request: Request):
+    ip = _client_ip(request)
     db = await get_db(_db_path)
     try:
-        # Global backstop: stop distributed brute force across many spoofed IPs.
-        if await analytics.login_failures(db, _now()) >= analytics.GLOBAL_LOGIN_FAIL_MAX:
-            return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Zu viele Versuche"})
-        if auth.verify_totp(req.code):
-            return {"token": auth.issue_session_token()}
+        if await _login_throttled(db, ip):
+            return _rate_limited_response()
+        stored = await auth.get_credential(db)
+        if not stored:
+            return JSONResponse(status_code=404, content={"error": "no_credential", "message": "Kein Passkey registriert"})
+        options_json, challenge = auth.authentication_options(stored)
+        return {"options": json.loads(options_json), "challengeToken": auth.make_challenge_token(challenge, "auth")}
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/webauthn/login/verify", response_model=AdminSessionResponse)
+async def webauthn_login_verify(req: WebAuthnVerifyRequest, request: Request):
+    ip = _client_ip(request)
+    db = await get_db(_db_path)
+    try:
+        if await _login_throttled(db, ip):
+            return _rate_limited_response()
+        challenge = auth.verify_challenge_token(req.challenge_token, "auth")
+        stored = await auth.get_credential(db)
+        if challenge and stored:
+            try:
+                new_count = auth.verify_authentication(req.credential, challenge, stored)
+                await auth.update_sign_count(db, stored["credential_id"], new_count)
+                return {"token": auth.issue_session_token()}
+            except Exception:
+                pass
         # Failed: record against both the per-IP and the global counters.
         _record_login_ip_failure(ip)
         await analytics.record_login_failure(db, _now())
-        return JSONResponse(status_code=401, content={"error": "invalid_code", "message": "Code ungültig"})
+        return JSONResponse(status_code=401, content={"error": "auth_failed", "message": "Anmeldung fehlgeschlagen"})
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/webauthn/register/options")
+async def webauthn_register_options(req: RegisterOptionsRequest):
+    if not auth.enroll_token_valid(req.enroll_token):
+        return JSONResponse(status_code=403, content={"error": "forbidden", "message": "Registrierung gesperrt"})
+    options_json, challenge = auth.registration_options()
+    return {"options": json.loads(options_json), "challengeToken": auth.make_challenge_token(challenge, "reg")}
+
+
+@app.post("/api/admin/webauthn/register/verify")
+async def webauthn_register_verify(req: RegisterVerifyRequest):
+    if not auth.enroll_token_valid(req.enroll_token):
+        return JSONResponse(status_code=403, content={"error": "forbidden", "message": "Registrierung gesperrt"})
+    challenge = auth.verify_challenge_token(req.challenge_token, "reg")
+    if not challenge:
+        return JSONResponse(status_code=400, content={"error": "bad_challenge", "message": "Challenge abgelaufen"})
+    db = await get_db(_db_path)
+    try:
+        try:
+            cred = auth.verify_registration(req.credential, challenge)
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "registration_failed", "message": "Registrierung fehlgeschlagen"})
+        await auth.replace_credential(
+            db, credential_id=cred["credential_id"], public_key=cred["public_key"],
+            sign_count=cred["sign_count"])
+        return {"ok": True}
     finally:
         await db.close()
 

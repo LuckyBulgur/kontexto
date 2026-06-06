@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { adminLogin, getAdminStats } from "@/lib/api";
+import { adminPasskeyLogin, getAdminStats } from "@/lib/api";
 import type { StatsData, TimelinePoint } from "@/lib/types";
 
 const TOKEN_KEY = "kontexto_admin_token";
@@ -61,20 +60,20 @@ export default function AdminStatsPage() {
 }
 
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function login() {
     setBusy(true);
     setError(null);
     try {
-      const token = await adminLogin(code.trim());
+      const token = await adminPasskeyLogin();
       onLogin(token);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "error";
-      setError(msg === "rate_limited" ? "Zu viele Versuche. Bitte warten." : "Code ungültig.");
+      if (msg === "rate_limited") setError("Zu viele Versuche. Bitte warten.");
+      else if (msg === "no_credential") setError("Kein Passkey registriert.");
+      else setError("Anmeldung fehlgeschlagen.");
     } finally {
       setBusy(false);
     }
@@ -82,22 +81,13 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border p-6">
+      <div className="w-full max-w-sm space-y-4 rounded-xl border p-6">
         <h1 className="text-xl font-bold">Admin-Login</h1>
-        <Input
-          id="code"
-          aria-label="Code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          autoFocus
-        />
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" className="w-full" disabled={busy || !code.trim()}>
-          {busy ? "Prüfe…" : "Anmelden"}
+        <Button onClick={login} className="w-full" disabled={busy}>
+          {busy ? "…" : "Mit Passkey anmelden"}
         </Button>
-      </form>
+      </div>
     </main>
   );
 }

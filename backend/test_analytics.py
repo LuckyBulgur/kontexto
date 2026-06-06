@@ -278,27 +278,73 @@ class TestLoginBruteForceBackstop:
         assert run(go()) == 0
 
 
-class TestAdminAuth:
-    def test_totp_login_and_session(self, monkeypatch):
-        import pyotp
-        secret = pyotp.random_base32()
-        monkeypatch.setenv("KONTEXTO_ADMIN_TOTP_SECRET", secret)
-        code = pyotp.TOTP(secret).now()
-        assert auth.verify_totp(code) is True
-        assert auth.verify_totp("000000") is False or auth.verify_totp(code)  # wrong code usually fails
-
+class TestSessionToken:
+    def test_issue_and_verify(self):
         token = auth.issue_session_token()
         assert auth.verify_session_token(token) is True
         assert auth.verify_session_token("forged.token") is False
 
-    def test_totp_disabled_without_secret(self, monkeypatch):
-        monkeypatch.delenv("KONTEXTO_ADMIN_TOTP_SECRET", raising=False)
-        assert auth.verify_totp("123456") is False
-
-    def test_session_token_expiry(self):
+    def test_expiry(self):
         import time
         expired = auth.issue_session_token(now=time.time() - auth.SESSION_TTL - 10)
         assert auth.verify_session_token(expired) is False
+
+
+class TestChallengeToken:
+    def test_roundtrip(self):
+        challenge = b"\x01\x02\x03 a random challenge"
+        token = auth.make_challenge_token(challenge, "auth")
+        assert auth.verify_challenge_token(token, "auth") == challenge
+
+    def test_wrong_purpose_rejected(self):
+        token = auth.make_challenge_token(b"abc", "auth")
+        assert auth.verify_challenge_token(token, "reg") is None
+
+    def test_expired_rejected(self):
+        import time
+        token = auth.make_challenge_token(b"abc", "auth", now=time.time() - auth.CHALLENGE_TTL - 5)
+        assert auth.verify_challenge_token(token, "auth") is None
+
+    def test_tampered_signature_rejected(self):
+        token = auth.make_challenge_token(b"abc", "auth")
+        payload, _, _sig = token.partition(".")
+        assert auth.verify_challenge_token(payload + ".deadbeef", "auth") is None
+
+
+class TestEnrollmentGating:
+    def test_disabled_without_token(self, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_ADMIN_ENROLL_TOKEN", raising=False)
+        assert auth.enrollment_enabled() is False
+        assert auth.enroll_token_valid("anything") is False
+
+    def test_requires_matching_token(self, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_ADMIN_ENROLL_TOKEN", "s3cret-enroll")
+        assert auth.enrollment_enabled() is True
+        assert auth.enroll_token_valid("s3cret-enroll") is True
+        assert auth.enroll_token_valid("wrong") is False
+        assert auth.enroll_token_valid("") is False
+
+
+class TestCredentialStorage:
+    def test_replace_keeps_single(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                assert await auth.get_credential(db) is None
+                await auth.replace_credential(db, credential_id="cred-a", public_key="pk-a", sign_count=0)
+                await auth.replace_credential(db, credential_id="cred-b", public_key="pk-b", sign_count=3)
+                cur = await db.execute("SELECT COUNT(*) FROM admin_credentials")
+                count = (await cur.fetchone())[0]
+                stored = await auth.get_credential(db)
+                await auth.update_sign_count(db, "cred-b", 9)
+                updated = await auth.get_credential(db)
+                return count, stored, updated
+            finally:
+                await db.close()
+        count, stored, updated = run(go())
+        assert count == 1
+        assert stored["credential_id"] == "cred-b" and stored["sign_count"] == 3
+        assert updated["sign_count"] == 9
 
 
 class TestServerSecret:
