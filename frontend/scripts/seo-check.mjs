@@ -46,5 +46,10 @@ ok(robotsTxt.includes("Disallow: /admin/"), "robots.txt: /admin/ not disallowed"
 const sm = await read("sitemap.xml");
 ok(sm.includes("/wordle/"), "sitemap: missing /wordle/");
 
+if (process.env.KONTEXTO_REQUIRE_IMPRESSUM === "1") {
+  const imp = await read("impressum/index.html");
+  ok(!imp.includes("werden vor Veröffentlichung ergänzt"), "impressum: legal data not filled in for production");
+}
+
 if (failures.length) { console.error("SEO CHECK FAILED:\n" + failures.map(f => " - " + f).join("\n")); process.exit(1); }
 console.log("SEO check passed.");
