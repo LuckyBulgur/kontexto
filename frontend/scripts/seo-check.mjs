@@ -35,5 +35,11 @@ for (const [file, canon] of routes) {
   ok((html.match(/<h1/g) || []).length === 1, `${file}: expected exactly one <h1>`);
 }
 
+for (const [file] of routes) {
+  const html = (await read(file)).toLowerCase();
+  ok(html.includes('hreflang="x-default"'), `${file}: missing x-default hreflang`);
+  ok(html.includes('hreflang="de-de"'), `${file}: missing de-DE hreflang`);
+}
+
 if (failures.length) { console.error("SEO CHECK FAILED:\n" + failures.map(f => " - " + f).join("\n")); process.exit(1); }
 console.log("SEO check passed.");

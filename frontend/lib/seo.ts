@@ -16,7 +16,7 @@ export function buildMetadata({ path, title, description, type = "website", noin
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, languages: { "de-DE": path, "x-default": path } },
     openGraph: { title, description, type, url, siteName: "Kontexto", locale: "de_DE" },
     twitter: { card: "summary_large_image", title, description },
     ...(noindex ? { robots: { index: false, follow: true } } : {}),

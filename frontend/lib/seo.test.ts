@@ -12,4 +12,9 @@ describe("buildMetadata", () => {
   it("home uses '/' canonical", () => {
     expect(buildMetadata({ path: "/", title: "H", description: "d" }).alternates?.canonical).toBe("/");
   });
+  it("emits self-referencing de-DE and x-default hreflang", () => {
+    const langs = buildMetadata({ path: "/faq/", title: "F", description: "d" }).alternates?.languages;
+    expect(langs?.["de-DE"]).toBe("/faq/");
+    expect(langs?.["x-default"]).toBe("/faq/");
+  });
 });
