@@ -6,6 +6,6 @@ pybloom_live==4.0.0
 simplemma==1.1.2
 fasttext-wheel==0.9.2
 aiosqlite==0.21.0
-pyotp==2.9.0
+webauthn==2.7.1
 pytest==8.3.4
 httpx==0.28.1

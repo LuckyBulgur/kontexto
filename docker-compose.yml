@@ -21,11 +21,17 @@ services:
     environment:
       - KONTEXTO_DATA_DIR=/app/data
       - TZ=Europe/Berlin
-      # Analytics & admin dashboard. Set these in your environment / .env file.
-      # KONTEXTO_SERVER_SECRET: random secret for all analytics HMACs (fingerprint salt, tokens).
-      # KONTEXTO_ADMIN_TOTP_SECRET: base32 TOTP secret stored in 1Password (2FA for /admin/stats).
+      # Required: random secret for all HMACs (analytics fingerprint salt, beacon
+      # tokens, admin session & WebAuthn challenge tokens). Keep stable forever.
       - KONTEXTO_SERVER_SECRET=${KONTEXTO_SERVER_SECRET:?set KONTEXTO_SERVER_SECRET}
-      - KONTEXTO_ADMIN_TOTP_SECRET=${KONTEXTO_ADMIN_TOTP_SECRET:?set KONTEXTO_ADMIN_TOTP_SECRET}
+      # Admin /admin/stats is protected by a passkey (WebAuthn). RP id/origin must
+      # match the public domain.
+      - KONTEXTO_WEBAUTHN_RP_ID=${KONTEXTO_WEBAUTHN_RP_ID:-kontexto.de}
+      - KONTEXTO_WEBAUTHN_ORIGIN=${KONTEXTO_WEBAUTHN_ORIGIN:-https://kontexto.de}
+      # Break-glass passkey enrollment: leave EMPTY for normal operation
+      # (registration disabled). Set a random value only while enrolling/replacing
+      # the passkey at /admin/enroll, then clear it again and redeploy.
+      - KONTEXTO_ADMIN_ENROLL_TOKEN=${KONTEXTO_ADMIN_ENROLL_TOKEN:-}
     restart: unless-stopped
 
 volumes:

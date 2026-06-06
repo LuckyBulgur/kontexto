@@ -112,6 +112,15 @@ CREATE TABLE IF NOT EXISTS admin_login_failures (
     ts TIMESTAMP NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_admin_login_failures_ts ON admin_login_failures(ts);
+
+-- Admin: the single registered WebAuthn/passkey credential (public key only).
+CREATE TABLE IF NOT EXISTS admin_credentials (
+    credential_id TEXT PRIMARY KEY,   -- base64url
+    public_key    TEXT NOT NULL,      -- base64url (COSE public key)
+    sign_count    INTEGER NOT NULL DEFAULT 0,
+    transports    TEXT,               -- JSON array, optional
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
