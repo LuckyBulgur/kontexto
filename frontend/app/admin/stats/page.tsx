@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { adminLogin, getAdminStats } from "@/lib/api";
 import type { StatsData, TimelinePoint } from "@/lib/types";
 
@@ -85,21 +84,17 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
     <main className="flex min-h-screen items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border p-6">
         <h1 className="text-xl font-bold">Admin-Login</h1>
-        <p className="text-sm text-muted-foreground">2FA-Code (TOTP) aus 1Password eingeben.</p>
-        <div className="space-y-2">
-          <Label htmlFor="code">6-stelliger Code</Label>
-          <Input
-            id="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            autoFocus
-          />
-        </div>
+        <Input
+          id="code"
+          aria-label="Code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoFocus
+        />
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" className="w-full" disabled={busy || code.length < 6}>
+        <Button type="submit" className="w-full" disabled={busy || !code.trim()}>
           {busy ? "Prüfe…" : "Anmelden"}
         </Button>
       </form>
