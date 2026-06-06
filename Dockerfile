@@ -1,6 +1,8 @@
 # --- Stage 1: Build frontend ---
-FROM node:20-alpine AS frontend-build
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:22-alpine AS frontend-build
+# Pin pnpm to the exact version that generated pnpm-lock.yaml (deterministic
+# builds). pnpm 11 requires Node >= 22, hence the node:22 base.
+RUN corepack enable && corepack prepare pnpm@11.2.2 --activate
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
