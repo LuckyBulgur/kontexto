@@ -10,9 +10,8 @@ export default function WordleSeo() {
         Position, gelb = im Wort, aber falsche Position, grau = nicht enthalten.
       </p>
       <p className="mb-4">
-        Spiele auch das semantische <Link href="/" className="text-primary underline">Kontexto</Link>,
-        fordere Freunde im <Link href="/wordle/duel/create/" className="text-primary underline">Wördle-Duell</Link> heraus
-        oder stöbere im <Link href="/archiv/" className="text-primary underline">Archiv</Link>.
+        Spiele auch das semantische <Link href="/" className="text-primary underline">Kontexto</Link>
+        oder fordere Freunde im <Link href="/wordle/duel/create/" className="text-primary underline">Wördle-Duell</Link> heraus.
       </p>
     </section>
   );

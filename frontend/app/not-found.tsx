@@ -10,7 +10,6 @@ export default function NotFound() {
       <p className="text-muted-foreground">Diese Seite gibt es nicht (mehr).</p>
       <nav className="flex flex-wrap justify-center gap-4">
         <Link href="/" className="text-primary underline">Zum Spiel</Link>
-        <Link href="/archiv/" className="text-primary underline">Archiv</Link>
         <Link href="/faq/" className="text-primary underline">FAQ</Link>
       </nav>
     </div>

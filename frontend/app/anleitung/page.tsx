@@ -28,7 +28,7 @@ export default function AnleitungPage() {
       </section>
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-foreground">Jeden Tag ein neues Wort</h2>
-        <p>Um Mitternacht startet ein neues Rätsel. Alle Spielenden raten dasselbe Wort. Vergangene Rätsel findest du im <a className="text-primary underline" href="/archiv/">Archiv</a>.</p>
+        <p>Um Mitternacht startet ein neues Rätsel. Alle Spielenden raten dasselbe Wort. Tipps für die nächste Runde findest du in den <a className="text-primary underline" href="/strategie/">Strategie &amp; Tipps</a>.</p>
       </section>
     </TextPage>
   );

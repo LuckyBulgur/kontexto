@@ -3,8 +3,7 @@ import Link from "next/link";
 const links = [
   { href: "/", label: "Kontexto" },
   { href: "/wordle/", label: "Wördle" },
-  { href: "/archiv/", label: "Archiv" },
-  { href: "/anleitung/", label: "Anleitung" },
+{ href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
   { href: "/faq/", label: "FAQ" },
   { href: "/blog/", label: "Blog" },

@@ -55,7 +55,6 @@ export default function HomeContent() {
       <nav className="mt-10 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Seiten">
         <Link href="/anleitung/" className="text-primary underline">Spielanleitung</Link>
         <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>
-        <Link href="/archiv/" className="text-primary underline">Rätsel-Archiv</Link>
         <Link href="/faq/" className="text-primary underline">FAQ</Link>
         <Link href="/ueber/" className="text-primary underline">Über Kontexto</Link>
       </nav>
