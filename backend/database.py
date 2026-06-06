@@ -112,6 +112,31 @@ CREATE TABLE IF NOT EXISTS analytics_meta (
     value TEXT
 );
 
+-- Analytics: server-authoritative per-game (per target word) difficulty stats.
+-- One row per (mode, game_number, metric); metric in {guesses, solves, reveals, hints}.
+-- Powers the dashboard ranking of target words by solve rate / avg guesses.
+CREATE TABLE IF NOT EXISTS analytics_game_stats (
+    mode TEXT NOT NULL,
+    game_number INTEGER NOT NULL,
+    metric TEXT NOT NULL,
+    value INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (mode, game_number, metric)
+);
+
+-- Analytics: dedup ledger for the client-reported completion beacon. At most one
+-- accepted completion per (fingerprint, mode, game, outcome) per day; pruned with
+-- the raw-event retention window via prune_old_events().
+CREATE TABLE IF NOT EXISTS analytics_completion_seen (
+    fp_hash TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    game_number INTEGER NOT NULL,
+    outcome TEXT NOT NULL,
+    date TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL,
+    PRIMARY KEY (fp_hash, mode, game_number, outcome, date)
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_completion_seen_ts ON analytics_completion_seen(ts);
+
 -- Admin: global failed-login timestamps (cross-worker brute-force backstop)
 CREATE TABLE IF NOT EXISTS admin_login_failures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

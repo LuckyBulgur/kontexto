@@ -18,7 +18,8 @@ import analytics
 import auth
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
-    RegisterOptionsRequest, RegisterVerifyRequest, WebAuthnVerifyRequest,
+    CompletionRequest, RegisterOptionsRequest, RegisterVerifyRequest,
+    WebAuthnVerifyRequest,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -196,8 +197,10 @@ async def guess(req: GuessRequest, game: int | None = Query(None)):
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
     await analytics.record_action(_db_path, "guesses", "kontexto", word=result["word"])
+    await analytics.record_game_stat(_db_path, "kontexto", game_num, "guesses")
     if result["rank"] == 1:
         await analytics.record_action(_db_path, "solves", "kontexto")
+        await analytics.record_game_stat(_db_path, "kontexto", game_num, "solves")
     return result
 
 
@@ -222,7 +225,8 @@ async def tip(
             status_code=404,
             content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
         )
-    await analytics.record_action(_db_path, "hints", "kontexto")
+    await analytics.record_action(_db_path, "hints", difficulty)
+    await analytics.record_game_stat(_db_path, "kontexto", game_num, "hints")
     return result
 
 
@@ -261,6 +265,7 @@ async def reveal(game: int | None = Query(None)):
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
     await analytics.record_action(_db_path, "reveals", "kontexto")
+    await analytics.record_game_stat(_db_path, "kontexto", game_num, "reveals")
     return {"word": gs.get_target_word(game_num)}
 
 
@@ -290,6 +295,7 @@ async def create_duel_endpoint(req: CreateDuelRequest):
     db = await get_db(_db_path)
     try:
         result = await create_duel(db, req.game_number, req.nickname, req.tips_allowed)
+        await analytics.record_action(_db_path, "duels_created", "kontexto")
         return result
     finally:
         await db.close()
@@ -366,8 +372,10 @@ async def duel_guess_endpoint(duel_id: str, req: DuelGuessRequest):
 
         await record_guess(db, duel_id, req.player_token, result["word"], result["rank"])
         await analytics.record_action(_db_path, "guesses", "duel", word=result["word"])
+        await analytics.record_game_stat(_db_path, "duel", game_num, "guesses")
         if result["rank"] == 1:
             await analytics.record_action(_db_path, "solves", "duel")
+            await analytics.record_game_stat(_db_path, "duel", game_num, "solves")
         return result
     finally:
         await db.close()
