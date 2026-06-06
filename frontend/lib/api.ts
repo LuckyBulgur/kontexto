@@ -107,3 +107,25 @@ export async function getAdminStats(token: string): Promise<StatsData> {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
+
+// --- Rating ---
+
+export async function getBeaconToken(): Promise<string> {
+  const res = await fetch(`${API_BASE}/collect/token`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return data.token as string;
+}
+
+export async function submitRating(
+  token: string,
+  value: number,
+): Promise<{ ratingValue: number; ratingCount: number }> {
+  const res = await fetch(`${API_BASE}/rating`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, value }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
