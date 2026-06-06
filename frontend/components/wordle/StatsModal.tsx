@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { loadWordleStats } from "@/lib/wordle-storage";
 import type { TileColor } from "@/lib/wordle-types";
 import { CalendarHeatmap, DistributionBars, StatTile } from "@/components/stats/PlayerStatViews";
@@ -28,9 +28,10 @@ export default function StatsModal({ open, onOpenChange, gameNumber, guesses, ev
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Statistiken</DialogTitle>
+          <DialogDescription>Dein persönlicher Spielverlauf – nur auf diesem Gerät gespeichert.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-4 gap-2">

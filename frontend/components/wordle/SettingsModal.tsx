@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,9 +24,10 @@ interface SettingsModalProps {
 export default function SettingsModal({ open, onOpenChange, theme, onThemeChange, hardMode, onHardModeChange, canToggleHardMode }: SettingsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Einstellungen</DialogTitle>
+          <DialogTitle className="text-xl">Einstellungen</DialogTitle>
+          <DialogDescription className="sr-only">Design und Hard Mode anpassen</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 py-2">

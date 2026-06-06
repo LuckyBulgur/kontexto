@@ -53,7 +53,7 @@ export default function WordleDuelCreatePage() {
               <ArrowLeft className="h-6! w-6!" />
             </Button>
           </a>
-          <h1 className="text-[24px] font-bold tracking-wider">WÖRDLE</h1>
+          <span className="text-[24px] font-bold tracking-wider">WÖRDLE</span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">Duell erstellen</p>
       </header>

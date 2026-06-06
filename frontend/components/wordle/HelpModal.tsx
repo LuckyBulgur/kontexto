@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Tile from "./Tile";
 
 interface HelpModalProps {
@@ -13,7 +13,8 @@ export default function HelpModal({ open, onOpenChange }: HelpModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>So funktioniert W&#246;rdle</DialogTitle>
+          <DialogTitle className="text-xl">So funktioniert W&#246;rdle</DialogTitle>
+          <DialogDescription className="sr-only">Wie man W&#246;rdle spielt</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 text-sm">
           <p>Errate das W&#246;rdle in 6 Versuchen. Jeder Versuch muss ein g&#252;ltiges deutsches 5-Buchstaben-Wort sein.</p>
