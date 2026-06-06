@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { posts } from "@/lib/blog";
+import { getArchiveEntries } from "@/lib/archive";
 
 export const dynamic = "force-static";
 
 const BUILD_DATE = process.env.KONTEXTO_BUILD_DATE || new Date().toISOString().slice(0, 10);
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date(BUILD_DATE);
   const staticRoutes: { path: string; freq: MetadataRoute.Sitemap[number]["changeFrequency"]; prio: number }[] = [
     { path: "/", freq: "daily", prio: 1.0 },
@@ -35,5 +36,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticOut, ...blogRoutes];
+  const archiveEntries = await getArchiveEntries();
+  const archiveRoutes = archiveEntries.map((e) => ({
+    url: `${SITE_URL}/archiv/${e.date}/`,
+    lastModified: new Date(e.date),
+    changeFrequency: "yearly" as const,
+    priority: 0.4,
+  }));
+
+  return [...staticOut, ...blogRoutes, ...archiveRoutes];
 }
