@@ -21,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
+from server_secret import server_secret as _server_secret
+
 # --- Configuration -----------------------------------------------------------
 
 # Window for beacon tokens and pageview de-duplication (seconds).
@@ -58,11 +60,6 @@ _PAGE_PATTERNS = (
 
 
 # --- Secrets & identity ------------------------------------------------------
-
-def _server_secret() -> bytes:
-    """Secret used for all HMACs. Falls back to a dev value if unset."""
-    return os.environ.get("KONTEXTO_SERVER_SECRET", "kontexto-dev-secret").encode()
-
 
 def _salt_period(now: datetime) -> str:
     """Salt rotates monthly => stable per-month fingerprints."""

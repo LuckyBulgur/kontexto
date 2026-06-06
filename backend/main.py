@@ -19,6 +19,7 @@ from analytics_models import (
     BeaconTokenResponse,
 )
 from database import init_db, get_db
+from server_secret import server_secret
 from duel import (
     create_duel, join_duel, get_duel_state, record_guess, record_tip,
     get_player_history, get_player_info, cleanup_stale_duels,
@@ -90,6 +91,9 @@ def _resolve_game_number(game: int | None) -> int:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Fail-closed: refuse to boot without a real secret (prod). A dev fallback is
+    # only honoured when KONTEXTO_DEV is set; see server_secret.server_secret.
+    server_secret()
     _get_game_state()
     global _db_path, _wordle_state
     data_dir = os.environ.get("KONTEXTO_DATA_DIR", "data")

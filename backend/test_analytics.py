@@ -13,6 +13,7 @@ os.environ.setdefault("KONTEXTO_SERVER_SECRET", "test-secret")
 import analytics
 import auth
 from database import init_db, get_db
+from server_secret import MissingServerSecretError, server_secret
 
 
 def run(coro):
@@ -298,3 +299,26 @@ class TestAdminAuth:
         import time
         expired = auth.issue_session_token(now=time.time() - auth.SESSION_TTL - 10)
         assert auth.verify_session_token(expired) is False
+
+
+class TestServerSecret:
+    def test_returns_configured_secret(self, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_SERVER_SECRET", "abc123")
+        assert server_secret() == b"abc123"
+
+    def test_raises_when_unset_in_prod(self, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_SERVER_SECRET", raising=False)
+        monkeypatch.delenv("KONTEXTO_DEV", raising=False)
+        with pytest.raises(MissingServerSecretError):
+            server_secret()
+
+    def test_empty_treated_as_unset(self, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_SERVER_SECRET", "   ")
+        monkeypatch.delenv("KONTEXTO_DEV", raising=False)
+        with pytest.raises(MissingServerSecretError):
+            server_secret()
+
+    def test_dev_fallback_allowed(self, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_SERVER_SECRET", raising=False)
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        assert server_secret() == b"kontexto-dev-secret"
