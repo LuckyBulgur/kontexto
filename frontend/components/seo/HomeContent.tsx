@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { faqs } from "@/lib/faqs";
-import RatingPrompt from "@/components/RatingPrompt";
 
 export default function HomeContent() {
   return (
@@ -39,8 +38,6 @@ export default function HomeContent() {
         unbegrenzt viele Versuche, und jeder Tipp bringt dich der Lösung
         semantisch näher. Beide Spiele gibt es hier täglich neu – auf Deutsch.
       </p>
-
-      <RatingPrompt />
 
       <h2 className="mb-2 mt-8 text-lg font-semibold text-foreground">Häufige Fragen</h2>
       <dl className="space-y-4">
