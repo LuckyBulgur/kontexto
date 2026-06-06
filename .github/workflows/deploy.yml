@@ -44,11 +44,16 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -e
             cd /opt/kontexto
             git fetch origin master
             git reset --hard origin/master
-            docker compose up --build -d
+            # --force-recreate ensures the running container restarts with the
+            # freshly built image (plain `up --build` can leave the old container).
+            docker compose up -d --build --force-recreate
             docker image prune -f
             sleep 5
-            curl -f http://localhost/api/game
+            # Health checks fail the deploy loudly (set -e) if old code is still live.
+            curl -fsS http://localhost/api/game > /dev/null
+            curl -fsS http://localhost/api/collect/token > /dev/null
             echo "Deploy successful!"
