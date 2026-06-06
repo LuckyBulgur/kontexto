@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import sqlite3
 import tempfile
 from datetime import datetime, timezone
 
@@ -189,6 +190,128 @@ class TestActionCountersAndManipulation:
             finally:
                 await db.close()
         assert run(go()) == 0  # beacon wrote zero action counters
+
+
+class TestWriteResilience:
+    """Multi-process SQLite write integrity: no silent loss, no double-count."""
+
+    def test_busy_timeout_configured(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute("PRAGMA busy_timeout")
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == 5000
+
+    def test_concurrent_record_action_no_loss(self, db_path):
+        """Many concurrent writers must all land — none dropped to SQLITE_BUSY."""
+        async def go():
+            await asyncio.gather(*[
+                analytics.record_action(db_path, "guesses", "kontexto", now=JAN)
+                for _ in range(50)
+            ])
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric='guesses'")
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == 50
+
+    def test_commit_with_retry_recovers_without_double_count(self, db_path):
+        """A first commit that hits a lock is retried; rollback prevents +2."""
+        async def go():
+            db = await get_db(db_path)
+            calls = {"n": 0}
+            real_commit = db.commit
+
+            async def flaky_commit():
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    raise sqlite3.OperationalError("database is locked")
+                await real_commit()
+
+            db.commit = flaky_commit
+
+            async def write(conn):
+                await analytics._bump(conn, "analytics_counters",
+                                      "2026-01-15", "guesses", "kontexto", 1)
+            try:
+                ok = await analytics._commit_with_retry(db, write, description="test")
+                db.commit = real_commit
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric='guesses'")
+                return ok, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        ok, total = run(go())
+        assert ok is True and total == 1  # retried, counted exactly once
+
+    def test_commit_with_retry_propagates_non_lock_errors(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                async def write(conn):
+                    raise sqlite3.OperationalError("no such table: nope")
+                await analytics._commit_with_retry(db, write, description="test")
+            finally:
+                await db.close()
+        with pytest.raises(sqlite3.OperationalError):
+            run(go())
+
+    def test_record_pageview_retries_on_lock(self, db_path):
+        """A transient lock on the beacon insert is retried, not lost or duplicated."""
+        ua = "Mozilla/5.0 Chrome/120"
+        fp = analytics.compute_fingerprint("1.2.3.4", ua, JAN)
+        token = analytics.make_beacon_token(fp, JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            calls = {"n": 0}
+            real_commit = db.commit
+
+            async def flaky_commit():
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    raise sqlite3.OperationalError("database is locked")
+                await real_commit()
+
+            db.commit = flaky_commit
+            try:
+                ok, reason = await analytics.record_pageview(
+                    db, ip="1.2.3.4", user_agent=ua, referrer=None,
+                    page="/", token=token, now=JAN)
+                db.commit = real_commit
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_events")
+                return ok, reason, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        ok, reason, count = run(go())
+        assert ok is True and reason == "ok" and count == 1
+
+
+class TestStatsPageviews:
+    def test_pageviews_by_page_includes_today_without_aggregation(self, db_path):
+        """Today's pageviews must show up live, before aggregate_daily runs."""
+        ua = "Mozilla/5.0 Chrome/120"
+        fp = analytics.compute_fingerprint("1.2.3.4", ua, JAN)
+        token = analytics.make_beacon_token(fp, JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await analytics.record_pageview(
+                    db, ip="1.2.3.4", user_agent=ua, referrer=None,
+                    page="/wordle", token=token, now=JAN)
+                # Intentionally NO aggregate_daily() call.
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["pageviews_by_page"].get("/wordle") == 1
 
 
 class TestAggregation:

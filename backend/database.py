@@ -2,6 +2,12 @@
 
 import aiosqlite
 
+# Production runs five uvicorn workers (4 API + 1 WS) that all write to this one
+# SQLite file. WAL permits only a single writer at a time; with SQLite's default
+# busy timeout of 0 a second concurrent writer fails immediately with SQLITE_BUSY.
+# A non-zero timeout makes writers queue for the lock instead of dropping the write.
+BUSY_TIMEOUT_MS = 5000
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS duels (
     id TEXT PRIMARY KEY,
@@ -124,12 +130,24 @@ CREATE TABLE IF NOT EXISTS admin_credentials (
 """
 
 
+async def configure_connection(db: aiosqlite.Connection) -> None:
+    """Apply the connection-level PRAGMAs every connection must use.
+
+    journal_mode=WAL is persisted in the database header (set once, on disk), but
+    foreign_keys and busy_timeout are per-connection and must be re-applied on
+    every open. Centralised here so every writer — request connections, the
+    background loop, and ad-hoc analytics connections — shares the same settings.
+    """
+    await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA foreign_keys=ON")
+    await db.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+
+
 async def init_db(db_path: str) -> None:
     """Create tables if they don't exist."""
     db = await aiosqlite.connect(db_path)
     try:
-        await db.execute("PRAGMA journal_mode=WAL")
-        await db.execute("PRAGMA foreign_keys=ON")
+        await configure_connection(db)
         await db.executescript(_SCHEMA)
         # Migration: add tip_count column if missing
         try:
@@ -142,9 +160,8 @@ async def init_db(db_path: str) -> None:
 
 
 async def get_db(db_path: str) -> aiosqlite.Connection:
-    """Open a connection with WAL mode and foreign keys enabled."""
+    """Open a connection with WAL mode, foreign keys and a busy timeout enabled."""
     db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
-    await db.execute("PRAGMA journal_mode=WAL")
-    await db.execute("PRAGMA foreign_keys=ON")
+    await configure_connection(db)
     return db
