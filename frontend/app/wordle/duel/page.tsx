@@ -8,16 +8,13 @@ import Keyboard from "@/components/wordle/Keyboard";
 import OpponentBoard from "@/components/wordle/duel/OpponentBoard";
 import DuelHeader from "@/components/wordle/duel/DuelHeader";
 import DuelResultCard from "@/components/wordle/duel/DuelResultCard";
+import JoinForm from "@/components/wordle/duel/JoinForm";
 import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
 import {
   getWordleDuelState, submitWordleDuelGuess, getWordleDuelHistory, joinWordleDuel,
 } from "@/lib/wordle-api";
 import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Copy } from "lucide-react";
 import Link from "next/link";
 
@@ -42,9 +39,10 @@ export default function WordleDuelPage() {
   // Opponent guesses (colors only)
   const [opponentGuesses, setOpponentGuesses] = useState<Map<string, TileColor[][]>>(new Map());
 
-  // Join dialog
-  const [showJoin, setShowJoin] = useState(false);
-  const [joinNickname, setJoinNickname] = useState("");
+  // Join
+  const [needsJoin, setNeedsJoin] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   // Extract duel_id from pathname
   useEffect(() => {
@@ -60,7 +58,7 @@ export default function WordleDuelPage() {
         const nick = loadDuelNickname(id);
         if (nick) setNickname(nick);
       } else {
-        setShowJoin(true);
+        setNeedsJoin(true);
       }
     }
   }, []);
@@ -180,21 +178,25 @@ export default function WordleDuelPage() {
   useWordleDuelWs({ duelId, token: playerToken, onMessage: handleWsMessage });
 
   // Join handler
-  const handleJoin = async () => {
-    if (!duelId || !joinNickname.trim()) return;
+  const handleJoin = useCallback(async (nick: string) => {
+    if (!duelId || !nick.trim()) return;
+    setJoinLoading(true);
+    setJoinError(null);
     try {
-      const resp = await joinWordleDuel(duelId, joinNickname.trim());
+      const resp = await joinWordleDuel(duelId, nick.trim());
       saveDuelToken(duelId, resp.player_token);
       saveDuelNickname(duelId, resp.nickname);
       setPlayerToken(resp.player_token);
       setNickname(resp.nickname);
       setPlayers(resp.players);
       setGameNumber(resp.game_number);
-      setShowJoin(false);
+      setNeedsJoin(false);
     } catch {
-      toast("Fehler beim Beitreten");
+      setJoinError("Fehler beim Beitreten");
+    } finally {
+      setJoinLoading(false);
     }
-  };
+  }, [duelId]);
 
   // Guess submission
   const submitGuess = useCallback(async () => {
@@ -284,6 +286,10 @@ export default function WordleDuelPage() {
 
   const allFinished = players.length > 1 && players.every((p) => p.solved || p.guesses_used >= 6);
 
+  if (needsJoin) {
+    return <JoinForm onJoin={handleJoin} loading={joinLoading} error={joinError} />;
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
@@ -329,30 +335,6 @@ export default function WordleDuelPage() {
       <Keyboard letterStates={letterStates} onKey={handleKey} />
 
       {allFinished && <DuelResultCard players={players} currentNickname={nickname} />}
-
-      {/* Join Dialog */}
-      <Dialog open={showJoin} onOpenChange={setShowJoin}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Wördle Duell beitreten</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Dein Nickname</Label>
-              <Input
-                value={joinNickname}
-                onChange={(e) => setJoinNickname(e.target.value)}
-                placeholder="z.B. Anna"
-                maxLength={20}
-                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-              />
-            </div>
-            <Button onClick={handleJoin} disabled={!joinNickname.trim()} className="w-full">
-              Beitreten
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
