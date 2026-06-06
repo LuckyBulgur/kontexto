@@ -75,11 +75,15 @@ export default function WordleDuelPage() {
       setGameNumber(state.game_number);
 
       // Seed opponent boards with their already-played rows (colours only).
+      // Merge instead of replace: a guess_made may have arrived over the WS
+      // during the await above — never shrink what we already have.
       const myNick = loadDuelNickname(duelId);
-      setOpponentGuesses(() => {
-        const next = new Map<string, TileColor[][]>();
+      setOpponentGuesses((prev) => {
+        const next = new Map(prev);
         for (const p of state.players) {
-          if (p.nickname !== myNick && p.results && p.results.length > 0) {
+          if (p.nickname === myNick || !p.results || p.results.length === 0) continue;
+          const existing = next.get(p.nickname);
+          if (!existing || p.results.length > existing.length) {
             next.set(p.nickname, p.results);
           }
         }
@@ -125,7 +129,9 @@ export default function WordleDuelPage() {
       setOpponentGuesses((prev) => {
         const next = new Map(prev);
         for (const p of msg.players) {
-          if (p.nickname !== myNick && p.results && p.results.length > 0) {
+          if (p.nickname === myNick || !p.results || p.results.length === 0) continue;
+          const existing = next.get(p.nickname);
+          if (!existing || p.results.length > existing.length) {
             next.set(p.nickname, p.results);
           }
         }
@@ -140,9 +146,14 @@ export default function WordleDuelPage() {
       );
     } else if (msg.type === "guess_made") {
       setOpponentGuesses((prev) => {
+        const existing = prev.get(msg.nickname) || [];
+        // Idempotent by guess number — ignore duplicates (e.g. a row already
+        // seeded via a `state` message after a reconnect).
+        if (msg.guess_number <= existing.length) return prev;
         const next = new Map(prev);
-        const existing = next.get(msg.nickname) || [];
-        next.set(msg.nickname, [...existing, msg.result]);
+        const updated = existing.slice();
+        updated[msg.guess_number - 1] = msg.result;
+        next.set(msg.nickname, updated);
         return next;
       });
       setPlayers((prev) =>
@@ -174,9 +185,9 @@ export default function WordleDuelPage() {
     try {
       const resp = await joinWordleDuel(duelId, joinNickname.trim());
       saveDuelToken(duelId, resp.player_token);
-      saveDuelNickname(duelId, joinNickname.trim());
+      saveDuelNickname(duelId, resp.nickname);
       setPlayerToken(resp.player_token);
-      setNickname(joinNickname.trim());
+      setNickname(resp.nickname);
       setPlayers(resp.players);
       setGameNumber(resp.game_number);
       setShowJoin(false);

@@ -2,6 +2,7 @@ import type { TileColor, WordleStats, GameStatus } from "./wordle-types";
 
 const KEYS = {
   state: "wordle_state",
+  randomState: "wordle_random_state",
   stats: "wordle_stats",
   hardMode: "wordle_hard_mode",
   duelToken: (duelId: string) => `wordle_duel_${duelId}`,
@@ -29,6 +30,22 @@ export function loadWordleState(currentGameNumber: number): WordleGameState | nu
 
 export function saveWordleState(state: WordleGameState): void {
   localStorage.setItem(KEYS.state, JSON.stringify(state));
+}
+
+export function loadWordleRandomState(currentGameNumber: number): WordleGameState | null {
+  try {
+    const raw = localStorage.getItem(KEYS.randomState);
+    if (!raw) return null;
+    const state: WordleGameState = JSON.parse(raw);
+    if (state.gameNumber !== currentGameNumber) return null;
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+export function saveWordleRandomState(state: WordleGameState): void {
+  localStorage.setItem(KEYS.randomState, JSON.stringify(state));
 }
 
 export function loadWordleStats(): WordleStats {

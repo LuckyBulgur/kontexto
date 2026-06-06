@@ -56,8 +56,28 @@ class TestJoinDuel:
                 created = await create_wordle_duel(conn, nickname="Max", game_number=42)
                 joined = await join_wordle_duel(conn, duel_id=created["duel_id"], nickname="Anna")
                 assert "player_token" in joined
+                assert joined["nickname"] == "Anna"
                 assert len(joined["players"]) == 2
                 assert joined["game_number"] == 42
+            finally:
+                await conn.close()
+        asyncio.get_event_loop().run_until_complete(_test())
+
+    def test_duplicate_nickname_is_made_unique(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                joined = await join_wordle_duel(conn, duel_id=created["duel_id"], nickname="Max")
+                # Joiner with a taken nickname gets a unique variant.
+                assert joined["nickname"] == "Max (2)"
+                state = await get_wordle_duel_state(conn, created["duel_id"])
+                nicknames = sorted(p["nickname"] for p in state["players"])
+                assert nicknames == ["Max", "Max (2)"]
+
+                # A third "Max" keeps climbing the suffix.
+                third = await join_wordle_duel(conn, duel_id=created["duel_id"], nickname="Max")
+                assert third["nickname"] == "Max (3)"
             finally:
                 await conn.close()
         asyncio.get_event_loop().run_until_complete(_test())

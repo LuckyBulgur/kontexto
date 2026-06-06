@@ -58,7 +58,7 @@ export async function createWordleDuel(
 export async function joinWordleDuel(
   duelId: string,
   nickname: string
-): Promise<{ player_token: string; players: WordleDuelState["players"]; game_number: number }> {
+): Promise<{ player_token: string; nickname: string; players: WordleDuelState["players"]; game_number: number }> {
   return request(`/wordle/duel/${duelId}/join`, {
     method: "POST",
     body: JSON.stringify({ nickname }),

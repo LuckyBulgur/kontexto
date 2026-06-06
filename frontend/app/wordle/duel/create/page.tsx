@@ -13,6 +13,7 @@ export default function WordleDuelCreatePage() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
   const [gameNumber, setGameNumber] = useState<number | null>(null);
+  const [gameMode, setGameMode] = useState<"today" | "random">("today");
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -23,7 +24,8 @@ export default function WordleDuelCreatePage() {
     if (!nickname.trim() || gameNumber === null) return;
     setCreating(true);
     try {
-      const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gameNumber);
+      const gn = gameMode === "today" ? gameNumber : Math.floor(Math.random() * 5000) + 1;
+      const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gn);
       saveDuelToken(duel_id, player_token);
       saveDuelNickname(duel_id, nickname.trim());
       router.push(`/wordle/duel/${duel_id}/`);
@@ -56,8 +58,31 @@ export default function WordleDuelCreatePage() {
           />
         </div>
 
-        <div className="text-sm text-zinc-500">
-          Spiel #{gameNumber ?? "..."} (heutiges Wördle)
+        <div className="space-y-2">
+          <Label>Spiel</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant={gameMode === "today" ? "default" : "outline"}
+              onClick={() => setGameMode("today")}
+              className="w-full"
+            >
+              Heutiges Spiel
+            </Button>
+            <Button
+              type="button"
+              variant={gameMode === "random" ? "default" : "outline"}
+              onClick={() => setGameMode("random")}
+              className="w-full"
+            >
+              Zufälliges Spiel
+            </Button>
+          </div>
+          <p className="text-sm text-zinc-500">
+            {gameMode === "today"
+              ? `Spiel #${gameNumber ?? "..."} (heutiges Wördle)`
+              : "Zufälliges Wördle – für beide Spieler gleich"}
+          </p>
         </div>
 
         <Button
