@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import confetti from "canvas-confetti";
 import Board from "./Board";
 import Keyboard from "./Keyboard";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
@@ -151,9 +150,10 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
 
       if (won) {
         // Delay win effects until flip animation completes (~1.8s)
-        setTimeout(() => {
+        setTimeout(async () => {
           setWonRow(newGuesses.length - 1);
           toast(WIN_MESSAGES[newGuesses.length - 1] || "Gewonnen!");
+          const confetti = (await import("canvas-confetti")).default;
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, true, newGuesses.length);
