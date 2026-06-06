@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import Board from "./Board";
 import Keyboard from "./Keyboard";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
 import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
+import { reportCompletion } from "@/lib/analytics";
 import {
   loadWordleState, saveWordleState,
   loadWordleRandomState, saveWordleRandomState, loadHardMode,
@@ -34,6 +35,8 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
   const [wonRow, setWonRow] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const hardMode = loadHardMode();
+  // First-guess timestamp (this session) for the time-to-solve completion beacon.
+  const startedAtRef = useRef<number | null>(null);
 
   const loadState = mode === "random" ? loadWordleRandomState : loadWordleState;
   const saveState = mode === "random" ? saveWordleRandomState : saveWordleState;
@@ -124,6 +127,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
         return;
       }
 
+      if (startedAtRef.current === null) startedAtRef.current = Date.now();
       const newGuesses = [...guesses, word];
       const newEvaluations = [...evaluations, resp.result!];
       const won = resp.result!.every((c) => c === "GREEN");
@@ -154,6 +158,13 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, true, newGuesses.length);
             onGameEnd?.(true, newGuesses.length);
+            const duration = startedAtRef.current
+              ? Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000))
+              : 0;
+            reportCompletion({
+              mode: "wordle", game_number: gameNumber, outcome: "solved",
+              guesses: newGuesses.length, tips: 0, duration_seconds: duration, best_rank: 1,
+            });
           }
         }, 1800);
       } else if (lost) {
@@ -167,6 +178,10 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, false, 6);
             onGameEnd?.(false, 6);
+            reportCompletion({
+              mode: "wordle", game_number: gameNumber, outcome: "gaveup",
+              guesses: 6, tips: 0, duration_seconds: 0, best_rank: 1,
+            });
           }
         }, 1800);
       }

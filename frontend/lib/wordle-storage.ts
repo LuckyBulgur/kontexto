@@ -49,11 +49,15 @@ export function saveWordleRandomState(state: WordleGameState): void {
 }
 
 export function loadWordleStats(): WordleStats {
+  const defaults: WordleStats = {
+    played: 0, won: 0, currentStreak: 0, maxStreak: 0,
+    distribution: [0, 0, 0, 0, 0, 0], lastPlayed: -1, datesPlayed: [],
+  };
   try {
     const raw = localStorage.getItem(KEYS.stats);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { ...defaults, ...JSON.parse(raw) };
   } catch {}
-  return { played: 0, won: 0, currentStreak: 0, maxStreak: 0, distribution: [0, 0, 0, 0, 0, 0], lastPlayed: -1 };
+  return defaults;
 }
 
 export function saveWordleStats(stats: WordleStats): void {
@@ -63,6 +67,9 @@ export function saveWordleStats(stats: WordleStats): void {
 export function updateStatsAfterGame(gameNumber: number, won: boolean, guessCount: number): WordleStats {
   const stats = loadWordleStats();
   stats.played++;
+  const today = new Date().toISOString().slice(0, 10);
+  if (!stats.datesPlayed) stats.datesPlayed = [];
+  if (!stats.datesPlayed.includes(today)) stats.datesPlayed.push(today);
   if (won) {
     stats.won++;
     stats.distribution[guessCount - 1]++;

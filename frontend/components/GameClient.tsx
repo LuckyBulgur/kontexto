@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import confetti from "canvas-confetti";
 
 function fireConfetti() {
@@ -40,9 +40,12 @@ import GiveUpDialog from "@/components/GiveUpDialog";
 import PastGamesDialog from "@/components/PastGamesDialog";
 import GameResultCard from "@/components/GameResultCard";
 import ClosestWordsDialog from "@/components/ClosestWordsDialog";
+import StatsDialog from "@/components/StatsDialog";
 import { faqs } from "@/lib/faqs";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed } from "@/lib/storage";
+import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
+import { reportCompletion } from "@/lib/analytics";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import {
   Accordion,
@@ -72,6 +75,10 @@ export default function GameClient() {
   const [showClosestWords, setShowClosestWords] = useState(false);
   const [pastGame, setPastGame] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showStats, setShowStats] = useState(false);
+  // Guards the once-per-game stats/completion recording against re-running for a
+  // game that was already finished in a previous session (loaded as over).
+  const completedRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initTheme = loadTheme();
@@ -86,6 +93,9 @@ export default function GameClient() {
         setTotal(info.total);
         const saved = loadGameState(info.gameNumber);
         setGameState(saved);
+        // Treat an already-finished saved game as recorded so the completion
+        // effect only fires on a fresh, in-session transition.
+        completedRef.current = (saved.solved || saved.givenUp) ? saved.gameNumber : null;
         if (saved.solved || saved.givenUp) setShowResult(true);
         if (saved.solved && !saved.givenUp) setTimeout(fireConfetti, 300);
         setLoading(false);
@@ -98,6 +108,41 @@ export default function GameClient() {
 
   useEffect(() => {
     if (gameState.gameNumber > 0 && pastGame === null) saveGameState(gameState);
+  }, [gameState, pastGame]);
+
+  // Record local player stats + send the (anonymous, aggregate) completion beacon
+  // exactly once, when today's game transitions to finished in this session.
+  useEffect(() => {
+    if (pastGame !== null || gameState.gameNumber <= 0) return;
+    const over = gameState.solved || !!gameState.givenUp;
+    if (!over || completedRef.current === gameState.gameNumber) return;
+    completedRef.current = gameState.gameNumber;
+
+    const won = gameState.solved && !gameState.givenUp;
+    const guessCount = gameState.guesses.length;
+    const userGuesses = gameState.guesses.filter((g) => !g.isTip);
+    const allRanks = gameState.guesses.map((g) => g.rank);
+    const bestRank = won
+      ? 1
+      : userGuesses.length
+        ? Math.min(...userGuesses.map((g) => g.rank))
+        : allRanks.length
+          ? Math.min(...allRanks)
+          : 10000;
+    const durationSeconds = gameState.startedAt
+      ? Math.max(0, Math.round((Date.now() - gameState.startedAt) / 1000))
+      : 0;
+
+    updateKontextoStatsAfterGame({ won, guessCount, tips: gameState.tips });
+    reportCompletion({
+      mode: "kontexto",
+      game_number: gameState.gameNumber,
+      outcome: won ? "solved" : "gaveup",
+      guesses: guessCount,
+      tips: gameState.tips,
+      duration_seconds: durationSeconds,
+      best_rank: bestRank,
+    });
   }, [gameState, pastGame]);
 
   const handleThemeChange = useCallback((t: "light" | "dark") => {
@@ -121,6 +166,7 @@ export default function GameClient() {
       ...prev,
       guesses: [...prev.guesses, guess],
       solved: prev.solved || guess.rank === 1,
+      startedAt: prev.startedAt ?? Date.now(),
     }));
     setLatestWord(guess.word);
     if (guess.rank === 1) {
@@ -204,6 +250,7 @@ export default function GameClient() {
     setError(null);
     setLatestWord(undefined);
     setShowResult(false);
+    completedRef.current = null;
   }, []);
 
   const handleBackToToday = useCallback(() => {
@@ -213,6 +260,7 @@ export default function GameClient() {
       setTotal(info.total);
       const saved = loadGameState(info.gameNumber);
       setGameState(saved);
+      completedRef.current = (saved.solved || saved.givenUp) ? saved.gameNumber : null;
       setError(null);
       setLatestWord(undefined);
       setShowResult(saved.solved || !!saved.givenUp);
@@ -236,6 +284,7 @@ export default function GameClient() {
         onSettingsOpen={() => setShowSettings(true)}
         onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => setShowPastGames(true)}
+        onStatsOpen={() => setShowStats(true)}
         tipDisabled={gameOver}
         giveUpDisabled={gameOver}
         showCountdown={gameOver}
@@ -316,6 +365,7 @@ export default function GameClient() {
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
       <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} pastGame={pastGame} />
+      <StatsDialog open={showStats} onClose={() => setShowStats(false)} />
     </div>
   );
 }

@@ -39,3 +39,24 @@ export async function trackPageview(page: string): Promise<void> {
     // Analytics must never disrupt the user experience.
   }
 }
+
+import type { CompletionPayload } from "./types";
+
+// Reports a finished game (solved or given up) to feed the server-side
+// distribution histograms (attempts, time-to-solve, give-up rank). Only
+// aggregate buckets are stored; the report is token-gated, deduplicated and
+// clamped server-side, and never affects the authoritative solve/reveal counts.
+export async function reportCompletion(payload: CompletionPayload): Promise<void> {
+  try {
+    const t = await ensureToken();
+    if (!t) return;
+    await fetch(`${API_BASE}/stats/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, token: t }),
+      keepalive: true,
+    });
+  } catch {
+    // Analytics must never disrupt the user experience.
+  }
+}

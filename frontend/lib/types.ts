@@ -31,6 +31,8 @@ export interface GameState {
   tips: number;
   solved: boolean;
   givenUp?: boolean;
+  /** Epoch ms of the first action this game; used for time-to-solve stats. */
+  startedAt?: number;
 }
 
 export interface PastGame {
@@ -67,15 +69,32 @@ export interface TimelinePoint {
   value: number;
 }
 
+export interface GameDifficultyEntry {
+  mode: string;
+  game_number: number;
+  word: string;
+  guesses: number;
+  solves: number;
+  reveals: number;
+  hints: number;
+  finished: number;
+  solve_rate: number | null;
+  avg_guesses: number | null;
+}
+
 export interface StatsData {
   generated_at: string;
   visitors: { today: number; week: number; month: number };
   visitors_timeline: TimelinePoint[];
   pageviews_by_page: Record<string, number>;
+  pageviews_timeline: TimelinePoint[];
   counters_total: Record<string, number>;
   counters_today: Record<string, number>;
   guesses_timeline: TimelinePoint[];
+  solves_timeline: TimelinePoint[];
+  solve_rate_timeline: TimelinePoint[];
   games_by_mode: Record<string, number>;
+  duels_created: Record<string, number>;
   engagement: {
     guesses_total: number;
     solves_total: number;
@@ -84,13 +103,31 @@ export interface StatsData {
     solve_rate: number | null;
     avg_guesses_per_solve: number | null;
   };
+  hints_by_difficulty: Record<string, number>;
+  /** Histograms keyed by metric (e.g. "dist_guesses_kontexto") -> bucket -> count. */
+  distributions: Record<string, Record<string, number>>;
+  game_difficulty: { hardest: GameDifficultyEntry[]; easiest: GameDifficultyEntry[] };
   top_words: { word: string; count: number }[];
   devices: Record<string, number>;
   browsers: Record<string, number>;
   referrers: Record<string, number>;
   peak_hours: Record<string, number>;
+  /** [weekday 0=Mon..6=Sun][hour 0..23] human pageview counts (Europe/Berlin). */
+  activity_heatmap: number[][];
+  visitor_loyalty: { new: number; returning: number };
+  stickiness: number | null;
   bots_filtered: number;
   note: string;
+}
+
+export interface CompletionPayload {
+  mode: "kontexto" | "wordle";
+  game_number: number;
+  outcome: "solved" | "gaveup";
+  guesses: number;
+  tips: number;
+  duration_seconds: number;
+  best_rank: number;
 }
 
 export function getRankColor(rank: number): "green" | "yellow" | "red" {

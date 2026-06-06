@@ -480,10 +480,11 @@ async def record_completion(
             (fp_hash, mode, int(game_number), outcome, date_str, now.isoformat()),
         )
         await _bump(conn, "analytics_counters", date_str,
-                    f"dist_guesses_{mode}", _bucket_guesses(guesses), 1)
-        await _bump(conn, "analytics_counters", date_str,
                     f"dist_tips_{mode}", _bucket_tips(tips), 1)
         if outcome == "solved":
+            # "Attempts until solution" only counts solved games (matches its label).
+            await _bump(conn, "analytics_counters", date_str,
+                        f"dist_guesses_{mode}", _bucket_guesses(guesses), 1)
             await _bump(conn, "analytics_counters", date_str,
                         f"dist_time_{mode}", _bucket_duration(duration_seconds), 1)
         elif mode == "kontexto":

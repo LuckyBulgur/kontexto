@@ -5,6 +5,7 @@ import os
 import sqlite3
 import tempfile
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import aiosqlite
 import pytest
@@ -491,3 +492,240 @@ class TestServerSecret:
         monkeypatch.delenv("KONTEXTO_SERVER_SECRET", raising=False)
         monkeypatch.setenv("KONTEXTO_DEV", "1")
         assert server_secret() == b"kontexto-dev-secret"
+
+
+class TestRecordGameStat:
+    def test_increments_per_game_and_metric(self, db_path):
+        async def go():
+            await analytics.record_game_stat(db_path, "kontexto", 42, "guesses", now=JAN)
+            await analytics.record_game_stat(db_path, "kontexto", 42, "guesses", now=JAN)
+            await analytics.record_game_stat(db_path, "kontexto", 42, "solves", now=JAN)
+            await analytics.record_game_stat(db_path, "kontexto", 7, "reveals", now=JAN)
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT value FROM analytics_game_stats "
+                    "WHERE mode='kontexto' AND game_number=42 AND metric='guesses'")
+                g42 = (await cur.fetchone())[0]
+                cur = await db.execute(
+                    "SELECT value FROM analytics_game_stats "
+                    "WHERE mode='kontexto' AND game_number=42 AND metric='solves'")
+                s42 = (await cur.fetchone())[0]
+                cur = await db.execute(
+                    "SELECT value FROM analytics_game_stats "
+                    "WHERE mode='kontexto' AND game_number=7 AND metric='reveals'")
+                r7 = (await cur.fetchone())[0]
+                return g42, s42, r7
+            finally:
+                await db.close()
+        assert run(go()) == (2, 1, 1)
+
+
+class TestRecordCompletion:
+    UA = "Mozilla/5.0 Chrome/120"
+
+    def _token(self, ip="1.2.3.4", now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        return analytics.make_beacon_token(fp, now)
+
+    def _complete(self, db, *, token, mode="kontexto", game_number=42,
+                  outcome="solved", guesses=7, tips=2, duration_seconds=180,
+                  best_rank=1, ip="1.2.3.4"):
+        return analytics.record_completion(
+            db, ip=ip, user_agent=self.UA, token=token, mode=mode,
+            game_number=game_number, outcome=outcome, guesses=guesses,
+            tips=tips, duration_seconds=duration_seconds, best_rank=best_rank,
+            now=JAN)
+
+    def test_invalid_token_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                return await self._complete(db, token="garbage")
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "invalid_token"
+
+    def test_bot_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                bot_ua = "python-requests/2.31"
+                fp = analytics.compute_fingerprint("1.2.3.4", bot_ua, JAN)
+                token = analytics.make_beacon_token(fp, JAN)
+                return await analytics.record_completion(
+                    db, ip="1.2.3.4", user_agent=bot_ua, token=token,
+                    mode="kontexto", game_number=1, outcome="solved",
+                    guesses=3, tips=0, duration_seconds=10, best_rank=1, now=JAN)
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "bot"
+
+    def test_valid_records_distribution_buckets(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                ok, reason = await self._complete(db, token=token, guesses=7)
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters "
+                    "WHERE metric='dist_guesses_kontexto'")
+                guesses_bucket = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT value FROM analytics_counters WHERE metric='dist_time_kontexto'")
+                time_row = await cur.fetchone()
+                return (ok, reason), tuple(guesses_bucket), time_row[0]
+            finally:
+                await db.close()
+        result, bucket, time_count = run(go())
+        assert result == (True, "ok")
+        assert bucket == ("6-10", 1)  # 7 guesses falls in the 6-10 bucket
+        assert time_count == 1
+
+    def test_duplicate_deduplicated(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                first = await self._complete(db, token=token)
+                second = await self._complete(db, token=token)
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric='dist_guesses_kontexto'")
+                total = (await cur.fetchone())[0]
+                return first, second, total
+            finally:
+                await db.close()
+        first, second, total = run(go())
+        assert first == (True, "ok")
+        assert second == (False, "duplicate")
+        assert total == 1  # the duplicate added nothing
+
+    def test_values_are_clamped(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                # Absurd guess count must clamp into the top bucket, never crash.
+                await self._complete(db, token=token, guesses=10_000_000)
+                cur = await db.execute(
+                    "SELECT dimension FROM analytics_counters WHERE metric='dist_guesses_kontexto'")
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == "100+"
+
+    def test_giveup_records_rank_bucket_not_time(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._complete(db, token=token, outcome="gaveup", best_rank=120)
+                cur = await db.execute(
+                    "SELECT dimension FROM analytics_counters WHERE metric='dist_giveup_rank'")
+                rank_bucket = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT COUNT(*) FROM analytics_counters WHERE metric='dist_time_kontexto'")
+                time_rows = (await cur.fetchone())[0]
+                return rank_bucket[0], time_rows
+            finally:
+                await db.close()
+        rank_bucket, time_rows = run(go())
+        assert rank_bucket == "51-200" and time_rows == 0
+
+    def test_does_not_touch_authoritative_counters(self, db_path):
+        """A completion beacon must never inflate solves/reveals/guesses."""
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._complete(db, token=token, outcome="solved")
+                cur = await db.execute(
+                    "SELECT COUNT(*) FROM analytics_counters "
+                    "WHERE metric IN ('solves', 'reveals', 'guesses')")
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == 0
+
+
+class TestExtendedStats:
+    UA = "Mozilla/5.0 Chrome/120"
+
+    def _pageview(self, db, ip, page, now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        token = analytics.make_beacon_token(fp, now)
+        return analytics.record_pageview(
+            db, ip=ip, user_agent=self.UA, referrer=None, page=page,
+            token=token, now=now)
+
+    def test_new_fields_present_and_shaped(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        for key in ("pageviews_timeline", "solves_timeline", "solve_rate_timeline",
+                    "hints_by_difficulty", "duels_created", "distributions",
+                    "game_difficulty", "activity_heatmap", "visitor_loyalty",
+                    "stickiness"):
+            assert key in stats, f"missing stats key: {key}"
+        assert len(stats["peak_hours"]) == 24
+        assert len(stats["activity_heatmap"]) == 7
+        assert all(len(row) == 24 for row in stats["activity_heatmap"])
+
+    def test_peak_hours_and_heatmap_use_local_time(self, db_path):
+        """A 12:00 UTC pageview must land in the Berlin local hour (13:00 CET)."""
+        local = JAN.astimezone(ZoneInfo("Europe/Berlin"))
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["peak_hours"][str(local.hour)] == 1
+        assert stats["activity_heatmap"][local.weekday()][local.hour] == 1
+
+    def test_visitor_loyalty_new_vs_returning(self, db_path):
+        """One fp on two days = returning; one fp on a single day = new."""
+        feb16 = datetime(2026, 2, 16, 12, 0, 0, tzinfo=timezone.utc)
+        feb17 = datetime(2026, 2, 17, 12, 0, 0, tzinfo=timezone.utc)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                # Returning visitor: same IP/UA (same monthly fp) on two days.
+                await self._pageview(db, "1.1.1.1", "/", now=feb16)
+                await self._pageview(db, "1.1.1.1", "/", now=feb17)
+                # New visitor: a different IP, one day only.
+                await self._pageview(db, "2.2.2.2", "/", now=feb16)
+                return await analytics.get_stats(db, feb17)
+            finally:
+                await db.close()
+        loyalty = run(go())["visitor_loyalty"]
+        assert loyalty == {"new": 1, "returning": 1}
+
+    def test_hints_by_difficulty_grouped(self, db_path):
+        async def go():
+            await analytics.record_action(db_path, "hints", "easy", now=JAN)
+            await analytics.record_action(db_path, "hints", "easy", now=JAN)
+            await analytics.record_action(db_path, "hints", "hard", now=JAN)
+            db = await get_db(db_path)
+            try:
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        hbd = run(go())["hints_by_difficulty"]
+        assert hbd.get("easy") == 2 and hbd.get("hard") == 1
