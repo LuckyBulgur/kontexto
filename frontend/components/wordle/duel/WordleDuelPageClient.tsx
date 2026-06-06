@@ -290,7 +290,7 @@ export default function WordleDuelPageClient() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="max-w-4xl mx-auto min-h-screen flex flex-col">
       <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
 
       {players.length > 0 && <DuelHeader players={players} currentNickname={nickname} />}
