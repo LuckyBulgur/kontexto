@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,15 @@ export default function WordleDuelCreatePage() {
       const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gn);
       saveDuelToken(duel_id, player_token);
       saveDuelNickname(duel_id, nickname.trim());
+      const url = `${window.location.origin}/wordle/duel/${duel_id}/`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Duell erstellt – Link kopiert!");
+      } catch {
+        // Clipboard ohne gültige Nutzergeste blockiert (z.B. Safari nach dem
+        // await). Manueller Copy-Button im Duell-Header bleibt als Fallback.
+        toast.success("Duell erstellt!");
+      }
       router.push(`/wordle/duel/${duel_id}/`);
     } catch {
       setCreating(false);
