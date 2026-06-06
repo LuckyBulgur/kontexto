@@ -19,8 +19,8 @@ export default function JoinForm({ onJoin, loading, error }: JoinFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-xl border bg-card p-6 space-y-4 shadow-sm">
+    <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center px-4">
+      <div className="rounded-xl border bg-card p-6 w-full space-y-4">
         <h2 className="text-xl font-bold text-center">Wördle Duell beitreten</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
