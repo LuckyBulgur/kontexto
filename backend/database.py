@@ -152,6 +152,15 @@ CREATE TABLE IF NOT EXISTS admin_credentials (
     transports    TEXT,               -- JSON array, optional
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ratings: one row per beacon-token, updatable, 1–5 scale.
+-- Powers the AggregateRating structured-data block for SEO.
+CREATE TABLE IF NOT EXISTS ratings (
+    token      TEXT PRIMARY KEY,
+    value      INTEGER NOT NULL CHECK (value BETWEEN 1 AND 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
