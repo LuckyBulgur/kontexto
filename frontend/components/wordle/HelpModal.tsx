@@ -52,7 +52,7 @@ export default function HelpModal({ open, onOpenChange }: HelpModalProps) {
             <p><strong>E</strong> ist nicht im Wort.</p>
           </div>
 
-          <p className="text-zinc-500">Jeden Tag gibt es ein neues W&#246;rdle. Viel Spa&#223;!</p>
+          <p className="text-muted-foreground">Jeden Tag gibt es ein neues W&#246;rdle. Viel Spa&#223;!</p>
         </div>
       </DialogContent>
     </Dialog>

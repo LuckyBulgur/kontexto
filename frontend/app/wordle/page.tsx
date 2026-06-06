@@ -5,12 +5,11 @@ import WordleGame from "@/components/wordle/WordleGame";
 import StatsModal from "@/components/wordle/StatsModal";
 import HelpModal from "@/components/wordle/HelpModal";
 import SettingsModal from "@/components/wordle/SettingsModal";
+import WordleHeader from "@/components/wordle/WordleHeader";
 import { loadHardMode, saveHardMode, loadWordleState } from "@/lib/wordle-storage";
 import { loadTheme, saveTheme } from "@/lib/storage";
 import { getWordleGame } from "@/lib/wordle-api";
-import { BarChart3, CircleHelp, Dices, Settings, Swords } from "lucide-react";
 import type { TileColor } from "@/lib/wordle-types";
-import Link from "next/link";
 
 export default function WordlePage() {
   const [showStats, setShowStats] = useState(false);
@@ -77,43 +76,26 @@ export default function WordlePage() {
   const canToggleHardMode = !gameData || gameData.guesses.length === 0;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowHelp(true)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-            <CircleHelp className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex items-center gap-1 text-lg font-bold tracking-wider">
-          <Link href="/" className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">KONTEXTO</Link>
-          <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <span>W&#214;RDLE</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={startRandomRound} aria-label="Zufallsspiel" className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-            <Dices className="w-5 h-5" />
-          </button>
-          <Link href="/wordle/duel/create" className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-            <Swords className="w-5 h-5" />
-          </Link>
-          <button onClick={() => setShowStats(true)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-            <BarChart3 className="w-5 h-5" />
-          </button>
-          <button onClick={() => setShowSettings(true)} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      {roundMode === "random" && (
-        <div className="flex items-center justify-center gap-3 px-4 py-2 text-sm bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-          <span className="text-zinc-500">Zufallsspiel #{randomSeed}</span>
-          <button onClick={backToDaily} className="font-medium text-zinc-700 dark:text-zinc-200 hover:underline">
-            Zum Tagesspiel
-          </button>
-        </div>
-      )}
+    <div className="max-w-lg mx-auto min-h-screen flex flex-col">
+      <WordleHeader
+        onHelp={() => setShowHelp(true)}
+        onRandom={startRandomRound}
+        onStats={() => setShowStats(true)}
+        onSettings={() => setShowSettings(true)}
+        subtitle={
+          roundMode === "random" ? (
+            <span className="flex items-center justify-center gap-2">
+              Zufallsspiel #{randomSeed}
+              <button
+                onClick={backToDaily}
+                className="font-medium text-foreground underline-offset-2 hover:underline"
+              >
+                Zum Tagesspiel
+              </button>
+            </span>
+          ) : undefined
+        }
+      />
 
       <WordleGame
         key={roundKey}

@@ -15,8 +15,7 @@ import {
 } from "@/lib/wordle-api";
 import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
-import { Copy } from "lucide-react";
-import Link from "next/link";
+import WordleHeader from "@/components/wordle/WordleHeader";
 
 export default function WordleDuelPage() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -291,16 +290,8 @@ export default function WordleDuelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-        <Link href="/wordle" className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
-          ← Wördle
-        </Link>
-        <span className="text-lg font-bold tracking-wider">DUELL</span>
-        <button onClick={copyLink} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-          <Copy className="w-5 h-5" />
-        </button>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
 
       {players.length > 0 && <DuelHeader players={players} currentNickname={nickname} />}
 

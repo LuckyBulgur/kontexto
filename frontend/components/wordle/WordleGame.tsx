@@ -219,11 +219,11 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
   }, [handleKey]);
 
   if (gameNumber === null) {
-    return <div className="flex justify-center py-20 text-zinc-500">Laden...</div>;
+    return <div className="flex justify-center py-20 text-muted-foreground">Laden...</div>;
   }
 
   return (
-    <div className="flex flex-col items-center justify-center max-w-lg mx-auto gap-6" style={{ height: "calc(100vh - 57px)" }}>
+    <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto gap-6">
       <div style={{ marginTop: "-8vh" }}>
         <Board
           guesses={guesses}

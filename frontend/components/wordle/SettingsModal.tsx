@@ -31,7 +31,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
 
         <div className="space-y-2 py-2">
           <Label className="text-sm font-medium">Design</Label>
-          <p className="text-xs text-zinc-500">Wechsle zwischen hellem und dunklem Design</p>
+          <p className="text-xs text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
           <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
             <SelectTrigger className="mt-1">
               <SelectValue />
@@ -43,10 +43,10 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           </Select>
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center justify-between py-3 border-t border-border">
           <div>
             <Label>Hard Mode</Label>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Enthüllte Hinweise müssen in folgenden Versuchen verwendet werden.
             </p>
           </div>
@@ -57,7 +57,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           />
         </div>
         {!canToggleHardMode && (
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-muted-foreground">
             Hard Mode kann nur vor dem ersten Versuch aktiviert werden.
           </p>
         )}
