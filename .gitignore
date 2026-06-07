@@ -30,7 +30,7 @@ cc.de.300.*
 .idea/
 
 # Claude
-CLAUDE.md
+# CLAUDE.md is tracked (shared project guidance); only local settings stay ignored.
 .claude/
 
 # Docs
