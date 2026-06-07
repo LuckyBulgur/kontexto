@@ -15,8 +15,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/duel/create/", freq: "monthly", prio: 0.4 },
     { path: "/wordle/duel/", freq: "weekly", prio: 0.6 },
     { path: "/faq/", freq: "monthly", prio: 0.7 },
-    { path: "/anleitung/", freq: "monthly", prio: 0.7 },
-    { path: "/strategie/", freq: "monthly", prio: 0.7 },
+    { path: "/anleitung/", freq: "monthly", prio: 0.8 },
+    { path: "/strategie/", freq: "monthly", prio: 0.8 },
+    { path: "/vergleich/", freq: "monthly", prio: 0.7 },
+    { path: "/glossar/", freq: "monthly", prio: 0.6 },
     { path: "/ueber/", freq: "monthly", prio: 0.5 },
     { path: "/blog/", freq: "weekly", prio: 0.6 },
     { path: "/impressum/", freq: "yearly", prio: 0.2 },
@@ -29,7 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const blogRoutes = posts.map((p) => ({
     url: `${SITE_URL}/blog/${p.slug}/`,
-    lastModified: new Date(p.date),
+    lastModified: new Date(p.updated ?? p.date),
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));

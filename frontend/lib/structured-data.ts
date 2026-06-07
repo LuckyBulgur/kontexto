@@ -1,5 +1,12 @@
-import { SITE_URL } from "./seo";
+import { SITE_URL, DEFAULT_OG_IMAGE } from "./seo";
 import { faqs } from "./faqs";
+
+const EDITORIAL_AUTHOR = { "@type": "Organization", name: "Kontexto-Redaktion", url: SITE_URL };
+const PUBLISHER = {
+  "@type": "Organization",
+  name: "Kontexto",
+  logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` },
+};
 
 export function gameSchema(rating?: { ratingValue: number; ratingCount: number }) {
   return {
@@ -49,13 +56,76 @@ export function faqSchema(items = faqs) {
   };
 }
 
-export function blogPostingSchema(p: { title: string; description: string; slug: string; date: string }) {
+export function blogPostingSchema(p: {
+  title: string;
+  description: string;
+  slug: string;
+  date: string;
+  updated?: string;
+}) {
+  const url = `${SITE_URL}/blog/${p.slug}/`;
   return {
-    "@context": "https://schema.org", "@type": "BlogPosting",
-    headline: p.title, description: p.description, datePublished: p.date,
-    inLanguage: "de", url: `${SITE_URL}/blog/${p.slug}/`,
-    author: { "@type": "Organization", name: "Kontexto" },
-    publisher: { "@type": "Organization", name: "Kontexto", logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: p.title,
+    description: p.description,
+    datePublished: p.date,
+    dateModified: p.updated ?? p.date,
+    inLanguage: "de",
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    image: `${SITE_URL}${DEFAULT_OG_IMAGE}`,
+    author: EDITORIAL_AUTHOR,
+    publisher: PUBLISHER,
+  };
+}
+
+/** DefinedTermSet for the glossary — semantic clarity / AEO (no rich snippet). */
+export function definedTermSetSchema(
+  name: string,
+  path: string,
+  terms: { term: string; slug: string; definition: string }[],
+) {
+  const url = `${SITE_URL}${path}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    name,
+    url,
+    inLanguage: "de",
+    hasDefinedTerm: terms.map((t) => ({
+      "@type": "DefinedTerm",
+      name: t.term,
+      description: t.definition,
+      url: `${url}#${t.slug}`,
+      inDefinedTermSet: url,
+    })),
+  };
+}
+
+/**
+ * HowTo for the Anleitung page. Note: Google removed the HowTo rich result for
+ * most sites in 2023 — this is kept for semantic/AEO value only.
+ */
+export function howToSchema(p: {
+  name: string;
+  description: string;
+  path: string;
+  steps: { name: string; text: string }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: p.name,
+    description: p.description,
+    inLanguage: "de",
+    url: `${SITE_URL}${p.path}`,
+    step: p.steps.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+    })),
   };
 }
 

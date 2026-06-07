@@ -6,6 +6,8 @@ const links = [
   { href: "/wordle/", label: "Wördle" },
 { href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
+  { href: "/vergleich/", label: "Vergleich" },
+  { href: "/glossar/", label: "Glossar" },
   { href: "/faq/", label: "FAQ" },
   { href: "/blog/", label: "Blog" },
   { href: "/ueber/", label: "Über" },

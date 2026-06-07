@@ -1,60 +1,123 @@
 import Link from "next/link";
-import { faqs } from "@/lib/faqs";
+import { Brain, Infinity as InfinityIcon, CalendarDays, Gift } from "lucide-react";
+import {
+  SeoSection,
+  SeoHeading,
+  FeatureGrid,
+  FeatureCard,
+  StepList,
+  Step,
+  ColorLegend,
+  RelatedLinks,
+} from "@/components/seo/SeoPrimitives";
+import SeoFaq from "@/components/seo/SeoFaq";
+import ComparisonTable from "@/components/content/ComparisonTable";
 
 export default function HomeContent() {
   return (
-    <section className="mx-auto max-w-2xl px-4 pb-16 pt-8 text-sm leading-relaxed text-muted-foreground">
-      <h1 className="mb-4 text-2xl font-bold text-foreground">
+    <SeoSection>
+      <h1 className="mb-3 text-2xl font-bold text-foreground">
         Kontexto – das deutsche Wort-Ratespiel
       </h1>
-      <p className="mb-4">
-        Kontexto ist die deutsche Version von Contexto: ein kostenloses,
-        tägliches Wort-Ratespiel ohne Anmeldung. Errate das geheime Wort des
-        Tages – nach jedem Tipp zeigt dir Kontexto, wie nah du an der Bedeutung
-        des Zielworts bist. Je kleiner die Zahl, desto näher bist du dran.
+      <p className="max-w-prose">
+        Kontexto ist die deutsche Version von Contexto: ein kostenloses, tägliches
+        Wort-Ratespiel ohne Anmeldung. Errate das geheime Wort des Tages – nach jedem
+        Tipp zeigt dir Kontexto, wie nah du an der Bedeutung des Zielworts bist. Je
+        kleiner die Zahl, desto näher bist du dran.
       </p>
 
-      <h2 className="mb-2 mt-8 text-lg font-semibold text-foreground">Wie funktioniert Kontexto?</h2>
-      <p className="mb-4">
-        Du gibst ein Wort ein und erhältst einen Rang. Rang&nbsp;1 ist das
-        gesuchte Wort. Die Reihenfolge entsteht aus KI-Worteinbettungen
-        (fastText), die auf großen deutschen Textkorpora trainiert wurden – es
-        zählt also die <strong>Bedeutung</strong> im Kontext, nicht die
-        Buchstaben. „Hund" liegt deshalb nah bei „Katze", aber weit weg von
-        „Hundert".
+      <SeoHeading>Warum Kontexto spielen?</SeoHeading>
+      <FeatureGrid>
+        <FeatureCard icon={Brain} title="Trainiert dein Sprachgefühl">
+          Es zählt die Bedeutung im Kontext, nicht die Buchstaben – ein Workout für
+          deinen deutschen Wortschatz.
+        </FeatureCard>
+        <FeatureCard icon={InfinityIcon} title="Unbegrenzt viele Versuche">
+          Kein Druck: Du darfst so oft raten, wie du willst, bis du das Zielwort findest.
+        </FeatureCard>
+        <FeatureCard icon={CalendarDays} title="Jeden Tag ein neues Wort">
+          Um Mitternacht startet ein neues Rätsel – alle raten dasselbe Wort des Tages.
+        </FeatureCard>
+        <FeatureCard icon={Gift} title="Kostenlos & ohne Konto">
+          Komplett kostenlos und ohne Anmeldung – einfach die Seite öffnen und losraten.
+        </FeatureCard>
+      </FeatureGrid>
+
+      <SeoHeading>So funktioniert&apos;s</SeoHeading>
+      <StepList>
+        <Step index={1} title="Wort eingeben">
+          Tippe ein beliebiges deutsches Wort ein und bestätige.
+        </Step>
+        <Step index={2} title="Rang ablesen">
+          Jedes Wort bekommt einen Rang. Rang&nbsp;1 ist das gesuchte Wort. Die
+          Reihenfolge entsteht aus KI-Worteinbettungen (fastText), trainiert auf großen
+          deutschen Textkorpora.
+        </Step>
+        <Step index={3} title="Der Bedeutung folgen">
+          Es zählt die Bedeutung, nicht die Buchstaben: „Hund“ liegt nah bei „Katze“,
+          aber weit weg von „Hundert“. Folge der Bedeutung Richtung Rang&nbsp;1.
+        </Step>
+      </StepList>
+
+      <SeoHeading>Was bedeuten die Farben?</SeoHeading>
+      <ColorLegend />
+
+      <SeoHeading>Ein Beispiel</SeoHeading>
+      <p className="mb-2 max-w-prose">
+        Gesucht ist das Wort <strong className="font-medium text-foreground">Strand</strong>.
+        So könnte sich eine Partie Schritt für Schritt entwickeln – jeder Tipp rückt
+        näher an die Bedeutung:
+      </p>
+      <ComparisonTable
+        columns={["Dein Tipp", "Rang", "Bedeutung"]}
+        rows={[
+          ["Computer", "8420", <span key="c" className="text-red-600 dark:text-red-400">weit entfernt</span>],
+          ["Meer", "312", <span key="m" className="text-yellow-600 dark:text-yellow-500">auf dem Weg</span>],
+          ["Küste", "47", <span key="k" className="text-green-600 dark:text-green-400">sehr nah</span>],
+          ["Strand", "1", <span key="s" className="font-semibold text-green-600 dark:text-green-400">Treffer!</span>],
+        ]}
+        caption="Beispielhafte Tipps für das Zielwort Strand"
+      />
+      <p className="max-w-prose">
+        Auf der{" "}
+        <Link href="/anleitung/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Spielanleitung
+        </Link>{" "}
+        siehst du diesen Ablauf als Animation Schritt für Schritt.
       </p>
 
-      <h2 className="mb-2 mt-8 text-lg font-semibold text-foreground">Was bedeuten die Farben?</h2>
-      <ul className="mb-4 list-disc space-y-1 pl-5">
-        <li><span className="font-medium text-foreground">Grün</span> (Rang 1–300): sehr nah am Zielwort.</li>
-        <li><span className="font-medium text-foreground">Gelb</span> (Rang 301–1500): auf dem richtigen Weg.</li>
-        <li><span className="font-medium text-foreground">Rot</span> (Rang 1501+): noch weit entfernt.</li>
-      </ul>
-
-      <h2 className="mb-2 mt-8 text-lg font-semibold text-foreground">Kontexto vs. Wordle</h2>
-      <p className="mb-4">
-        Bei <Link href="/wordle/" className="text-primary underline">Wördle</Link> errätst du ein Wort
-        Buchstabe für Buchstabe. Bei Kontexto geht es um Bedeutung: Es gibt
-        unbegrenzt viele Versuche, und jeder Tipp bringt dich der Lösung
+      <SeoHeading>Kontexto vs. Wördle</SeoHeading>
+      <p className="max-w-prose">
+        Bei{" "}
+        <Link
+          href="/wordle/"
+          className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+        >
+          Wördle
+        </Link>{" "}
+        errätst du ein Wort Buchstabe für Buchstabe. Bei Kontexto geht es um Bedeutung:
+        Es gibt unbegrenzt viele Versuche, und jeder Tipp bringt dich der Lösung
         semantisch näher. Beide Spiele gibt es hier täglich neu – auf Deutsch.
       </p>
 
-      <h2 className="mb-2 mt-8 text-lg font-semibold text-foreground">Häufige Fragen</h2>
-      <dl className="space-y-4">
-        {faqs.map((f) => (
-          <div key={f.q}>
-            <dt className="font-medium text-foreground">{f.q}</dt>
-            <dd className="mt-1">{f.a}</dd>
-          </div>
-        ))}
-      </dl>
+      <SeoHeading>Häufige Fragen</SeoHeading>
+      <SeoFaq />
 
-      <nav className="mt-10 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Seiten">
-        <Link href="/anleitung/" className="text-primary underline">Spielanleitung</Link>
-        <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>
-        <Link href="/faq/" className="text-primary underline">FAQ</Link>
-        <Link href="/ueber/" className="text-primary underline">Über Kontexto</Link>
-      </nav>
-    </section>
+      <div className="mt-10">
+        <RelatedLinks
+          heading="Mehr entdecken"
+          label="Mehr über Kontexto"
+          links={[
+            { href: "/anleitung/", label: "Spielanleitung" },
+            { href: "/strategie/", label: "Strategie & Tipps" },
+            { href: "/vergleich/", label: "Kontexto, Wordle, Contexto & Semantle im Vergleich" },
+            { href: "/glossar/", label: "Glossar der Begriffe" },
+            { href: "/faq/", label: "Häufige Fragen (FAQ)" },
+            { href: "/ueber/", label: "Über Kontexto" },
+            { href: "/blog/", label: "Blog" },
+          ]}
+        />
+      </div>
+    </SeoSection>
   );
 }
