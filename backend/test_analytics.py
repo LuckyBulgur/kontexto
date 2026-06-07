@@ -1,6 +1,7 @@
 """Tests for server-side analytics & admin auth."""
 
 import asyncio
+import hashlib
 import os
 import sqlite3
 import tempfile
@@ -82,12 +83,13 @@ class TestUserAgentClassification:
 
     def test_real_browser_human(self):
         ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36"
-        ua_class, device, browser = analytics.classify_user_agent(ua)
+        ua_class, device, browser, os_name = analytics.classify_user_agent(ua)
         assert ua_class == "human" and device == "desktop" and browser == "Chrome"
+        assert os_name == "Windows"
 
     def test_mobile_detected(self):
         ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Mobile/15E148 Safari/604.1"
-        ua_class, device, _ = analytics.classify_user_agent(ua)
+        ua_class, device, _, _ = analytics.classify_user_agent(ua)
         assert ua_class == "human" and device == "mobile"
 
 
@@ -729,3 +731,173 @@ class TestExtendedStats:
                 await db.close()
         hbd = run(go())["hints_by_difficulty"]
         assert hbd.get("easy") == 2 and hbd.get("hard") == 1
+
+
+def _hll_registers_from_keys(keys):
+    """Build a {register: max-rank} dict by folding distinct keys (like the DB)."""
+    regs = {}
+    for k in keys:
+        h = int.from_bytes(hashlib.blake2b(str(k).encode(), digest_size=8).digest(), "big")
+        reg, rank = analytics._hll_register_rank(h)
+        if rank > regs.get(reg, 0):
+            regs[reg] = rank
+    return regs
+
+
+class TestHyperLogLog:
+    def test_empty_is_zero(self):
+        assert analytics._hll_estimate({}) == 0
+
+    def test_register_rank_deterministic(self):
+        h = 0x1234_5678_9ABC_DEF0
+        assert analytics._hll_register_rank(h) == analytics._hll_register_rank(h)
+
+    def test_stable_fingerprint_stable_and_distinct(self):
+        a = analytics.hll_register_rank_for("1.2.3.4", "UA")
+        b = analytics.hll_register_rank_for("1.2.3.4", "UA")
+        c = analytics.hll_register_rank_for("9.9.9.9", "UA")
+        assert a == b          # stable for the same visitor (no monthly rotation)
+        assert a != c          # different visitor => (almost surely) different slot
+
+    def test_small_cardinality_linear_counting_accurate(self):
+        regs = _hll_registers_from_keys(range(300))
+        est = analytics._hll_estimate(regs)
+        assert abs(est - 300) / 300 < 0.05      # LinearCounting is near-exact here
+
+    def test_large_cardinality_within_error(self):
+        n = 60_000                              # > 2.5*m => exercises the raw estimate
+        regs = _hll_registers_from_keys(range(n))
+        est = analytics._hll_estimate(regs)
+        assert abs(est - n) / n < 0.04
+
+    def test_idempotent_refold(self):
+        once = _hll_registers_from_keys(range(500))
+        twice = _hll_registers_from_keys(list(range(500)) * 2)
+        assert once == twice                    # re-adding known keys changes nothing
+        assert analytics._hll_estimate(once) == analytics._hll_estimate(twice)
+
+
+class TestOperatingSystem:
+    @pytest.mark.parametrize("ua,expected", [
+        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36", "Windows"),
+        ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1", "macOS"),
+        ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1", "iOS"),
+        ("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) Safari/604.1", "iOS"),
+        ("Mozilla/5.0 (Linux; Android 13; Pixel 7) Chrome/120 Mobile Safari/537.36", "Android"),
+        ("Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0", "Linux"),
+        ("Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) Chrome/120 Safari/537.36", "ChromeOS"),
+    ])
+    def test_os_detected(self, ua, expected):
+        assert analytics.classify_user_agent(ua)[3] == expected
+
+    def test_bot_os_unknown(self):
+        assert analytics.classify_user_agent("Googlebot/2.1")[3] == "unknown"
+
+
+class TestSinceBeginningStats:
+    UA = "Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537.36"
+
+    def _pageview(self, db, ip, page, now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        token = analytics.make_beacon_token(fp, now)
+        return analytics.record_pageview(
+            db, ip=ip, user_agent=self.UA, referrer=None, page=page,
+            token=token, now=now)
+
+    def test_all_time_fields_present_and_shaped(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        for key in ("all_time", "records", "active_users", "os", "monthly", "mode_monthly"):
+            assert key in stats, f"missing stats key: {key}"
+        at = stats["all_time"]
+        assert set(at) == {"unique_visitors", "pageviews", "visitor_days",
+                           "data_since", "unique_since"}
+        assert at["unique_since"] == "2026-01-15"        # stamped on first fold
+        assert stats["active_users"]["dau"] == stats["visitors"]["today"]
+
+    def test_all_time_unique_counts_distinct_visitors(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4", "5.5.5.5"):
+                    await self._pageview(db, ip, "/")
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        assert run(go())["all_time"]["unique_visitors"] == 5
+
+    def test_all_time_unique_idempotent_for_repeat_visitor(self, db_path):
+        """Same visitor on multiple pages must count once (idempotent HLL fold)."""
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                await self._pageview(db, "1.1.1.1", "/wordle")   # 2nd page, same visitor
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        assert run(go())["all_time"]["unique_visitors"] == 1
+
+    def test_monthly_buckets_and_all_time_union(self, db_path):
+        """Per-month HLL counts each month; the all-time sketch dedups across months."""
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3"):       # JAN: a, b, c
+                    await self._pageview(db, ip, "/", now=JAN)
+                for ip in ("3.3.3.3", "4.4.4.4"):                  # FEB: c (repeat), d
+                    await self._pageview(db, ip, "/", now=FEB)
+                return await analytics.get_stats(db, FEB)
+            finally:
+                await db.close()
+        stats = run(go())
+        by_month = {m["month"]: m for m in stats["monthly"]}
+        assert by_month["2026-01"]["unique_visitors"] == 3
+        assert by_month["2026-02"]["unique_visitors"] == 2
+        assert stats["all_time"]["unique_visitors"] == 4          # union {a,b,c,d}
+
+    def test_records_and_exact_pageviews_from_rollups(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                await self._pageview(db, "2.2.2.2", "/")
+                await self._pageview(db, "2.2.2.2", "/wordle")
+                await analytics.aggregate_daily(db, JAN)
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["all_time"]["pageviews"] == 3                # exact, from rollups
+        assert stats["all_time"]["data_since"] == "2026-01-15"
+        assert stats["records"]["best_visitors_day"]["date"] == "2026-01-15"
+        assert stats["records"]["best_visitors_day"]["value"] == 2
+
+    def test_os_breakdown_counts_visitors(self, db_path):
+        win = "Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537.36"
+        mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1"
+
+        async def pv(db, ip, ua):
+            fp = analytics.compute_fingerprint(ip, ua, JAN)
+            token = analytics.make_beacon_token(fp, JAN)
+            return await analytics.record_pageview(
+                db, ip=ip, user_agent=ua, referrer=None, page="/",
+                token=token, now=JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await pv(db, "1.1.1.1", win)
+                await pv(db, "2.2.2.2", win)
+                await pv(db, "3.3.3.3", mac)
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        os_break = run(go())["os"]
+        assert os_break.get("Windows") == 2 and os_break.get("macOS") == 1

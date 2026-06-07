@@ -203,11 +203,13 @@ export function AreaTrend({
   accent = 1,
   height = 200,
   valueFormatter,
+  labelFormatter = shortDate,
 }: {
   data: TimelinePoint[];
   accent?: number;
   height?: number;
   valueFormatter?: (v: number | string) => string;
+  labelFormatter?: (l: string) => string;
 }) {
   const gradId = useId();
   const color = CHART_COLORS[accent % CHART_COLORS.length];
@@ -222,11 +224,11 @@ export function AreaTrend({
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="date" tickFormatter={shortDate} tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={24} />
+          <XAxis dataKey="date" tickFormatter={(l) => labelFormatter(String(l))} tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={24} />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={32} allowDecimals={false} />
           <Tooltip
             content={
-              <ChartTooltip valueFormatter={valueFormatter} labelFormatter={(l) => shortDate(String(l))} />
+              <ChartTooltip valueFormatter={valueFormatter} labelFormatter={(l) => labelFormatter(String(l))} />
             }
             cursor={{ stroke: "var(--color-border)" }}
           />
@@ -412,4 +414,120 @@ export function Heatmap({ data }: { data: number[][] }) {
 
 function Empty({ label = "Noch keine Daten" }: { label?: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{label}</p>;
+}
+
+// --- Stacked area (categorical share over time) ------------------------------
+
+export function StackedAreaTrend({
+  data,
+  series,
+  xKey = "month",
+  height = 220,
+  labelFormatter = shortDate,
+}: {
+  data: Array<Record<string, number | string>>;
+  series: { key: string; label: string; accent: number }[];
+  xKey?: string;
+  height?: number;
+  labelFormatter?: (l: string) => string;
+}) {
+  if (data.length === 0) return <Empty />;
+  return (
+    <div>
+      <div style={{ height }} className="w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <XAxis dataKey={xKey} tickFormatter={(l) => labelFormatter(String(l))} tick={AXIS_TICK}
+              axisLine={false} tickLine={false} minTickGap={20} />
+            <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={32} allowDecimals={false} />
+            <Tooltip
+              content={<ChartTooltip labelFormatter={(l) => labelFormatter(String(l))} />}
+              cursor={{ stroke: "var(--color-border)" }}
+            />
+            {series.map((s) => {
+              const color = CHART_COLORS[s.accent % CHART_COLORS.length];
+              return (
+                <Area key={s.key} type="monotone" dataKey={s.key} name={s.label} stackId="1"
+                  stroke={color} strokeWidth={1.5} fill={color} fillOpacity={0.35} isAnimationActive={false} />
+              );
+            })}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {series.map((s) => (
+          <li key={s.key} className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm"
+              style={{ background: CHART_COLORS[s.accent % CHART_COLORS.length] }} />
+            {s.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// --- Time-range toggle + timeline slicing helpers ----------------------------
+
+export type RangeKey = "today" | "7d" | "30d" | "all";
+
+export const RANGE_LABELS: Record<RangeKey, string> = {
+  today: "Heute",
+  "7d": "7 Tage",
+  "30d": "30 Tage",
+  all: "Gesamt",
+};
+
+const RANGE_ORDER: RangeKey[] = ["today", "7d", "30d", "all"];
+
+export function RangeToggle({
+  value,
+  onChange,
+}: {
+  value: RangeKey;
+  onChange: (range: RangeKey) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-xl border bg-card p-0.5 text-sm shadow-sm" role="group" aria-label="Zeitraum">
+      {RANGE_ORDER.map((k) => {
+        const active = value === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => onChange(k)}
+            aria-pressed={active}
+            className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+              active
+                ? "bg-secondary text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {RANGE_LABELS[k]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function isoDaysBefore(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Slice a daily timeline to the selected range, anchored on its latest data point.
+ * Anchoring on the last present date (not the wall clock) avoids an empty view when
+ * the current day has not been aggregated yet. */
+export function sliceTimeline(data: TimelinePoint[], range: RangeKey): TimelinePoint[] {
+  if (range === "all" || data.length === 0) return data;
+  const days = range === "today" ? 1 : range === "7d" ? 7 : 30;
+  const cutoff = isoDaysBefore(data[data.length - 1].date, days - 1);
+  return data.filter((p) => p.date >= cutoff);
+}
+
+/** Sum the values of a daily timeline over the selected range. */
+export function sumTimeline(data: TimelinePoint[], range: RangeKey): number {
+  return sliceTimeline(data, range).reduce((acc, p) => acc + p.value, 0);
 }

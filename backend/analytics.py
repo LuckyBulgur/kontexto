@@ -17,6 +17,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
+import math
 import os
 import re
 import sqlite3
@@ -128,6 +129,76 @@ def compute_fingerprint(ip: str, user_agent: str, now: datetime) -> str:
     return hmac.new(salt, material, hashlib.sha256).hexdigest()[:32]
 
 
+# --- All-time unique visitors (HyperLogLog) ----------------------------------
+#
+# A privacy-preserving estimator for "unique visitors since counting began".
+# Unlike the monthly fingerprint -- which deliberately rotates so nobody can be
+# tracked across months -- an all-time counter needs a STABLE per-visitor token.
+# We never persist that token: it is hashed, folded into the sketch's registers,
+# and discarded. The sketch stores only per-register maxima => non-reversible, no
+# membership test ("was person X ever here?" is unanswerable), constant ~16 KB.
+# Registers only ever increase, so folding is an idempotent MAX-upsert: safe across
+# all five SQLite writers without a lock, and safe to repeat (re-adding a known
+# visitor changes nothing).
+
+HLL_PRECISION = 14                                  # 2^14 = 16384 registers
+HLL_REGISTERS = 1 << HLL_PRECISION                  # ~0.81% standard error
+_HLL_RANK_BITS = 64 - HLL_PRECISION                 # bits left for the rank (50)
+# Bias constant alpha_m for the raw HyperLogLog estimate (Flajolet et al., 2007).
+_HLL_ALPHA = 0.7213 / (1 + 1.079 / HLL_REGISTERS)
+
+
+def _stable_fingerprint(ip: str, user_agent: str) -> int:
+    """64-bit, non-rotating, non-reversible per-visitor hash for the all-time HLL.
+
+    Uses a fixed (never-rotating) salt derived from the server secret, distinct
+    from the monthly fingerprint salt. Returned as an int and never stored.
+    """
+    salt = hmac.new(_server_secret(), b"alltime-hll-v1", hashlib.sha256).digest()
+    digest = hashlib.blake2b(f"{ip}|{user_agent}".encode(), key=salt, digest_size=8).digest()
+    return int.from_bytes(digest, "big")
+
+
+def _hll_register_rank(h: int) -> tuple[int, int]:
+    """Map a 64-bit hash to its (register index, rank).
+
+    The top HLL_PRECISION bits select the register; the rank is 1 + the number of
+    leading zeros in the remaining bits (capped by the available bit width).
+    """
+    register = h >> _HLL_RANK_BITS
+    w = h & ((1 << _HLL_RANK_BITS) - 1)
+    rank = (_HLL_RANK_BITS - w.bit_length() + 1) if w else (_HLL_RANK_BITS + 1)
+    return register, rank
+
+
+def _hll_estimate(ranks: dict[int, int]) -> int:
+    """Cardinality estimate from a {register: rank} mapping (absent register => 0).
+
+    Raw HyperLogLog estimate with the small-range LinearCounting correction. The
+    64-bit hash makes the large-range (hash-collision) correction unnecessary.
+    """
+    m = HLL_REGISTERS
+    nonzero = 0
+    inv_sum = 0.0
+    for rank in ranks.values():
+        if rank > 0:
+            inv_sum += 2.0 ** (-rank)
+            nonzero += 1
+    zeros = m - nonzero
+    inv_sum += zeros  # absent / zero registers each contribute 2^0 = 1
+    if inv_sum <= 0:
+        return 0
+    estimate = _HLL_ALPHA * m * m / inv_sum
+    if estimate <= 2.5 * m and zeros > 0:
+        estimate = m * math.log(m / zeros)  # LinearCounting for small cardinalities
+    return int(round(estimate))
+
+
+def hll_register_rank_for(ip: str, user_agent: str) -> tuple[int, int]:
+    """Public helper: (register, rank) for a visitor's stable token. For tests."""
+    return _hll_register_rank(_stable_fingerprint(ip, user_agent))
+
+
 # --- Beacon token (anti-spam) ------------------------------------------------
 
 def _token_for_window(fp_hash: str, window: int) -> str:
@@ -154,11 +225,11 @@ def verify_beacon_token(token: str, fp_hash: str, now: datetime) -> bool:
 
 # --- Classification helpers --------------------------------------------------
 
-def classify_user_agent(user_agent: str) -> tuple[str, str, str]:
-    """Return (ua_class, device, browser). ua_class is 'human' or 'bot'."""
+def classify_user_agent(user_agent: str) -> tuple[str, str, str, str]:
+    """Return (ua_class, device, browser, os). ua_class is 'human' or 'bot'."""
     ua = (user_agent or "").lower()
     if not ua or any(marker in ua for marker in _BOT_MARKERS):
-        return "bot", "unknown", "unknown"
+        return "bot", "unknown", "unknown", "unknown"
 
     if "ipad" in ua or "tablet" in ua:
         device = "tablet"
@@ -177,7 +248,24 @@ def classify_user_agent(user_agent: str) -> tuple[str, str, str]:
         browser = "Safari"
     else:
         browser = "other"
-    return "human", device, browser
+
+    # Operating system. Order matters: Android UA strings contain "linux" and iOS
+    # strings contain "like mac os x", so the mobile OSes are matched first.
+    if "android" in ua:
+        os_name = "Android"
+    elif "iphone" in ua or "ipad" in ua or "ipod" in ua:
+        os_name = "iOS"
+    elif "windows" in ua:
+        os_name = "Windows"
+    elif "mac os x" in ua or "macintosh" in ua:
+        os_name = "macOS"
+    elif "cros" in ua:
+        os_name = "ChromeOS"
+    elif "linux" in ua:
+        os_name = "Linux"
+    else:
+        os_name = "other"
+    return "human", device, browser, os_name
 
 
 def normalize_page(path: str) -> str:
@@ -259,7 +347,7 @@ async def record_pageview(
     if not verify_beacon_token(token, fp_hash, now):
         return False, "invalid_token"
 
-    ua_class, device, browser = classify_user_agent(user_agent)
+    ua_class, device, browser, os_name = classify_user_agent(user_agent)
     if ua_class == "bot":
         return False, "bot"
 
@@ -284,13 +372,35 @@ async def record_pageview(
     if (await cur.fetchone())[0] >= MAX_EVENTS_PER_FP_PER_DAY:
         return False, "rate_limited"
 
+    # Stable (never-stored) visitor token for the all-time + monthly HLL sketches.
+    register, rank = _hll_register_rank(_stable_fingerprint(ip, user_agent))
+    month = now.strftime("%Y-%m")
+    day_iso = now.strftime("%Y-%m-%d")
+
     async def _insert(conn: aiosqlite.Connection) -> None:
         await conn.execute(
             "INSERT INTO analytics_events "
-            "(ts, event_type, page, fp_hash, ua_class, device, browser, country, referrer_domain) "
-            "VALUES (?, 'pageview', ?, ?, ?, ?, ?, ?, ?)",
-            (now.isoformat(), label, fp_hash, ua_class, device, browser,
+            "(ts, event_type, page, fp_hash, ua_class, device, browser, os, country, referrer_domain) "
+            "VALUES (?, 'pageview', ?, ?, ?, ?, ?, ?, ?, ?)",
+            (now.isoformat(), label, fp_hash, ua_class, device, browser, os_name,
              country, referrer_domain(referrer)),
+        )
+        # Fold the stable token into the all-time and current-month HLL sketches.
+        # MAX-upsert => idempotent and safe under concurrent writers (no lock).
+        await conn.execute(
+            "INSERT INTO analytics_hll (register, rank) VALUES (?, ?) "
+            "ON CONFLICT(register) DO UPDATE SET rank = MAX(rank, excluded.rank)",
+            (register, rank),
+        )
+        await conn.execute(
+            "INSERT INTO analytics_hll_monthly (month, register, rank) VALUES (?, ?, ?) "
+            "ON CONFLICT(month, register) DO UPDATE SET rank = MAX(rank, excluded.rank)",
+            (month, register, rank),
+        )
+        # Stamp the day the all-time counter began (set once, never overwritten).
+        await conn.execute(
+            "INSERT OR IGNORE INTO analytics_meta (key, value) VALUES ('hll_since', ?)",
+            (day_iso,),
         )
 
     accepted = await _commit_with_retry(db, _insert, description="record_pageview")
@@ -606,13 +716,14 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "month": await _unique_visitors_since(db, month_start),
     }
 
-    # Per-day unique-visitor timeline (last 30 days) from permanent rollups.
+    # Per-day unique-visitor timeline over the full history (from permanent
+    # rollups). The frontend slices it to the selected range (today / 7 / 30 / all).
     cur = await db.execute(
         "SELECT date, value FROM analytics_daily "
         "WHERE metric = 'unique_visitors' AND dimension = '*' "
-        "ORDER BY date DESC LIMIT 30"
+        "ORDER BY date"
     )
-    visitors_timeline = [{"date": d, "value": v} for d, v in reversed(await cur.fetchall())]
+    visitors_timeline = [{"date": d, "value": v} for d, v in await cur.fetchall()]
 
     # Pageviews per page over the last 30 days, computed live from raw events so
     # the current (not-yet-aggregated) day is always included. The 30-day window
@@ -640,9 +751,9 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     counters_today = {m: v for m, v in await cur.fetchall()}
     cur = await db.execute(
         "SELECT date, SUM(value) FROM analytics_counters "
-        "WHERE metric = 'guesses' GROUP BY date ORDER BY date DESC LIMIT 30"
+        "WHERE metric = 'guesses' GROUP BY date ORDER BY date"
     )
-    guesses_timeline = [{"date": d, "value": v} for d, v in reversed(await cur.fetchall())]
+    guesses_timeline = [{"date": d, "value": v} for d, v in await cur.fetchall()]
 
     # Completed games per mode (a game ends on a solve or a reveal/give-up).
     cur = await db.execute(
@@ -681,6 +792,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
 
     devices = await _breakdown("device")
     browsers = await _breakdown("browser")
+    os_breakdown = await _breakdown("os")
     cur = await db.execute(
         "SELECT referrer_domain, COUNT(*) FROM analytics_events "
         "WHERE ua_class = 'human' AND referrer_domain != '' GROUP BY referrer_domain ORDER BY 2 DESC LIMIT 15"
@@ -718,11 +830,11 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     }
     stickiness = round(visitors["today"] / visitors["month"], 3) if visitors["month"] else None
 
-    # Pageviews timeline (last 30 days) -- live from raw events, like pageviews_by_page.
+    # Pageviews timeline over the full history, summed across pages from permanent
+    # rollups (the current day appears once aggregate_daily next runs, ~5 min lag).
     cur = await db.execute(
-        "SELECT substr(ts, 1, 10) AS d, COUNT(*) FROM analytics_events "
-        "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? GROUP BY d ORDER BY d",
-        (pageviews_since,),
+        "SELECT date, SUM(value) FROM analytics_daily "
+        "WHERE metric = 'pageviews' GROUP BY date ORDER BY date"
     )
     pageviews_timeline = [{"date": d, "value": v} for d, v in await cur.fetchall()]
 
@@ -734,10 +846,10 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     by_date: dict[str, dict[str, int]] = {}
     for d, m, v in await cur.fetchall():
         by_date.setdefault(d, {})[m] = v
-    recent_dates = sorted(by_date)[-30:]
-    solves_timeline = [{"date": d, "value": by_date[d].get("solves", 0)} for d in recent_dates]
+    all_dates = sorted(by_date)
+    solves_timeline = [{"date": d, "value": by_date[d].get("solves", 0)} for d in all_dates]
     solve_rate_timeline = []
-    for d in recent_dates:
+    for d in all_dates:
         s, r = by_date[d].get("solves", 0), by_date[d].get("reveals", 0)
         fin = s + r
         solve_rate_timeline.append({"date": d, "value": round(s / fin, 3) if fin else 0})
@@ -788,6 +900,104 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     )
     bots_filtered = (await cur.fetchone())[0]
 
+    # --- "Since the beginning" figures ---------------------------------------
+    # All-time unique visitors (HLL estimate); exact cumulative pageviews and
+    # visitor-days from permanent rollups; the two "counting since" dates.
+    cur = await db.execute("SELECT register, rank FROM analytics_hll")
+    all_time_unique = _hll_estimate({reg: rk for reg, rk in await cur.fetchall()})
+    cur = await db.execute(
+        "SELECT COALESCE(SUM(value), 0) FROM analytics_daily WHERE metric = 'pageviews'")
+    all_time_pageviews = (await cur.fetchone())[0]
+    cur = await db.execute(
+        "SELECT COALESCE(SUM(value), 0) FROM analytics_daily "
+        "WHERE metric = 'unique_visitors' AND dimension = '*'")
+    visitor_days = (await cur.fetchone())[0]
+    cur = await db.execute("SELECT MIN(date) FROM analytics_daily")
+    data_since = (await cur.fetchone())[0]
+    cur = await db.execute("SELECT value FROM analytics_meta WHERE key = 'hll_since'")
+    row = await cur.fetchone()
+    all_time = {
+        "unique_visitors": all_time_unique,
+        "pageviews": all_time_pageviews,
+        "visitor_days": visitor_days,
+        "data_since": data_since,
+        "unique_since": row[0] if row else None,
+    }
+
+    # Record days (all-time best single day) from permanent data.
+    cur = await db.execute(
+        "SELECT date, value FROM analytics_daily "
+        "WHERE metric = 'unique_visitors' AND dimension = '*' "
+        "ORDER BY value DESC, date DESC LIMIT 1")
+    row = await cur.fetchone()
+    best_visitors_day = {"date": row[0], "value": row[1]} if row else None
+    cur = await db.execute(
+        "SELECT date, SUM(value) AS v FROM analytics_counters "
+        "WHERE metric = 'guesses' GROUP BY date ORDER BY v DESC, date DESC LIMIT 1")
+    row = await cur.fetchone()
+    best_guesses_day = {"date": row[0], "value": row[1]} if row else None
+    records = {"best_visitors_day": best_visitors_day, "best_guesses_day": best_guesses_day}
+
+    # Active visitors over rolling windows (DAU / WAU / MAU). "Active" = unique
+    # visitors; per-fingerprint distinct-player tracking is deliberately not done.
+    active_users = {
+        "dau": visitors["today"],
+        "wau": await _unique_visitors_since(db, now - timedelta(days=7)),
+        "mau": await _unique_visitors_since(db, now - timedelta(days=30)),
+    }
+
+    # Monthly series: exact additive metrics from permanent tables + a per-month
+    # HLL unique-visitor estimate (survives raw-event retention => honest MoM).
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, SUM(value) FROM analytics_daily "
+        "WHERE metric = 'pageviews' GROUP BY m")
+    month_pageviews = {m: v for m, v in await cur.fetchall()}
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, SUM(value) FROM analytics_daily "
+        "WHERE metric = 'unique_visitors' AND dimension = '*' GROUP BY m")
+    month_visitor_days = {m: v for m, v in await cur.fetchall()}
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, metric, SUM(value) FROM analytics_counters "
+        "WHERE metric IN ('guesses', 'solves', 'reveals') GROUP BY m, metric")
+    month_actions: dict[str, dict[str, int]] = {}
+    for m, metric, v in await cur.fetchall():
+        month_actions.setdefault(m, {})[metric] = v
+    cur = await db.execute("SELECT month, register, rank FROM analytics_hll_monthly")
+    month_hll: dict[str, dict[int, int]] = {}
+    for mo, reg, rk in await cur.fetchall():
+        month_hll.setdefault(mo, {})[reg] = rk
+    months_set = set(month_pageviews) | set(month_visitor_days) | set(month_actions) | set(month_hll)
+    monthly = []
+    for m in sorted(months_set):
+        acts = month_actions.get(m, {})
+        monthly.append({
+            "month": m,
+            "pageviews": month_pageviews.get(m, 0),
+            "visitor_days": month_visitor_days.get(m, 0),
+            "guesses": acts.get("guesses", 0),
+            "solves": acts.get("solves", 0),
+            "games": acts.get("solves", 0) + acts.get("reveals", 0),
+            "unique_visitors": _hll_estimate(month_hll[m]) if m in month_hll else 0,
+        })
+
+    # Finished games (solves + reveals) per month, split by mode -> popularity trend.
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric IN ('solves', 'reveals') GROUP BY m, dimension")
+    mode_monthly_map: dict[str, dict[str, int]] = {}
+    for m, dim, v in await cur.fetchall():
+        bucket = mode_monthly_map.setdefault(m, {})
+        bucket[dim] = bucket.get(dim, 0) + v
+    mode_monthly = [
+        {
+            "month": m,
+            "kontexto": mode_monthly_map[m].get("kontexto", 0),
+            "duel": mode_monthly_map[m].get("duel", 0),
+            "wordle": mode_monthly_map[m].get("wordle", 0),
+        }
+        for m in sorted(mode_monthly_map)
+    ]
+
     return {
         "generated_at": now.isoformat(),
         "visitors": visitors,
@@ -808,17 +1018,27 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "top_words": top_words,
         "devices": devices,
         "browsers": browsers,
+        "os": os_breakdown,
         "referrers": referrers,
         "peak_hours": peak_hours,
         "activity_heatmap": activity_heatmap,
         "visitor_loyalty": visitor_loyalty,
         "stickiness": stickiness,
+        "all_time": all_time,
+        "records": records,
+        "active_users": active_users,
+        "monthly": monthly,
+        "mode_monthly": mode_monthly,
         "bots_filtered": bots_filtered,
         "note": (
             "Unique-User cookieless via monatlich rotierendem Hash (IP+Browser, kein PII). "
+            "Eindeutige Besucher „seit Beginn“ werden über einen HyperLogLog-Schätzer "
+            "ermittelt (cookieless, nicht umkehrbar, ±~1 %); er zählt ab Einbau vorwärts. "
+            "Gesamt-Seitenaufrufe und Besuchertage decken die volle Historie ab. "
             "Guess-, Lösungs-, Hint- und Reveal-Zahlen sind server-seitig erhoben und nicht "
             "durch Beacons fälschbar. Verteilungen (Versuche, Zeit bis Lösung, Aufgabe-Rang) "
             "werden clientseitig gemeldet, sind token-gesichert, entdupliziert und gedeckelt. "
-            "Zeitangaben in lokaler Zeit (Europe/Berlin)."
+            "Geräte-, Browser-, Betriebssystem- und Aktive-Nutzer-Zahlen beziehen sich auf die "
+            "letzten 35 Tage (Rohdaten-Fenster). Zeitangaben in lokaler Zeit (Europe/Berlin)."
         ),
     }
