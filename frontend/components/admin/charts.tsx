@@ -5,7 +5,7 @@
 // charts follow the light/dark theme automatically. recharts is client-only and
 // lives only in the /admin/stats route bundle.
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -381,53 +381,41 @@ const WEEKDAY_FULL = [
   "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag",
 ] as const;
 
-// Discrete 5-step intensity scale (GitHub-contribution style). Level 0 = no
-// activity; levels 1–4 are quartiles of the *non-zero* values, so a peaky traffic
-// distribution still reveals its mid-range patterns instead of collapsing into a
-// single bright cell. Colours mix the brand chart hue into the card background in
-// OKLab, so they stay perceptually even across the light/dark themes.
+// Discrete 5-step intensity scale. Level 0 = no activity; levels 1–4 are
+// quartiles of the *non-zero* values, so a peaky traffic distribution still
+// reveals its mid-range patterns. The brand hue is mixed into the card
+// background in OKLab and capped well below 100%, so the cell value rendered in
+// `--color-foreground` keeps enough contrast in both the light and dark themes.
 const HEATMAP_LEVEL_BG = [
   "var(--color-muted)",
-  "color-mix(in oklab, var(--color-chart-2) 25%, var(--color-card))",
-  "color-mix(in oklab, var(--color-chart-2) 50%, var(--color-card))",
-  "color-mix(in oklab, var(--color-chart-2) 75%, var(--color-card))",
-  "var(--color-chart-2)",
+  "color-mix(in oklab, var(--color-chart-2) 18%, var(--color-card))",
+  "color-mix(in oklab, var(--color-chart-2) 36%, var(--color-card))",
+  "color-mix(in oklab, var(--color-chart-2) 54%, var(--color-card))",
+  "color-mix(in oklab, var(--color-chart-2) 72%, var(--color-card))",
 ];
-const HEATMAP_NIGHT_BG = "color-mix(in oklab, var(--color-foreground) 6%, transparent)";
-const HEATMAP_LABEL_W = "2.5rem";
-const HEATMAP_NIGHT_HOURS = 6; // shade 0–5 Uhr
-const HEATMAP_HOUR_TICKS = new Set([0, 6, 12, 18, 23]);
+const HEATMAP_LABEL_W = "2.75rem";
+
+/** Compact cell label: 1234 → "1,2k" so a wide column doesn't break the grid. */
+function compactCount(v: number): string {
+  if (v < 1000) return String(v);
+  const k = v / 1000;
+  return `${k.toFixed(k < 10 ? 1 : 0).replace(".", ",")}k`;
+}
 
 export function Heatmap({ data }: { data: number[][] }) {
-  const [active, setActive] = useState<{ wd: number; h: number } | null>(null);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const kbNav = useRef(false);
-
   const flat = data.flat();
   const total = flat.reduce((a, b) => a + b, 0);
+  if (total === 0) return <Empty />;
 
-  // Peak cell and quantile thresholds. Cheap to derive each render
+  // Peak cell + quartile thresholds of the non-zero values. Cheap per render
   // (168 cells) — no memoisation needed.
   let peak = { wd: 0, h: 0, v: -1 };
   data.forEach((row, wd) => row.forEach((v, h) => { if (v > peak.v) peak = { wd, h, v }; }));
   const nz = flat.filter((v) => v > 0).sort((a, b) => a - b);
-  const quantile = (p: number) => (nz.length ? nz[Math.min(nz.length - 1, Math.floor(p * nz.length))] : 0);
+  const quantile = (p: number) => nz[Math.min(nz.length - 1, Math.floor(p * nz.length))];
   const t1 = quantile(0.25), t2 = quantile(0.5), t3 = quantile(0.75);
   const level = (v: number) => (v === 0 ? 0 : v <= t1 ? 1 : v <= t2 ? 2 : v <= t3 ? 3 : 4);
 
-  // After a keyboard move, pull DOM focus to the newly active cell (roving tabindex).
-  useEffect(() => {
-    if (!kbNav.current) return;
-    kbNav.current = false;
-    const a = active ?? peak;
-    gridRef.current?.querySelector<HTMLElement>(`[data-cell="${a.wd}-${a.h}"]`)?.focus();
-  });
-
-  if (total === 0) return <Empty />;
-
-  const shown = active ?? { wd: peak.wd, h: peak.h };
-  const shownValue = data[shown.wd][shown.h];
   const gridStyle = {
     gridTemplateColumns: `${HEATMAP_LABEL_W} repeat(24, minmax(0, 1fr))`,
     gap: "4px",
@@ -435,92 +423,46 @@ export function Heatmap({ data }: { data: number[][] }) {
 
   return (
     <div>
-      {/* Instant readout — never scrolls away; defaults to the peak. */}
-      <div className="mb-2 flex items-center gap-2 text-sm">
-        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: "var(--color-chart-2)" }} />
-        {active ? (
-          <span>
-            <span className="font-semibold text-foreground">{WEEKDAY_FULL[shown.wd]}, {shown.h} Uhr</span>
-            <span className="text-muted-foreground"> · {formatNumber(shownValue)} Aufrufe</span>
-          </span>
-        ) : (
-          <span>
-            <span className="text-muted-foreground">Spitze: </span>
-            <span className="font-semibold text-foreground">{WEEKDAY_FULL[peak.wd]}, {peak.h} Uhr</span>
-            <span className="text-muted-foreground"> · {formatNumber(peak.v)} Aufrufe</span>
-          </span>
-        )}
-      </div>
+      {/* Peak readout — context for the busiest slot. */}
+      <p className="mb-3 flex items-center gap-2 text-sm">
+        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: HEATMAP_LEVEL_BG[4] }} />
+        <span>
+          <span className="text-muted-foreground">Spitze: </span>
+          <span className="font-semibold text-foreground">{WEEKDAY_FULL[peak.wd]}, {peak.h} Uhr</span>
+          <span className="text-muted-foreground"> · {formatNumber(peak.v)} Aufrufe</span>
+        </span>
+      </p>
 
       <div className="overflow-x-auto">
-        <div style={{ minWidth: 600 }}>
-          <div
-            ref={gridRef}
-            role="grid"
-            aria-label="Aktivität nach Wochentag und Stunde"
-            className="relative isolate"
-            onKeyDown={(e) => {
-              const cur = active ?? peak;
-              let { wd, h } = cur;
-              switch (e.key) {
-                case "ArrowLeft": h = Math.max(0, h - 1); break;
-                case "ArrowRight": h = Math.min(23, h + 1); break;
-                case "ArrowUp": wd = Math.max(0, wd - 1); break;
-                case "ArrowDown": wd = Math.min(6, wd + 1); break;
-                case "Home": h = 0; break;
-                case "End": h = 23; break;
-                default: return;
-              }
-              e.preventDefault();
-              kbNav.current = true;
-              setActive({ wd, h });
-            }}
-            onPointerLeave={() => {
-              setTip(null);
-              if (!gridRef.current?.contains(document.activeElement)) setActive(null);
-            }}
-          >
-            {/* Night band (0–6 Uhr), painted behind the cells. */}
-            <div className="pointer-events-none absolute inset-y-0" style={{ left: HEATMAP_LABEL_W, right: 0, zIndex: -10 }} aria-hidden>
-              <div className="absolute inset-y-0 left-0 rounded" style={{ width: `${(HEATMAP_NIGHT_HOURS / 24) * 100}%`, background: HEATMAP_NIGHT_BG }} />
-            </div>
-
+        <div style={{ minWidth: 780 }}>
+          <div role="grid" aria-label="Aufrufe nach Wochentag und Stunde (Ortszeit)">
             {/* Hour axis */}
-            <div className="grid items-end pb-1" style={gridStyle} aria-hidden>
+            <div className="mb-1 grid items-end" style={gridStyle} aria-hidden>
               <span />
               {Array.from({ length: 24 }, (_, h) => (
-                <span key={h} className={`text-center text-[10px] tabular-nums ${HEATMAP_HOUR_TICKS.has(h) ? "font-medium text-foreground/70" : "text-transparent"}`}>
-                  {h}
-                </span>
+                <span key={h} className="text-center text-[10px] tabular-nums text-muted-foreground">{h}</span>
               ))}
             </div>
 
-            {/* Weekday rows */}
+            {/* Weekday rows — each cell shows its count, shaded by intensity. */}
             {data.map((row, wd) => (
-              <div key={wd} role="row" className="grid items-center" style={gridStyle}>
-                <span className={`pr-1 text-right text-[11px] leading-5 ${shown.wd === wd ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                  {WEEKDAY_LABELS[wd]}
-                </span>
+              <div key={wd} role="row" className="mt-1 grid items-center" style={gridStyle}>
+                <span className="pr-1 text-right text-xs font-medium text-muted-foreground">{WEEKDAY_LABELS[wd]}</span>
                 {row.map((v, h) => {
                   const isPeak = peak.wd === wd && peak.h === h;
-                  const isActive = active != null && active.wd === wd && active.h === h;
                   return (
-                    <button
+                    <div
                       key={h}
-                      type="button"
                       role="gridcell"
-                      data-cell={`${wd}-${h}`}
-                      tabIndex={(active ? active.wd === wd && active.h === h : isPeak) ? 0 : -1}
                       aria-label={`${WEEKDAY_FULL[wd]} ${h} Uhr: ${formatNumber(v)} Aufrufe`}
-                      onPointerEnter={(e) => { setActive({ wd, h }); setTip({ x: e.clientX, y: e.clientY }); }}
-                      onPointerMove={(e) => setTip({ x: e.clientX, y: e.clientY })}
-                      onPointerDown={(e) => { setActive({ wd, h }); setTip({ x: e.clientX, y: e.clientY }); }}
-                      onFocus={() => setActive({ wd, h })}
-                      className={`h-5 rounded-[4px] outline-none transition-shadow ${
-                        isActive ? "relative z-10 ring-2 ring-foreground" : isPeak ? "relative z-10 ring-1 ring-foreground/50" : ""
-                      }`}
+                      title={`${WEEKDAY_FULL[wd]}, ${h} Uhr · ${formatNumber(v)} Aufrufe`}
+                      className={`flex h-7 items-center justify-center rounded-md text-[11px] tabular-nums ${
+                        v === 0 ? "text-muted-foreground/40" : "font-medium text-foreground"
+                      } ${isPeak ? "ring-2 ring-foreground/60" : ""}`}
                       style={{ backgroundColor: HEATMAP_LEVEL_BG[level(v)] }}
-                    />
+                    >
+                      {v === 0 ? "" : compactCount(v)}
+                    </div>
                   );
                 })}
               </div>
@@ -532,30 +474,16 @@ export function Heatmap({ data }: { data: number[][] }) {
             <span className="flex items-center gap-1.5">
               wenig
               {HEATMAP_LEVEL_BG.map((bg, i) => (
-                <span key={i} className="inline-block h-3 w-3 rounded-[4px]" style={{ backgroundColor: bg }} />
+                <span key={i} className="inline-block h-3 w-3 rounded-[3px]" style={{ backgroundColor: bg }} />
               ))}
               viel
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-[4px] ring-1 ring-foreground/50" /> Spitze
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded" style={{ background: HEATMAP_NIGHT_BG }} /> Nacht
+              <span className="inline-block h-3 w-3 rounded-[3px] ring-2 ring-foreground/60" /> Spitze
             </span>
           </div>
         </div>
       </div>
-
-      {/* Cursor tooltip — instant, no native title delay. */}
-      {tip && (
-        <div
-          className="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-md"
-          style={{ left: Math.min(tip.x + 14, (typeof window !== "undefined" ? window.innerWidth : 9999) - 160), top: tip.y + 14 }}
-        >
-          <div className="font-medium text-popover-foreground">{WEEKDAY_FULL[shown.wd]}, {shown.h} Uhr</div>
-          <div className="text-muted-foreground">{formatNumber(shownValue)} Aufrufe</div>
-        </div>
-      )}
     </div>
   );
 }

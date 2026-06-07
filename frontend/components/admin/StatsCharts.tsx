@@ -22,7 +22,7 @@ import {
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
 import {
-  formatDecimal, formatNumber, formatPercent, fullDate, greeting, shortMonth, trend,
+  formatDecimal, formatHour, formatNumber, formatPercent, fullDate, greeting, shortMonth, trend,
 } from "@/lib/format";
 import type { GameDifficultyEntry, StatsData, TimelinePoint } from "@/lib/types";
 
@@ -339,6 +339,17 @@ function ReachSection({ stats, range }: SectionProps) {
       </Panel>
       <Panel title="Woher kommen die Besucher?" className="lg:col-span-2">
         <BarRanking data={stats.referrers} accent={2} emptyLabel="Keine externen Verweise" max={15} />
+      </Panel>
+      <Panel title="Heute nach Stunde" hint="Seitenaufrufe (Ortszeit)" className="lg:col-span-2">
+        {stats.today_hourly.some((v) => v > 0) ? (
+          <AreaTrend
+            data={stats.today_hourly.map((value, h) => ({ date: String(h), value }))}
+            accent={1}
+            labelFormatter={formatHour}
+          />
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">Heute noch keine Aufrufe</p>
+        )}
       </Panel>
       <Panel title="Wann wird gespielt? (Wochentag × Stunde, Ortszeit)" className="lg:col-span-2">
         <Heatmap data={stats.activity_heatmap} />
