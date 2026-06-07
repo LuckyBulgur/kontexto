@@ -40,11 +40,13 @@ import PastGamesDialog from "@/components/PastGamesDialog";
 import GameResultCard from "@/components/GameResultCard";
 import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import StatsDialog from "@/components/StatsDialog";
+import { AdUnit } from "@/components/AdUnit";
 import { faqs } from "@/lib/faqs";
 import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
 import { reportCompletion } from "@/lib/analytics";
+import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import {
   Accordion,
@@ -300,14 +302,17 @@ export default function GameClient() {
       )}
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
         {gameOver && showResult ? (
-          <GameResultCard
-            gameNumber={gameNumber}
-            guesses={gameState.guesses}
-            tipCount={gameState.tips}
-            isWin={isWin}
-            onOpenPastGames={() => setShowPastGames(true)}
-            onOpenClosestWords={() => setShowClosestWords(true)}
-          />
+          <>
+            <GameResultCard
+              gameNumber={gameNumber}
+              guesses={gameState.guesses}
+              tipCount={gameState.tips}
+              isWin={isWin}
+              onOpenPastGames={() => setShowPastGames(true)}
+              onOpenClosestWords={() => setShowClosestWords(true)}
+            />
+            <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
+          </>
         ) : (
           <>
             <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">

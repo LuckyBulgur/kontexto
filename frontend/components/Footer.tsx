@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ConsentSettingsLink from "@/components/ConsentSettingsLink";
 
 const links = [
   { href: "/", label: "Kontexto" },
@@ -19,6 +20,7 @@ export default function Footer() {
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="hover:text-foreground">{l.label}</Link>
         ))}
+        <ConsentSettingsLink className="hover:text-foreground cursor-pointer" />
       </nav>
       <p className="mt-4">© Kontexto – das deutsche Wort-Ratespiel</p>
     </footer>

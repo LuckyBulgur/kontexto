@@ -6,10 +6,12 @@ import StatsModal from "@/components/wordle/StatsModal";
 import HelpModal from "@/components/wordle/HelpModal";
 import SettingsModal from "@/components/wordle/SettingsModal";
 import WordleHeader from "@/components/wordle/WordleHeader";
+import { AdUnit } from "@/components/AdUnit";
 import { loadHardMode, saveHardMode, loadWordleState } from "@/lib/wordle-storage";
 import { loadTheme, saveTheme } from "@/lib/storage";
 import { getWordleGame } from "@/lib/wordle-api";
 import type { TileColor } from "@/lib/wordle-types";
+import { AD_SLOTS } from "@/lib/adsense";
 
 export default function WordlePageClient() {
   const [showStats, setShowStats] = useState(false);
@@ -103,6 +105,12 @@ export default function WordlePageClient() {
         gameNumber={randomSeed}
         onGameEnd={handleGameEnd}
       />
+
+      {gameData && (
+        <div className="px-4 pb-4">
+          <AdUnit slot={AD_SLOTS.wordleResult} />
+        </div>
+      )}
 
       <StatsModal
         open={showStats}

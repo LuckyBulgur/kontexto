@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
+import { SideRailAds } from "@/components/SideRailAds";
 import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import Footer from "@/components/Footer";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <Toaster />
         <Analytics />
+        <SideRailAds />
       </body>
       <Script
         id="google-adsense"
