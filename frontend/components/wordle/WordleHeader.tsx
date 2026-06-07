@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useFeatureDiscovery } from "@/lib/feature-discovery";
 
 interface WordleHeaderProps {
   /** Spielanleitung öffnen */
@@ -57,6 +58,9 @@ export default function WordleHeader({
   hideDuelCreate,
 }: WordleHeaderProps) {
   const showDuelCreate = !hideDuelCreate;
+  const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
+    useFeatureDiscovery("wordle_duel_discovered");
+  const showDuelHighlight = showDuelCreate && duelHighlight;
   const hasPrimaryItems =
     Boolean(onHelp) || Boolean(onRandom) || showDuelCreate || Boolean(onStats);
   const hasMenu = Boolean(onCopyLink) || hasPrimaryItems || Boolean(onSettings);
@@ -80,10 +84,21 @@ export default function WordleHeader({
         </div>
         {hasMenu && (
           <div className="absolute right-4">
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => { if (!open && showDuelHighlight) dismissDuelHighlight(); }}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Menü">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-10 w-10"
+                  aria-label={showDuelHighlight ? "Menü – neue Funktion: Duell" : "Menü"}
+                >
                   <EllipsisVertical className="h-6! w-6!" />
+                  {showDuelHighlight && (
+                    <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -107,10 +122,15 @@ export default function WordleHeader({
                   </DropdownMenuItem>
                 )}
                 {showDuelCreate && (
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className={showDuelHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
                     <Link href="/wordle/duel/create">
                       <Swords className="h-4 w-4" />
                       Duell erstellen
+                      {showDuelHighlight && (
+                        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                          NEU
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                 )}
