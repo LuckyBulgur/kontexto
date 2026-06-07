@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getPastGames } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PastGame } from "@/lib/types";
 
 interface PastGamesDialogProps {
@@ -50,7 +51,14 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
 
         <div className="max-h-80 overflow-y-auto -mx-2">
           {loading && (
-            <p className="text-sm text-muted-foreground text-center py-4">Laden...</p>
+            <div className="space-y-1" aria-busy="true" aria-label="Spiele werden geladen">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ))}
+            </div>
           )}
           {error && (
             <p className="text-sm text-destructive text-center py-4">{error}</p>

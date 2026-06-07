@@ -15,6 +15,7 @@ import {
 import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
 import WordleHeader from "@/components/wordle/WordleHeader";
+import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wordle/WordleBoardSkeleton";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -23,6 +24,7 @@ export default function WordleDuelPageClient() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [players, setPlayers] = useState<WordleDuelPlayer[]>([]);
   const [gameNumber, setGameNumber] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   // Own game state
   const [guesses, setGuesses] = useState<string[]>([]);
@@ -129,7 +131,7 @@ export default function WordleDuelPageClient() {
       }
       setLetterStates(states);
     };
-    load();
+    load().catch(() => setLoadError(true));
   }, [duelId, playerToken]);
 
   // WebSocket handler
@@ -302,6 +304,28 @@ export default function WordleDuelPageClient() {
 
   if (needsJoin) {
     return <JoinForm onJoin={handleJoin} loading={joinLoading} error={joinError} />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex justify-center py-20 text-destructive">
+        Duell konnte nicht geladen werden.
+      </div>
+    );
+  }
+
+  if (gameNumber === null) {
+    return (
+      <div className="max-w-4xl mx-auto min-h-screen flex flex-col" aria-busy="true" aria-label="Duell wird geladen">
+        <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-6 px-4">
+          <div className="lg:order-1">
+            <WordleBoardGridSkeleton />
+          </div>
+        </div>
+        <WordleKeyboardSkeleton />
+      </div>
+    );
   }
 
   return (

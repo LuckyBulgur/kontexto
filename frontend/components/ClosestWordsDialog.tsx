@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { getClosestWords } from "@/lib/api";
 import { ClosestWordEntry } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 import GuessBar from "./GuessBar";
 
 interface ClosestWordsDialogProps {
@@ -42,7 +43,11 @@ export default function ClosestWordsDialog({ open, onClose, pastGame }: ClosestW
 
         <div className="max-h-96 overflow-y-auto -mx-2 px-2">
           {loading && (
-            <p className="text-sm text-muted-foreground text-center py-4">Laden...</p>
+            <div aria-busy="true" aria-label="Wörter werden geladen">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-lg mb-1" />
+              ))}
+            </div>
           )}
           {error && (
             <p className="text-sm text-destructive text-center py-4">{error}</p>
