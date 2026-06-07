@@ -862,6 +862,58 @@ class TestSinceBeginningStats:
         assert by_month["2026-02"]["unique_visitors"] == 2
         assert stats["all_time"]["unique_visitors"] == 4          # union {a,b,c,d}
 
+    def test_all_time_unique_floored_by_exact_windows(self, db_path):
+        """All-time uniques must never fall below an exact windowed count.
+
+        Reproduces the post-deploy state: the all-time HLL sketch was introduced
+        empty -- and cannot be backfilled, since the raw IP/UA needed for its
+        stable token is deliberately never stored -- while raw events for existing
+        visitors already power the exact 30-day count and the daily rollups.
+        Anyone unique in a sub-window is unique all-time, so the all-time figure
+        must be floored by those exact counts; otherwise the dashboard shows the
+        impossible "Gesamt (0) < 30 Tage (N)".
+        """
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4", "5.5.5.5"):
+                    await self._pageview(db, ip, "/")
+                await analytics.aggregate_daily(db, JAN)
+                # Sketch introduced AFTER these visitors: their events were never folded.
+                await db.execute("DELETE FROM analytics_hll")
+                await db.commit()
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        mau = stats["active_users"]["mau"]
+        best_day = stats["records"]["best_visitors_day"]["value"]
+        assert mau == 5 and best_day == 5            # exact counts still see all 5
+        assert stats["all_time"]["unique_visitors"] >= mau
+        assert stats["all_time"]["unique_visitors"] >= best_day
+
+    def test_monthly_unique_floored_by_exact_daily(self, db_path):
+        """Per-month uniques must never fall below that month's exact daily peak.
+
+        Same root cause as the all-time floor, applied to the monthly series that
+        drives the month-over-month card: an empty current-month sketch would
+        otherwise report 0 for a month that demonstrably had visitors.
+        """
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3"):
+                    await self._pageview(db, ip, "/")
+                await analytics.aggregate_daily(db, JAN)
+                await db.execute("DELETE FROM analytics_hll_monthly")
+                await db.commit()
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        by_month = {m["month"]: m for m in stats["monthly"]}
+        assert by_month["2026-01"]["unique_visitors"] >= 3
+
     def test_records_and_exact_pageviews_from_rollups(self, db_path):
         async def go():
             db = await get_db(db_path)

@@ -904,7 +904,32 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     # All-time unique visitors (HLL estimate); exact cumulative pageviews and
     # visitor-days from permanent rollups; the two "counting since" dates.
     cur = await db.execute("SELECT register, rank FROM analytics_hll")
-    all_time_unique = _hll_estimate({reg: rk for reg, rk in await cur.fetchall()})
+    all_time_unique_hll = _hll_estimate({reg: rk for reg, rk in await cur.fetchall()})
+    # The all-time sketch only counts forward from its introduction and CANNOT be
+    # backfilled: the raw IP+UA needed for its stable token is deliberately never
+    # stored. So early on -- and for visitors who predate the sketch -- it can sit
+    # below a windowed count, rendering the impossible "Gesamt (all-time) < 30 Tage".
+    # Floor it so the total always dominates every windowed unique the dashboard
+    # shows (today / 7d / 30d / month-to-date / best rollup day). Those windowed
+    # counts use the same monthly-rotating-hash distinct counting as the active-user
+    # cards, so flooring by them keeps the all-time card consistent with the rest of
+    # the dashboard while the (cross-month-deduping) HLL fills in; the HLL takes over
+    # once it grows past the floor. NB: we floor by per-window counts, NOT by a single
+    # COUNT(DISTINCT fp_hash) over the whole raw window -- the latter double-counts a
+    # visitor who recurs across the monthly salt rotation and could exceed even a
+    # correct HLL. Each windowed count below lives within counting that the matching
+    # dashboard card also uses, so the total never contradicts a figure we display.
+    cur = await db.execute(
+        "SELECT COALESCE(MAX(value), 0) FROM analytics_daily "
+        "WHERE metric = 'unique_visitors' AND dimension = '*'")
+    best_day_unique = (await cur.fetchone())[0]
+    # >= the displayed 30-day MAU (which starts at now-30d; the midnight floor here is
+    # a superset window, so this count can only be >=, guaranteeing Gesamt >= 30 Tage).
+    mau_unique = await _unique_visitors_since(db, today - timedelta(days=30))
+    all_time_unique = max(
+        all_time_unique_hll, best_day_unique, mau_unique,
+        visitors["today"], visitors["week"], visitors["month"],
+    )
     cur = await db.execute(
         "SELECT COALESCE(SUM(value), 0) FROM analytics_daily WHERE metric = 'pageviews'")
     all_time_pageviews = (await cur.fetchone())[0]
@@ -966,10 +991,20 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     month_hll: dict[str, dict[int, int]] = {}
     for mo, reg, rk in await cur.fetchall():
         month_hll.setdefault(mo, {})[reg] = rk
-    months_set = set(month_pageviews) | set(month_visitor_days) | set(month_actions) | set(month_hll)
+    # Same floor rationale as the all-time figure: a month's unique count must not
+    # fall below that month's exact single-day peak (a subset of the month, hence a
+    # valid lower bound), so a not-yet-filled monthly sketch never reports 0 for a
+    # month that demonstrably had visitors.
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, COALESCE(MAX(value), 0) FROM analytics_daily "
+        "WHERE metric = 'unique_visitors' AND dimension = '*' GROUP BY m")
+    month_peak_daily_unique = {m: v for m, v in await cur.fetchall()}
+    months_set = (set(month_pageviews) | set(month_visitor_days)
+                  | set(month_actions) | set(month_hll) | set(month_peak_daily_unique))
     monthly = []
     for m in sorted(months_set):
         acts = month_actions.get(m, {})
+        month_unique = _hll_estimate(month_hll[m]) if m in month_hll else 0
         monthly.append({
             "month": m,
             "pageviews": month_pageviews.get(m, 0),
@@ -977,7 +1012,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
             "guesses": acts.get("guesses", 0),
             "solves": acts.get("solves", 0),
             "games": acts.get("solves", 0) + acts.get("reveals", 0),
-            "unique_visitors": _hll_estimate(month_hll[m]) if m in month_hll else 0,
+            "unique_visitors": max(month_unique, month_peak_daily_unique.get(m, 0)),
         })
 
     # Finished games (solves + reveals) per month, split by mode -> popularity trend.
