@@ -807,6 +807,10 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     )
     peak_hours = {str(h): 0 for h in range(24)}
     activity_heatmap = [[0] * 24 for _ in range(7)]
+    # Today's pageviews per local hour, for the "Heute nach Stunde" chart.
+    now_aware = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
+    now_local = now_aware.astimezone(DISPLAY_TZ)
+    today_hourly_full = [0] * 24
     for (ts,) in await cur.fetchall():
         try:
             dt = datetime.fromisoformat(ts)
@@ -817,6 +821,11 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         local = dt.astimezone(DISPLAY_TZ)
         peak_hours[str(local.hour)] += 1
         activity_heatmap[local.weekday()][local.hour] += 1
+        if local.date() == now_local.date():
+            today_hourly_full[local.hour] += 1
+    # Trim to the hours that have already elapsed today, so the chart ends at
+    # "now" instead of dropping to zero for the rest of the day.
+    today_hourly = today_hourly_full[: now_local.hour + 1]
 
     # Loyalty: visitors seen on >1 distinct day (within retention) are "returning".
     cur = await db.execute(
@@ -1057,6 +1066,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "referrers": referrers,
         "peak_hours": peak_hours,
         "activity_heatmap": activity_heatmap,
+        "today_hourly": today_hourly,
         "visitor_loyalty": visitor_loyalty,
         "stickiness": stickiness,
         "all_time": all_time,

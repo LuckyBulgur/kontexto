@@ -130,6 +130,8 @@ export interface StatsData {
   peak_hours: Record<string, number>;
   /** [weekday 0=Mon..6=Sun][hour 0..23] human pageview counts (Europe/Berlin). */
   activity_heatmap: number[][];
+  /** Today's pageviews per hour, index = hour 0..current hour (Europe/Berlin). */
+  today_hourly: number[];
   visitor_loyalty: { new: number; returning: number };
   stickiness: number | null;
   /** Cumulative "since the beginning" figures. unique_visitors is an HLL estimate. */

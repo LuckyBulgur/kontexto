@@ -678,8 +678,8 @@ class TestExtendedStats:
         stats = run(go())
         for key in ("pageviews_timeline", "solves_timeline", "solve_rate_timeline",
                     "hints_by_difficulty", "duels_created", "distributions",
-                    "game_difficulty", "activity_heatmap", "visitor_loyalty",
-                    "stickiness"):
+                    "game_difficulty", "activity_heatmap", "today_hourly",
+                    "visitor_loyalty", "stickiness"):
             assert key in stats, f"missing stats key: {key}"
         assert len(stats["peak_hours"]) == 24
         assert len(stats["activity_heatmap"]) == 7
@@ -699,6 +699,22 @@ class TestExtendedStats:
         stats = run(go())
         assert stats["peak_hours"][str(local.hour)] == 1
         assert stats["activity_heatmap"][local.weekday()][local.hour] == 1
+
+    def test_today_hourly_uses_local_time_and_trims(self, db_path):
+        """today_hourly buckets today's pageviews by local hour, trimmed to now."""
+        local = JAN.astimezone(ZoneInfo("Europe/Berlin"))
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", "/")
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert len(stats["today_hourly"]) == local.hour + 1
+        assert stats["today_hourly"][local.hour] == 1
+        assert sum(stats["today_hourly"]) == 1
 
     def test_visitor_loyalty_new_vs_returning(self, db_path):
         """One fp on two days = returning; one fp on a single day = new."""
