@@ -31,6 +31,7 @@ async function fireConfetti() {
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
+import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
@@ -274,7 +275,7 @@ export default function GameClient() {
   // Both the loading skeleton and the game container share min-h-screen so
   // the "Laden…" → game swap doesn't cause a Cumulative Layout Shift (CLS).
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground text-lg">Laden...</div></div>;
+    return <GameSkeleton />;
   }
 
   return (

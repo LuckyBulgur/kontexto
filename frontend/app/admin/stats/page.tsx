@@ -5,10 +5,14 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { adminPasskeyLogin, getAdminStats } from "@/lib/api";
 import type { StatsData } from "@/lib/types";
+import StatsSkeleton from "@/components/admin/StatsSkeleton";
 
 // Recharts (and all chart components) are loaded only when stats data is ready,
 // keeping them out of the initial page bundle.
-const Dashboard = dynamic(() => import("@/components/admin/StatsCharts"), { ssr: false });
+const Dashboard = dynamic(() => import("@/components/admin/StatsCharts"), {
+  ssr: false,
+  loading: () => <StatsSkeleton />,
+});
 
 const TOKEN_KEY = "kontexto_admin_token";
 
@@ -60,7 +64,7 @@ export default function AdminStatsPage() {
         </Button>
       </div>
 
-      {loading && <p className="text-muted-foreground">Einen Moment – die Statistiken werden geladen…</p>}
+      {loading && <StatsSkeleton />}
       {error && <p className="text-red-500">{error}</p>}
       {stats && <Dashboard stats={stats} />}
     </main>

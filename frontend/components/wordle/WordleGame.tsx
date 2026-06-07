@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import Board from "./Board";
 import Keyboard from "./Keyboard";
+import WordleBoardSkeleton from "./WordleBoardSkeleton";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
 import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
 import { reportCompletion } from "@/lib/analytics";
@@ -25,6 +26,7 @@ interface WordleGameProps {
 
 export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumber = null, onStatsOpen, onGameEnd }: WordleGameProps) {
   const [gameNumber, setGameNumber] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [guesses, setGuesses] = useState<string[]>([]);
   const [evaluations, setEvaluations] = useState<TileColor[][]>([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -73,7 +75,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
     if (mode === "random") {
       if (forcedGameNumber !== null) init(forcedGameNumber);
     } else {
-      getWordleGame().then(({ game_number }) => init(game_number));
+      getWordleGame().then(({ game_number }) => init(game_number)).catch(() => setLoadError(true));
     }
   }, []);
 
@@ -218,8 +220,11 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
     return () => document.removeEventListener("keydown", handler);
   }, [handleKey]);
 
+  if (loadError) {
+    return <div className="flex justify-center py-20 text-destructive">Spiel konnte nicht geladen werden.</div>;
+  }
   if (gameNumber === null) {
-    return <div className="flex justify-center py-20 text-muted-foreground">Laden...</div>;
+    return <WordleBoardSkeleton />;
   }
 
   return (

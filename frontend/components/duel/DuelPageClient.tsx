@@ -38,6 +38,7 @@ import CreditsDialog from "@/components/CreditsDialog";
 import PlayerBar from "@/components/duel/PlayerBar";
 import JoinDialog from "@/components/duel/JoinDialog";
 import DuelResultCard from "@/components/duel/DuelResultCard";
+import DuelSkeleton from "@/components/duel/DuelSkeleton";
 import { useDuelWebSocket } from "@/lib/use-duel-websocket";
 import {
   getDuelState,
@@ -373,11 +374,7 @@ export default function DuelPageClient() {
   }, [duelId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground text-lg">Laden...</div>
-      </div>
-    );
+    return <DuelSkeleton />;
   }
 
   if (!duelId) {
