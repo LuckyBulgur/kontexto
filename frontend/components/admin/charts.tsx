@@ -393,10 +393,8 @@ const HEATMAP_LEVEL_BG = [
   "color-mix(in oklab, var(--color-chart-2) 75%, var(--color-card))",
   "var(--color-chart-2)",
 ];
-const HEATMAP_SUM_BG = "color-mix(in oklab, var(--color-chart-2) 55%, var(--color-card))";
 const HEATMAP_NIGHT_BG = "color-mix(in oklab, var(--color-foreground) 6%, transparent)";
 const HEATMAP_LABEL_W = "2.5rem";
-const HEATMAP_RIGHT_W = "2.75rem";
 const HEATMAP_NIGHT_HOURS = 6; // shade 0–5 Uhr
 const HEATMAP_HOUR_TICKS = new Set([0, 6, 12, 18, 23]);
 
@@ -409,14 +407,10 @@ export function Heatmap({ data }: { data: number[][] }) {
   const flat = data.flat();
   const total = flat.reduce((a, b) => a + b, 0);
 
-  // Peak cell, marginal sums and quantile thresholds. Cheap to derive each render
+  // Peak cell and quantile thresholds. Cheap to derive each render
   // (168 cells) — no memoisation needed.
   let peak = { wd: 0, h: 0, v: -1 };
   data.forEach((row, wd) => row.forEach((v, h) => { if (v > peak.v) peak = { wd, h, v }; }));
-  const hourSums = Array.from({ length: 24 }, (_, h) => data.reduce((a, row) => a + (row[h] ?? 0), 0));
-  const daySums = data.map((row) => row.reduce((a, b) => a + b, 0));
-  const maxHourSum = Math.max(1, ...hourSums);
-  const maxDaySum = Math.max(1, ...daySums);
   const nz = flat.filter((v) => v > 0).sort((a, b) => a - b);
   const quantile = (p: number) => (nz.length ? nz[Math.min(nz.length - 1, Math.floor(p * nz.length))] : 0);
   const t1 = quantile(0.25), t2 = quantile(0.5), t3 = quantile(0.75);
@@ -435,8 +429,8 @@ export function Heatmap({ data }: { data: number[][] }) {
   const shown = active ?? { wd: peak.wd, h: peak.h };
   const shownValue = data[shown.wd][shown.h];
   const gridStyle = {
-    gridTemplateColumns: `${HEATMAP_LABEL_W} repeat(24, minmax(0, 1fr)) ${HEATMAP_RIGHT_W}`,
-    gap: "3px",
+    gridTemplateColumns: `${HEATMAP_LABEL_W} repeat(24, minmax(0, 1fr))`,
+    gap: "4px",
   } as const;
 
   return (
@@ -459,7 +453,7 @@ export function Heatmap({ data }: { data: number[][] }) {
       </div>
 
       <div className="overflow-x-auto">
-        <div style={{ minWidth: 560 }}>
+        <div style={{ minWidth: 600 }}>
           <div
             ref={gridRef}
             role="grid"
@@ -487,7 +481,7 @@ export function Heatmap({ data }: { data: number[][] }) {
             }}
           >
             {/* Night band (0–6 Uhr), painted behind the cells. */}
-            <div className="pointer-events-none absolute inset-y-0" style={{ left: HEATMAP_LABEL_W, right: HEATMAP_RIGHT_W, zIndex: -10 }} aria-hidden>
+            <div className="pointer-events-none absolute inset-y-0" style={{ left: HEATMAP_LABEL_W, right: 0, zIndex: -10 }} aria-hidden>
               <div className="absolute inset-y-0 left-0 rounded" style={{ width: `${(HEATMAP_NIGHT_HOURS / 24) * 100}%`, background: HEATMAP_NIGHT_BG }} />
             </div>
 
@@ -499,7 +493,6 @@ export function Heatmap({ data }: { data: number[][] }) {
                   {h}
                 </span>
               ))}
-              <span />
             </div>
 
             {/* Weekday rows */}
@@ -523,30 +516,15 @@ export function Heatmap({ data }: { data: number[][] }) {
                       onPointerMove={(e) => setTip({ x: e.clientX, y: e.clientY })}
                       onPointerDown={(e) => { setActive({ wd, h }); setTip({ x: e.clientX, y: e.clientY }); }}
                       onFocus={() => setActive({ wd, h })}
-                      className={`h-5 rounded-[3px] outline-none transition-shadow ${
+                      className={`h-5 rounded-[4px] outline-none transition-shadow ${
                         isActive ? "relative z-10 ring-2 ring-foreground" : isPeak ? "relative z-10 ring-1 ring-foreground/50" : ""
                       }`}
                       style={{ backgroundColor: HEATMAP_LEVEL_BG[level(v)] }}
                     />
                   );
                 })}
-                {/* Row total (Σ Wochentag) */}
-                <div className="pl-1.5" aria-hidden>
-                  <div className="h-2.5 rounded-sm" style={{ width: `${Math.max(4, (daySums[wd] / maxDaySum) * 100)}%`, backgroundColor: HEATMAP_SUM_BG }} />
-                </div>
               </div>
             ))}
-
-            {/* Hour totals (Σ Stunde) */}
-            <div className="grid items-end pt-1.5" style={gridStyle} aria-hidden>
-              <span />
-              {hourSums.map((s, h) => (
-                <div key={h} className="flex h-6 items-end justify-center">
-                  <div className="w-full max-w-[10px] rounded-t-sm" style={{ height: `${Math.max(4, (s / maxHourSum) * 100)}%`, backgroundColor: HEATMAP_SUM_BG }} />
-                </div>
-              ))}
-              <span />
-            </div>
           </div>
 
           {/* Legend */}
@@ -554,17 +532,16 @@ export function Heatmap({ data }: { data: number[][] }) {
             <span className="flex items-center gap-1.5">
               wenig
               {HEATMAP_LEVEL_BG.map((bg, i) => (
-                <span key={i} className="inline-block h-3 w-3 rounded-[3px]" style={{ backgroundColor: bg }} />
+                <span key={i} className="inline-block h-3 w-3 rounded-[4px]" style={{ backgroundColor: bg }} />
               ))}
               viel
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-[3px] ring-1 ring-foreground/50" /> Spitze
+              <span className="inline-block h-3 w-3 rounded-[4px] ring-1 ring-foreground/50" /> Spitze
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-3 w-3 rounded" style={{ background: HEATMAP_NIGHT_BG }} /> Nacht
             </span>
-            <span>Randbalken: Σ je Tag · Σ je Stunde</span>
           </div>
         </div>
       </div>
