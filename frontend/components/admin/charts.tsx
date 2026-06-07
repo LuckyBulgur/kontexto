@@ -5,7 +5,7 @@
 // charts follow the light/dark theme automatically. recharts is client-only and
 // lives only in the /admin/stats route bundle.
 
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -403,6 +403,9 @@ function compactCount(v: number): string {
 }
 
 export function Heatmap({ data }: { data: number[][] }) {
+  // Hovered cell + cursor position for the floating tooltip.
+  const [tip, setTip] = useState<{ wd: number; h: number; x: number; y: number } | null>(null);
+
   const flat = data.flat();
   const total = flat.reduce((a, b) => a + b, 0);
   if (total === 0) return <Empty />;
@@ -455,8 +458,10 @@ export function Heatmap({ data }: { data: number[][] }) {
                       key={h}
                       role="gridcell"
                       aria-label={`${WEEKDAY_FULL[wd]} ${h} Uhr: ${formatNumber(v)} Aufrufe`}
-                      title={`${WEEKDAY_FULL[wd]}, ${h} Uhr · ${formatNumber(v)} Aufrufe`}
-                      className={`flex h-7 items-center justify-center rounded-md text-[11px] tabular-nums ${
+                      onPointerEnter={(e) => setTip({ wd, h, x: e.clientX, y: e.clientY })}
+                      onPointerMove={(e) => setTip({ wd, h, x: e.clientX, y: e.clientY })}
+                      onPointerLeave={() => setTip(null)}
+                      className={`flex h-7 cursor-default items-center justify-center rounded-md text-[11px] tabular-nums transition-shadow hover:ring-2 hover:ring-foreground/40 ${
                         v === 0 ? "text-muted-foreground/40" : "font-medium text-foreground"
                       } ${isPeak ? "ring-2 ring-foreground/60" : ""}`}
                       style={{ backgroundColor: HEATMAP_LEVEL_BG[level(v)] }}
@@ -484,6 +489,17 @@ export function Heatmap({ data }: { data: number[][] }) {
           </div>
         </div>
       </div>
+
+      {/* Cursor-following tooltip — instant, styled, shown on hover/touch. */}
+      {tip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-md"
+          style={{ left: Math.min(tip.x + 14, (typeof window !== "undefined" ? window.innerWidth : 9999) - 160), top: tip.y + 14 }}
+        >
+          <div className="font-medium text-popover-foreground">{WEEKDAY_FULL[tip.wd]}, {tip.h} Uhr</div>
+          <div className="text-muted-foreground">{formatNumber(data[tip.wd][tip.h])} Aufrufe</div>
+        </div>
+      )}
     </div>
   );
 }
