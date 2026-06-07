@@ -3,8 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Structure-faithful placeholder for the admin stats dashboard. Deliberately
 // self-contained: it must NOT import from charts.tsx, which pulls recharts into
 // the bundle — keeping recharts confined to the lazily-loaded Dashboard chunk.
-// The container classes mirror the real components in StatsCharts.tsx / charts.tsx
-// so swapping skeleton → dashboard does not shift layout.
+// The container classes mirror the real shell in StatsCharts.tsx (grouped
+// sidebar + the default "Überblick" section) so swapping skeleton → dashboard
+// does not shift layout.
 
 function SectionHeaderSkeleton() {
   return (
@@ -31,74 +32,66 @@ function KpiCardSkeleton({ spark = false }: { spark?: boolean }) {
   );
 }
 
-function PanelSkeleton({ height = 200, span2 = false }: { height?: number; span2?: boolean }) {
+// Item counts per sidebar group (Dashboard · Reichweite · Spiel · System).
+const SIDEBAR_GROUPS = [1, 3, 2, 2];
+
+function SidebarSkeleton() {
   return (
-    <div className={`rounded-2xl border bg-card p-4 shadow-sm sm:p-5 ${span2 ? "lg:col-span-2" : ""}`}>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-3 w-16" />
+    <div className="lg:w-56 lg:shrink-0">
+      {/* Mobile / tablet: horizontal pill bar */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-28 shrink-0 rounded-xl" />
+        ))}
       </div>
-      <Skeleton className="w-full rounded-xl" style={{ height }} />
+      {/* Desktop: grouped vertical list */}
+      <div className="hidden lg:block lg:space-y-6">
+        {SIDEBAR_GROUPS.map((count, gi) => (
+          <div key={gi} className="space-y-1">
+            <Skeleton className="mx-3 h-3 w-20" />
+            <div className="space-y-0.5">
+              {Array.from({ length: count }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function StatsSkeleton() {
   return (
-    <div className="space-y-12" aria-busy="true" aria-label="Statistiken werden geladen">
-      {/* Greeting header */}
-      <div className="space-y-3 rounded-3xl border p-6 shadow-sm sm:p-8">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-7 w-3/4 max-w-2xl" />
-        <Skeleton className="h-3 w-48" />
-      </div>
-
-      {/* Überblick */}
-      <section className="space-y-4">
+    <div
+      className="flex flex-col gap-6 lg:flex-row lg:gap-8"
+      aria-busy="true"
+      aria-label="Statistiken werden geladen"
+    >
+      <SidebarSkeleton />
+      <div className="min-w-0 flex-1 space-y-6">
+        {/* Section header + range toggle */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionHeaderSkeleton />
           <Skeleton className="h-9 w-56 rounded-xl" />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} spark />)}
-        </div>
-        <Skeleton className="h-3 w-40" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
-        </div>
-      </section>
 
-      {/* Seit Beginn der Zählung */}
-      <section className="space-y-4">
-        <SectionHeaderSkeleton />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+        {/* Default "Überblick" section: greeting + two KPI grids */}
+        <div className="space-y-4">
+          <div className="space-y-3 rounded-3xl border p-6 shadow-sm sm:p-8">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-7 w-3/4 max-w-2xl" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} spark />)}
+          </div>
+          <Skeleton className="h-3 w-40" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+          </div>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <PanelSkeleton height={120} />
-          <PanelSkeleton height={160} />
-        </div>
-      </section>
-
-      {/* Besucher & Reichweite */}
-      <section className="space-y-4">
-        <SectionHeaderSkeleton />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <PanelSkeleton height={200} />
-          <PanelSkeleton height={200} />
-          <PanelSkeleton height={220} />
-          <PanelSkeleton height={220} />
-          <PanelSkeleton height={180} span2 />
-        </div>
-      </section>
-
-      {/* Spielverhalten */}
-      <section className="space-y-4">
-        <SectionHeaderSkeleton />
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => <PanelSkeleton key={i} height={200} />)}
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
