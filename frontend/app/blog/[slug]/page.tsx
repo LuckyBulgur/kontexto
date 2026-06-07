@@ -10,12 +10,21 @@ import { posts, getPost } from "@/lib/blog";
 // are fragile under static export. Every module is statically known at
 // build time, enabling reliable tree-shaking and chunk splitting.
 const loaders: Record<string, () => Promise<{ default: ComponentType }>> = {
-  "kontexto-vs-wordle": () =>
-    import("@/content/blog/kontexto-vs-wordle.mdx"),
+  "kontexto-tipps-schneller-gewinnen": () =>
+    import("@/content/blog/kontexto-tipps-schneller-gewinnen.mdx"),
+  "haeufige-fehler-bei-kontexto": () =>
+    import("@/content/blog/haeufige-fehler-bei-kontexto.mdx"),
+  "semantische-wortfelder-strategie": () =>
+    import("@/content/blog/semantische-wortfelder-strategie.mdx"),
+  "warum-schlechter-rang": () => import("@/content/blog/warum-schlechter-rang.mdx"),
+  "worteinbettungen-erklaert": () =>
+    import("@/content/blog/worteinbettungen-erklaert.mdx"),
+  "kosinus-aehnlichkeit-einfach-erklaert": () =>
+    import("@/content/blog/kosinus-aehnlichkeit-einfach-erklaert.mdx"),
+  "kontexto-vs-wordle": () => import("@/content/blog/kontexto-vs-wordle.mdx"),
   "wie-funktioniert-fasttext": () =>
     import("@/content/blog/wie-funktioniert-fasttext.mdx"),
-  "beste-startwoerter": () =>
-    import("@/content/blog/beste-startwoerter.mdx"),
+  "beste-startwoerter": () => import("@/content/blog/beste-startwoerter.mdx"),
   "was-ist-contexto-auf-deutsch": () =>
     import("@/content/blog/was-ist-contexto-auf-deutsch.mdx"),
 };
@@ -25,6 +34,13 @@ export function generateStaticParams() {
 }
 
 export const dynamicParams = false;
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString("de-DE", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
 export async function generateMetadata({
   params,
@@ -65,12 +81,33 @@ export default async function BlogPost({
         ])}
       />
       <StructuredData data={blogPostingSchema(meta)} />
-      <article className="mx-auto max-w-2xl px-4 py-8 text-sm leading-relaxed text-muted-foreground">
-        <Link href="/blog/" className="text-sm hover:text-foreground">
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <Link
+          href="/blog/"
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
           &larr; Alle Artikel
         </Link>
-        <Article />
-      </article>
+        <p className="mt-6 text-xs uppercase tracking-wide text-muted-foreground">
+          {meta.category} · {fmt(meta.date)}
+          {meta.updated && meta.updated !== meta.date
+            ? ` · aktualisiert am ${fmt(meta.updated)}`
+            : ""}
+        </p>
+        <article className="mt-2 text-base leading-7 text-muted-foreground [&_h1]:mt-2">
+          <Article />
+        </article>
+
+        <footer className="mt-12 border-t border-border pt-6 text-sm">
+          <p className="font-semibold text-foreground">Weiterlesen</p>
+          <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Inhalte">
+            <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>
+            <Link href="/glossar/" className="text-primary underline">Glossar</Link>
+            <Link href="/vergleich/" className="text-primary underline">Spiele im Vergleich</Link>
+            <Link href="/blog/" className="text-primary underline">Alle Artikel</Link>
+          </nav>
+        </footer>
+      </div>
     </div>
   );
 }

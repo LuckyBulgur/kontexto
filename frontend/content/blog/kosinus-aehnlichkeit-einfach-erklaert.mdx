@@ -1,0 +1,41 @@
+# Kosinus-Ähnlichkeit einfach erklärt
+
+Kontexto wandelt zwei Wörter in eine einzige Zahl um: wie ähnlich sie sich sind. Das Werkzeug dahinter heißt **Kosinus-Ähnlichkeit**. Klingt nach Mathematikunterricht – ist aber erstaunlich anschaulich. Hier ist die Erklärung ganz ohne schwere Formeln.
+
+## Wörter sind Pfeile
+
+Wie im Artikel [Worteinbettungen einfach erklärt](/blog/worteinbettungen-erklaert/) beschrieben, ist jedes Wort ein Punkt in einem [Bedeutungsraum](/glossar/#vektorraum). Vom Nullpunkt aus betrachtet ist jeder dieser Punkte das Ende eines **Pfeils** (eines Vektors). Jedes Wort hat also eine Richtung, in die sein Pfeil zeigt.
+
+## Es kommt auf den Winkel an
+
+Um zu messen, wie ähnlich sich zwei Wörter sind, schaut die Kosinus-Ähnlichkeit auf den **Winkel zwischen ihren Pfeilen**:
+
+- Zeigen zwei Pfeile in fast dieselbe Richtung (kleiner Winkel), sind die Wörter sehr ähnlich.
+- Stehen sie im rechten Winkel zueinander, haben die Wörter wenig miteinander zu tun.
+- Zeigen sie in entgegengesetzte Richtungen, sind sie inhaltlich gegensätzlich.
+
+Der „Kosinus“ ist dabei nur die mathematische Funktion, die einen Winkel in eine handliche Zahl übersetzt.
+
+## Die Skala von -1 bis 1
+
+Die [Kosinus-Ähnlichkeit](/glossar/#kosinus-aehnlichkeit) liefert immer einen Wert zwischen -1 und 1:
+
+- **1** – identische Richtung, maximale Ähnlichkeit.
+- **0** – kein Zusammenhang.
+- **-1** – genau entgegengesetzt.
+
+Für „Hund“ und „Katze“ läge der Wert hoch (nahe 1), für „Hund“ und „Steuererklärung“ nahe 0.
+
+## Warum der Winkel und nicht der Abstand?
+
+Eine berechtigte Frage: Warum misst man nicht einfach den Abstand zwischen den Punkten? Der Grund: Häufige Wörter haben oft „längere“ Pfeile als seltene. Würde man den Abstand messen, bekämen häufige Wörter unfair andere Werte. Der **Winkel** ignoriert die Länge und schaut nur auf die Richtung – also auf die reine Bedeutung. Genau deshalb ist die Kosinus-Ähnlichkeit das Standardmaß für Worteinbettungen.
+
+> Stell dir zwei Kompassnadeln vor: Es ist egal, wie lang sie sind – wichtig ist nur, ob sie in dieselbe Richtung zeigen.
+
+## Vom Ähnlichkeitswert zum Rang
+
+Kontexto zeigt dir den Kosinus-Wert nicht direkt an. Warum? Weil „0,42“ schwer einzuordnen ist. Stattdessen berechnet das Spiel die Ähnlichkeit deines Wortes zum Zielwort, vergleicht sie mit der **aller anderen Wörter** und gibt dir die Position in dieser sortierten Liste: den [Rang](/glossar/#rang). „Rang 1“ ist das Zielwort, „Rang 300“ ist greifbar besser als „Rang 5.000“. So wird aus einer abstrakten Zahl ein verständlicher Fortschritt – ein Vorteil gegenüber Spielen wie Semantle, die rohe Prozentwerte zeigen (siehe [Spielvergleich](/vergleich/)).
+
+## Fazit
+
+Die Kosinus-Ähnlichkeit misst den Winkel zwischen zwei Wort-Pfeilen und damit, wie ähnlich sich ihre Bedeutung ist. Kontexto übersetzt dieses Maß in einen Rang, den du beim Spielen direkt nutzt. Wer das Prinzip kennt, versteht auch, [warum manche Wörter überraschend schlecht ranken](/blog/warum-schlechter-rang/) – und spielt mit mehr Gespür für die Logik dahinter.

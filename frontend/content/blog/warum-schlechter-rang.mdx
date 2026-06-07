@@ -1,0 +1,35 @@
+# Warum hat mein Wort einen schlechten Rang?
+
+Du tippst ein Wort, das perfekt zum Thema zu passen scheint – und bekommst Rang 4.000. Frustrierend. Doch dahinter steckt kein Fehler, sondern eine klare Logik. Dieser Artikel erklärt, wie der Rang entsteht, warum dein Bauchgefühl manchmal danebenliegt und was ein hoher Rang wirklich bedeutet.
+
+## Wie der Rang berechnet wird
+
+Hinter Kontexto steht ein KI-Modell, das jedem deutschen Wort einen [Vektor](/glossar/#vektorraum) zuordnet – eine lange Zahlenreihe, die seine Bedeutung beschreibt. Diese [Worteinbettungen](/glossar/#worteinbettung) entstehen daraus, **mit welchen anderen Wörtern ein Wort in echten Texten gemeinsam vorkommt**.
+
+Zum Raten vergleicht Kontexto deinen Wortvektor mit dem des Zielworts über die [Kosinus-Ähnlichkeit](/glossar/#kosinus-aehnlichkeit). Dann sortiert es **den gesamten Wortschatz** nach dieser Ähnlichkeit. Dein Rang ist schlicht die Position deines Wortes in dieser Rangliste. Rang 1 ist das Zielwort, Rang 50.000 das unähnlichste Wort.
+
+## Warum „passende“ Wörter trotzdem hinten landen
+
+Hier kommt der entscheidende Punkt: Das Modell kennt **Kontext-Nähe**, nicht deine persönliche Assoziation. Drei typische Überraschungen:
+
+- **Logische Verwandtschaft ≠ Kontext-Nähe.** „Gabel“ und „Löffel“ liegen nah, weil sie in Texten oft zusammen auftauchen. „Gabel“ und „Astgabel“ klingen verwandt, kommen aber in völlig verschiedenen Kontexten vor – also großer Abstand.
+- **Mehrdeutigkeit verwässert.** Wörter wie „Bank“ oder „Schloss“ haben mehrere Bedeutungen. Ihr Vektor ist eine Mischung daraus und liegt deshalb selten ganz nah an einer speziellen Bedeutung.
+- **Seltene Wörter sind schlecht eingebettet.** Wörter, die im Trainingstext kaum vorkamen, haben ungenaue Vektoren und landen oft unerwartet weit hinten.
+
+> Ein hoher Rang heißt nicht „falsches Wort“, sondern „in echten deutschen Texten steht dieses Wort selten im selben Kontext wie das Zielwort“.
+
+## Warum die Schreibweise egal ist
+
+Eine häufige Verwirrung: „Hund“ liegt nah bei „Katze“, aber „Hundert“ ist meilenweit entfernt – obwohl es fast gleich geschrieben wird. Der Grund: Das Modell schaut nicht auf Buchstaben, sondern auf Bedeutung im Kontext. „Hundert“ erscheint in Texten über Zahlen, „Hund“ in Texten über Tiere. Buchstabenähnlichkeit ist reiner Zufall.
+
+## Was du aus einem schlechten Rang lernst
+
+Ein hoher Rang ist kein verlorener Zug, sondern Information:
+
+1. Er schließt ein Bedeutungsfeld aus und verkleinert den Suchraum.
+2. Er zeigt, dass deine Assoziation nicht der Kontext-Nähe entspricht – probiere ein anderes Feld.
+3. Mehrere hohe Ränge in einem Feld sind das klare Signal, dieses Feld zu verlassen.
+
+## Fazit
+
+Der Rang spiegelt nicht, wie verwandt zwei Wörter für dich sind, sondern wie nah sie sich in echten deutschen Texten kontextuell stehen. Wer das versteht, ärgert sich weniger über überraschende Ränge und nutzt sie stattdessen als Wegweiser. Mehr zur Technik in [Worteinbettungen einfach erklärt](/blog/worteinbettungen-erklaert/) und [Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/); konkrete Spielzüge in der [Strategie](/strategie/).
