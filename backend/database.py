@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     ua_class TEXT NOT NULL,
     device TEXT,
     browser TEXT,
+    os TEXT,
     country TEXT,
     referrer_domain TEXT
 );
@@ -110,6 +111,26 @@ CREATE TABLE IF NOT EXISTS analytics_word_counts (
 CREATE TABLE IF NOT EXISTS analytics_meta (
     key TEXT PRIMARY KEY,
     value TEXT
+);
+
+-- Analytics: all-time unique-visitor HyperLogLog sketch (register -> max rank).
+-- Privacy-preserving cardinality: stores only register maxima, never an identifier,
+-- so it is non-reversible and cannot answer "was person X ever here?". Folded at
+-- pageview time via an idempotent MAX-upsert (commutative => concurrency-safe across
+-- the 5 SQLite writers; no read-modify-write race, no stored fingerprint).
+CREATE TABLE IF NOT EXISTS analytics_hll (
+    register INTEGER PRIMARY KEY,
+    rank INTEGER NOT NULL
+);
+
+-- Analytics: per-calendar-month unique-visitor HLL sketches. Permanent (never
+-- pruned), so monthly unique counts survive the 35-day raw-event retention and
+-- power an honest month-over-month visitor comparison.
+CREATE TABLE IF NOT EXISTS analytics_hll_monthly (
+    month TEXT NOT NULL,         -- 'YYYY-MM'
+    register INTEGER NOT NULL,
+    rank INTEGER NOT NULL,
+    PRIMARY KEY (month, register)
 );
 
 -- Analytics: server-authoritative per-game (per target word) difficulty stats.
@@ -178,6 +199,11 @@ async def init_db(db_path: str) -> None:
         # Migration: add tip_count column if missing
         try:
             await db.execute("ALTER TABLE duel_players ADD COLUMN tip_count INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass  # column already exists
+        # Migration: add per-event OS class for the operating-system breakdown.
+        try:
+            await db.execute("ALTER TABLE analytics_events ADD COLUMN os TEXT")
         except Exception:
             pass  # column already exists
         await db.commit()

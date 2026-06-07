@@ -4,18 +4,24 @@
 // page. Extracted so next/dynamic can lazy-load it (and recharts with it) only
 // when the chart section is actually rendered.
 
+import { useState } from "react";
 import {
-  Activity, Eye, Gamepad2, Lightbulb, Repeat, Sparkles,
-  Target, Trophy, Type, Users, Wrench,
+  Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb,
+  PartyPopper, Repeat, Sparkles, Target, TrendingUp,
+  Trophy, Type, Users, Wrench,
 } from "lucide-react";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  AreaTrend, BarRanking, DonutChart, Heatmap, Histogram, KpiCard, Panel, SectionHeader,
+  AreaTrend, BarRanking, CHART_COLORS, DonutChart, Heatmap, Histogram, KpiCard,
+  Panel, RANGE_LABELS, RangeToggle, SectionHeader, StackedAreaTrend,
+  sliceTimeline, sumTimeline, type RangeKey,
 } from "@/components/admin/charts";
-import { formatDecimal, formatNumber, formatPercent, fullDate, trend } from "@/lib/format";
-import type { GameDifficultyEntry, StatsData } from "@/lib/types";
+import {
+  formatDecimal, formatNumber, formatPercent, fullDate, greeting, shortMonth, trend,
+} from "@/lib/format";
+import type { GameDifficultyEntry, StatsData, TimelinePoint } from "@/lib/types";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "Startseite", "/wordle": "Wördle", "/duel": "Kontexto-Duell",
@@ -34,6 +40,43 @@ const DEVICE_LABELS: Record<string, string> = {
 const GUESS_BUCKETS = ["1", "2-3", "4-5", "6-10", "11-20", "21-50", "51-100", "100+"];
 const TIME_BUCKETS = ["<1 Min", "1-2 Min", "2-5 Min", "5-10 Min", "10-20 Min", "20-45 Min", "45+ Min"];
 const RANK_BUCKETS = ["1-10", "11-50", "51-200", "201-1000", "1001-5000", "5000+"];
+
+const MODE_SERIES = [
+  { key: "kontexto", label: "Kontexto", accent: 0 },
+  { key: "duel", label: "Kontexto-Duell", accent: 2 },
+  { key: "wordle", label: "Wördle", accent: 1 },
+];
+
+/** Daily average guesses per solve, only for days that had at least one solve. */
+function avgGuessesPerSolveTimeline(
+  guesses: TimelinePoint[], solves: TimelinePoint[],
+): TimelinePoint[] {
+  const byDate = new Map(guesses.map((p) => [p.date, p.value]));
+  const out: TimelinePoint[] = [];
+  for (const s of solves) {
+    if (s.value > 0) {
+      const g = byDate.get(s.date) ?? 0;
+      out.push({ date: s.date, value: Math.round((g / s.value) * 10) / 10 });
+    }
+  }
+  return out;
+}
+
+/** Next "round" milestone above n (100, 200, 500, 1k, 2k, 5k, 10k, …). */
+function nextMilestone(n: number): number {
+  if (n < 100) return 100;
+  const pow = 10 ** Math.floor(Math.log10(n));
+  for (const f of [2, 5, 10]) if (n < f * pow) return f * pow;
+  return 10 * pow;
+}
+
+/** Highest round milestone already reached (0 below 100). */
+function lastMilestone(n: number): number {
+  if (n < 100) return 0;
+  const pow = 10 ** Math.floor(Math.log10(n));
+  for (const f of [10, 5, 2, 1]) if (n >= f * pow) return f * pow;
+  return pow;
+}
 
 function WordTable({ rows }: { rows: GameDifficultyEntry[] }) {
   if (rows.length === 0) {
@@ -67,34 +110,144 @@ function WordTable({ rows }: { rows: GameDifficultyEntry[] }) {
   );
 }
 
+/** Friendly, plain-text summary of today's activity for the greeting header. */
+function GreetingHeader({ stats }: { stats: StatsData }) {
+  const visitors = stats.visitors.today;
+  const guesses = stats.counters_today.guesses ?? 0;
+  const solves = stats.counters_today.solves ?? 0;
+  const generated = new Date(stats.generated_at);
+
+  let summary: string;
+  if (visitors === 0 && guesses === 0) {
+    summary = "Heute ist noch alles ruhig – unten siehst du den gesamten Verlauf.";
+  } else {
+    const solvedPart = solves > 0 ? `, davon ${formatNumber(solves)} gelöst` : "";
+    summary = `Heute waren schon ${formatNumber(visitors)} Besucher:innen da und haben `
+      + `${formatNumber(guesses)} Wörter geraten${solvedPart}. 🎉`;
+  }
+
+  return (
+    <header
+      className="rounded-3xl border p-6 shadow-sm sm:p-8"
+      style={{
+        background:
+          "linear-gradient(135deg, color-mix(in oklab, var(--color-chart-1) 14%, var(--color-card)), "
+          + "color-mix(in oklab, var(--color-chart-4) 8%, var(--color-card)))",
+      }}
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Sparkles className="h-4 w-4" aria-hidden />
+        {greeting()}!
+      </div>
+      <p className="mt-2 max-w-3xl text-xl font-bold tracking-tight sm:text-2xl">{summary}</p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Stand: {fullDate(stats.generated_at.slice(0, 10))},{" "}
+        {generated.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
+      </p>
+    </header>
+  );
+}
+
+function DefRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-t py-2 first:border-t-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-right">
+        <span className="font-semibold tabular-nums">{value}</span>
+        {sub && <span className="ml-1 text-xs text-muted-foreground">{sub}</span>}
+      </span>
+    </div>
+  );
+}
+
+function Milestones({ stats }: { stats: StatsData }) {
+  const e = stats.engagement;
+  const finished = e.solves_total + e.reveals_total;
+  const rows = [
+    { label: "Spiele gespielt", value: finished, accent: 2 },
+    { label: "Wörter gelöst", value: e.solves_total, accent: 3 },
+    { label: "Rateversuche", value: e.guesses_total, accent: 0 },
+  ];
+  const headline = lastMilestone(finished);
+  return (
+    <Panel title="Meilensteine" hint="Fortschritt zur nächsten runden Marke">
+      {headline >= 100 && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-sm font-medium">
+          <PartyPopper className="h-4 w-4 shrink-0" aria-hidden style={{ color: CHART_COLORS[3] }} />
+          Über {formatNumber(headline)} Spiele gespielt!
+        </div>
+      )}
+      <div className="space-y-3">
+        {rows.map((r) => {
+          const next = nextMilestone(r.value);
+          const pct = Math.min(100, Math.round((r.value / next) * 100));
+          const color = CHART_COLORS[r.accent % CHART_COLORS.length];
+          return (
+            <div key={r.label} className="space-y-1">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-medium">{r.label}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {formatNumber(r.value)} / {formatNumber(next)}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
 export default function Dashboard({ stats }: { stats: StatsData }) {
+  const [range, setRange] = useState<RangeKey>("30d");
+
   const e = stats.engagement;
   const dist = stats.distributions ?? {};
-  const pageviewsTotal = Object.values(stats.pageviews_by_page).reduce((a, b) => a + b, 0);
   const finishedGames = e.solves_total + e.reveals_total;
   const loyaltyTotal = stats.visitor_loyalty.new + stats.visitor_loyalty.returning;
   const returningRate = loyaltyTotal ? stats.visitor_loyalty.returning / loyaltyTotal : null;
 
-  const vt = stats.visitors_timeline;
-  const visitorsTrend = vt.length >= 2 ? trend(vt[vt.length - 1].value, vt[vt.length - 2].value) : null;
-  const gt = stats.guesses_timeline;
-  const guessesTrend = gt.length >= 2 ? trend(gt[gt.length - 1].value, gt[gt.length - 2].value) : null;
+  // Range-aware overview figures. Unique visitors are an exact windowed count
+  // (today / 7d / 30d) or the all-time HLL estimate; the rest are summed.
+  const uniqueForRange =
+    range === "today" ? stats.active_users.dau
+    : range === "7d" ? stats.active_users.wau
+    : range === "30d" ? stats.active_users.mau
+    : stats.all_time.unique_visitors;
+
+  const at = stats.all_time;
+  const months = stats.monthly;
+  const thisMonth = months.length ? months[months.length - 1] : null;
+  const lastMonth = months.length >= 2 ? months[months.length - 2] : null;
+  const monthlyVisitors = months.map((m) => ({ date: m.month, value: m.unique_visitors }));
+  const avgPerSolve = avgGuessesPerSolveTimeline(stats.guesses_timeline, stats.solves_timeline);
 
   return (
     <div className="space-y-12">
-      {/* --- Überblick ------------------------------------------------------ */}
+      <GreetingHeader stats={stats} />
+
+      {/* --- Überblick (zeitraum-gesteuert) -------------------------------- */}
       <section className="space-y-4">
-        <SectionHeader icon={Sparkles} title="Überblick" description="Die wichtigsten Kennzahlen auf einen Blick" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <KpiCard icon={Users} accent={0} label="Besucher heute" value={formatNumber(stats.visitors.today)}
-            sub={`Woche: ${formatNumber(stats.visitors.week)} · Monat: ${formatNumber(stats.visitors.month)}`}
-            trend={visitorsTrend} spark={vt} />
-          <KpiCard icon={Eye} accent={1} label="Seitenaufrufe (30 T)" value={formatNumber(pageviewsTotal)}
-            spark={stats.pageviews_timeline} />
-          <KpiCard icon={Gamepad2} accent={2} label="Rateversuche heute" value={formatNumber(stats.counters_today.guesses ?? 0)}
-            sub={`gesamt: ${formatNumber(e.guesses_total)}`} trend={guessesTrend} spark={gt} />
-          <KpiCard icon={Trophy} accent={3} label="Lösungen" value={formatNumber(e.solves_total)}
-            sub={`abgeschlossen: ${formatNumber(finishedGames)}`} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionHeader icon={Sparkles} title="Überblick" description={`Zeitbezogene Kennzahlen für: ${RANGE_LABELS[range]}`} />
+          <RangeToggle value={range} onChange={setRange} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiCard icon={Users} accent={0} label="Eindeutige Besucher" value={formatNumber(uniqueForRange)}
+            spark={sliceTimeline(stats.visitors_timeline, range)} />
+          <KpiCard icon={Eye} accent={1} label="Seitenaufrufe" value={formatNumber(sumTimeline(stats.pageviews_timeline, range))}
+            spark={sliceTimeline(stats.pageviews_timeline, range)} />
+          <KpiCard icon={Gamepad2} accent={2} label="Rateversuche" value={formatNumber(sumTimeline(stats.guesses_timeline, range))}
+            spark={sliceTimeline(stats.guesses_timeline, range)} />
+          <KpiCard icon={Trophy} accent={3} label="Lösungen" value={formatNumber(sumTimeline(stats.solves_timeline, range))}
+            spark={sliceTimeline(stats.solves_timeline, range)} />
+        </div>
+
+        <p className="pt-2 text-xs font-medium text-muted-foreground">Qualität & Bindung (gesamt)</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <KpiCard icon={Target} accent={4} label="Lösungsrate" value={formatPercent(e.solve_rate)} />
           <KpiCard icon={Activity} accent={0} label="Ø Versuche/Lösung" value={formatDecimal(e.avg_guesses_per_solve)} />
           <KpiCard icon={Lightbulb} accent={3} label="Tipps genutzt" value={formatNumber(e.hints_total)} />
@@ -103,22 +256,78 @@ export default function Dashboard({ stats }: { stats: StatsData }) {
         </div>
       </section>
 
+      {/* --- Seit Beginn der Zählung --------------------------------------- */}
+      <section className="space-y-4">
+        <SectionHeader icon={Award} title="Seit Beginn der Zählung" description="Gesamtzahlen über die komplette Historie" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiCard icon={Users} accent={0} label="Eindeutige Besucher (gesamt)" value={formatNumber(at.unique_visitors)}
+            sub={at.unique_since ? `geschätzt · seit ${fullDate(at.unique_since)}` : "geschätzt"} />
+          <KpiCard icon={Eye} accent={1} label="Seitenaufrufe (gesamt)" value={formatNumber(at.pageviews)}
+            sub={at.data_since ? `seit ${fullDate(at.data_since)}` : undefined} />
+          <KpiCard icon={CalendarDays} accent={2} label="Besuchertage" value={formatNumber(at.visitor_days)}
+            sub="Summe täglicher Besucher" />
+          <KpiCard icon={Clock} accent={4} label="Aktiv (30 Tage)" value={formatNumber(stats.active_users.mau)}
+            sub={`7 T: ${formatNumber(stats.active_users.wau)} · heute: ${formatNumber(stats.active_users.dau)}`} />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel title="Rekorde" hint="bester einzelner Tag">
+            <div>
+              <DefRow label="Meiste Besucher"
+                value={stats.records.best_visitors_day ? formatNumber(stats.records.best_visitors_day.value) : "–"}
+                sub={stats.records.best_visitors_day ? `am ${fullDate(stats.records.best_visitors_day.date)}` : undefined} />
+              <DefRow label="Meiste Rateversuche"
+                value={stats.records.best_guesses_day ? formatNumber(stats.records.best_guesses_day.value) : "–"}
+                sub={stats.records.best_guesses_day ? `am ${fullDate(stats.records.best_guesses_day.date)}` : undefined} />
+            </div>
+          </Panel>
+          <Panel title="Aktive Besucher" hint="eindeutige Besucher im Zeitfenster">
+            <div>
+              <DefRow label="Heute (DAU)" value={formatNumber(stats.active_users.dau)} />
+              <DefRow label="Letzte 7 Tage (WAU)" value={formatNumber(stats.active_users.wau)} />
+              <DefRow label="Letzte 30 Tage (MAU)" value={formatNumber(stats.active_users.mau)} />
+              <DefRow label="Klebrigkeit (Tag/Monat)" value={formatPercent(stats.stickiness)} />
+            </div>
+          </Panel>
+        </div>
+      </section>
+
+      {/* --- Wachstum / Monatsvergleich ------------------------------------ */}
+      {thisMonth && (
+        <section className="space-y-4">
+          <SectionHeader icon={TrendingUp} title="Wachstum" description="Dieser Monat im Vergleich zum letzten" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <KpiCard icon={Users} accent={0} label="Eindeutige Besucher" value={formatNumber(thisMonth.unique_visitors)}
+              sub="dieser Monat" trend={lastMonth ? trend(thisMonth.unique_visitors, lastMonth.unique_visitors) : null} />
+            <KpiCard icon={Eye} accent={1} label="Seitenaufrufe" value={formatNumber(thisMonth.pageviews)}
+              sub="dieser Monat" trend={lastMonth ? trend(thisMonth.pageviews, lastMonth.pageviews) : null} />
+            <KpiCard icon={Gamepad2} accent={2} label="Spiele" value={formatNumber(thisMonth.games)}
+              sub="dieser Monat" trend={lastMonth ? trend(thisMonth.games, lastMonth.games) : null} />
+          </div>
+          <Panel title="Eindeutige Besucher pro Monat" hint="HLL-Schätzung">
+            <AreaTrend data={monthlyVisitors} accent={0} labelFormatter={shortMonth} />
+          </Panel>
+        </section>
+      )}
+
       {/* --- Besucher & Reichweite ----------------------------------------- */}
       <section className="space-y-4">
         <SectionHeader icon={Users} title="Besucher & Reichweite" description="Woher sie kommen und wann sie da sind" />
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Unique-Besucher – letzte 30 Tage">
-            <AreaTrend data={stats.visitors_timeline} accent={0} />
+          <Panel title="Unique-Besucher im Zeitverlauf">
+            <AreaTrend data={sliceTimeline(stats.visitors_timeline, range)} accent={0} />
           </Panel>
-          <Panel title="Seitenaufrufe – letzte 30 Tage">
-            <AreaTrend data={stats.pageviews_timeline} accent={1} />
+          <Panel title="Seitenaufrufe im Zeitverlauf">
+            <AreaTrend data={sliceTimeline(stats.pageviews_timeline, range)} accent={1} />
           </Panel>
           <Panel title="Geräte"><DonutChart data={stats.devices} labelMap={DEVICE_LABELS} /></Panel>
           <Panel title="Browser"><DonutChart data={stats.browsers} /></Panel>
+          <Panel title="Betriebssysteme">
+            <DonutChart data={stats.os} />
+          </Panel>
           <Panel title="Beliebteste Seiten">
             <BarRanking data={stats.pageviews_by_page} accent={1} labelMap={PAGE_LABELS} />
           </Panel>
-          <Panel title="Woher kommen die Besucher?">
+          <Panel title="Woher kommen die Besucher?" className="lg:col-span-2">
             <BarRanking data={stats.referrers} accent={2} emptyLabel="Keine externen Verweise" max={15} />
           </Panel>
           <Panel title="Wann wird gespielt? (Wochentag × Stunde, Ortszeit)" className="lg:col-span-2">
@@ -132,10 +341,19 @@ export default function Dashboard({ stats }: { stats: StatsData }) {
         <SectionHeader icon={Gamepad2} title="Spielverhalten" description="Wie gespielt, gelöst und aufgegeben wird" />
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel title="Rateversuche pro Tag">
-            <AreaTrend data={stats.guesses_timeline} accent={2} />
+            <AreaTrend data={sliceTimeline(stats.guesses_timeline, range)} accent={2} />
+          </Panel>
+          <Panel title="Lösungen pro Tag">
+            <AreaTrend data={sliceTimeline(stats.solves_timeline, range)} accent={3} />
           </Panel>
           <Panel title="Lösungsrate-Trend">
-            <AreaTrend data={stats.solve_rate_timeline} accent={3} valueFormatter={(v) => formatPercent(Number(v))} />
+            <AreaTrend data={sliceTimeline(stats.solve_rate_timeline, range)} accent={3} valueFormatter={(v) => formatPercent(Number(v))} />
+          </Panel>
+          <Panel title="Ø Versuche bis zur Lösung – Trend">
+            <AreaTrend data={sliceTimeline(avgPerSolve, range)} accent={0} valueFormatter={(v) => formatDecimal(Number(v))} />
+          </Panel>
+          <Panel title="Modus-Beliebtheit über Zeit" hint="abgeschlossene Spiele/Monat" className="lg:col-span-2">
+            <StackedAreaTrend data={stats.mode_monthly} series={MODE_SERIES} xKey="month" labelFormatter={shortMonth} />
           </Panel>
           <Panel title="Spiele je Modus (abgeschlossen)">
             <DonutChart data={stats.games_by_mode} labelMap={MODE_LABELS} />
@@ -177,6 +395,12 @@ export default function Dashboard({ stats }: { stats: StatsData }) {
             <WordTable rows={stats.game_difficulty?.easiest ?? []} />
           </Panel>
         </div>
+      </section>
+
+      {/* --- Meilensteine --------------------------------------------------- */}
+      <section className="space-y-4">
+        <SectionHeader icon={PartyPopper} title="Meilensteine" description="Was bisher zusammengekommen ist" />
+        <Milestones stats={stats} />
       </section>
 
       {/* --- Methodik & Technik (eingeklappt) ------------------------------ */}

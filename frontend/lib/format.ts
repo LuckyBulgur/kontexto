@@ -45,6 +45,29 @@ export function fullDate(iso: string): string {
   return iso;
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
+  "Jul", "Aug", "Sep", "Okt", "Nov", "Dez",
+] as const;
+
+/** ISO month "2026-06" -> "Jun 26" (compact axis label). */
+export function shortMonth(iso: string): string {
+  const [year, month] = iso.split("-");
+  const idx = Number(month) - 1;
+  if (idx >= 0 && idx < 12 && year) return `${MONTH_NAMES[idx]} ${year.slice(2)}`;
+  return iso;
+}
+
+/** Time-of-day greeting in German for the dashboard header (local time). */
+export function greeting(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour < 5) return "Gute Nacht";
+  if (hour < 11) return "Guten Morgen";
+  if (hour < 17) return "Guten Tag";
+  if (hour < 22) return "Guten Abend";
+  return "Gute Nacht";
+}
+
 /** Percent change of `current` vs `previous`, or null when there is no baseline. */
 export function trend(current: number, previous: number): { delta: number; positive: boolean } | null {
   if (!previous) return null;

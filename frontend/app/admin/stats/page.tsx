@@ -60,7 +60,7 @@ export default function AdminStatsPage() {
         </Button>
       </div>
 
-      {loading && <p className="text-muted-foreground">Lädt…</p>}
+      {loading && <p className="text-muted-foreground">Einen Moment – die Statistiken werden geladen…</p>}
       {error && <p className="text-red-500">{error}</p>}
       {stats && <Dashboard stats={stats} />}
     </main>

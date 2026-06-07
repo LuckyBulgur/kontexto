@@ -69,6 +69,21 @@ export interface TimelinePoint {
   value: number;
 }
 
+export interface DayRecord {
+  date: string;
+  value: number;
+}
+
+export interface MonthlyPoint {
+  month: string;
+  pageviews: number;
+  visitor_days: number;
+  guesses: number;
+  solves: number;
+  games: number;
+  unique_visitors: number;
+}
+
 export interface GameDifficultyEntry {
   mode: string;
   game_number: number;
@@ -110,12 +125,31 @@ export interface StatsData {
   top_words: { word: string; count: number }[];
   devices: Record<string, number>;
   browsers: Record<string, number>;
+  os: Record<string, number>;
   referrers: Record<string, number>;
   peak_hours: Record<string, number>;
   /** [weekday 0=Mon..6=Sun][hour 0..23] human pageview counts (Europe/Berlin). */
   activity_heatmap: number[][];
   visitor_loyalty: { new: number; returning: number };
   stickiness: number | null;
+  /** Cumulative "since the beginning" figures. unique_visitors is an HLL estimate. */
+  all_time: {
+    unique_visitors: number;
+    pageviews: number;
+    visitor_days: number;
+    data_since: string | null;
+    unique_since: string | null;
+  };
+  records: {
+    best_visitors_day: DayRecord | null;
+    best_guesses_day: DayRecord | null;
+  };
+  /** Active visitors over rolling windows (day / 7 days / 30 days). */
+  active_users: { dau: number; wau: number; mau: number };
+  /** Per-calendar-month series (oldest first). unique_visitors is an HLL estimate. */
+  monthly: MonthlyPoint[];
+  /** Finished games per month split by mode (popularity trend). */
+  mode_monthly: { month: string; kontexto: number; duel: number; wordle: number }[];
   bots_filtered: number;
   note: string;
 }
