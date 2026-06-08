@@ -18,6 +18,14 @@ export interface BlogMeta {
  */
 export const posts: BlogMeta[] = [
   {
+    slug: "warum-keine-namen-mehr-als-loesungswoerter",
+    title: "Neustart: Warum keine Namen mehr als Lösungswörter auftauchen",
+    description:
+      "Kontexto startet neu bei Tag 1: Der Algorithmus für die Lösungswörter wurde komplett neu gebaut. Warum vorher Namen wie „Emma“ oder „Berlin“ kamen – und was sich geändert hat.",
+    date: "2026-06-08",
+    category: "Technik",
+  },
+  {
     slug: "kontexto-tipps-schneller-gewinnen",
     title: "Kontexto-Tipps: 12 Strategien, mit denen du schneller gewinnst",
     description:

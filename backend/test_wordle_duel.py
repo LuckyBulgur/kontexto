@@ -23,7 +23,7 @@ def db_path():
 
 @pytest.fixture
 def db(db_path):
-    asyncio.get_event_loop().run_until_complete(init_db(db_path))
+    asyncio.run(init_db(db_path))
     return db_path
 
 
@@ -45,7 +45,7 @@ class TestCreateDuel:
                 assert len(result["duel_id"]) == 6
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
 
 class TestJoinDuel:
@@ -61,7 +61,7 @@ class TestJoinDuel:
                 assert joined["game_number"] == 42
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
     def test_duplicate_nickname_is_made_unique(self, db):
         async def _test():
@@ -80,7 +80,7 @@ class TestJoinDuel:
                 assert third["nickname"] == "Max (3)"
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
 
 class TestRecordGuess:
@@ -98,7 +98,7 @@ class TestRecordGuess:
                 assert state["players"][0]["solved"] is False
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
     def test_marks_solved(self, db):
         async def _test():
@@ -113,7 +113,7 @@ class TestRecordGuess:
                 assert state["players"][0]["solved"] is True
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
 
 class TestDuelStateResults:
@@ -137,7 +137,7 @@ class TestDuelStateResults:
                 assert state["players"][0]["results"] == [g1, g2]
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())
 
     def test_history_ordered_by_insertion(self, db):
         async def _test():
@@ -157,4 +157,4 @@ class TestDuelStateResults:
                 assert [h["word"] for h in history] == words
             finally:
                 await conn.close()
-        asyncio.get_event_loop().run_until_complete(_test())
+        asyncio.run(_test())

@@ -49,6 +49,9 @@ EXCLUDED_TARGET_WORDS = {
     # Konjunktionen
     "wenn", "weil", "obwohl", "während", "als", "wie", "ob", "falls", "damit",
     "sondern", "bevor", "nachdem", "sobald", "solange", "sofern", "indem",
+    # Präpositionen, die einen obskuren Nomen-Homograph haben und sonst
+    # durchrutschen (z. B. „Unter" = Spielkarte); überwiegend Funktionswörter.
+    "unter", "gegen", "trotz",
     # Pronomen / Determiners
     "diese", "dieser", "dieses", "diesem", "diesen", "jede", "jeder", "jedes",
     "jedem", "jeden", "alle", "alles", "allem", "allen", "aller", "man",
@@ -154,27 +157,53 @@ def load_fasttext_vectors(path: str) -> tuple[dict[str, np.ndarray], set[str]]:
         return vectors, raw_words
 
 
-def select_target_words(vocab: list[str], vectors: dict[str, np.ndarray], n: int = 2000, frequency_order: list[str] | None = None) -> list[str]:
-    candidates = set()
-    for w in vocab:
-        if len(w) < 3 or len(w) > 15:
+def select_target_words(
+    vocab: list[str],
+    vectors: dict[str, np.ndarray],
+    n: int = 2000,
+    frequency_order: list[str] | None = None,
+    target_filter: "TargetWordFilter | None" = None,
+    min_solution_zipf: float = 4.0,
+) -> list[str]:
+    """Pick the *n* most frequent words that are sensible German solutions.
+
+    Candidates are walked in descending frequency and kept only if they pass the
+    semantic :class:`TargetWordFilter` (a guessable German content word — common
+    noun, verb or adjective — never a proper noun, foreign or religious word, or
+    fragment) *and* are common enough that essentially everyone knows them
+    (German Zipf frequency ≥ ``min_solution_zipf``; 4.0 ≈ a few per million).
+    The top *n* survivors are then shuffled so daily difficulty varies.
+    """
+    if target_filter is None:
+        from target_selection import TargetWordFilter
+
+        target_filter = TargetWordFilter()
+    from wordfreq import zipf_frequency
+
+    vocab_set = set(vocab)
+    source = frequency_order if frequency_order is not None else vocab
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for w in source:
+        if w in seen or w not in vocab_set:
             continue
-        if w not in vectors:
+        if len(w) < 3 or len(w) > 15 or w not in vectors:
             continue
         if w in EXCLUDED_TARGET_WORDS:
             continue
-        # Only allow base forms as targets (skip inflected forms)
-        lemma = simplemma.lemmatize(w, lang="de")
-        if lemma.lower() != w:
+        # Common enough that virtually everyone knows the word.
+        if zipf_frequency(w, "de") < min_solution_zipf:
             continue
-        candidates.add(w)
-    # Select the most frequent candidates, then shuffle for varied difficulty
-    if frequency_order is not None:
-        ordered = [w for w in frequency_order if w in candidates]
-    else:
-        ordered = list(candidates)
-    # Take top N by frequency, then shuffle so difficulty varies day to day
-    ordered = ordered[:n]
+        # Only allow base forms as targets (skip inflected forms).
+        if simplemma.lemmatize(w, lang="de").lower() != w:
+            continue
+        if not target_filter.is_valid_target(w):
+            continue
+        seen.add(w)
+        ordered.append(w)
+        if len(ordered) >= n:
+            break
+    # Shuffle the frequency-bounded pool so difficulty varies day to day.
     rng = random.Random(42)
     rng.shuffle(ordered)
     return ordered

@@ -14,6 +14,7 @@ import {
   Swords,
   Copy,
   BarChart3,
+  Newspaper,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
+import { useRelaunch } from "@/components/RelaunchProvider";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   onTip: () => void;
@@ -85,6 +88,11 @@ export default function Header({
   const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
     useFeatureDiscovery("kontexto_duel_discovered");
   const showDuelHighlight = !hideDuelCreate && duelHighlight;
+  const { highlight: relaunchHighlight, openMobile: openRelaunch } = useRelaunch();
+  // Ping am Kebab, falls Duell- oder Relaunch-Hinweis offen ist. Der Relaunch-Eintrag
+  // existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv, bleibt auch der Ping mobil.
+  const showPing = showDuelHighlight || relaunchHighlight;
+  const pingMobileOnly = !showDuelHighlight && relaunchHighlight;
 
   useEffect(() => {
     if (!showCountdown) return;
@@ -118,11 +126,23 @@ export default function Header({
               variant="ghost"
               size="icon"
               className="relative h-10 w-10"
-              aria-label={showDuelHighlight ? "Menü – neue Funktion: Duell" : "Menü"}
+              aria-label={
+                showDuelHighlight
+                  ? "Menü – neue Funktion: Duell"
+                  : relaunchHighlight
+                    ? "Menü – Neuigkeiten"
+                    : "Menü"
+              }
             >
               <EllipsisVertical className="h-6! w-6!" />
-              {showDuelHighlight && (
-                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+              {showPing && (
+                <span
+                  className={cn(
+                    "absolute right-1.5 top-1.5 flex h-2.5 w-2.5",
+                    pingMobileOnly && "lg:hidden",
+                  )}
+                  aria-hidden
+                >
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                 </span>
@@ -170,6 +190,21 @@ export default function Header({
                 </Link>
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem
+              onClick={openRelaunch}
+              className={cn(
+                "lg:hidden",
+                relaunchHighlight && "bg-primary/5 focus:bg-primary/10",
+              )}
+            >
+              <Newspaper className="h-4 w-4" />
+              Neuigkeiten
+              {relaunchHighlight && (
+                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                  NEU
+                </span>
+              )}
+            </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>
                 <History className="h-4 w-4" />

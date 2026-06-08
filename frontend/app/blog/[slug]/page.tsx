@@ -10,6 +10,8 @@ import { posts, getPost } from "@/lib/blog";
 // are fragile under static export. Every module is statically known at
 // build time, enabling reliable tree-shaking and chunk splitting.
 const loaders: Record<string, () => Promise<{ default: ComponentType }>> = {
+  "warum-keine-namen-mehr-als-loesungswoerter": () =>
+    import("@/content/blog/warum-keine-namen-mehr-als-loesungswoerter.mdx"),
   "kontexto-tipps-schneller-gewinnen": () =>
     import("@/content/blog/kontexto-tipps-schneller-gewinnen.mdx"),
   "haeufige-fehler-bei-kontexto": () =>
