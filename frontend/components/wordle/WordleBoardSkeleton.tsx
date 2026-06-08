@@ -7,11 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function WordleBoardGridSkeleton() {
   return (
-    <div className="flex flex-col gap-1.5 items-center py-4" aria-hidden>
+    <div className="mx-auto flex w-full max-w-[21rem] flex-col items-center gap-1.5 py-4" aria-hidden>
       {Array.from({ length: 6 }).map((_, r) => (
-        <div key={r} className="flex gap-1.5">
+        <div key={r} className="grid w-full grid-cols-5 gap-1.5">
           {Array.from({ length: 5 }).map((_, c) => (
-            <Skeleton key={c} className="w-[58px] h-[58px] sm:w-[62px] sm:h-[62px] rounded" />
+            <Skeleton key={c} className="aspect-square w-full rounded" />
           ))}
         </div>
       ))}
@@ -22,19 +22,21 @@ export function WordleBoardGridSkeleton() {
 function KeySkeleton({ wide = false }: { wide?: boolean }) {
   return (
     <Skeleton
-      className={`${wide ? "w-[56px] sm:w-[72px]" : "w-[36px] sm:w-[46px]"} h-[58px] sm:h-[64px] rounded`}
+      className={`${wide ? "flex-[1.5]" : "flex-1"} min-w-0 h-[58px] sm:h-[64px] rounded`}
     />
   );
 }
 
 export function WordleKeyboardSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-1.5 pb-4" aria-hidden>
+    <div className="mx-auto flex w-full max-w-[500px] flex-col gap-1.5 px-2 pb-4" aria-hidden>
       <div className="flex gap-1">
         {Array.from({ length: 10 }).map((_, i) => <KeySkeleton key={i} />)}
       </div>
       <div className="flex gap-1">
+        <div className="flex-[0.5]" />
         {Array.from({ length: 9 }).map((_, i) => <KeySkeleton key={i} />)}
+        <div className="flex-[0.5]" />
       </div>
       <div className="flex gap-1">
         <KeySkeleton wide />
@@ -49,11 +51,12 @@ export function WordleKeyboardSkeleton() {
 export default function WordleBoardSkeleton() {
   return (
     <div
-      className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto gap-6"
+      className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto gap-6"
       aria-busy="true"
       aria-label="Spiel wird geladen"
     >
-      <div style={{ marginTop: "-8vh" }}>
+      {/* Versatz wie in WordleGame; Betrag gedeckelt gegen Header-Überlappung. */}
+      <div className="w-full px-3" style={{ marginTop: "max(-8vh, -64px)" }}>
         <WordleBoardGridSkeleton />
       </div>
       <WordleKeyboardSkeleton />

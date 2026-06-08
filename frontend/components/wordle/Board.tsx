@@ -43,7 +43,7 @@ export default function Board({ guesses, evaluations, currentGuess, currentRow, 
   });
 
   return (
-    <div className="flex flex-col gap-1.5 items-center py-4">
+    <div className="mx-auto flex w-full max-w-[21rem] flex-col items-center gap-1.5 py-4">
       {rows.map((row, i) => (
         <TileRow
           key={i}

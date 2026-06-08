@@ -228,8 +228,10 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto gap-6">
-      <div style={{ marginTop: "-8vh" }}>
+    <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto gap-6">
+      {/* Leichter Versatz nach oben aus der vertikalen Mitte; Betrag gedeckelt,
+          damit das Board auf hohen Desktop-Viewports nicht in den Header läuft. */}
+      <div className="w-full px-3" style={{ marginTop: "max(-8vh, -64px)" }}>
         <Board
           guesses={guesses}
           evaluations={evaluations}
