@@ -19,7 +19,7 @@ export default function TileRow({ letters, colors, shake = false, bounce = false
   }));
 
   return (
-    <div className={`flex gap-1.5 ${shake ? "animate-wordle-shake" : ""}`}>
+    <div className={`grid w-full grid-cols-5 gap-1.5 ${shake ? "animate-wordle-shake" : ""}`}>
       {tiles.map((tile, i) => (
         <Tile
           key={i}

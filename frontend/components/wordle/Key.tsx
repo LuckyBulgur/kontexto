@@ -21,7 +21,7 @@ export default function Key({ label, value, color = "default", wide = false, onC
   return (
     <button
       type="button"
-      className={`${KEY_COLOR_MAP[color]} ${wide ? "px-4 sm:px-6 text-sm" : "w-[36px] sm:w-[46px]"} h-[58px] sm:h-[64px] rounded font-bold uppercase text-base flex items-center justify-center border cursor-pointer active:scale-95 transition-transform select-none`}
+      className={`${KEY_COLOR_MAP[color]} ${wide ? "flex-[1.5] text-xs sm:text-sm" : "flex-1 text-base"} min-w-0 h-[58px] sm:h-[64px] rounded font-bold uppercase flex items-center justify-center border cursor-pointer active:scale-95 transition-transform select-none`}
       onClick={() => onClick(value)}
     >
       {label}

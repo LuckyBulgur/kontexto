@@ -37,7 +37,7 @@ export default function Tile({ letter, color, flipDelay = 0, pop = false, bounce
     };
   }, [color, flipDelay, mountedWithColor]);
 
-  const baseClasses = "w-[58px] h-[58px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl font-bold uppercase select-none";
+  const baseClasses = "aspect-square w-full border-2 flex items-center justify-center text-2xl font-bold uppercase select-none";
 
   const stateClasses = showColor && color
     ? COLOR_MAP[color]

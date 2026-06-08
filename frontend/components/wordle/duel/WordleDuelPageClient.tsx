@@ -318,8 +318,8 @@ export default function WordleDuelPageClient() {
     return (
       <div className="max-w-4xl mx-auto min-h-screen flex flex-col" aria-busy="true" aria-label="Duell wird geladen">
         <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-6 px-4">
-          <div className="lg:order-1">
+        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 px-4">
+          <div className="w-full max-w-[21rem] lg:order-1">
             <WordleBoardGridSkeleton />
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function WordleDuelPageClient() {
 
       {players.length > 0 && <DuelHeader players={players} currentNickname={nickname} />}
 
-      <div className="flex flex-col lg:flex-row items-start justify-center gap-6 px-4">
+      <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 px-4">
         {/* Opponent boards */}
         <div className="flex gap-4 flex-wrap justify-center lg:order-2">
           {players
@@ -350,7 +350,7 @@ export default function WordleDuelPageClient() {
         </div>
 
         {/* Own board */}
-        <div className="lg:order-1">
+        <div className="w-full max-w-[21rem] lg:order-1">
           <Board
             guesses={guesses}
             evaluations={evaluations}
