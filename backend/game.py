@@ -156,6 +156,19 @@ class GameState:
             "rank": target_rank,
         }
 
+    def total_games(self) -> int:
+        """Number of pre-computed games available (the full infinite-mode pool)."""
+        return self.metadata.get("total_games", len(self.target_words))
+
+    def random_game_number(self, exclude: set[int]) -> int | None:
+        """Pick a uniformly random game number in 1..total_games, skipping
+        ``exclude``. Returns None when every game is excluded (caller decides
+        whether to relax the exclusion set and retry)."""
+        candidates = [n for n in range(1, self.total_games() + 1) if n not in exclude]
+        if not candidates:
+            return None
+        return random.choice(candidates)
+
     def get_target_word(self, game_number: int) -> str:
         """Return the target word for the given game number."""
         if game_number < 1 or game_number > len(self.target_words):

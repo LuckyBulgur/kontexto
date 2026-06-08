@@ -15,6 +15,7 @@ import {
   Copy,
   BarChart3,
   Newspaper,
+  Infinity,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ interface HeaderProps {
   onSettingsOpen: () => void;
   onCreditsOpen: () => void;
   onPastGamesOpen: () => void;
+  onInfiniteStart?: () => void;
   onStatsOpen?: () => void;
   tipDisabled?: boolean;
   giveUpDisabled?: boolean;
@@ -71,6 +73,7 @@ export default function Header({
   onSettingsOpen,
   onCreditsOpen,
   onPastGamesOpen,
+  onInfiniteStart,
   onStatsOpen,
   tipDisabled,
   giveUpDisabled,
@@ -88,9 +91,13 @@ export default function Header({
   const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
     useFeatureDiscovery("kontexto_duel_discovered");
   const showDuelHighlight = !hideDuelCreate && duelHighlight;
+  const { highlight: infiniteHighlight, dismiss: dismissInfiniteHighlight } =
+    useFeatureDiscovery("kontexto_infinite_discovered");
+  const showInfiniteHighlight = !!onInfiniteStart && infiniteHighlight;
   const { highlight: relaunchHighlight, openMobile: openRelaunch } = useRelaunch();
   // Ping am Kebab, falls Duell- oder Relaunch-Hinweis offen ist. Der Relaunch-Eintrag
   // existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv, bleibt auch der Ping mobil.
+  // Der Unendlich-Hinweis hat seinen eigenen, immer sichtbaren Button-Ping (s. u.).
   const showPing = showDuelHighlight || relaunchHighlight;
   const pingMobileOnly = !showDuelHighlight && relaunchHighlight;
 
@@ -119,8 +126,33 @@ export default function Header({
             WÖRDLE
           </Link>
         </div>
-      <div className="absolute right-4">
-        <DropdownMenu onOpenChange={(open) => { if (!open && showDuelHighlight) dismissDuelHighlight(); }}>
+      <div className="absolute right-4 flex items-center gap-0.5">
+        {onInfiniteStart && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-10 w-10"
+            aria-label={showInfiniteHighlight ? "Unendlich-Modus – neue Funktion" : "Unendlich-Modus"}
+            onClick={() => {
+              if (showInfiniteHighlight) dismissInfiniteHighlight();
+              onInfiniteStart();
+            }}
+          >
+            <Infinity className="h-6! w-6!" />
+            {showInfiniteHighlight && (
+              <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+              </span>
+            )}
+          </Button>
+        )}
+        <DropdownMenu onOpenChange={(open) => {
+          if (!open) {
+            if (showDuelHighlight) dismissDuelHighlight();
+            if (showInfiniteHighlight) dismissInfiniteHighlight();
+          }
+        }}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -209,6 +241,17 @@ export default function Header({
               <DropdownMenuItem onClick={onPastGamesOpen}>
                 <History className="h-4 w-4" />
                 Vergangene Spiele
+              </DropdownMenuItem>
+            )}
+            {onInfiniteStart && (
+              <DropdownMenuItem onClick={onInfiniteStart} className={showInfiniteHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
+                <Infinity className="h-4 w-4" />
+                Unendlich-Modus
+                {showInfiniteHighlight && (
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                    NEU
+                  </span>
+                )}
               </DropdownMenuItem>
             )}
             {onStatsOpen && (

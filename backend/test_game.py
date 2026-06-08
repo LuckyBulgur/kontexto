@@ -166,6 +166,23 @@ class TestGetClosestWords:
         assert ranks == sorted(ranks)
 
 
+class TestRandomGameNumber:
+    def test_picks_within_pool(self, gs):
+        # total_games == 3; with nothing excluded the choice is in 1..3.
+        for _ in range(50):
+            assert gs.random_game_number(set()) in {1, 2, 3}
+
+    def test_respects_exclusion(self, gs):
+        for _ in range(50):
+            assert gs.random_game_number({1, 3}) == 2
+
+    def test_returns_none_when_all_excluded(self, gs):
+        assert gs.random_game_number({1, 2, 3}) is None
+
+    def test_total_games(self, gs):
+        assert gs.total_games() == 3
+
+
 class TestLoadGame:
     def test_load_caches(self, data_dir):
         state = GameState(data_dir)

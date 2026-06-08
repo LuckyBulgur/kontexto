@@ -33,15 +33,22 @@ def data_dir():
         with open(os.path.join(tmpdir, "target_words.json"), "w", encoding="utf-8") as f:
             json.dump(targets, f)
 
-        metadata = {"start_date": "2026-01-01", "vocab_size": 5}
+        metadata = {"start_date": "2026-01-01", "vocab_size": 5, "total_games": 2}
         with open(os.path.join(tmpdir, "metadata.json"), "w", encoding="utf-8") as f:
             json.dump(metadata, f)
 
         games_dir = os.path.join(tmpdir, "games")
         os.makedirs(games_dir)
 
-        ranks = np.array([1, 2, 3, 4, 5], dtype=np.uint16)
-        np.savez_compressed(os.path.join(games_dir, "0001.npz"), ranks=ranks)
+        # Game 1: apfel is the target (rank 1). Game 2: birne is the target.
+        np.savez_compressed(
+            os.path.join(games_dir, "0001.npz"),
+            ranks=np.array([1, 2, 3, 4, 5], dtype=np.uint16),
+        )
+        np.savez_compressed(
+            os.path.join(games_dir, "0002.npz"),
+            ranks=np.array([2, 1, 3, 4, 5], dtype=np.uint16),
+        )
 
         yield tmpdir
 
@@ -121,3 +128,44 @@ class TestRevealEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert data["word"] == "apfel"
+
+
+class TestInfiniteEndpoint:
+    def test_next_never_returns_daily(self, client):
+        # Daily is forced to game 1; the pool has games {1, 2}, so next must be 2.
+        for _ in range(30):
+            resp = client.get("/api/infinite/next")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["gameNumber"] == 2
+            assert data["total"] == 5
+            assert data["totalGames"] == 2
+
+    def test_next_404_when_pool_drained(self, client):
+        # Pool is {1, 2}; daily (1) and the current game (2) are both excluded,
+        # leaving nothing to hand out -> a clean 404 the client can surface.
+        resp = client.get("/api/infinite/next?current=2")
+        assert resp.status_code == 404
+        assert resp.json()["error"] == "no_games"
+
+    def test_played_exclusion_relaxes_when_exhausted(self, client):
+        # current is unset, daily is 1, game 2 already "played": excluding the
+        # played set drains the pool, so the exclusion relaxes back to {daily}
+        # and game 2 is returned again (the mode never ends).
+        resp = client.get("/api/infinite/next?exclude=2")
+        assert resp.status_code == 200
+        assert resp.json()["gameNumber"] == 2
+
+    def test_guess_infinite_uses_requested_game(self, client):
+        # Game 2's target is "birne"; without the infinite flag the daily (game 1)
+        # would rank "birne" at 2, not 1.
+        resp = client.post("/api/guess?game=2&infinite=true", json={"word": "birne"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["word"] == "birne"
+        assert data["rank"] == 1
+
+    def test_reveal_infinite(self, client):
+        resp = client.get("/api/reveal?game=2&infinite=true")
+        assert resp.status_code == 200
+        assert resp.json()["word"] == "birne"

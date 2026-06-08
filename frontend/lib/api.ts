@@ -1,10 +1,18 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, StatsData } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-export async function submitGuess(word: string, game?: number | null): Promise<GuessResult> {
-  const gameParam = game ? `?game=${game}` : "";
-  const res = await fetch(`${API_BASE}/guess${gameParam}`, {
+/** Build the `?game=…&infinite=true` query shared by all game-scoped endpoints. */
+function gameQuery(game?: number | null, infinite?: boolean): string {
+  const params = new URLSearchParams();
+  if (game) params.set("game", String(game));
+  if (infinite) params.set("infinite", "true");
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export async function submitGuess(word: string, game?: number | null, infinite?: boolean): Promise<GuessResult> {
+  const res = await fetch(`${API_BASE}/guess${gameQuery(game, infinite)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word }),
@@ -15,10 +23,12 @@ export async function submitGuess(word: string, game?: number | null): Promise<G
   return res.json();
 }
 
-export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null, guessedRanks?: number[]): Promise<TipResult> {
-  const gameParam = game ? `&game=${game}` : "";
-  const ranksParam = guessedRanks && guessedRanks.length > 0 ? `&guessed_ranks=${guessedRanks.join(",")}` : "";
-  const res = await fetch(`${API_BASE}/tip?difficulty=${difficulty}&best_rank=${bestRank}${gameParam}${ranksParam}`);
+export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null, guessedRanks?: number[], infinite?: boolean): Promise<TipResult> {
+  const params = new URLSearchParams({ difficulty, best_rank: String(bestRank) });
+  if (game) params.set("game", String(game));
+  if (infinite) params.set("infinite", "true");
+  if (guessedRanks && guessedRanks.length > 0) params.set("guessed_ranks", guessedRanks.join(","));
+  const res = await fetch(`${API_BASE}/tip?${params.toString()}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -29,9 +39,8 @@ export async function getGameInfo(): Promise<GameInfo> {
   return res.json();
 }
 
-export async function revealAnswer(game?: number | null): Promise<RevealResult> {
-  const gameParam = game ? `?game=${game}` : "";
-  const res = await fetch(`${API_BASE}/reveal${gameParam}`);
+export async function revealAnswer(game?: number | null, infinite?: boolean): Promise<RevealResult> {
+  const res = await fetch(`${API_BASE}/reveal${gameQuery(game, infinite)}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -42,9 +51,25 @@ export async function getPastGames(): Promise<PastGamesResponse> {
   return res.json();
 }
 
-export async function getClosestWords(game?: number | null): Promise<ClosestWordsResponse> {
-  const gameParam = game ? `?game=${game}` : "";
-  const res = await fetch(`${API_BASE}/closest${gameParam}`);
+export async function getClosestWords(game?: number | null, infinite?: boolean): Promise<ClosestWordsResponse> {
+  const res = await fetch(`${API_BASE}/closest${gameQuery(game, infinite)}`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Fetch the next game for the endless ("Unendlich") mode. `played` is the set
+ * of games already finished this session (so we avoid repeats until the pool is
+ * exhausted) and `current` is the game in progress (never handed back). Throws
+ * "no_games" when the pool holds nothing else to play.
+ */
+export async function getInfiniteGame(played: number[], current?: number | null): Promise<InfiniteNextResponse> {
+  const params = new URLSearchParams();
+  if (played.length > 0) params.set("exclude", played.join(","));
+  if (current) params.set("current", String(current));
+  const qs = params.toString();
+  const res = await fetch(`${API_BASE}/infinite/next${qs ? `?${qs}` : ""}`);
+  if (res.status === 404) throw new Error("no_games");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

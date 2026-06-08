@@ -40,6 +40,18 @@ export interface PastGame {
   date: string;
 }
 
+/** Persisted state of an endless-mode ("Unendlich") session. */
+export interface InfiniteSession {
+  /** The game currently in progress (or the one just finished). */
+  current: GameState;
+  /** Game numbers already finished this session — used to avoid repeats. */
+  played: number[];
+  /** Games solved this session (shown on the result card). */
+  solvedCount: number;
+  /** Size of the game pool, as reported by the backend. */
+  totalGames: number;
+}
+
 export interface PastGamesResponse {
   games: PastGame[];
   todayGame: number;
@@ -156,8 +168,14 @@ export interface StatsData {
   note: string;
 }
 
+export interface InfiniteNextResponse {
+  gameNumber: number;
+  total: number;
+  totalGames: number;
+}
+
 export interface CompletionPayload {
-  mode: "kontexto" | "wordle";
+  mode: "kontexto" | "wordle" | "infinite";
   game_number: number;
   outcome: "solved" | "gaveup";
   guesses: number;

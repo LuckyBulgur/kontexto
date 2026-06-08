@@ -32,6 +32,7 @@ from game import GameState
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
+    InfiniteNextResponse,
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
@@ -79,14 +80,23 @@ def _get_current_game_number() -> int:
     return gs.get_game_number()
 
 
-def _resolve_game_number(game: int | None) -> int:
-    """Resolve game number: None means today's game, otherwise validate."""
+def _resolve_game_number(game: int | None, *, infinite: bool = False) -> int:
+    """Resolve game number: None means today's game, otherwise validate.
+
+    In infinite mode the date gate is skipped: any pre-computed game in the
+    pool (1..total_games) is playable on demand, independent of the daily
+    schedule. The only game the caller must never hand out this way is today's
+    daily — that exclusion is enforced where the next game is selected
+    (``/api/infinite/next``), not here.
+    """
     if game is None:
         return _get_current_game_number()
     gs = _get_game_state()
     total = gs.metadata.get("total_games", len(gs.target_words))
     if game < 1 or game > total:
         raise ValueError(f"Spiel {game} existiert nicht (1-{total})")
+    if infinite:
+        return game
     # Check that the game date is in the past
     game_date = gs.start_date + timedelta(days=game - 1)
     if game_date >= date.today():
@@ -176,10 +186,10 @@ if os.environ.get("KONTEXTO_DEV"):
 
 
 @app.post("/api/guess", response_model=GuessResponse)
-async def guess(req: GuessRequest, game: int | None = Query(None)):
+async def guess(req: GuessRequest, game: int | None = Query(None), infinite: bool = Query(False)):
     gs = _get_game_state()
     try:
-        game_num = _resolve_game_number(game)
+        game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
@@ -196,11 +206,12 @@ async def guess(req: GuessRequest, game: int | None = Query(None)):
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
-    await analytics.record_action(_db_path, "guesses", "kontexto", word=result["word"])
-    await analytics.record_game_stat(_db_path, "kontexto", game_num, "guesses")
+    mode = "infinite" if infinite else "kontexto"
+    await analytics.record_action(_db_path, "guesses", mode, word=result["word"])
+    await analytics.record_game_stat(_db_path, mode, game_num, "guesses")
     if result["rank"] == 1:
-        await analytics.record_action(_db_path, "solves", "kontexto")
-        await analytics.record_game_stat(_db_path, "kontexto", game_num, "solves")
+        await analytics.record_action(_db_path, "solves", mode)
+        await analytics.record_game_stat(_db_path, mode, game_num, "solves")
     return result
 
 
@@ -210,10 +221,11 @@ async def tip(
     best_rank: int = Query(1000, ge=1),
     game: int | None = Query(None),
     guessed_ranks: str = Query(""),
+    infinite: bool = Query(False),
 ):
     gs = _get_game_state()
     try:
-        game_num = _resolve_game_number(game)
+        game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
@@ -226,7 +238,7 @@ async def tip(
             content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
         )
     await analytics.record_action(_db_path, "hints", difficulty)
-    await analytics.record_game_stat(_db_path, "kontexto", game_num, "hints")
+    await analytics.record_game_stat(_db_path, "infinite" if infinite else "kontexto", game_num, "hints")
     return result
 
 
@@ -256,24 +268,63 @@ async def past_games():
     return {"games": games, "todayGame": today_game}
 
 
+@app.get("/api/infinite/next", response_model=InfiniteNextResponse)
+async def infinite_next(exclude: str = Query(""), current: int | None = Query(None)):
+    """Pick the next game for the endless mode.
+
+    Draws a uniformly random game from the full pre-computed pool, always
+    skipping today's daily game (so the endless session can never spoil the
+    daily) and the game the player is currently on. ``exclude`` is the
+    comma-separated list of games already finished this session, used to avoid
+    repeats until the pool is exhausted; once every game has been played the
+    exclusion is relaxed back to just the daily + current game so the mode truly
+    never ends.
+    """
+    gs = _get_game_state()
+    daily = _get_current_game_number()
+
+    base_exclude: set[int] = {daily}
+    if current is not None:
+        base_exclude.add(current)
+
+    played = {int(p) for p in exclude.split(",") if p.strip().lstrip("-").isdigit()}
+    chosen = gs.random_game_number(base_exclude | played)
+    if chosen is None:
+        # Pool exhausted for this session — relax to allow already-played games
+        # again, still never the daily or the current game.
+        chosen = gs.random_game_number(base_exclude)
+    if chosen is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+
+    return {
+        "gameNumber": chosen,
+        "total": gs.metadata["vocab_size"],
+        "totalGames": gs.total_games(),
+    }
+
+
 @app.get("/api/reveal", response_model=RevealResponse)
-async def reveal(game: int | None = Query(None)):
+async def reveal(game: int | None = Query(None), infinite: bool = Query(False)):
     gs = _get_game_state()
     try:
-        game_num = _resolve_game_number(game)
+        game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
-    await analytics.record_action(_db_path, "reveals", "kontexto")
-    await analytics.record_game_stat(_db_path, "kontexto", game_num, "reveals")
+    mode = "infinite" if infinite else "kontexto"
+    await analytics.record_action(_db_path, "reveals", mode)
+    await analytics.record_game_stat(_db_path, mode, game_num, "reveals")
     return {"word": gs.get_target_word(game_num)}
 
 
 @app.get("/api/closest", response_model=ClosestWordsResponse)
-async def closest_words(game: int | None = Query(None)):
+async def closest_words(game: int | None = Query(None), infinite: bool = Query(False)):
     gs = _get_game_state()
     try:
-        game_num = _resolve_game_number(game)
+        game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)

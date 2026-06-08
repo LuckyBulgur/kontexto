@@ -43,8 +43,8 @@ import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import StatsDialog from "@/components/StatsDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { faqs } from "@/lib/faqs";
-import { submitGuess, getTip, getGameInfo, revealAnswer } from "@/lib/api";
-import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed } from "@/lib/storage";
+import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
+import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
 import { reportCompletion } from "@/lib/analytics";
 import { AD_SLOTS } from "@/lib/adsense";
@@ -78,9 +78,18 @@ export default function GameClient() {
   const [pastGame, setPastGame] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showStats, setShowStats] = useState(false);
+  // Endless ("Unendlich") mode. Mutually exclusive with pastGame; when active the
+  // game number comes from a random pool draw and guesses use the date-gate-free
+  // infinite path. Session state lives under its own localStorage key.
+  const [infinite, setInfinite] = useState(false);
+  const [infinitePlayed, setInfinitePlayed] = useState<number[]>([]);
+  const [infiniteSolved, setInfiniteSolved] = useState(0);
+  const [infiniteTotalGames, setInfiniteTotalGames] = useState(0);
+  const [noMoreGames, setNoMoreGames] = useState(false);
   // Guards the once-per-game stats/completion recording against re-running for a
   // game that was already finished in a previous session (loaded as over).
   const completedRef = useRef<number | null>(null);
+  const infiniteCompletedRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initTheme = loadTheme();
@@ -109,13 +118,60 @@ export default function GameClient() {
   }, []);
 
   useEffect(() => {
-    if (gameState.gameNumber > 0 && pastGame === null) saveGameState(gameState);
-  }, [gameState, pastGame]);
+    if (gameState.gameNumber > 0 && pastGame === null && !infinite) saveGameState(gameState);
+  }, [gameState, pastGame, infinite]);
+
+  // Persist the endless-mode session (current game + played pool + solved count)
+  // on every change so a refresh resumes exactly where the player left off.
+  useEffect(() => {
+    if (!infinite || gameState.gameNumber <= 0) return;
+    saveInfiniteSession({
+      current: gameState,
+      played: infinitePlayed,
+      solvedCount: infiniteSolved,
+      totalGames: infiniteTotalGames,
+    });
+  }, [infinite, gameState, infinitePlayed, infiniteSolved, infiniteTotalGames]);
+
+  // Endless mode: report each completed game to the aggregate distribution
+  // beacon (mode "infinite") and bump the session solve counter. Deliberately
+  // does NOT touch the daily streak or local kontexto stats.
+  useEffect(() => {
+    if (!infinite || gameState.gameNumber <= 0) return;
+    const over = gameState.solved || !!gameState.givenUp;
+    if (!over || infiniteCompletedRef.current === gameState.gameNumber) return;
+    infiniteCompletedRef.current = gameState.gameNumber;
+
+    const won = gameState.solved && !gameState.givenUp;
+    const userGuesses = gameState.guesses.filter((g) => !g.isTip);
+    const allRanks = gameState.guesses.map((g) => g.rank);
+    const bestRank = won
+      ? 1
+      : userGuesses.length
+        ? Math.min(...userGuesses.map((g) => g.rank))
+        : allRanks.length
+          ? Math.min(...allRanks)
+          : 10000;
+    const durationSeconds = gameState.startedAt
+      ? Math.max(0, Math.round((Date.now() - gameState.startedAt) / 1000))
+      : 0;
+
+    if (won) setInfiniteSolved((n) => n + 1);
+    reportCompletion({
+      mode: "infinite",
+      game_number: gameState.gameNumber,
+      outcome: won ? "solved" : "gaveup",
+      guesses: gameState.guesses.length,
+      tips: gameState.tips,
+      duration_seconds: durationSeconds,
+      best_rank: bestRank,
+    });
+  }, [gameState, infinite]);
 
   // Record local player stats + send the (anonymous, aggregate) completion beacon
   // exactly once, when today's game transitions to finished in this session.
   useEffect(() => {
-    if (pastGame !== null || gameState.gameNumber <= 0) return;
+    if (pastGame !== null || infinite || gameState.gameNumber <= 0) return;
     const over = gameState.solved || !!gameState.givenUp;
     if (!over || completedRef.current === gameState.gameNumber) return;
     completedRef.current = gameState.gameNumber;
@@ -173,12 +229,15 @@ export default function GameClient() {
     setLatestWord(guess.word);
     if (guess.rank === 1) {
       fireConfetti();
-      if (pastGame === null) {
+      if (pastGame === null && !infinite) {
         recordGamePlayed(new Date().toISOString().slice(0, 10));
       }
       setTimeout(() => setShowResult(true), 500);
     }
-  }, [pastGame]);
+  }, [pastGame, infinite]);
+
+  // The game number + flag to send to the API for the active mode.
+  const apiGame = infinite ? gameNumber : pastGame;
 
   const handleGuess = useCallback(async (word: string) => {
     setError(null);
@@ -189,7 +248,7 @@ export default function GameClient() {
     }
     setPendingWord(word.toLowerCase());
     try {
-      const result = await submitGuess(word, pastGame);
+      const result = await submitGuess(word, apiGame, infinite);
       if (gameState.guesses.some((g) => g.word === result.word)) {
         setPodestError({ word: result.word, message: "Wort bereits geraten!" });
         return;
@@ -207,7 +266,7 @@ export default function GameClient() {
     } finally {
       setPendingWord(undefined);
     }
-  }, [gameState.guesses, addGuess, pastGame]);
+  }, [gameState.guesses, addGuess, apiGame, infinite]);
 
   const handleTip = useCallback(async () => {
     setError(null);
@@ -216,7 +275,7 @@ export default function GameClient() {
       : 10000;
     const guessedRanks = gameState.guesses.map((g) => g.rank);
     try {
-      const result = await getTip(difficulty, bestRank, pastGame, guessedRanks);
+      const result = await getTip(difficulty, bestRank, apiGame, guessedRanks, infinite);
       if (gameState.guesses.some((g) => g.word === result.word)) return;
       setGameState((prev) => ({ ...prev, tips: prev.tips + 1 }));
       addGuess({ word: result.word, rank: result.rank, isTip: true });
@@ -224,28 +283,90 @@ export default function GameClient() {
     } catch {
       setError("Tipp konnte nicht geladen werden");
     }
-  }, [gameState.guesses, difficulty, addGuess, pastGame]);
+  }, [gameState.guesses, difficulty, addGuess, apiGame, infinite]);
 
   const handleGiveUp = useCallback(async () => {
     setShowGiveUp(false);
     try {
-      const result = await revealAnswer(pastGame);
+      const result = await revealAnswer(apiGame, infinite);
       setGameState((prev) => ({
         ...prev,
         guesses: [...prev.guesses, { word: result.word, rank: 1, isTip: false }],
         givenUp: true,
       }));
       setLatestWord(result.word);
-      if (pastGame === null) {
+      if (pastGame === null && !infinite) {
         recordGamePlayed(new Date().toISOString().slice(0, 10));
       }
       setTimeout(() => setShowResult(true), 500);
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
-  }, [pastGame]);
+  }, [apiGame, pastGame, infinite]);
+
+  // Load the next random game for the endless session. `played` is the set of
+  // games finished so far (sent so the backend avoids repeats), `solvedCount`
+  // carries the running solve tally through to the persisted session.
+  const loadNextInfinite = useCallback(async (played: number[], current: number | null, solvedCount: number) => {
+    setNoMoreGames(false);
+    setError(null);
+    try {
+      const next = await getInfiniteGame(played, current);
+      const fresh: GameState = { gameNumber: next.gameNumber, guesses: [], tips: 0, solved: false };
+      infiniteCompletedRef.current = null;
+      setGameNumber(next.gameNumber);
+      setTotal(next.total);
+      setInfiniteTotalGames(next.totalGames);
+      setGameState(fresh);
+      setLatestWord(undefined);
+      setPodestError(undefined);
+      setShowResult(false);
+      saveInfiniteSession({ current: fresh, played, solvedCount, totalGames: next.totalGames });
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === "no_games") {
+        setNoMoreGames(true);
+        setShowResult(true);
+      } else {
+        setError("Nächstes Spiel konnte nicht geladen werden");
+      }
+    }
+  }, []);
+
+  const handleStartInfinite = useCallback(() => {
+    setPastGame(null);
+    setInfinite(true);
+    setError(null);
+    setLatestWord(undefined);
+    setPodestError(undefined);
+    setNoMoreGames(false);
+
+    const session = loadInfiniteSession();
+    if (session) {
+      const over = session.current.solved || !!session.current.givenUp;
+      setInfinitePlayed(session.played);
+      setInfiniteSolved(session.solvedCount);
+      setInfiniteTotalGames(session.totalGames);
+      setGameNumber(session.current.gameNumber);
+      setGameState(session.current);
+      infiniteCompletedRef.current = over ? session.current.gameNumber : null;
+      setShowResult(over);
+    } else {
+      setInfinitePlayed([]);
+      setInfiniteSolved(0);
+      loadNextInfinite([], null, 0);
+    }
+  }, [loadNextInfinite]);
+
+  const handleNextInfinite = useCallback(() => {
+    const finished = gameState.gameNumber;
+    const nextPlayed = infinitePlayed.includes(finished) ? infinitePlayed : [...infinitePlayed, finished];
+    setInfinitePlayed(nextPlayed);
+    loadNextInfinite(nextPlayed, finished, infiniteSolved);
+  }, [gameState.gameNumber, infinitePlayed, infiniteSolved, loadNextInfinite]);
 
   const handleSelectPastGame = useCallback((selectedGame: number) => {
+    setInfinite(false);
+    setNoMoreGames(false);
     setPastGame(selectedGame);
     setGameNumber(selectedGame);
     setGameState({ gameNumber: selectedGame, guesses: [], tips: 0, solved: false });
@@ -257,6 +378,8 @@ export default function GameClient() {
 
   const handleBackToToday = useCallback(() => {
     setPastGame(null);
+    setInfinite(false);
+    setNoMoreGames(false);
     getGameInfo().then((info) => {
       setGameNumber(info.gameNumber);
       setTotal(info.total);
@@ -288,10 +411,11 @@ export default function GameClient() {
         onSettingsOpen={() => setShowSettings(true)}
         onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => setShowPastGames(true)}
+        onInfiniteStart={handleStartInfinite}
         onStatsOpen={() => setShowStats(true)}
         tipDisabled={gameOver}
         giveUpDisabled={gameOver}
-        showCountdown={gameOver}
+        showCountdown={gameOver && !infinite}
       />
       {pastGame !== null && (
         <button
@@ -299,6 +423,14 @@ export default function GameClient() {
           className="mx-4 mt-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
         >
           Du spielst Spiel #{pastGame} · Zurück zum heutigen Spiel
+        </button>
+      )}
+      {infinite && (
+        <button
+          onClick={handleBackToToday}
+          className="mx-4 mt-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+        >
+          Unendlich-Modus · {infiniteSolved} gelöst · Zurück zum heutigen Spiel
         </button>
       )}
       <main className="flex-1 px-4 py-4 flex flex-col gap-4">
@@ -311,13 +443,21 @@ export default function GameClient() {
               isWin={isWin}
               onOpenPastGames={() => setShowPastGames(true)}
               onOpenClosestWords={() => setShowClosestWords(true)}
+              infinite={infinite}
+              onNextInfinite={handleNextInfinite}
+              infiniteSolvedCount={infiniteSolved}
+              noMoreGames={noMoreGames}
             />
             <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
           </>
         ) : (
           <>
             <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
-              <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
+              {infinite ? (
+                <span>Modus: <span className="text-[18px] font-bold">Unendlich</span></span>
+              ) : (
+                <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
+              )}
               <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
               <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
             </div>
@@ -371,7 +511,7 @@ export default function GameClient() {
       <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
-      <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} pastGame={pastGame} />
+      <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} game={infinite ? gameNumber : pastGame} infinite={infinite} />
       <StatsDialog open={showStats} onClose={() => setShowStats(false)} />
     </div>
   );

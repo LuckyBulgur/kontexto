@@ -15,10 +15,13 @@ import GuessBar from "./GuessBar";
 interface ClosestWordsDialogProps {
   open: boolean;
   onClose: () => void;
-  pastGame: number | null;
+  /** Game to reveal; null = today's daily game. */
+  game: number | null;
+  /** When true, the game is resolved via the endless-mode (date-gate-free) path. */
+  infinite?: boolean;
 }
 
-export default function ClosestWordsDialog({ open, onClose, pastGame }: ClosestWordsDialogProps) {
+export default function ClosestWordsDialog({ open, onClose, game, infinite }: ClosestWordsDialogProps) {
   const [words, setWords] = useState<ClosestWordEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +30,11 @@ export default function ClosestWordsDialog({ open, onClose, pastGame }: ClosestW
     if (!open) return;
     setLoading(true);
     setError(null);
-    getClosestWords(pastGame)
+    getClosestWords(game, infinite)
       .then((res) => setWords(res.words))
       .catch(() => setError("Wörter konnten nicht geladen werden"))
       .finally(() => setLoading(false));
-  }, [open, pastGame]);
+  }, [open, game, infinite]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>

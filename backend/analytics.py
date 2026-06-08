@@ -572,7 +572,7 @@ async def record_completion(
         return False, "invalid_token"
     if classify_user_agent(user_agent)[0] == "bot":
         return False, "bot"
-    if mode not in ("kontexto", "wordle") or outcome not in ("solved", "gaveup"):
+    if mode not in ("kontexto", "wordle", "infinite") or outcome not in ("solved", "gaveup"):
         return False, "bad_payload"
 
     guesses = max(1, min(int(guesses), 1000))
@@ -597,7 +597,7 @@ async def record_completion(
                         f"dist_guesses_{mode}", _bucket_guesses(guesses), 1)
             await _bump(conn, "analytics_counters", date_str,
                         f"dist_time_{mode}", _bucket_duration(duration_seconds), 1)
-        elif mode == "kontexto":
+        elif mode in ("kontexto", "infinite"):
             await _bump(conn, "analytics_counters", date_str,
                         "dist_giveup_rank", _bucket_rank(best_rank), 1)
 
