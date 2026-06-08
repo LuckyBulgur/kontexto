@@ -8,7 +8,11 @@ COPY frontend/package.json frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml 
 RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
-RUN pnpm run build
+# pnpm 11 re-verifies deps before running a script and, finding the just-copied
+# project, tries to reinstall — which aborts in a non-interactive build
+# (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). The frozen-lockfile install above
+# is authoritative, so skip the redundant pre-run check.
+RUN pnpm config set verify-deps-before-run false && pnpm run build
 
 # --- Stage 2: Prepare data ---
 FROM python:3.12-slim AS data-build

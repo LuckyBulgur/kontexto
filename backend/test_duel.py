@@ -23,13 +23,13 @@ def db_path():
 
 @pytest.fixture
 def db(db_path):
-    asyncio.get_event_loop().run_until_complete(init_db(db_path))
+    asyncio.run(init_db(db_path))
     return db_path
 
 
 class TestDatabase:
     def test_init_db_creates_tables(self, db_path):
-        asyncio.get_event_loop().run_until_complete(init_db(db_path))
+        asyncio.run(init_db(db_path))
 
         async def check():
             conn = await aiosqlite.connect(db_path)
@@ -42,17 +42,16 @@ class TestDatabase:
             assert "duel_players" in tables
             assert "duel_guesses" in tables
 
-        asyncio.get_event_loop().run_until_complete(check())
+        asyncio.run(check())
 
     def test_init_db_idempotent(self, db_path):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(init_db(db_path))
-        loop.run_until_complete(init_db(db_path))
+        asyncio.run(init_db(db_path))
+        asyncio.run(init_db(db_path))
 
 
 class TestDuelCRUD:
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_create_duel(self, db):
         from duel import create_duel

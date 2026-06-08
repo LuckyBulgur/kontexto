@@ -8,6 +8,8 @@ import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import Footer from "@/components/Footer";
 import MotionProvider from "@/components/motion/MotionProvider";
+import { RelaunchAnnouncement } from "@/components/RelaunchAnnouncement";
+import { RelaunchProvider } from "@/components/RelaunchProvider";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -49,8 +51,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
-        <MotionProvider>{children}</MotionProvider>
-        <Footer />
+        <RelaunchProvider>
+          <MotionProvider>{children}</MotionProvider>
+          <Footer />
+          <RelaunchAnnouncement />
+        </RelaunchProvider>
         <Toaster />
         <Analytics />
         <SideRailAds />

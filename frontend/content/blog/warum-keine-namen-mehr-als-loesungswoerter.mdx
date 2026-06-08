@@ -1,0 +1,35 @@
+# Neustart: Warum keine Namen mehr als Lösungswörter auftauchen
+
+Kontexto hat ein großes Update bekommen – und startet deshalb wieder bei Tag 1. Der Grund: Der Algorithmus, der die täglichen Lösungswörter auswählt, wurde komplett neu gebaut. Der häufigste Kritikpunkt der Community war, dass viel zu oft Eigennamen wie „Emma", „Dirk", „Merkel" oder „Berlin" das gesuchte Wort waren. Genau das gehört jetzt der Vergangenheit an.
+
+## Warum überhaupt Namen als Lösung kamen
+
+Die Lösungswörter stammten bisher schlicht aus den häufigsten Wörtern eines großen deutschen Textkorpus. Das klingt sinnvoll, hat aber einen Haken: In Texten aus dem Web tauchen Vornamen, Nachnamen, Städte- und Markennamen extrem häufig auf. Sie landen damit ganz oben in der Häufigkeitsliste – direkt neben echten Alltagswörtern.
+
+Erschwerend kam hinzu, dass alle Wörter kleingeschrieben verarbeitet wurden. Im Deutschen ist die Großschreibung aber das wichtigste Signal, um einen Eigennamen von einem normalen Wort zu unterscheiden. Dieses Signal ging verloren – und so rutschten Namen ungefiltert in die Auswahl.
+
+Für ein **semantisches** Ratespiel ist das besonders ärgerlich: Die Nachbarschaft eines Namens besteht fast nur aus anderen Namen. Man kann sich also nicht über die Bedeutung herantasten, sondern muss wahllos Vornamen durchprobieren. Das ist kein Rätsel mehr, sondern Raten ins Blaue.
+
+## Was sich geändert hat
+
+Der neue Algorithmus prüft jedes mögliche Lösungswort mit mehreren unabhängigen Verfahren, die sich gegenseitig absichern:
+
+- **Wortart-Analyse**: Eine deutsche Grammatik-Erkennung lässt nur Inhaltswörter zu – Nomen, Verben und Adjektive. Erkennt sie einen Eigennamen, fliegt das Wort raus.
+- **Wörterbuch-Abgleich**: Ein deutsches Wörterbuch unterscheidet ein echtes Gattungswort von einem bloßen Namen. So bleibt „Sommer" (auch ein Nachname, aber ein echtes Wort) drin, während „Sebastian" verschwindet.
+- **Namensliste**: Rund 35.000 Vor- und Nachnamen dienen als Sicherheitsnetz für Namen, die die Grammatik fälschlich für ein Wort hält.
+- **Fremdwort-Check**: Echte englische Wörter wie „beach" oder „music" fallen weg, eingedeutschte Lehnwörter wie „Team" oder „Training" bleiben erhalten.
+- **Keine religiösen Begriffe** und keine Marken mehr als Lösung.
+
+## Nur noch Wörter, die wirklich jeder kennt
+
+Zusätzlich gibt es jetzt eine Häufigkeits-Schwelle: Als Lösung kommen nur Wörter infrage, die im Deutschen so verbreitet sind, dass sie praktisch jeder kennt. Damit fallen auch seltene Fachbegriffe und ungewöhnliche Komposita aus der Tagesauswahl – geraten werden dürfen sie weiterhin, sie sind nur kein gesuchtes Wort mehr.
+
+Wer mehr über die Technik dahinter wissen will, findet in unseren Artikeln zu [Worteinbettungen](/blog/worteinbettungen-erklaert/) und [fastText](/blog/wie-funktioniert-fasttext/) die Grundlagen. Auch unser [Wördle](/wordle/) hat dieselbe Qualitätsprüfung bekommen.
+
+## Warum das Spiel bei Tag 1 startet
+
+Weil die komplette Lösungsliste neu erzeugt wurde, hat sich die Zuordnung von Tag zu Wort geändert. Der sauberste Weg ist deshalb ein echter Neuanfang: Tag 1 ist das erste Rätsel der neuen Ära. Deine Statistik bleibt dabei erhalten.
+
+## Danke an die Community
+
+Dieses Update gibt es vor allem dank eures Feedbacks. Ein ganz besonderer Dank geht an [@danielschueler auf TikTok](https://www.tiktok.com/@danielschueler), dessen Rückmeldung den Anstoß gegeben hat. Probiert das frische [Kontexto](/) aus – und sagt uns, wie es euch gefällt.
