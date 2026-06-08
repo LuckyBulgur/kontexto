@@ -1,9 +1,10 @@
-import { GameState, StreakData } from "./types";
+import { GameState, InfiniteSession, StreakData } from "./types";
 
 const STORAGE_KEY = "kontexto_state";
 const STREAK_KEY = "kontexto_streak";
 const THEME_KEY = "kontexto_theme";
 const DIFFICULTY_KEY = "kontexto_difficulty";
+const INFINITE_KEY = "kontexto_infinite";
 
 export function loadGameState(gameNumber: number): GameState {
   if (typeof window === "undefined") return createEmpty(gameNumber);
@@ -25,6 +26,31 @@ export function saveGameState(state: GameState): void {
 
 function createEmpty(gameNumber: number): GameState {
   return { gameNumber, guesses: [], tips: 0, solved: false };
+}
+
+export function loadInfiniteSession(): InfiniteSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(INFINITE_KEY);
+    if (!raw) return null;
+    const session: InfiniteSession = JSON.parse(raw);
+    // Defensive: only accept a structurally valid session.
+    if (!session.current || typeof session.current.gameNumber !== "number") return null;
+    if (!Array.isArray(session.played)) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export function saveInfiniteSession(session: InfiniteSession): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(INFINITE_KEY, JSON.stringify(session));
+}
+
+export function clearInfiniteSession(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(INFINITE_KEY);
 }
 
 export function loadTheme(): "light" | "dark" {

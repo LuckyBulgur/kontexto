@@ -51,6 +51,12 @@ class ClosestWordsResponse(BaseModel):
     gameNumber: int
 
 
+class InfiniteNextResponse(BaseModel):
+    gameNumber: int
+    total: int
+    totalGames: int
+
+
 class CreateDuelRequest(BaseModel):
     game_number: int = Field(..., ge=1)
     nickname: str = Field(..., min_length=1, max_length=20)

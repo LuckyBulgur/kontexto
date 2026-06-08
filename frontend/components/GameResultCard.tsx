@@ -11,6 +11,13 @@ interface GameResultCardProps {
   isWin: boolean;
   onOpenPastGames: () => void;
   onOpenClosestWords: () => void;
+  /** Endless-mode props. When `infinite` is set the card swaps the daily-streak
+   * block + "Vorherige Spiele" button for a session counter and a prominent
+   * "Nächstes Spiel" action. */
+  infinite?: boolean;
+  onNextInfinite?: () => void;
+  infiniteSolvedCount?: number;
+  noMoreGames?: boolean;
 }
 
 function getEmojiBreakdown(guesses: Guess[]) {
@@ -26,7 +33,7 @@ function getEmojiBreakdown(guesses: Guess[]) {
   return rows;
 }
 
-export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords }: GameResultCardProps) {
+export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
   const streak = loadStreakData();
 
   const givenUp = !isWin;
@@ -43,9 +50,9 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
 
       <div className="text-muted-foreground space-y-0.5">
         <p>
-          {isWin
-            ? `Du hast das Wort #${gameNumber} gelöst`
-            : `Du hast das Wort #${gameNumber} aufgegeben`}
+          {infinite
+            ? (isWin ? "Du hast das Wort gelöst" : "Du hast das Wort aufgegeben")
+            : (isWin ? `Du hast das Wort #${gameNumber} gelöst` : `Du hast das Wort #${gameNumber} aufgegeben`)}
         </p>
         <p>in {guessCount} Versuchen und {tipCount} Tipps.</p>
       </div>
@@ -64,24 +71,49 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
       </div>
 
       <div className="flex justify-center">
-        <ShareButton gameNumber={gameNumber} guesses={guesses} tipCount={tipCount} givenUp={givenUp} />
+        <ShareButton gameNumber={gameNumber} guesses={guesses} tipCount={tipCount} givenUp={givenUp} infinite={infinite} />
       </div>
 
-      {(streak.currentStreak > 0 || streak.longestStreak > 0) && (
-        <div className="rounded-lg border bg-muted/50 p-3 space-y-0.5 text-sm text-muted-foreground">
-          <p>Aktuelle Serie: <span className="font-semibold text-foreground">{streak.currentStreak}</span> Tag(e)</p>
-          <p>Längste Serie: <span className="font-semibold text-foreground">{streak.longestStreak}</span> Tag(e) 🔥</p>
+      {infinite ? (
+        <div className="rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+          <p>Im Unendlich-Modus gelöst: <span className="font-semibold text-foreground">{infiniteSolvedCount ?? 0}</span></p>
         </div>
+      ) : (
+        (streak.currentStreak > 0 || streak.longestStreak > 0) && (
+          <div className="rounded-lg border bg-muted/50 p-3 space-y-0.5 text-sm text-muted-foreground">
+            <p>Aktuelle Serie: <span className="font-semibold text-foreground">{streak.currentStreak}</span> Tag(e)</p>
+            <p>Längste Serie: <span className="font-semibold text-foreground">{streak.longestStreak}</span> Tag(e) 🔥</p>
+          </div>
+        )
       )}
 
-      <div className="flex justify-center gap-3">
-        <Button variant="outline" onClick={onOpenPastGames}>
-          Vorherige Spiele
-        </Button>
-        <Button variant="outline" onClick={onOpenClosestWords}>
-          Ähnlichste Wörter
-        </Button>
-      </div>
+      {infinite ? (
+        <div className="space-y-3">
+          {noMoreGames ? (
+            <p className="text-sm text-muted-foreground">
+              Du hast alle verfügbaren Spiele gespielt. Schau später für neue Rätsel vorbei!
+            </p>
+          ) : (
+            <Button size="lg" className="w-full" onClick={onNextInfinite}>
+              Nächstes Spiel
+            </Button>
+          )}
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={onOpenClosestWords}>
+              Ähnlichste Wörter
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center gap-3">
+          <Button variant="outline" onClick={onOpenPastGames}>
+            Vorherige Spiele
+          </Button>
+          <Button variant="outline" onClick={onOpenClosestWords}>
+            Ähnlichste Wörter
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

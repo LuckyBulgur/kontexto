@@ -8,9 +8,12 @@ interface ShareButtonProps {
   guesses: Guess[];
   tipCount: number;
   givenUp?: boolean;
+  /** Endless mode: the game number is intentionally hidden, so it is omitted
+   * from the shared text as well. */
+  infinite?: boolean;
 }
 
-export default function ShareButton({ gameNumber, guesses, tipCount, givenUp }: ShareButtonProps) {
+export default function ShareButton({ gameNumber, guesses, tipCount, givenUp, infinite }: ShareButtonProps) {
   const handleShare = async () => {
     const colorMap = { green: "\u{1f7e9}", yellow: "\u{1f7e8}", red: "\u{1f7e5}" };
     const displayGuesses = givenUp ? guesses.filter((g) => g.rank !== 1) : guesses;
@@ -19,8 +22,11 @@ export default function ShareButton({ gameNumber, guesses, tipCount, givenUp }: 
     const statusLine = givenUp
       ? `Aufgegeben nach ${guessCount} Versuchen und ${tipCount} Tipps.`
       : `Gelöst in ${guessCount} Versuchen und ${tipCount} Tipps.`;
+    const heading = infinite
+      ? `Kontexto Unendlich-Modus \u{1f1e9}\u{1f1ea}`
+      : `Kontexto #${gameNumber} \u{1f1e9}\u{1f1ea}`;
     const text = [
-      `Kontexto #${gameNumber} \u{1f1e9}\u{1f1ea}`,
+      heading,
       squares,
       statusLine,
     ].join("\n");
