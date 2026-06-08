@@ -15,8 +15,14 @@ export interface LegalInfo {
    * forwards messages by e-mail.
    */
   contactFormUrl: string;
-  /** Competent regulatory and supervisory authority (Medienstaatsvertrag). */
-  supervisoryAuthority: string;
+  /**
+   * Natural person responsible for the journalistic-editorial content (the blog)
+   * under § 18 Abs. 2 MStV. Postal address is the one above ({@link LegalInfo.careOf}
+   * etc.).
+   */
+  responsiblePerson: string;
+  /** Statement on consumer dispute resolution under § 36 VSBG. */
+  disputeResolution: string;
 }
 
 export const legal: LegalInfo = {
@@ -27,5 +33,7 @@ export const legal: LegalInfo = {
   country: "Deutschland",
   email: "info@kontexto.de",
   contactFormUrl: "https://mein.online-impressum.de/kontexto/#Zweiter_Kontaktweg",
-  supervisoryAuthority: "Niedersächsische Landesmedienanstalt, Deutschland",
+  responsiblePerson: "Ugur Aydogan",
+  disputeResolution:
+    "Wir sind weder bereit noch verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.",
 };

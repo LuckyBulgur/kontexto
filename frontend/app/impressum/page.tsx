@@ -10,6 +10,7 @@ export const metadata = buildMetadata({
 
 export default function ImpressumPage() {
   const address = [legal.name, legal.careOf, legal.street, legal.city, legal.country].filter(Boolean);
+  const responsibleAddress = [legal.careOf, legal.street, legal.city, legal.country].filter(Boolean);
   return (
     <TextPage title="Impressum" breadcrumbName="Impressum" path="/impressum/">
       <section className="space-y-2">
@@ -48,10 +49,22 @@ export default function ImpressumPage() {
         </section>
       )}
 
-      {legal.supervisoryAuthority && (
+      {legal.responsiblePerson && (
         <section className="space-y-2">
-          <h2 className="text-base font-semibold text-foreground">Zuständige Aufsichtsbehörde</h2>
-          <p>{legal.supervisoryAuthority}</p>
+          <h2 className="text-base font-semibold text-foreground">
+            Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
+          </h2>
+          <p>{legal.responsiblePerson}</p>
+          {responsibleAddress.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </section>
+      )}
+
+      {legal.disputeResolution && (
+        <section className="space-y-2">
+          <h2 className="text-base font-semibold text-foreground">Verbraucherstreitbeilegung</h2>
+          <p>{legal.disputeResolution}</p>
         </section>
       )}
     </TextPage>
