@@ -31,7 +31,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/wordle/duel": "Wördle-Duell", other: "Sonstige",
 };
 const MODE_LABELS: Record<string, string> = {
-  kontexto: "Kontexto", duel: "Kontexto-Duell", wordle: "Wördle",
+  kontexto: "Kontexto", duel: "Kontexto-Duell", wordle: "Wördle", infinite: "Unendlich",
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "Leicht", medium: "Mittel", hard: "Schwer",
@@ -48,6 +48,7 @@ const MODE_SERIES = [
   { key: "kontexto", label: "Kontexto", accent: 0 },
   { key: "duel", label: "Kontexto-Duell", accent: 2 },
   { key: "wordle", label: "Wördle", accent: 1 },
+  { key: "infinite", label: "Unendlich", accent: 3 },
 ];
 
 /** Daily average guesses per solve, only for days that had at least one solve. */
@@ -392,7 +393,13 @@ function GameplaySection({ stats, range }: SectionProps) {
       <Panel title="Zeit bis zur Lösung – Kontexto">
         <Histogram data={dist["dist_time_kontexto"] ?? {}} order={TIME_BUCKETS} accent={0} />
       </Panel>
-      <Panel title="Bester Rang beim Aufgeben – Kontexto">
+      <Panel title="Versuche bis zur Lösung – Unendlich">
+        <Histogram data={dist["dist_guesses_infinite"] ?? {}} order={GUESS_BUCKETS} accent={3} />
+      </Panel>
+      <Panel title="Zeit bis zur Lösung – Unendlich">
+        <Histogram data={dist["dist_time_infinite"] ?? {}} order={TIME_BUCKETS} accent={3} />
+      </Panel>
+      <Panel title="Bester Rang beim Aufgeben – Kontexto & Unendlich">
         <Histogram data={dist["dist_giveup_rank"] ?? {}} order={RANK_BUCKETS} accent={4} />
       </Panel>
       <Panel title="Versuche bis zur Lösung – Wördle">

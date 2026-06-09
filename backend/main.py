@@ -803,17 +803,40 @@ async def admin_stats(authorization: str = Header(default="")):
 
     # Enrich per-game difficulty with the real target word (admin-only) and trim
     # to the hardest/easiest Kontexto words with enough finished games to matter.
+    # The daily Kontexto mode and the endless ("infinite") mode draw from the very
+    # same pre-computed target-word pool, so their per-word stats are merged into a
+    # single difficulty figure per word; only duel/wordle are excluded here.
     gs = _get_game_state()
     raw = stats.pop("game_difficulty", [])
-    enriched = []
+    merged: dict[int, dict[str, int]] = {}
     for g in raw:
-        if g["mode"] != "kontexto" or (g.get("finished") or 0) < 3 or g["solve_rate"] is None:
+        if g["mode"] not in ("kontexto", "infinite"):
+            continue
+        acc = merged.setdefault(
+            g["game_number"], {"guesses": 0, "solves": 0, "reveals": 0, "hints": 0})
+        for metric in ("guesses", "solves", "reveals", "hints"):
+            acc[metric] += g.get(metric) or 0
+    enriched = []
+    for game_number, m in merged.items():
+        finished = m["solves"] + m["reveals"]
+        if finished < 3:
             continue
         try:
-            word = gs.get_target_word(g["game_number"])
+            word = gs.get_target_word(game_number)
         except ValueError:
             continue
-        enriched.append({**g, "word": word})
+        enriched.append({
+            "mode": "kontexto",
+            "game_number": game_number,
+            "guesses": m["guesses"],
+            "solves": m["solves"],
+            "reveals": m["reveals"],
+            "hints": m["hints"],
+            "finished": finished,
+            "solve_rate": round(m["solves"] / finished, 3),
+            "avg_guesses": round(m["guesses"] / m["solves"], 1) if m["solves"] else None,
+            "word": word,
+        })
     stats["game_difficulty"] = {
         "hardest": sorted(enriched, key=lambda g: (g["solve_rate"], -g["finished"]))[:12],
         "easiest": sorted(enriched, key=lambda g: (-g["solve_rate"], -g["finished"]))[:12],

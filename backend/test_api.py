@@ -169,3 +169,38 @@ class TestInfiniteEndpoint:
         resp = client.get("/api/reveal?game=2&infinite=true")
         assert resp.status_code == 200
         assert resp.json()["word"] == "birne"
+
+
+class TestAdminStatsGameDifficulty:
+    def test_kontexto_and_infinite_merge_per_word(self, client):
+        """The endless mode shares Kontexto's word pool, so per-word difficulty
+        merges both modes into one figure (same target word, one row)."""
+        import asyncio
+
+        import analytics
+        import auth
+        import main as main_module
+
+        db_path = main_module._db_path
+
+        async def seed():
+            # Game 1's target is "apfel"; play it in both modes so the merged
+            # figure has 2 solves + 1 reveal (= 3 finished, the display threshold).
+            await analytics.record_game_stat(db_path, "kontexto", 1, "solves")
+            await analytics.record_game_stat(db_path, "kontexto", 1, "guesses")
+            await analytics.record_game_stat(db_path, "infinite", 1, "solves")
+            await analytics.record_game_stat(db_path, "infinite", 1, "reveals")
+            await analytics.record_game_stat(db_path, "infinite", 1, "guesses")
+
+        asyncio.run(seed())
+
+        token = auth.issue_session_token()
+        resp = client.get("/api/admin/stats", headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        diff = resp.json()["game_difficulty"]
+        rows = [e for e in (diff["hardest"] + diff["easiest"]) if e["word"] == "apfel"]
+        assert rows, "merged Kontexto/Unendlich word missing from difficulty ranking"
+        e = rows[0]
+        assert e["mode"] == "kontexto"
+        assert e["solves"] == 2 and e["reveals"] == 1 and e["finished"] == 3
+        assert e["guesses"] == 2
