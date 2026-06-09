@@ -1038,6 +1038,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
             "kontexto": mode_monthly_map[m].get("kontexto", 0),
             "duel": mode_monthly_map[m].get("duel", 0),
             "wordle": mode_monthly_map[m].get("wordle", 0),
+            "infinite": mode_monthly_map[m].get("infinite", 0),
         }
         for m in sorted(mode_monthly_map)
     ]
