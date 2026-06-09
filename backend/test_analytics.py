@@ -748,6 +748,23 @@ class TestExtendedStats:
         hbd = run(go())["hints_by_difficulty"]
         assert hbd.get("easy") == 2 and hbd.get("hard") == 1
 
+    def test_infinite_mode_surfaces_in_breakdowns(self, db_path):
+        """Endless-mode finishes appear in games_by_mode and the monthly mode trend."""
+        async def go():
+            await analytics.record_action(db_path, "solves", "infinite", now=JAN)
+            await analytics.record_action(db_path, "solves", "infinite", now=JAN)
+            await analytics.record_action(db_path, "reveals", "infinite", now=JAN)
+            await analytics.record_action(db_path, "solves", "kontexto", now=JAN)
+            db = await get_db(db_path)
+            try:
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["games_by_mode"].get("infinite") == 3
+        jan = next(m for m in stats["mode_monthly"] if m["month"] == "2026-01")
+        assert jan["infinite"] == 3 and jan["kontexto"] == 1
+
 
 def _hll_registers_from_keys(keys):
     """Build a {register: max-rank} dict by folding distinct keys (like the DB)."""
