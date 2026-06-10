@@ -12,7 +12,6 @@ import {
   History,
   Shield,
   Swords,
-  Copy,
   BarChart3,
   Newspaper,
   Infinity,
@@ -30,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import { useRelaunch } from "@/components/RelaunchProvider";
+import ShareLinkButton from "@/components/ShareLinkButton";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -134,6 +134,7 @@ export default function Header({
           </Link>
         </div>
       <div className="absolute right-4 flex items-center gap-0.5">
+        {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
         {onInfiniteStart && (
           <Button
             variant="ghost"
@@ -202,12 +203,6 @@ export default function Header({
               <DropdownMenuItem onClick={onGiveUp} disabled={giveUpDisabled} className="text-destructive focus:text-destructive">
                 <Flag className="h-4 w-4" />
                 Aufgeben
-              </DropdownMenuItem>
-            )}
-            {onCopyLink && (
-              <DropdownMenuItem onClick={onCopyLink}>
-                <Copy className="h-4 w-4" />
-                Link kopieren
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
