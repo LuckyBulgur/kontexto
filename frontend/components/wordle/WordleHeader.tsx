@@ -9,7 +9,6 @@ import {
   Swords,
   BarChart3,
   Settings,
-  Copy,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ShareLinkButton from "@/components/ShareLinkButton";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 
 interface WordleHeaderProps {
@@ -63,7 +63,7 @@ export default function WordleHeader({
   const showDuelHighlight = showDuelCreate && duelHighlight;
   const hasPrimaryItems =
     Boolean(onHelp) || Boolean(onRandom) || showDuelCreate || Boolean(onStats);
-  const hasMenu = Boolean(onCopyLink) || hasPrimaryItems || Boolean(onSettings);
+  const hasMenu = hasPrimaryItems || Boolean(onSettings);
 
   return (
     <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
@@ -82,8 +82,10 @@ export default function WordleHeader({
           <span className="text-zinc-300 dark:text-zinc-600">|</span>
           <Link href="/wordle">WÖRDLE</Link>
         </div>
-        {hasMenu && (
-          <div className="absolute right-4">
+        {(onCopyLink || hasMenu) && (
+          <div className="absolute right-4 flex items-center gap-0.5">
+            {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
+            {hasMenu && (
             <DropdownMenu onOpenChange={(open) => { if (!open && showDuelHighlight) dismissDuelHighlight(); }}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -102,13 +104,6 @@ export default function WordleHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onCopyLink && (
-                  <DropdownMenuItem onClick={onCopyLink}>
-                    <Copy className="h-4 w-4" />
-                    Link kopieren
-                  </DropdownMenuItem>
-                )}
-                {onCopyLink && hasPrimaryItems && <DropdownMenuSeparator />}
                 {onHelp && (
                   <DropdownMenuItem onClick={onHelp}>
                     <BookOpen className="h-4 w-4" />
@@ -140,7 +135,7 @@ export default function WordleHeader({
                     Statistik
                   </DropdownMenuItem>
                 )}
-                {onSettings && (onCopyLink || hasPrimaryItems) && <DropdownMenuSeparator />}
+                {onSettings && hasPrimaryItems && <DropdownMenuSeparator />}
                 {onSettings && (
                   <DropdownMenuItem onClick={onSettings}>
                     <Settings className="h-4 w-4" />
@@ -149,6 +144,7 @@ export default function WordleHeader({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
         )}
       </div>

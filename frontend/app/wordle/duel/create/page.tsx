@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getWordleGame, createWordleDuel } from "@/lib/wordle-api";
 import { saveDuelToken, saveDuelNickname } from "@/lib/wordle-storage";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { ArrowLeft } from "lucide-react";
 
 export default function WordleDuelCreatePage() {
@@ -30,14 +31,10 @@ export default function WordleDuelCreatePage() {
       saveDuelToken(duel_id, player_token);
       saveDuelNickname(duel_id, nickname.trim());
       const url = `${window.location.origin}/wordle/duel/${duel_id}/`;
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success("Duell erstellt – Link kopiert!");
-      } catch {
-        // Clipboard ohne gültige Nutzergeste blockiert (z.B. Safari nach dem
-        // await). Manueller Copy-Button im Duell-Header bleibt als Fallback.
-        toast.success("Duell erstellt!");
-      }
+      const copied = await copyTextToClipboard(url);
+      // Clipboard ohne gültige Nutzergeste blockiert (z.B. Safari nach dem
+      // await). Der sichtbare Copy-Button im Duell-Header bleibt als Fallback.
+      toast.success(copied ? "Duell erstellt – Link kopiert!" : "Duell erstellt!");
       router.push(`/wordle/duel/${duel_id}/`);
     } catch {
       setCreating(false);

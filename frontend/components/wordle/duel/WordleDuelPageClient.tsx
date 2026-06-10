@@ -16,6 +16,8 @@ import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
 import WordleHeader from "@/components/wordle/WordleHeader";
 import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wordle/WordleBoardSkeleton";
+import ShareInviteBar from "@/components/ShareInviteBar";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -295,9 +297,11 @@ export default function WordleDuelPageClient() {
     return () => document.removeEventListener("keydown", handler);
   }, [handleKey]);
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/wordle/duel/${duelId}/`);
-    toast("Link kopiert!");
+  const copyLink = async () => {
+    const url = `${window.location.origin}/wordle/duel/${duelId}/`;
+    const ok = await copyTextToClipboard(url);
+    if (ok) toast("Link kopiert!");
+    else prompt("Link kopieren:", url);
   };
 
   const allFinished = players.length > 1 && players.every((p) => p.solved || p.guesses_used >= 6);
@@ -333,6 +337,16 @@ export default function WordleDuelPageClient() {
       <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
 
       {players.length > 0 && <DuelHeader players={players} currentNickname={nickname} />}
+
+      {players.length < 2 && !allFinished && (
+        <div className="px-4 pt-2">
+          <ShareInviteBar
+            title="Warte auf deinen Gegner …"
+            description="Teile den Link, damit jemand dem Duell beitreten kann."
+            onCopy={copyLink}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 px-4">
         {/* Opponent boards */}

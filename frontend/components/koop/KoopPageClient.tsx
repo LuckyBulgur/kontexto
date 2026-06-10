@@ -39,6 +39,8 @@ import PlayerBar from "@/components/koop/PlayerBar";
 import JoinDialog from "@/components/koop/JoinDialog";
 import KoopResultCard from "@/components/koop/KoopResultCard";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
+import ShareInviteBar from "@/components/ShareInviteBar";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { useKoopWebSocket } from "@/lib/use-koop-websocket";
 import {
   getKoopState,
@@ -322,11 +324,12 @@ export default function KoopPageClient() {
   }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess]);
 
   // Copy link.
-  const handleCopyLink = useCallback(() => {
+  const handleCopyLink = useCallback(async () => {
     if (!koopId) return;
     const url = `${window.location.origin}/koop/${koopId}/`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link kopiert!");
+    const ok = await copyTextToClipboard(url);
+    if (ok) toast.success("Link kopiert!");
+    else prompt("Link kopieren:", url);
   }, [koopId]);
 
   if (loading) {
@@ -388,6 +391,14 @@ export default function KoopPageClient() {
           <div className="md:hidden">
             <PlayerBar players={players} currentNickname={nickname ?? ""} />
           </div>
+
+          {!solved && players.length < 2 && (
+            <ShareInviteBar
+              title="Warte auf Mitspieler …"
+              description="Teile den Link – jeder, der beitritt, rät am selben Wort mit."
+              onCopy={handleCopyLink}
+            />
+          )}
 
           {solved ? (
             <KoopResultCard

@@ -39,6 +39,8 @@ import PlayerBar from "@/components/duel/PlayerBar";
 import JoinDialog from "@/components/duel/JoinDialog";
 import DuelResultCard from "@/components/duel/DuelResultCard";
 import DuelSkeleton from "@/components/duel/DuelSkeleton";
+import ShareInviteBar from "@/components/ShareInviteBar";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { useDuelWebSocket } from "@/lib/use-duel-websocket";
 import {
   getDuelState,
@@ -366,11 +368,12 @@ export default function DuelPageClient() {
   }, [duelId, playerToken, duelState, guesses, difficulty, nickname]);
 
   // Copy link
-  const handleCopyLink = useCallback(() => {
+  const handleCopyLink = useCallback(async () => {
     if (!duelId) return;
     const url = `${window.location.origin}/duel/${duelId}/`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link kopiert!");
+    const ok = await copyTextToClipboard(url);
+    if (ok) toast.success("Link kopiert!");
+    else prompt("Link kopieren:", url);
   }, [duelId]);
 
   if (loading) {
@@ -432,6 +435,14 @@ export default function DuelPageClient() {
           <div className="md:hidden">
             <PlayerBar players={players} currentNickname={nickname ?? ""} />
           </div>
+
+          {!solved && players.length < 2 && (
+            <ShareInviteBar
+              title="Warte auf deinen Gegner …"
+              description="Teile den Link, damit jemand dem Duell beitreten kann."
+              onCopy={handleCopyLink}
+            />
+          )}
 
           {solved ? (
             <DuelResultCard
