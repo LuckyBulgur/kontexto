@@ -9,7 +9,7 @@ export const RELAUNCH_TITLE = "Neustart – Schluss mit Namen als Lösungswörte
 export const RELAUNCH_DESCRIPTION =
   "Der Algorithmus hinter den Lösungswörtern wurde komplett neu gebaut.";
 
-const TIKTOK_URL = "https://www.tiktok.com/@danielschueler";
+import { DANIEL_TIKTOK_URL } from "@/components/DanielTribute";
 
 /** Reiner Fließtext-Body ohne eigenen State oder Wrapper. */
 export function RelaunchBody() {
@@ -24,7 +24,7 @@ export function RelaunchBody() {
       <p>
         Riesigen Dank an alle für euer Feedback – ganz besonders an{" "}
         <a
-          href={TIKTOK_URL}
+          href={DANIEL_TIKTOK_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
