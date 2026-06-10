@@ -11,6 +11,7 @@ export interface KoopState {
   solved: boolean;
   solved_by: string | null;
   best_rank: number | null;
+  total: number;
   players: KoopPlayer[];
 }
 
