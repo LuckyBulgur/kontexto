@@ -101,11 +101,12 @@ export default function Header({
     useFeatureDiscovery("kontexto_koop_discovered");
   const showKoopHighlight = !hideKoopCreate && koopHighlight;
   const { highlight: relaunchHighlight, openMobile: openRelaunch } = useRelaunch();
-  // Ping am Kebab, falls Duell- oder Relaunch-Hinweis offen ist. Der Relaunch-Eintrag
-  // existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv, bleibt auch der Ping mobil.
-  // Der Unendlich-Hinweis hat seinen eigenen, immer sichtbaren Button-Ping (s. u.).
-  const showPing = showDuelHighlight || relaunchHighlight;
-  const pingMobileOnly = !showDuelHighlight && relaunchHighlight;
+  // Ping am Kebab, falls Duell-, Koop- oder Relaunch-Hinweis offen ist. Der
+  // Relaunch-Eintrag existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv,
+  // bleibt auch der Ping mobil. Der Unendlich-Hinweis hat seinen eigenen, immer
+  // sichtbaren Button-Ping (s. u.).
+  const showPing = showDuelHighlight || showKoopHighlight || relaunchHighlight;
+  const pingMobileOnly = !showDuelHighlight && !showKoopHighlight && relaunchHighlight;
 
   useEffect(() => {
     if (!showCountdown) return;
@@ -133,28 +134,6 @@ export default function Header({
           </Link>
         </div>
       <div className="absolute right-4 flex items-center gap-0.5">
-        {!hideKoopCreate && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-10 w-10"
-            aria-label={showKoopHighlight ? "Koop-Modus – neue Funktion" : "Koop-Modus"}
-            asChild
-          >
-            <Link
-              href="/koop/create/"
-              onClick={() => { if (showKoopHighlight) dismissKoopHighlight(); }}
-            >
-              <UsersRound className="h-6! w-6!" />
-              {showKoopHighlight && (
-                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                </span>
-              )}
-            </Link>
-          </Button>
-        )}
         {onInfiniteStart && (
           <Button
             variant="ghost"
@@ -190,9 +169,11 @@ export default function Header({
               aria-label={
                 showDuelHighlight
                   ? "Menü – neue Funktion: Duell"
-                  : relaunchHighlight
-                    ? "Menü – Neuigkeiten"
-                    : "Menü"
+                  : showKoopHighlight
+                    ? "Menü – neue Funktion: Koop"
+                    : relaunchHighlight
+                      ? "Menü – Neuigkeiten"
+                      : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />

@@ -538,6 +538,7 @@ async def create_koop_endpoint(req: CreateKoopRequest):
 
 @app.post("/api/koop/{koop_id}/join", response_model=JoinKoopResponse)
 async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
+    gs = _get_game_state()
     db = await get_db(_db_path)
     try:
         result = await join_koop(db, koop_id, req.nickname)
@@ -546,6 +547,7 @@ async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
                 status_code=404,
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
+        result["total"] = gs.metadata["vocab_size"]
         return result
     finally:
         await db.close()
@@ -565,6 +567,7 @@ async def koop_player_info(token: str = Query(...)):
 
 @app.get("/api/koop/{koop_id}", response_model=KoopStateResponse)
 async def get_koop_state_endpoint(koop_id: str):
+    gs = _get_game_state()
     db = await get_db(_db_path)
     try:
         state = await get_koop_state(db, koop_id)
@@ -573,6 +576,7 @@ async def get_koop_state_endpoint(koop_id: str):
                 status_code=404,
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
+        state["total"] = gs.metadata["vocab_size"]
         return state
     finally:
         await db.close()

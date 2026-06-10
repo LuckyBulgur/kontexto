@@ -296,6 +296,7 @@ class TestKoopEndpoints:
         data = resp.json()
         assert data["game_number"] == 1
         assert data["solved"] is False
+        assert data["total"] == 5
         assert len(data["players"]) == 1
 
     def test_koop_guess_shared_and_dedup(self, api_client):

@@ -142,6 +142,7 @@ class KoopStateResponse(BaseModel):
     solved: bool
     solved_by: str | None
     best_rank: int | None
+    total: int
     players: list[KoopPlayerInfo]
 
 

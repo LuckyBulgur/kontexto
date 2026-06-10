@@ -139,6 +139,7 @@ export default function KoopPageClient() {
         setKoopState(state);
         setPlayers(state.players);
         setSolvedBy(state.solved_by);
+        setTotal(state.total);
         const loaded = shared.map((g) => ({
           word: g.word,
           rank: g.rank,
@@ -187,7 +188,6 @@ export default function KoopPageClient() {
         setPlayers(msg.players);
       } else if (msg.type === "guess_added") {
         appendGuess(msg.word, msg.rank, msg.is_tip);
-        toast(`${msg.nickname}: ${msg.word} (#${msg.rank})`);
         // Reflect the contribution in the player list.
         setPlayers((prev) =>
           prev.map((p) =>
