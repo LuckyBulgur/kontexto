@@ -35,30 +35,30 @@ import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
 import CreditsDialog from "@/components/CreditsDialog";
-import PlayerBar from "@/components/duel/PlayerBar";
-import JoinDialog from "@/components/duel/JoinDialog";
-import DuelResultCard from "@/components/duel/DuelResultCard";
-import DuelSkeleton from "@/components/duel/DuelSkeleton";
-import { useDuelWebSocket } from "@/lib/use-duel-websocket";
+import PlayerBar from "@/components/koop/PlayerBar";
+import JoinDialog from "@/components/koop/JoinDialog";
+import KoopResultCard from "@/components/koop/KoopResultCard";
+import KoopSkeleton from "@/components/koop/KoopSkeleton";
+import { useKoopWebSocket } from "@/lib/use-koop-websocket";
 import {
-  getDuelState,
-  joinDuel,
-  submitDuelGuess,
-  getDuelHistory,
-  getDuelTip,
-  getPlayerInfo,
-} from "@/lib/duel-api";
-import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
+  getKoopState,
+  getKoopGuesses,
+  joinKoop,
+  submitKoopGuess,
+  getKoopTip,
+  getKoopPlayerInfo,
+} from "@/lib/koop-api";
+import { KoopPlayer, KoopWsMessage, KoopState } from "@/lib/koop-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
 
-function getDuelIdFromPath(): string | null {
+function getKoopIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
   const segments = window.location.pathname.split("/").filter(Boolean);
   if (
     segments.length >= 2 &&
-    segments[0] === "duel" &&
+    segments[0] === "koop" &&
     segments[1] !== "create"
   ) {
     return segments[1];
@@ -66,16 +66,17 @@ function getDuelIdFromPath(): string | null {
   return null;
 }
 
-export default function DuelPageClient() {
-  const [duelId, setDuelId] = useState<string | null>(null);
-  const [duelState, setDuelState] = useState<DuelState | null>(null);
+export default function KoopPageClient() {
+  const [koopId, setKoopId] = useState<string | null>(null);
+  const [koopState, setKoopState] = useState<KoopState | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
-  const [players, setPlayers] = useState<DuelPlayer[]>([]);
+  const [players, setPlayers] = useState<KoopPlayer[]>([]);
   const [guesses, setGuesses] = useState<Guess[]>([]);
   const [total, setTotal] = useState(0);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
+  const [solvedBy, setSolvedBy] = useState<string | null>(null);
   const [podestError, setPodestError] = useState<
     { word: string; message: string } | undefined
   >();
@@ -98,28 +99,29 @@ export default function DuelPageClient() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
 
-  const solved = guesses.some((g) => g.rank === 1);
-  // Extract duel ID from URL
+  const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
+
+  // Extract koop ID from URL.
   useEffect(() => {
-    const id = getDuelIdFromPath();
+    const id = getKoopIdFromPath();
     if (!id) {
       setLoading(false);
       return;
     }
-    setDuelId(id);
+    setKoopId(id);
 
-    const storedToken = localStorage.getItem(`kontexto_duel_${id}`);
+    const storedToken = localStorage.getItem(`kontexto_koop_${id}`);
     if (storedToken) {
       setPlayerToken(storedToken);
     }
   }, []);
 
-  // Inject noindex for ephemeral duel-id pages (e.g. /duel/<id>/) so they
-  // don't bloat the search index; the static /duel/ landing page stays indexable.
+  // Inject noindex for ephemeral koop-id pages so they don't bloat the search
+  // index; the static /koop/ landing page stays indexable.
   useEffect(() => {
     if (typeof document === "undefined") return;
     const seg = window.location.pathname.split("/").filter(Boolean);
-    const hasId = seg[0] === "duel" && seg[1] && seg[1] !== "create";
+    const hasId = seg[0] === "koop" && seg[1] && seg[1] !== "create";
     if (!hasId) return;
     const m = document.createElement("meta");
     m.name = "robots";
@@ -128,33 +130,31 @@ export default function DuelPageClient() {
     return () => { document.head.removeChild(m); };
   }, []);
 
-  // Load duel state and history
+  // Load koop state + the shared guess list.
   useEffect(() => {
-    if (!duelId) return;
+    if (!koopId) return;
 
-    getDuelState(duelId)
-      .then((state) => {
-        setDuelState(state);
+    Promise.all([getKoopState(koopId), getKoopGuesses(koopId)])
+      .then(([state, shared]) => {
+        setKoopState(state);
         setPlayers(state.players);
+        setSolvedBy(state.solved_by);
+        const loaded = shared.map((g) => ({
+          word: g.word,
+          rank: g.rank,
+          isTip: g.is_tip,
+        }));
+        setGuesses(loaded);
 
         if (playerToken) {
-          Promise.all([
-            getDuelHistory(duelId, playerToken),
-            getPlayerInfo(playerToken),
-          ])
-            .then(([history, info]) => {
+          getKoopPlayerInfo(playerToken)
+            .then((info) => {
               setNickname(info.nickname);
-              const loaded = history.map((h) => ({
-                word: h.word,
-                rank: h.rank,
-                isTip: false,
-              }));
-              setGuesses(loaded);
-              if (loaded.some((g) => g.rank === 1)) setTimeout(fireConfetti, 300);
+              if (state.solved) setTimeout(fireConfetti, 300);
               setLoading(false);
             })
             .catch(() => {
-              localStorage.removeItem(`kontexto_duel_${duelId}`);
+              localStorage.removeItem(`kontexto_koop_${koopId}`);
               setPlayerToken(null);
               setNeedsJoin(true);
               setLoading(false);
@@ -165,78 +165,79 @@ export default function DuelPageClient() {
         }
       })
       .catch(() => {
-        setError("Duell nicht gefunden");
+        setError("Koop nicht gefunden");
         setLoading(false);
       });
-  }, [duelId, playerToken]);
+  }, [koopId, playerToken]);
 
-  // WebSocket
-  const handleWsMessage = useCallback((msg: DuelWsMessage) => {
-    if (msg.type === "state") {
-      setPlayers(msg.players);
-    } else if (msg.type === "rank_update") {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.nickname === msg.nickname
-            ? { ...p, best_rank: msg.best_rank, guess_count: msg.guess_count, tip_count: msg.tip_count }
-            : p
-        )
-      );
-    } else if (msg.type === "player_solved") {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.nickname === msg.nickname
-            ? { ...p, solved: true, guess_count: msg.guess_count, tip_count: msg.tip_count }
-            : p
-        )
-      );
-    } else if (msg.type === "player_joined") {
-      setPlayers((prev) => {
-        if (prev.some((p) => p.nickname === msg.nickname)) return prev;
-        return [
-          ...prev,
-          {
-            nickname: msg.nickname,
-            best_rank: null,
-            guess_count: 0,
-            tip_count: 0,
-            solved: false,
-            connected: true,
-          },
-        ];
-      });
-    } else if (msg.type === "player_disconnected") {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.nickname === msg.nickname ? { ...p, connected: false } : p
-        )
-      );
-    } else if (msg.type === "player_reconnected") {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.nickname === msg.nickname ? { ...p, connected: true } : p
-        )
-      );
-    }
+  // Append a word to the shared list, de-duplicating by word.
+  const appendGuess = useCallback((word: string, rank: number, isTip: boolean) => {
+    setGuesses((prev) => {
+      if (prev.some((g) => g.word === word)) return prev;
+      return [...prev, { word, rank, isTip }];
+    });
+    setLatestWord(word);
+    if (rank === 1) fireConfetti();
   }, []);
 
-  useDuelWebSocket({
-    duelId,
+  // WebSocket: live shared-list and team updates.
+  const handleWsMessage = useCallback(
+    (msg: KoopWsMessage) => {
+      if (msg.type === "state") {
+        setPlayers(msg.players);
+      } else if (msg.type === "guess_added") {
+        appendGuess(msg.word, msg.rank, msg.is_tip);
+        toast(`${msg.nickname}: ${msg.word} (#${msg.rank})`);
+        // Reflect the contribution in the player list.
+        setPlayers((prev) =>
+          prev.map((p) =>
+            p.nickname === msg.nickname
+              ? { ...p, contribution_count: p.contribution_count + 1 }
+              : p
+          )
+        );
+      } else if (msg.type === "koop_solved") {
+        setSolvedBy(msg.nickname);
+        setKoopState((prev) => (prev ? { ...prev, solved: true, solved_by: msg.nickname } : prev));
+        if (msg.word) appendGuess(msg.word, 1, false);
+      } else if (msg.type === "player_joined") {
+        setPlayers((prev) => {
+          if (prev.some((p) => p.nickname === msg.nickname)) return prev;
+          return [
+            ...prev,
+            { nickname: msg.nickname, contribution_count: 0, connected: true },
+          ];
+        });
+      } else if (msg.type === "player_disconnected") {
+        setPlayers((prev) =>
+          prev.map((p) => (p.nickname === msg.nickname ? { ...p, connected: false } : p))
+        );
+      } else if (msg.type === "player_reconnected") {
+        setPlayers((prev) =>
+          prev.map((p) => (p.nickname === msg.nickname ? { ...p, connected: true } : p))
+        );
+      }
+    },
+    [appendGuess]
+  );
+
+  useKoopWebSocket({
+    koopId,
     token: playerToken,
     onMessage: handleWsMessage,
   });
 
-  // Join
+  // Join.
   const handleJoin = useCallback(
     async (nick: string) => {
-      if (!duelId) return;
+      if (!koopId) return;
       setJoinLoading(true);
       setJoinError(null);
       try {
-        const result = await joinDuel(duelId, nick);
-        localStorage.setItem(`kontexto_duel_${duelId}`, result.player_token);
+        const result = await joinKoop(koopId, nick);
+        localStorage.setItem(`kontexto_koop_${koopId}`, result.player_token);
         setPlayerToken(result.player_token);
-        setNickname(nick);
+        setNickname(result.nickname);
         setPlayers(result.players);
         setNeedsJoin(false);
       } catch {
@@ -245,70 +246,44 @@ export default function DuelPageClient() {
         setJoinLoading(false);
       }
     },
-    [duelId]
+    [koopId]
   );
 
-  // Guess
+  // Guess.
   const handleGuess = useCallback(
     async (word: string) => {
-      if (!duelId || !playerToken) return;
+      if (!koopId || !playerToken) return;
       setError(null);
       setPodestError(undefined);
 
       if (guesses.some((g) => g.word === word.toLowerCase())) {
-        setPodestError({
-          word: word.toLowerCase(),
-          message: "Wort bereits geraten!",
-        });
+        setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten!" });
         return;
       }
 
       setPendingWord(word.toLowerCase());
       try {
-        const result = await submitDuelGuess(duelId, word, playerToken);
-        if (guesses.some((g) => g.word === result.word)) {
-          setPodestError({
-            word: result.word,
-            message: "Wort bereits geraten!",
-          });
+        const result = await submitKoopGuess(koopId, word, playerToken);
+        if (result.already_guessed || guesses.some((g) => g.word === result.word)) {
+          setPodestError({ word: result.word, message: "Wort bereits geraten!" });
           return;
         }
-        const newGuess = { word: result.word, rank: result.rank, isTip: false };
-        setGuesses((prev) => [...prev, newGuess]);
         setTotal(result.total);
-        setLatestWord(result.word);
-        if (result.rank === 1) {
-          fireConfetti();
-        }
-        // Update own stats in players list
+        appendGuess(result.word, result.rank, false);
         if (nickname) {
           setPlayers((prev) =>
             prev.map((p) =>
               p.nickname === nickname
-                ? {
-                    ...p,
-                    best_rank:
-                      p.best_rank === null
-                        ? result.rank
-                        : Math.min(p.best_rank, result.rank),
-                    guess_count: p.guess_count + 1,
-                    solved: p.solved || result.rank === 1,
-                  }
+                ? { ...p, contribution_count: p.contribution_count + 1 }
                 : p
             )
           );
         }
       } catch (e: unknown) {
         if (e instanceof Error && e.message === "unknown_word") {
-          setPodestError({
-            word: word.toLowerCase(),
-            message: "Dieses Wort kenne ich leider nicht",
-          });
+          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
         } else if (e instanceof Error && e.message === "stopword") {
-          setPodestError({
-            word: word.toLowerCase(),
-            message: "Dieses Wort zählt nicht – es ist zu allgemein",
-          });
+          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht – es ist zu allgemein" });
         } else {
           setError("Fehler bei der Verbindung");
         }
@@ -316,84 +291,65 @@ export default function DuelPageClient() {
         setPendingWord(undefined);
       }
     },
-    [duelId, playerToken, guesses, nickname]
+    [koopId, playerToken, guesses, nickname, appendGuess]
   );
 
-  // Tip
+  // Tip — shared with the whole team. best_rank/guessed_ranks are derived
+  // server-side from the shared list.
   const handleTip = useCallback(async () => {
-    if (!duelId || !playerToken || !duelState?.tips_allowed) return;
+    if (!koopId || !playerToken || !koopState?.tips_allowed) return;
     setError(null);
-    const bestRank =
-      guesses.length > 0 ? Math.min(...guesses.map((g) => g.rank)) : 10000;
-    const guessedRanks = guesses.map((g) => g.rank);
     try {
-      const result = await getDuelTip(duelId, difficulty, bestRank, playerToken, guessedRanks);
+      const result = await getKoopTip(koopId, difficulty, playerToken);
       if (guesses.some((g) => g.word === result.word)) return;
-      setGuesses((prev) => [
-        ...prev,
-        { word: result.word, rank: result.rank, isTip: true },
-      ]);
-      setLatestWord(result.word);
-      if (result.rank === 1) {
-        fireConfetti();
-      }
-      // Update own stats in players list for tip
+      appendGuess(result.word, result.rank, true);
       if (nickname) {
         setPlayers((prev) =>
           prev.map((p) =>
             p.nickname === nickname
-              ? {
-                  ...p,
-                  best_rank:
-                    p.best_rank === null
-                      ? result.rank
-                      : Math.min(p.best_rank, result.rank),
-                  guess_count: p.guess_count + 1,
-                  tip_count: p.tip_count + 1,
-                  solved: p.solved || result.rank === 1,
-                }
+              ? { ...p, contribution_count: p.contribution_count + 1 }
               : p
           )
         );
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "tips_disabled") {
-        setError("Tipps sind in diesem Duell deaktiviert");
+        setError("Tipps sind in diesem Koop deaktiviert");
       } else {
         setError("Tipp konnte nicht geladen werden");
       }
     }
-  }, [duelId, playerToken, duelState, guesses, difficulty, nickname]);
+  }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess]);
 
-  // Copy link
+  // Copy link.
   const handleCopyLink = useCallback(() => {
-    if (!duelId) return;
-    const url = `${window.location.origin}/duel/${duelId}/`;
+    if (!koopId) return;
+    const url = `${window.location.origin}/koop/${koopId}/`;
     navigator.clipboard.writeText(url);
     toast.success("Link kopiert!");
-  }, [duelId]);
+  }, [koopId]);
 
   if (loading) {
-    return <DuelSkeleton />;
+    return <KoopSkeleton />;
   }
 
-  if (!duelId) {
+  if (!koopId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-muted-foreground">Kein Duell ausgewählt.</p>
-        <a href="/duel/create/" className="text-primary underline">
-          Neues Duell erstellen
+        <p className="text-muted-foreground">Kein Koop ausgewählt.</p>
+        <a href="/koop/create/" className="text-primary underline">
+          Neuen Koop erstellen
         </a>
       </div>
     );
   }
 
-  if (error && !duelState) {
+  if (error && !koopState) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-destructive">{error}</p>
-        <a href="/duel/create/" className="text-primary underline">
-          Neues Duell erstellen
+        <a href="/koop/create/" className="text-primary underline">
+          Neuen Koop erstellen
         </a>
       </div>
     );
@@ -415,10 +371,10 @@ export default function DuelPageClient() {
         onSettingsOpen={() => setShowSettings(true)}
         onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
-        tipDisabled={solved || !duelState?.tips_allowed}
+        tipDisabled={solved || !koopState?.tips_allowed}
         giveUpDisabled
         onCopyLink={handleCopyLink}
-        hideTip={!duelState?.tips_allowed}
+        hideTip={!koopState?.tips_allowed}
         hideGiveUp
         hidePastGames
         hideDuelCreate
@@ -434,27 +390,22 @@ export default function DuelPageClient() {
           </div>
 
           {solved ? (
-            <DuelResultCard
-              gameNumber={duelState?.game_number ?? 0}
+            <KoopResultCard
+              gameNumber={koopState?.game_number ?? 0}
               guesses={guesses}
               players={players}
+              solvedBy={solvedBy}
               currentNickname={nickname ?? ""}
             />
           ) : (
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
-                <span>Duell</span>
-                <span>Spiel: <span className="text-[18px] font-bold">#{duelState?.game_number}</span></span>
+                <span>Koop</span>
+                <span>Spiel: <span className="text-[18px] font-bold">#{koopState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
                   <span className="text-[18px] font-bold">{guesses.length}</span>
                 </span>
-                {duelState?.tips_allowed && (
-                  <span>
-                    Tipps:{" "}
-                    <span className="text-[18px] font-bold">{players.find((p) => p.nickname === nickname)?.tip_count ?? 0}</span>
-                  </span>
-                )}
               </div>
               <GuessInput onGuess={handleGuess} disabled={solved} error={error} />
             </>

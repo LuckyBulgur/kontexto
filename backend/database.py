@@ -39,6 +39,43 @@ CREATE TABLE IF NOT EXISTS duel_guesses (
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Koop (cooperative Kontexto): one shared, de-duplicated guess list per game.
+-- The whole team wins together the moment anyone lands rank 1. Mirrors the duel
+-- tables but the guess list is shared (UNIQUE(koop_id, word)) instead of
+-- per-player, and the solved/best_rank state lives on the koop row.
+CREATE TABLE IF NOT EXISTS koops (
+    id TEXT PRIMARY KEY,
+    game_number INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
+    tips_allowed BOOLEAN NOT NULL DEFAULT 1,
+    solved BOOLEAN NOT NULL DEFAULT 0,
+    solved_by TEXT,
+    best_rank INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS koop_players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    koop_id TEXT NOT NULL REFERENCES koops(id) ON DELETE CASCADE,
+    nickname TEXT NOT NULL,
+    player_token TEXT NOT NULL UNIQUE,
+    contribution_count INTEGER NOT NULL DEFAULT 0,
+    connected BOOLEAN NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS koop_guesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    koop_id TEXT NOT NULL REFERENCES koops(id) ON DELETE CASCADE,
+    player_token TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    word TEXT NOT NULL,
+    rank INTEGER NOT NULL,
+    is_tip BOOLEAN NOT NULL DEFAULT 0,
+    guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(koop_id, word)
+);
+
 CREATE TABLE IF NOT EXISTS wordle_duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,

@@ -28,6 +28,11 @@ from duel import (
     get_player_history, get_player_info, cleanup_stale_duels,
     set_player_connected,
 )
+from koop import (
+    create_koop, join_koop, get_koop_state, get_koop_guesses,
+    record_koop_guess, record_koop_tip, cleanup_stale_koops,
+)
+from koop import get_player_info as get_koop_player_info
 from game import GameState
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
@@ -36,8 +41,14 @@ from models import (
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
+    CreateKoopRequest, CreateKoopResponse, JoinKoopRequest, JoinKoopResponse,
+    KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
 )
-from websocket_manager import manager as ws_manager, wordle_manager as wordle_ws_manager
+from websocket_manager import (
+    manager as ws_manager,
+    wordle_manager as wordle_ws_manager,
+    koop_manager as koop_ws_manager,
+)
 from wordle import WordleState, evaluate, validate_hard_mode
 from wordle_models import (
     WordleGuessRequest, WordleGuessResponse, WordleGameResponse,
@@ -125,6 +136,7 @@ async def lifespan(app: FastAPI):
     if is_ws_mode or is_dev:
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
+        tasks.append(asyncio.create_task(koop_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_cleanup_loop()))
         # Exactly one worker (KONTEXTO_WS_MODE) runs analytics aggregation/pruning.
         # Log it so a misconfiguration where it runs nowhere — rollups never built,
@@ -148,6 +160,7 @@ async def _cleanup_loop():
             db = await get_db(_db_path)
             try:
                 await cleanup_stale_duels(db)
+                await cleanup_stale_koops(db)
                 await cleanup_stale_wordle_duels(db)
                 await analytics.aggregate_daily(db)
                 await analytics.prune_old_events(db)
@@ -501,6 +514,201 @@ async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(
             await websocket.receive_text()
     except WebSocketDisconnect:
         await ws_manager.disconnect(duel_id, token, _db_path)
+
+
+# --- Koop (cooperative Kontexto) endpoints ---
+
+@app.post("/api/koop", response_model=CreateKoopResponse)
+async def create_koop_endpoint(req: CreateKoopRequest):
+    gs = _get_game_state()
+    total = gs.metadata.get("total_games", len(gs.target_words))
+    if req.game_number < 1 or req.game_number > total:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": f"Spiel {req.game_number} existiert nicht"},
+        )
+    db = await get_db(_db_path)
+    try:
+        result = await create_koop(db, req.game_number, req.nickname, req.tips_allowed)
+        await analytics.record_action(_db_path, "koops_created", "kontexto")
+        return result
+    finally:
+        await db.close()
+
+
+@app.post("/api/koop/{koop_id}/join", response_model=JoinKoopResponse)
+async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
+    db = await get_db(_db_path)
+    try:
+        result = await join_koop(db, koop_id, req.nickname)
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        return result
+    finally:
+        await db.close()
+
+
+@app.get("/api/koop/player-info")
+async def koop_player_info(token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        info = await get_koop_player_info(db, token)
+        if info is None:
+            return JSONResponse(status_code=404, content={"error": "player_not_found"})
+        return info
+    finally:
+        await db.close()
+
+
+@app.get("/api/koop/{koop_id}", response_model=KoopStateResponse)
+async def get_koop_state_endpoint(koop_id: str):
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        return state
+    finally:
+        await db.close()
+
+
+@app.get("/api/koop/{koop_id}/guesses", response_model=KoopGuessesResponse)
+async def koop_guesses_endpoint(koop_id: str):
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        return {"guesses": await get_koop_guesses(db, koop_id)}
+    finally:
+        await db.close()
+
+
+@app.post("/api/koop/{koop_id}/guess", response_model=KoopGuessResponse)
+async def koop_guess_endpoint(koop_id: str, req: KoopGuessRequest):
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        game_num = state["game_number"]
+        gs = _get_game_state()
+        gs.load_game(game_num)
+
+        if gs.is_stopword(req.word):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
+            )
+
+        result = gs.guess(req.word, game_num)
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
+            )
+
+        recorded = await record_koop_guess(db, koop_id, req.player_token, result["word"], result["rank"])
+        if recorded is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        if not recorded["already_guessed"]:
+            await analytics.record_action(_db_path, "guesses", "koop", word=result["word"])
+            await analytics.record_game_stat(_db_path, "koop", game_num, "guesses")
+            if result["rank"] == 1 and recorded["solved"]:
+                await analytics.record_action(_db_path, "solves", "koop")
+                await analytics.record_game_stat(_db_path, "koop", game_num, "solves")
+        return {**result, "already_guessed": recorded["already_guessed"]}
+    finally:
+        await db.close()
+
+
+@app.get("/api/koop/{koop_id}/tip", response_model=TipResponse)
+async def koop_tip_endpoint(
+    koop_id: str,
+    token: str = Query(...),
+    difficulty: str = Query("easy", pattern="^(easy|medium|hard)$"),
+):
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        if not state["tips_allowed"]:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "tips_disabled", "message": "Tipps sind in diesem Koop deaktiviert"},
+            )
+        game_num = state["game_number"]
+        gs = _get_game_state()
+        gs.load_game(game_num)
+
+        # Server-authoritative: derive best_rank and already-guessed ranks from the
+        # shared list rather than trusting the client.
+        shared = await get_koop_guesses(db, koop_id)
+        ranks = [g["rank"] for g in shared]
+        best_rank = min(ranks) if ranks else 10000
+
+        result = gs.get_tip(game_number=game_num, difficulty=difficulty, best_rank=best_rank, guessed_ranks=ranks)
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
+            )
+
+        recorded = await record_koop_tip(db, koop_id, token, result["word"], result["rank"])
+        if recorded is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        return result
+    finally:
+        await db.close()
+
+
+@app.websocket("/ws/koop/{koop_id}")
+async def koop_websocket(websocket: WebSocket, koop_id: str, token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+    finally:
+        await db.close()
+
+    if state is None:
+        await websocket.close(code=4004)
+        return
+
+    await koop_ws_manager.connect(koop_id, token, websocket, _db_path)
+    await websocket.send_json({
+        "type": "state",
+        "players": state["players"],
+        "best_rank": state["best_rank"],
+        "solved": state["solved"],
+    })
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await koop_ws_manager.disconnect(koop_id, token, _db_path)
 
 
 # --- Wordle single-player endpoints ---

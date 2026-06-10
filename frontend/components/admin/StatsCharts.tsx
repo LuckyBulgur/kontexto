@@ -32,6 +32,7 @@ const PAGE_LABELS: Record<string, string> = {
 };
 const MODE_LABELS: Record<string, string> = {
   kontexto: "Kontexto", duel: "Kontexto-Duell", wordle: "Wördle", infinite: "Unendlich",
+  koop: "Kontexto-Koop",
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "Leicht", medium: "Mittel", hard: "Schwer",
@@ -49,6 +50,7 @@ const MODE_SERIES = [
   { key: "duel", label: "Kontexto-Duell", accent: 2 },
   { key: "wordle", label: "Wördle", accent: 1 },
   { key: "infinite", label: "Unendlich", accent: 3 },
+  { key: "koop", label: "Kontexto-Koop", accent: 4 },
 ];
 
 /** Daily average guesses per solve, only for days that had at least one solve. */

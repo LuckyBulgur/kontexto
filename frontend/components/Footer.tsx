@@ -19,6 +19,7 @@ const socials = [
 const links = [
   { href: "/", label: "Kontexto" },
   { href: "/wordle/", label: "Wördle" },
+  { href: "/koop/create/", label: "Koop" },
 { href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
   { href: "/vergleich/", label: "Vergleich" },

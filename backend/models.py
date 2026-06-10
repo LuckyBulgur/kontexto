@@ -111,3 +111,66 @@ class DuelGuessHistoryResponse(BaseModel):
     guesses: list[DuelGuessHistoryEntry]
 
 
+# --- Koop (cooperative Kontexto) ---
+
+
+class CreateKoopRequest(BaseModel):
+    game_number: int = Field(..., ge=1)
+    nickname: str = Field(..., min_length=1, max_length=20)
+    tips_allowed: bool = True
+
+
+class CreateKoopResponse(BaseModel):
+    koop_id: str
+    player_token: str
+
+
+class JoinKoopRequest(BaseModel):
+    nickname: str = Field(..., min_length=1, max_length=20)
+
+
+class KoopPlayerInfo(BaseModel):
+    nickname: str
+    contribution_count: int
+    connected: bool
+
+
+class KoopStateResponse(BaseModel):
+    koop_id: str
+    game_number: int
+    tips_allowed: bool
+    solved: bool
+    solved_by: str | None
+    best_rank: int | None
+    players: list[KoopPlayerInfo]
+
+
+class JoinKoopResponse(KoopStateResponse):
+    player_token: str
+    nickname: str
+
+
+class KoopGuessRequest(BaseModel):
+    word: str = Field(..., min_length=1, max_length=100)
+    player_token: str
+
+
+class KoopGuessResponse(BaseModel):
+    word: str
+    rank: int
+    total: int
+    already_guessed: bool
+
+
+class KoopGuessEntry(BaseModel):
+    nickname: str
+    word: str
+    rank: int
+    is_tip: bool
+    guessed_at: str
+
+
+class KoopGuessesResponse(BaseModel):
+    guesses: list[KoopGuessEntry]
+
+

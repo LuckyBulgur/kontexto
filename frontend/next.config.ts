@@ -22,6 +22,7 @@ const config = (phase: string): NextConfig => {
       async rewrites() {
         return [
           { source: "/duel/:id*/", destination: "/duel/" },
+          { source: "/koop/:id*/", destination: "/koop/" },
           { source: "/wordle/duel/:id*/", destination: "/wordle/duel/" },
         ];
       },
