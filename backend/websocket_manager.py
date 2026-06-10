@@ -8,6 +8,10 @@ from fastapi import WebSocket
 
 from database import get_db
 from duel import set_player_connected
+from koop import (
+    get_koop_guesses,
+    set_player_connected as set_koop_player_connected,
+)
 from wordle_duel import get_wordle_player_history, set_wordle_player_connected
 
 logger = logging.getLogger(__name__)
@@ -298,3 +302,176 @@ class WordleDuelConnectionManager:
 
 
 wordle_manager = WordleDuelConnectionManager()
+
+
+class KoopConnectionManager:
+    """Real-time broadcast for cooperative Kontexto.
+
+    The mutable shared state is the de-duplicated guess list plus the team's
+    solved flag, so the poll loop diffs the guess feed (by max id) and the
+    koops.solved transition — not per-player ranks like the duel.
+    """
+
+    def __init__(self) -> None:
+        self.connections: dict[str, dict[str, WebSocket]] = {}
+        # koop_id -> {"last_guess_id": int, "solved": bool, "players": {token: connected}}
+        self._known_state: dict[str, dict] = {}
+
+    async def connect(
+        self, koop_id: str, player_token: str, websocket: WebSocket, db_path: str
+    ) -> None:
+        await websocket.accept()
+        if koop_id not in self.connections:
+            self.connections[koop_id] = {}
+        self.connections[koop_id][player_token] = websocket
+
+        db = await get_db(db_path)
+        try:
+            await set_koop_player_connected(db, player_token, True)
+        finally:
+            await db.close()
+
+    async def disconnect(self, koop_id: str, player_token: str, db_path: str) -> None:
+        if koop_id in self.connections:
+            self.connections[koop_id].pop(player_token, None)
+            if not self.connections[koop_id]:
+                del self.connections[koop_id]
+                self._known_state.pop(koop_id, None)
+
+        db = await get_db(db_path)
+        try:
+            await set_koop_player_connected(db, player_token, False)
+        finally:
+            await db.close()
+
+    async def broadcast(
+        self, koop_id: str, message: dict, exclude_token: str | None = None
+    ) -> None:
+        if koop_id not in self.connections:
+            return
+        for token, ws in list(self.connections[koop_id].items()):
+            if token == exclude_token:
+                continue
+            try:
+                await ws.send_json(message)
+            except Exception:
+                pass
+
+    async def poll_and_broadcast(self, db_path: str) -> None:
+        """Poll SQLite for changes and broadcast updates. Runs as background task."""
+        while True:
+            await asyncio.sleep(1)
+
+            if not self.connections:
+                self._known_state.clear()
+                continue
+
+            try:
+                db = await get_db(db_path)
+                try:
+                    for koop_id in list(self.connections.keys()):
+                        await self._poll_one(db, koop_id)
+                finally:
+                    await db.close()
+            except Exception:
+                logger.exception("Error in koop poll_and_broadcast")
+
+    async def _poll_one(self, db, koop_id: str) -> None:
+        prev = self._known_state.get(koop_id)
+
+        # First sighting: seed last_guess_id with the current MAX so the existing
+        # list is not replayed to a freshly connected client as guess_added.
+        if prev is None:
+            cursor = await db.execute(
+                "SELECT COALESCE(MAX(id), 0) AS max_id FROM koop_guesses WHERE koop_id = ?",
+                (koop_id,),
+            )
+            row = await cursor.fetchone()
+            cursor = await db.execute(
+                "SELECT solved FROM koops WHERE id = ?", (koop_id,)
+            )
+            koop = await cursor.fetchone()
+            cursor = await db.execute(
+                "SELECT player_token, connected FROM koop_players WHERE koop_id = ?",
+                (koop_id,),
+            )
+            players = {p["player_token"]: bool(p["connected"]) for p in await cursor.fetchall()}
+            self._known_state[koop_id] = {
+                "last_guess_id": row["max_id"],
+                "solved": bool(koop["solved"]) if koop else False,
+                "players": players,
+            }
+            return
+
+        # New shared guesses since the last poll → broadcast each (excluding the
+        # author, who already has it from the REST response).
+        cursor = await db.execute(
+            "SELECT id, player_token, nickname, word, rank, is_tip FROM koop_guesses "
+            "WHERE koop_id = ? AND id > ? ORDER BY id",
+            (koop_id, prev["last_guess_id"]),
+        )
+        for g in await cursor.fetchall():
+            await self.broadcast(
+                koop_id,
+                {
+                    "type": "guess_added",
+                    "nickname": g["nickname"],
+                    "word": g["word"],
+                    "rank": g["rank"],
+                    "is_tip": bool(g["is_tip"]),
+                },
+                exclude_token=g["player_token"],
+            )
+            prev["last_guess_id"] = g["id"]
+
+        # Team solved transition.
+        cursor = await db.execute(
+            "SELECT solved, solved_by FROM koops WHERE id = ?", (koop_id,)
+        )
+        koop = await cursor.fetchone()
+        if koop and bool(koop["solved"]) and not prev["solved"]:
+            cursor = await db.execute(
+                "SELECT word FROM koop_guesses WHERE koop_id = ? AND rank = 1 LIMIT 1",
+                (koop_id,),
+            )
+            row = await cursor.fetchone()
+            await self.broadcast(
+                koop_id,
+                {
+                    "type": "koop_solved",
+                    "nickname": koop["solved_by"],
+                    "word": row["word"] if row else None,
+                },
+            )
+            prev["solved"] = True
+
+        # Player join / connection-state changes.
+        cursor = await db.execute(
+            "SELECT player_token, nickname, connected FROM koop_players WHERE koop_id = ?",
+            (koop_id,),
+        )
+        current_players: dict[str, bool] = {}
+        for p in await cursor.fetchall():
+            token = p["player_token"]
+            connected = bool(p["connected"])
+            current_players[token] = connected
+            old = prev["players"].get(token)
+            if old is None:
+                await self.broadcast(
+                    koop_id,
+                    {"type": "player_joined", "nickname": p["nickname"]},
+                    exclude_token=token,
+                )
+            elif old != connected:
+                await self.broadcast(
+                    koop_id,
+                    {
+                        "type": "player_reconnected" if connected else "player_disconnected",
+                        "nickname": p["nickname"],
+                    },
+                    exclude_token=token,
+                )
+        prev["players"] = current_players
+
+
+koop_manager = KoopConnectionManager()

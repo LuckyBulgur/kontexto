@@ -16,6 +16,7 @@ import {
   BarChart3,
   Newspaper,
   Infinity,
+  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,6 +52,7 @@ interface HeaderProps {
   hideGiveUp?: boolean;
   hidePastGames?: boolean;
   hideDuelCreate?: boolean;
+  hideKoopCreate?: boolean;
   backHref?: string;
 }
 
@@ -84,6 +86,7 @@ export default function Header({
   hideGiveUp,
   hidePastGames,
   hideDuelCreate,
+  hideKoopCreate,
   backHref,
 }: HeaderProps) {
   const pathname = usePathname();
@@ -94,6 +97,9 @@ export default function Header({
   const { highlight: infiniteHighlight, dismiss: dismissInfiniteHighlight } =
     useFeatureDiscovery("kontexto_infinite_discovered");
   const showInfiniteHighlight = !!onInfiniteStart && infiniteHighlight;
+  const { highlight: koopHighlight, dismiss: dismissKoopHighlight } =
+    useFeatureDiscovery("kontexto_koop_discovered");
+  const showKoopHighlight = !hideKoopCreate && koopHighlight;
   const { highlight: relaunchHighlight, openMobile: openRelaunch } = useRelaunch();
   // Ping am Kebab, falls Duell- oder Relaunch-Hinweis offen ist. Der Relaunch-Eintrag
   // existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv, bleibt auch der Ping mobil.
@@ -127,6 +133,28 @@ export default function Header({
           </Link>
         </div>
       <div className="absolute right-4 flex items-center gap-0.5">
+        {!hideKoopCreate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-10 w-10"
+            aria-label={showKoopHighlight ? "Koop-Modus – neue Funktion" : "Koop-Modus"}
+            asChild
+          >
+            <Link
+              href="/koop/create/"
+              onClick={() => { if (showKoopHighlight) dismissKoopHighlight(); }}
+            >
+              <UsersRound className="h-6! w-6!" />
+              {showKoopHighlight && (
+                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                </span>
+              )}
+            </Link>
+          </Button>
+        )}
         {onInfiniteStart && (
           <Button
             variant="ghost"
@@ -151,6 +179,7 @@ export default function Header({
           if (!open) {
             if (showDuelHighlight) dismissDuelHighlight();
             if (showInfiniteHighlight) dismissInfiniteHighlight();
+            if (showKoopHighlight) dismissKoopHighlight();
           }
         }}>
           <DropdownMenuTrigger asChild>
@@ -215,6 +244,19 @@ export default function Header({
                   <Swords className="h-4 w-4" />
                   Duell erstellen
                   {showDuelHighlight && (
+                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                      NEU
+                    </span>
+                  )}
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {!hideKoopCreate && (
+              <DropdownMenuItem asChild className={showKoopHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
+                <Link href="/koop/create/">
+                  <UsersRound className="h-4 w-4" />
+                  Koop erstellen
+                  {showKoopHighlight && (
                     <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
                       NEU
                     </span>

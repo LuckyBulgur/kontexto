@@ -163,7 +163,7 @@ export interface StatsData {
   /** Per-calendar-month series (oldest first). unique_visitors is an HLL estimate. */
   monthly: MonthlyPoint[];
   /** Finished games per month split by mode (popularity trend). */
-  mode_monthly: { month: string; kontexto: number; duel: number; wordle: number; infinite: number }[];
+  mode_monthly: { month: string; kontexto: number; duel: number; wordle: number; infinite: number; koop: number }[];
   bots_filtered: number;
   note: string;
 }
