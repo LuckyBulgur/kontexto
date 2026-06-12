@@ -13,7 +13,6 @@ import {
   Shield,
   Swords,
   BarChart3,
-  Newspaper,
   Infinity,
   UsersRound,
 } from "lucide-react";
@@ -28,9 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
-import { useRelaunch } from "@/components/RelaunchProvider";
 import ShareLinkButton from "@/components/ShareLinkButton";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   onTip: () => void;
@@ -100,13 +97,8 @@ export default function Header({
   const { highlight: koopHighlight, dismiss: dismissKoopHighlight } =
     useFeatureDiscovery("kontexto_koop_discovered");
   const showKoopHighlight = !hideKoopCreate && koopHighlight;
-  const { highlight: relaunchHighlight, openMobile: openRelaunch } = useRelaunch();
-  // Ping am Kebab, falls Duell-, Koop- oder Relaunch-Hinweis offen ist. Der
-  // Relaunch-Eintrag existiert nur auf Mobile (`lg:hidden`); ist nur er aktiv,
-  // bleibt auch der Ping mobil. Der Unendlich-Hinweis hat seinen eigenen, immer
-  // sichtbaren Button-Ping (s. u.).
-  const showPing = showDuelHighlight || showKoopHighlight || relaunchHighlight;
-  const pingMobileOnly = !showDuelHighlight && !showKoopHighlight && relaunchHighlight;
+  // Ping am Kebab, falls Duell- oder Koop-Hinweis aktiv ist.
+  const showPing = showDuelHighlight || showKoopHighlight;
 
   useEffect(() => {
     if (!showCountdown) return;
@@ -172,18 +164,13 @@ export default function Header({
                   ? "Menü – neue Funktion: Duell"
                   : showKoopHighlight
                     ? "Menü – neue Funktion: Koop"
-                    : relaunchHighlight
-                      ? "Menü – Neuigkeiten"
-                      : "Menü"
+                    : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
               {showPing && (
                 <span
-                  className={cn(
-                    "absolute right-1.5 top-1.5 flex h-2.5 w-2.5",
-                    pingMobileOnly && "lg:hidden",
-                  )}
+                  className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5"
                   aria-hidden
                 >
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
@@ -240,21 +227,6 @@ export default function Header({
                 </Link>
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onClick={openRelaunch}
-              className={cn(
-                "lg:hidden",
-                relaunchHighlight && "bg-primary/5 focus:bg-primary/10",
-              )}
-            >
-              <Newspaper className="h-4 w-4" />
-              Neuigkeiten
-              {relaunchHighlight && (
-                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
-                  NEU
-                </span>
-              )}
-            </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>
                 <History className="h-4 w-4" />
