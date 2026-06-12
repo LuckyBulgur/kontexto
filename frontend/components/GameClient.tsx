@@ -29,7 +29,6 @@ async function fireConfetti() {
   }, 250);
 }
 import Header from "@/components/Header";
-import DanielTribute from "@/components/DanielTribute";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
 import GameSkeleton from "@/components/GameSkeleton";
@@ -461,7 +460,6 @@ export default function GameClient() {
               )}
               <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
               <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
-              <DanielTribute className="ml-auto" />
             </div>
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
