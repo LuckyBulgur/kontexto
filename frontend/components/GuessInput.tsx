@@ -36,16 +36,23 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="pr-20 py-6 text-lg rounded-xl"
+          className="pr-40 py-6 text-lg rounded-xl"
         />
-        <Button
-          type="submit"
-          disabled={disabled || !value.trim()}
-          size="sm"
-          className="absolute right-2 top-1/2 -translate-y-1/2"
-        >
-          Enter
-        </Button>
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="select-none pointer-events-none text-sm font-medium tracking-wide text-muted-foreground/60"
+          >
+            kontexto.de
+          </span>
+          <Button
+            type="submit"
+            disabled={disabled || !value.trim()}
+            size="sm"
+          >
+            Enter
+          </Button>
+        </div>
       </div>
       {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
     </form>
