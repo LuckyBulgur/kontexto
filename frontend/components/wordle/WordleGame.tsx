@@ -8,6 +8,7 @@ import WordleBoardSkeleton from "./WordleBoardSkeleton";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
 import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
 import { reportCompletion } from "@/lib/analytics";
+import { fireBurst } from "@/lib/confetti";
 import {
   loadWordleState, saveWordleState,
   loadWordleRandomState, saveWordleRandomState, loadHardMode,
@@ -155,8 +156,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
         setTimeout(async () => {
           setWonRow(newGuesses.length - 1);
           toast(WIN_MESSAGES[newGuesses.length - 1] || "Gewonnen!");
-          const confetti = (await import("canvas-confetti")).default;
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          await fireBurst();
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, true, newGuesses.length);
             onGameEnd?.(true, newGuesses.length);

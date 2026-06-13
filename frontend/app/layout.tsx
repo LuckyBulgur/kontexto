@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Anton } from "next/font/google";
 import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
@@ -8,9 +8,15 @@ import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import Footer from "@/components/Footer";
 import MotionProvider from "@/components/motion/MotionProvider";
+import EventBackdrop from "@/components/event/EventBackdrop";
+import EventBanner from "@/components/event/EventBanner";
+import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
+// Charakter-Display-Font, ausschließlich für die WM-2026-Event-Chrome
+// (Badge, Banner, „TOR!"). Der SEO-Body-Font (Inter) bleibt unangetastet.
+const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-event", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kontexto.de"),
@@ -35,7 +41,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" suppressHydrationWarning>
+    <html lang="de" className={anton.variable} suppressHydrationWarning>
       <head>
         <StructuredData data={organizationSchema()} />
         <StructuredData data={websiteSchema()} />
@@ -47,9 +53,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var t=localStorage.getItem("kontexto_theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: EVENT_THEME_SCRIPT }} />
       </head>
       <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <EventBackdrop />
+          {children}
+          <EventBanner />
+        </MotionProvider>
         <Footer />
         <Toaster />
         <Analytics />
