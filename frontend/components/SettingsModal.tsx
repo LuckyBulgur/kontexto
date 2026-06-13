@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useEventTheme } from "@/lib/use-event-theme";
 
 interface SettingsModalProps {
   open: boolean;
@@ -37,6 +39,7 @@ export default function SettingsModal({
   sortMode,
   onSortModeChange,
 }: SettingsModalProps) {
+  const { available: eventAvailable, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
@@ -104,6 +107,23 @@ export default function SettingsModal({
               </Select>
             </div>
           </section>
+
+          {/* Zeitlich begrenztes WM-2026-Event */}
+          {eventAvailable && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Limited-Time-Event</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <Label className="text-sm font-medium">WM-Design</Label>
+                  <p className="text-xs text-muted-foreground">Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt)</p>
+                </div>
+                <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label="WM-Design" />
+              </div>
+            </section>
+          )}
         </div>
       </DialogContent>
     </Dialog>

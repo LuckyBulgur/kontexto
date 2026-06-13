@@ -18,6 +18,7 @@ import WordleHeader from "@/components/wordle/WordleHeader";
 import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wordle/WordleBoardSkeleton";
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { fireBurst } from "@/lib/confetti";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -268,8 +269,7 @@ export default function WordleDuelPageClient() {
       if (won) {
         setTimeout(async () => {
           setWonRow(newGuesses.length - 1);
-          const confetti = (await import("canvas-confetti")).default;
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          await fireBurst();
         }, 1800);
       }
     } finally {

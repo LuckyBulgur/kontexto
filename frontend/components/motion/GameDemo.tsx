@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { m, useInView, useReducedMotion } from "motion/react";
 import { RotateCcw, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fireDemoBurst } from "@/lib/confetti";
 
 /**
  * Animated, self-explaining demo of how Kontexto works. Decorative
@@ -115,15 +116,7 @@ export default function GameDemo({ className }: { className?: string }) {
       }
       if (!alive) return;
       setDone(true);
-      const confetti = (await import("canvas-confetti")).default;
-      if (alive) {
-        confetti({
-          particleCount: 70,
-          spread: 60,
-          origin: { y: 0.7 },
-          disableForReducedMotion: true,
-        });
-      }
+      if (alive) await fireDemoBurst();
     })();
 
     return () => {
