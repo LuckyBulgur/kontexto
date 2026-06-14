@@ -5,7 +5,7 @@ import hashlib
 import os
 import sqlite3
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import aiosqlite
@@ -154,6 +154,100 @@ class TestRecordPageview:
         first, second = run(go())
         assert first == (True, "ok")
         assert second[0] is False and second[1] == "duplicate"
+
+
+class TestPresence:
+    def _token(self, ip="1.2.3.4", ua="Mozilla/5.0 Chrome/120", now=JAN):
+        fp = analytics.compute_fingerprint(ip, ua, now)
+        return analytics.make_beacon_token(fp, now)
+
+    def test_invalid_token_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                return await analytics.record_heartbeat(
+                    db, ip="1.2.3.4", user_agent="Mozilla/5.0 Chrome/120",
+                    page="/", token="garbage", now=JAN)
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "invalid_token"
+
+    def test_bot_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                fp = analytics.compute_fingerprint("1.2.3.4", "Googlebot/2.1", JAN)
+                token = analytics.make_beacon_token(fp, JAN)
+                return await analytics.record_heartbeat(
+                    db, ip="1.2.3.4", user_agent="Googlebot/2.1",
+                    page="/", token=token, now=JAN)
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "bot"
+
+    def test_distinct_visitors_counted_once_each(self, db_path):
+        ua = "Mozilla/5.0 Chrome/120"
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                # Same visitor heartbeats twice -> still one row (idempotent upsert).
+                token_a = self._token(ip="1.1.1.1", ua=ua)
+                await analytics.record_heartbeat(
+                    db, ip="1.1.1.1", user_agent=ua, page="/", token=token_a, now=JAN)
+                await analytics.record_heartbeat(
+                    db, ip="1.1.1.1", user_agent=ua, page="/wordle", token=token_a, now=JAN)
+                # A second, distinct visitor.
+                token_b = self._token(ip="2.2.2.2", ua=ua)
+                await analytics.record_heartbeat(
+                    db, ip="2.2.2.2", user_agent=ua, page="/", token=token_b, now=JAN)
+                return await analytics.get_live_visitors(db, JAN)
+            finally:
+                await db.close()
+        live = run(go())
+        assert live["active_now"] == 2
+        # The first visitor's latest heartbeat (page "/wordle") wins the upsert.
+        assert live["by_page"] == {"/": 1, "/wordle": 1}
+
+    def test_stale_heartbeats_drop_out_of_window(self, db_path):
+        ua = "Mozilla/5.0 Chrome/120"
+        token = self._token(ua=ua)
+        later = JAN + timedelta(seconds=analytics.PRESENCE_WINDOW_SECONDS + 30)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await analytics.record_heartbeat(
+                    db, ip="1.2.3.4", user_agent=ua, page="/", token=token, now=JAN)
+                live_then = await analytics.get_live_visitors(db, JAN)
+                live_later = await analytics.get_live_visitors(db, later)
+                return live_then, live_later
+            finally:
+                await db.close()
+        live_then, live_later = run(go())
+        assert live_then["active_now"] == 1
+        assert live_later["active_now"] == 0
+
+    def test_prune_presence_deletes_stale_rows(self, db_path):
+        ua = "Mozilla/5.0 Chrome/120"
+        token = self._token(ua=ua)
+        later = JAN + timedelta(seconds=analytics.PRESENCE_WINDOW_SECONDS + 30)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await analytics.record_heartbeat(
+                    db, ip="1.2.3.4", user_agent=ua, page="/", token=token, now=JAN)
+                deleted = await analytics.prune_presence(db, later)
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_presence")
+                remaining = (await cur.fetchone())[0]
+                return deleted, remaining
+            finally:
+                await db.close()
+        deleted, remaining = run(go())
+        assert deleted == 1 and remaining == 0
 
 
 class TestActionCountersAndManipulation:
