@@ -195,6 +195,21 @@ CREATE TABLE IF NOT EXISTS analytics_completion_seen (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_completion_seen_ts ON analytics_completion_seen(ts);
 
+-- Analytics: live-presence heartbeats (one row per active visitor fingerprint).
+-- Each open page upserts its fp_hash + last_seen on a short interval; the live
+-- "currently online" count is COUNT(*) of rows whose last_seen is within the
+-- presence window. fp_hash is the PRIMARY KEY, so the upsert is idempotent and
+-- concurrency-safe across the 5 SQLite writers, and the count is inherently
+-- de-duplicated per visitor. Rows are transient (pruned on the cleanup loop);
+-- no identifier beyond the same monthly-rotating, non-reversible fingerprint
+-- the rest of analytics already uses is stored.
+CREATE TABLE IF NOT EXISTS analytics_presence (
+    fp_hash TEXT PRIMARY KEY,
+    last_seen TIMESTAMP NOT NULL,
+    page TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_presence_last_seen ON analytics_presence(last_seen);
+
 -- Admin: global failed-login timestamps (cross-worker brute-force backstop)
 CREATE TABLE IF NOT EXISTS admin_login_failures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

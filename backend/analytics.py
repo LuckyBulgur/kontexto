@@ -40,6 +40,11 @@ DISPLAY_TZ = ZoneInfo("Europe/Berlin")
 
 # Window for beacon tokens and pageview de-duplication (seconds).
 BEACON_WINDOW_SECONDS = 1800  # 30 minutes
+# A visitor counts as "currently online" if their last heartbeat is within this
+# window. The client sends a heartbeat every ~20 s; the window is wide enough to
+# tolerate a couple of missed beats (e.g. a briefly backgrounded/throttled tab)
+# without flickering the live count, while still dropping closed tabs quickly.
+PRESENCE_WINDOW_SECONDS = 90
 # Raw events older than this are pruned; rollups are kept forever.
 EVENT_RETENTION_DAYS = 35
 # Hard ceiling of accepted pageviews per fingerprint per day (flood protection).
@@ -405,6 +410,88 @@ async def record_pageview(
 
     accepted = await _commit_with_retry(db, _insert, description="record_pageview")
     return (True, "ok") if accepted else (False, "write_failed")
+
+
+# --- Live presence (currently-online visitors) -------------------------------
+#
+# A separate, lightweight signal from the pageview beacon: while a page is open
+# the client sends a small heartbeat every ~20 s. Each heartbeat upserts the
+# visitor's (monthly-rotating, non-reversible) fingerprint with the current time.
+# "Currently online" is then COUNT of fingerprints whose last_seen is inside the
+# presence window. The fp_hash primary key makes the upsert idempotent and
+# concurrency-safe across all SQLite writers and de-duplicates the count per
+# visitor; nothing beyond the existing analytics fingerprint is stored.
+
+async def record_heartbeat(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    page: str,
+    token: str,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Validate and store a live-presence heartbeat.
+
+    Hardened like the pageview beacon: requires a valid, fingerprint-bound token
+    and rejects bots. Returns (accepted, reason); rejected calls never raise.
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+
+    label = normalize_page(page)
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        await conn.execute(
+            "INSERT INTO analytics_presence (fp_hash, last_seen, page) VALUES (?, ?, ?) "
+            "ON CONFLICT(fp_hash) DO UPDATE SET last_seen = excluded.last_seen, page = excluded.page",
+            (fp_hash, now.isoformat(), label),
+        )
+
+    accepted = await _commit_with_retry(db, _write, description="record_heartbeat")
+    return (True, "ok") if accepted else (False, "write_failed")
+
+
+async def get_live_visitors(
+    db: aiosqlite.Connection,
+    now: datetime | None = None,
+    window: int = PRESENCE_WINDOW_SECONDS,
+) -> dict:
+    """Currently-online visitor count (+ per-page split) from recent heartbeats."""
+    now = now or datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=window)).isoformat()
+    cur = await db.execute(
+        "SELECT COUNT(*) FROM analytics_presence WHERE last_seen >= ?", (cutoff,))
+    active_now = (await cur.fetchone())[0]
+    cur = await db.execute(
+        "SELECT page, COUNT(*) FROM analytics_presence WHERE last_seen >= ? "
+        "GROUP BY page ORDER BY 2 DESC",
+        (cutoff,))
+    by_page = {(page or "other"): count for page, count in await cur.fetchall()}
+    return {
+        "active_now": active_now,
+        "by_page": by_page,
+        "window_seconds": window,
+        "generated_at": now.isoformat(),
+    }
+
+
+async def prune_presence(
+    db: aiosqlite.Connection,
+    now: datetime | None = None,
+    window: int = PRESENCE_WINDOW_SECONDS,
+) -> int:
+    """Delete presence rows whose last heartbeat is outside the window."""
+    now = now or datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=window)).isoformat()
+    cur = await db.execute("DELETE FROM analytics_presence WHERE last_seen < ?", (cutoff,))
+    await db.commit()
+    return cur.rowcount
 
 
 async def _bump(db: aiosqlite.Connection, table: str, date_str: str, metric: str, dimension: str, amount: int) -> None:
@@ -1044,8 +1131,13 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         for m in sorted(mode_monthly_map)
     ]
 
+    # Live presence snapshot (currently-online visitors). Cheap; lets the
+    # dashboard show a value immediately before its own live poll kicks in.
+    live = await get_live_visitors(db, now)
+
     return {
         "generated_at": now.isoformat(),
+        "live": live,
         "visitors": visitors,
         "visitors_timeline": visitors_timeline,
         "pageviews_by_page": pageviews_by_page,
