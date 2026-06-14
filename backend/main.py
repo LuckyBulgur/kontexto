@@ -18,8 +18,8 @@ import analytics
 import auth
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
-    CompletionRequest, RegisterOptionsRequest, RegisterVerifyRequest,
-    WebAuthnVerifyRequest,
+    CompletionRequest, HeartbeatRequest, LiveStatsResponse,
+    RegisterOptionsRequest, RegisterVerifyRequest, WebAuthnVerifyRequest,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -164,6 +164,7 @@ async def _cleanup_loop():
                 await cleanup_stale_wordle_duels(db)
                 await analytics.aggregate_daily(db)
                 await analytics.prune_old_events(db)
+                await analytics.prune_presence(db)
             finally:
                 await db.close()
         except Exception:
@@ -874,6 +875,24 @@ async def collect(req: BeaconRequest, request: Request):
         await db.close()
 
 
+@app.post("/api/collect/heartbeat", response_model=BeaconResponse)
+async def collect_heartbeat(req: HeartbeatRequest, request: Request):
+    """Record a live-presence heartbeat (powers the admin "currently online" count)."""
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_heartbeat(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            page=req.page,
+            token=req.token,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
 @app.post("/api/stats/complete", response_model=BeaconResponse)
 async def stats_complete(req: CompletionRequest, request: Request):
     """Record a client-reported game completion (distribution histograms only).
@@ -1002,10 +1021,30 @@ async def webauthn_register_verify(req: RegisterVerifyRequest):
         await db.close()
 
 
+def _verify_admin(authorization: str) -> bool:
+    token = authorization[7:] if authorization.lower().startswith("bearer ") else authorization
+    return auth.verify_session_token(token)
+
+
+@app.get("/api/admin/live", response_model=LiveStatsResponse)
+async def admin_live(authorization: str = Header(default="")):
+    """Lightweight, session-protected snapshot of currently-online visitors.
+
+    Polled frequently by the dashboard's live badge, so it stays cheap (a single
+    windowed count + per-page split) instead of recomputing the full stats payload.
+    """
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    db = await get_db(_db_path)
+    try:
+        return await analytics.get_live_visitors(db, _now())
+    finally:
+        await db.close()
+
+
 @app.get("/api/admin/stats")
 async def admin_stats(authorization: str = Header(default="")):
-    token = authorization[7:] if authorization.lower().startswith("bearer ") else authorization
-    if not auth.verify_session_token(token):
+    if not _verify_admin(authorization):
         return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
     db = await get_db(_db_path)
     try:

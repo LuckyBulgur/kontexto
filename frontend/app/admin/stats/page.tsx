@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { adminPasskeyLogin, getAdminStats } from "@/lib/api";
 import type { StatsData } from "@/lib/types";
 import StatsSkeleton from "@/components/admin/StatsSkeleton";
+import { LiveUsers } from "@/components/admin/LiveUsers";
 
 // Recharts (and all chart components) are loaded only when stats data is ready,
 // keeping them out of the initial page bundle.
@@ -56,12 +57,15 @@ export default function AdminStatsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
           <p className="text-sm text-muted-foreground">Übersicht über Besucher und Spielverhalten</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => { sessionStorage.removeItem(TOKEN_KEY); setToken(null); setStats(null); }}
-        >
-          Abmelden
-        </Button>
+        <div className="flex items-center gap-3">
+          <LiveUsers token={token} initial={stats?.live} />
+          <Button
+            variant="outline"
+            onClick={() => { sessionStorage.removeItem(TOKEN_KEY); setToken(null); setStats(null); }}
+          >
+            Abmelden
+          </Button>
+        </div>
       </div>
 
       {loading && <StatsSkeleton />}
