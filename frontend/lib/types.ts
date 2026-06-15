@@ -109,8 +109,18 @@ export interface GameDifficultyEntry {
   avg_guesses: number | null;
 }
 
+/** Currently-online visitors (live presence), polled separately for real-time updates. */
+export interface LiveData {
+  active_now: number;
+  by_page: Record<string, number>;
+  window_seconds: number;
+  generated_at: string;
+}
+
 export interface StatsData {
   generated_at: string;
+  /** Snapshot of currently-online visitors at the time the stats were generated. */
+  live: LiveData;
   visitors: { today: number; week: number; month: number };
   visitors_timeline: TimelinePoint[];
   pageviews_by_page: Record<string, number>;
