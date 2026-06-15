@@ -22,6 +22,18 @@ export default function WordleDuelCreatePage() {
     getWordleGame().then(({ game_number }) => setGameNumber(game_number));
   }, []);
 
+  // noindex: thin, purely functional lobby-creation form. This page is a direct
+  // client component (no static metadata export), so the robots meta is injected
+  // here — mirroring the ephemeral duel/koop live screens. (Not in sitemap.)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const m = document.createElement("meta");
+    m.name = "robots";
+    m.content = "noindex,follow";
+    document.head.appendChild(m);
+    return () => { document.head.removeChild(m); };
+  }, []);
+
   const handleCreate = async () => {
     if (!nickname.trim() || gameNumber === null) return;
     setCreating(true);

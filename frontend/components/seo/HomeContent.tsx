@@ -16,14 +16,20 @@ import ComparisonTable from "@/components/content/ComparisonTable";
 export default function HomeContent() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
-        Kontexto – das deutsche Wort-Ratespiel
-      </h1>
+      {/*
+        The page's single <h1> and intro lead live above the game board (see
+        app/page.tsx) so the homepage reads content-first. This section opens at
+        <h2> on purpose — do not reintroduce an <h1> here (seo:check enforces
+        exactly one <h1> per page).
+      */}
+      <h2 className="mb-3 text-2xl font-bold text-foreground">
+        Kontexto – die deutsche Version von Contexto
+      </h2>
       <p className="max-w-prose">
-        Kontexto ist die deutsche Version von Contexto: ein kostenloses, tägliches
-        Wort-Ratespiel ohne Anmeldung. Errate das geheime Wort des Tages – nach jedem
-        Tipp zeigt dir Kontexto, wie nah du an der Bedeutung des Zielworts bist. Je
-        kleiner die Zahl, desto näher bist du dran.
+        Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
+        Errate das geheime Wort des Tages – nach jedem Tipp zeigt dir Kontexto, wie
+        nah du an der Bedeutung des Zielworts bist. Je kleiner die Zahl, desto näher
+        bist du dran.
       </p>
 
       <SeoHeading>Warum Kontexto spielen?</SeoHeading>

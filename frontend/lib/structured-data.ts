@@ -1,7 +1,13 @@
 import { SITE_URL, DEFAULT_OG_IMAGE } from "./seo";
 import { faqs } from "./faqs";
+import { AUTHOR_NAME, AUTHOR_PROFILE_PATH } from "./author";
 
-const EDITORIAL_AUTHOR = { "@type": "Organization", name: "Kontexto-Redaktion", url: SITE_URL };
+// Named person (E-E-A-T) — same source as the visible by-line on blog articles.
+const EDITORIAL_AUTHOR = {
+  "@type": "Person",
+  name: AUTHOR_NAME,
+  url: `${SITE_URL}${AUTHOR_PROFILE_PATH}`,
+};
 const PUBLISHER = {
   "@type": "Organization",
   name: "Kontexto",
