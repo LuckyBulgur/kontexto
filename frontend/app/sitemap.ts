@@ -12,10 +12,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/", freq: "daily", prio: 1.0 },
     { path: "/wordle/", freq: "daily", prio: 0.9 },
     { path: "/duel/", freq: "weekly", prio: 0.6 },
-    { path: "/duel/create/", freq: "monthly", prio: 0.4 },
     { path: "/koop/", freq: "weekly", prio: 0.6 },
-    { path: "/koop/create/", freq: "monthly", prio: 0.4 },
     { path: "/wordle/duel/", freq: "weekly", prio: 0.6 },
+    // /duel/create/, /koop/create/ and /wordle/duel/create/ are intentionally
+    // omitted: thin functional lobby-creation forms marked noindex.
     { path: "/faq/", freq: "monthly", prio: 0.7 },
     { path: "/anleitung/", freq: "monthly", prio: 0.8 },
     { path: "/strategie/", freq: "monthly", prio: 0.8 },

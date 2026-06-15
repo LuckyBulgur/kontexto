@@ -5,6 +5,7 @@ import StructuredData from "@/components/StructuredData";
 import { breadcrumb, blogPostingSchema } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
 import { posts, getPost } from "@/lib/blog";
+import { AUTHOR_NAME, AUTHOR_BIO, AUTHOR_PROFILE_PATH } from "@/lib/author";
 
 // Explicit static loader map — avoids template-literal dynamic imports which
 // are fragile under static export. Every module is statically known at
@@ -96,11 +97,25 @@ export default async function BlogPost({
             ? ` · aktualisiert am ${fmt(meta.updated)}`
             : ""}
         </p>
-        <article className="mt-2 text-base leading-7 text-muted-foreground [&_h1]:mt-2">
+        <p className="mt-1 text-sm text-muted-foreground">
+          von{" "}
+          <Link
+            href={AUTHOR_PROFILE_PATH}
+            className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+          >
+            {AUTHOR_NAME}
+          </Link>
+        </p>
+        <article className="mt-4 text-base leading-7 text-muted-foreground [&_h1]:mt-2">
           <Article />
         </article>
 
-        <footer className="mt-12 border-t border-border pt-6 text-sm">
+        <aside className="mt-12 rounded-lg border border-border bg-muted/30 p-5">
+          <p className="text-sm font-semibold text-foreground">Über den Autor</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{AUTHOR_BIO}</p>
+        </aside>
+
+        <footer className="mt-10 border-t border-border pt-6 text-sm">
           <p className="font-semibold text-foreground">Weiterlesen</p>
           <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Inhalte">
             <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>

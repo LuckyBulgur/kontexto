@@ -5,6 +5,7 @@ import VectorSpaceDiagram from "@/components/content/VectorSpaceDiagram";
 import Reveal from "@/components/motion/Reveal";
 import { RelatedLinks } from "@/components/seo/SeoPrimitives";
 import { buildMetadata } from "@/lib/seo";
+import { AUTHOR_NAME } from "@/lib/author";
 
 export const metadata = buildMetadata({
   path: "/ueber/",
@@ -94,11 +95,13 @@ export default function UeberPage() {
         <Prose>
           <h2 id="wer">Wer dahintersteht</h2>
           <p>
-            Kontexto ist ein unabhängiges, werbefinanziertes Projekt aus Deutschland. Es wird von
-            der Kontexto-Redaktion entwickelt und gepflegt – ohne großen Verlag im Rücken,
-            finanziert allein über Werbung, damit das Spiel für alle kostenlos bleibt. Anregungen
-            und Fehlermeldungen sind ausdrücklich willkommen; die Kontaktmöglichkeiten findest du im{" "}
-            <Link href="/impressum/">Impressum</Link>.
+            Kontexto ist ein unabhängiges, werbefinanziertes Projekt aus Deutschland. Entwickelt
+            und gepflegt wird es von {AUTHOR_NAME} – ohne großen Verlag im Rücken, finanziert allein
+            über Werbung, damit das Spiel für alle kostenlos bleibt. Er beschäftigt sich mit
+            Worteinbettungen und natürlicher Sprachverarbeitung und schreibt im{" "}
+            <Link href="/blog/">Blog</Link> über die Technik und Strategie hinter dem Spiel.
+            Anregungen und Fehlermeldungen sind ausdrücklich willkommen; die Kontaktmöglichkeiten
+            findest du im <Link href="/impressum/">Impressum</Link>.
           </p>
         </Prose>
       </Reveal>
