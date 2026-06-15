@@ -21,6 +21,20 @@ class BeaconResponse(BaseModel):
     ok: bool
 
 
+class HeartbeatRequest(BaseModel):
+    # Live-presence ping: only the page path and the signed token are accepted;
+    # identity is derived server-side from IP+UA, exactly like the pageview beacon.
+    page: str = Field(..., max_length=200)
+    token: str = Field(..., max_length=64)
+
+
+class LiveStatsResponse(BaseModel):
+    active_now: int
+    by_page: dict[str, int]
+    window_seconds: int
+    generated_at: str
+
+
 class CompletionRequest(BaseModel):
     """Client-reported game completion (feeds the distribution histograms only).
 

@@ -1,4 +1,4 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -126,6 +126,15 @@ export async function adminPasskeyRegister(enrollToken: string): Promise<void> {
 
 export async function getAdminStats(token: string): Promise<StatsData> {
   const res = await fetch(`${API_BASE}/admin/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function getAdminLive(token: string): Promise<LiveData> {
+  const res = await fetch(`${API_BASE}/admin/live`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 401) throw new Error("unauthorized");
