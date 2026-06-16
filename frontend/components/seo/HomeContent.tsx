@@ -17,14 +17,13 @@ export default function HomeContent() {
   return (
     <SeoSection>
       {/*
-        The page's single <h1> and intro lead live above the game board (see
-        app/page.tsx) so the homepage reads content-first. This section opens at
-        <h2> on purpose — do not reintroduce an <h1> here (seo:check enforces
-        exactly one <h1> per page).
+        This heading is the homepage's single <h1> (seo:check enforces exactly
+        one <h1> per page). The game board above stays widget-only; the
+        crawlable, content-first copy lives here below it.
       */}
-      <h2 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-2xl font-bold text-foreground">
         Kontexto – die deutsche Version von Contexto
-      </h2>
+      </h1>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
         Errate das geheime Wort des Tages – nach jedem Tipp zeigt dir Kontexto, wie
