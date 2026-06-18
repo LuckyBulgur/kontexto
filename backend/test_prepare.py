@@ -145,3 +145,33 @@ def test_select_target_words_prefers_frequent():
     # Most frequent words should be selected
     for w in result:
         assert w in frequency_order[:3]
+
+
+def test_orthographic_twins_groups_eszett_doublets():
+    from prepare import orthographic_twins
+    vocab = ["anlässlich", "anläßlich", "hund", "fluss", "fluß", "katze",
+             "straße", "strasse"]
+    twins = orthographic_twins(vocab)
+    # Both spellings of each ß/ss doublet are twins; standalone words are not.
+    assert twins == {"anlässlich", "anläßlich", "fluss", "fluß",
+                     "straße", "strasse"}
+    assert "hund" not in twins
+    assert "katze" not in twins
+
+
+def test_orthographic_twins_ignores_words_without_partner():
+    from prepare import orthographic_twins
+    # A lone ß word with no ss counterpart in the vocab is not a twin.
+    assert orthographic_twins(["straße", "hund", "katze"]) == set()
+
+
+def test_select_target_words_excludes_eszett_twins():
+    from prepare import select_target_words
+    # "fluss"/"fluß" are a ß/ss doublet and must both be excluded as solutions
+    # (the anlässlich/anläßlich bug); "hund" has no twin and is selected.
+    vocab = ["fluss", "fluß", "hund"]
+    vectors = {w: np.random.rand(300) for w in vocab}
+    result = select_target_words(vocab, vectors, n=5, frequency_order=vocab)
+    assert "fluss" not in result
+    assert "fluß" not in result
+    assert "hund" in result

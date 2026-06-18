@@ -165,3 +165,39 @@ def test_reject_reason_is_none_for_valid_word(filt):
 
 def test_reject_reason_explains_name_rejection(filt):
     assert filt.reject_reason("emma") == "proper_noun"
+
+
+# Vulgar, sexual/FSK18 and strongly offensive words must never be a solution
+# (content policy after "Arsch" surfaced). They stay guessable; only the answer
+# is governed.
+OFFENSIVE_WORDS = ["arsch", "ficken", "fotze", "hurensohn", "wichser",
+                   "schlampe", "penis", "vagina", "porno", "nutte", "muschi",
+                   "hoden", "vergewaltigung", "neger", "nigger", "schwuchtel",
+                   "dildo", "pisse", "möse", "vögeln"]
+
+
+@pytest.mark.parametrize("word", OFFENSIVE_WORDS)
+def test_offensive_words_are_rejected(filt, word):
+    assert filt.is_valid_target(word) is False, f"{word!r} is offensive and must be rejected"
+
+
+def test_offensive_reject_reason(filt):
+    assert filt.reject_reason("arsch") == "offensive"
+
+
+def test_offensive_blocklist_folds_eszett(filt):
+    # "scheiße" (ß) must be caught by the ß→ss-folded "scheisse" blocklist entry.
+    assert filt.reject_reason("scheiße") == "offensive"
+    assert filt.reject_reason("scheisse") == "offensive"
+
+
+# Homographs whose dominant sense is harmless, mild everyday words, and
+# substring false positives ("marsch"/"nachbarschaft" contain "arsch") must NOT
+# be over-blocked — they remain valid solutions.
+NOT_OVERBLOCKED = ["schwanz", "sack", "nackt", "kotzen", "marsch",
+                   "nachbarschaft", "geil", "popel", "furz"]
+
+
+@pytest.mark.parametrize("word", NOT_OVERBLOCKED)
+def test_harmless_words_and_false_positives_are_kept(filt, word):
+    assert filt.is_valid_target(word) is True, f"{word!r} is harmless and must stay a valid target"

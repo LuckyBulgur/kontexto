@@ -6,6 +6,7 @@ import os
 import pickle
 import random
 import argparse
+from collections import defaultdict
 import numpy as np
 from pybloom_live import BloomFilter
 import simplemma
@@ -72,18 +73,31 @@ EXCLUDED_TARGET_WORDS = {
 _ALPHA_RE = re.compile(r"^[a-zäöüß]+$")
 
 
+def vocab_word_ok(w: str, min_length: int = 2, max_length: int = 25) -> bool:
+    """Whether a lowercased token belongs in the guessable vocabulary.
+
+    The single source of truth for vocabulary membership: a German word of the
+    right length, all-alphabetic (incl. umlauts/ß), not a stopword, and known to
+    simplemma. Shared by ``filter_vocabulary`` and the streaming loader used by
+    the future-game regeneration tool, so both reproduce the same vocabulary.
+    """
+    if len(w) < min_length or len(w) > max_length:
+        return False
+    if not _ALPHA_RE.match(w):
+        return False
+    if w in GERMAN_STOPWORDS:
+        return False
+    if not simplemma.is_known(w, lang="de"):
+        return False
+    return True
+
+
 def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_length: int = 25, vocab_size: int = 0) -> tuple[dict[str, np.ndarray], list[str]]:
     filtered: dict[str, np.ndarray] = {}
     frequency_order: list[str] = []
     for word, vec in words.items():
         w = word.lower()
-        if len(w) < min_length or len(w) > max_length:
-            continue
-        if not _ALPHA_RE.match(w):
-            continue
-        if w in GERMAN_STOPWORDS:
-            continue
-        if not simplemma.is_known(w, lang="de"):
+        if not vocab_word_ok(w, min_length, max_length):
             continue
         if w not in filtered:
             filtered[w] = vec
@@ -157,6 +171,25 @@ def load_fasttext_vectors(path: str) -> tuple[dict[str, np.ndarray], set[str]]:
         return vectors, raw_words
 
 
+def orthographic_twins(vocab: list[str]) -> set[str]:
+    """Vocabulary words that share their ß→ss-folded form with a *different* word.
+
+    A German web corpus keeps both spellings of pre-1996-reform doublets
+    (``anläßlich``/``anlässlich``), and ß/ss also forms genuine minimal pairs
+    (``Maße``/``Masse``). Either way, a *solution* word with such a near-twin in
+    the guessable vocabulary is unfair: a player can type the twin, be certain
+    they are right, and still not win, because it is a separate ranked entry
+    (this happened with the solution ``anlässlich`` while ``anläßlich`` sat at
+    rank 2). Such words are therefore dropped from the target pool — they remain
+    fully guessable. Runtime ß↔ss folding is deliberately avoided, because it
+    would wrongly merge the genuine minimal pairs.
+    """
+    groups: dict[str, list[str]] = defaultdict(list)
+    for w in vocab:
+        groups[w.replace("ß", "ss")].append(w)
+    return {w for members in groups.values() if len(members) > 1 for w in members}
+
+
 def select_target_words(
     vocab: list[str],
     vectors: dict[str, np.ndarray],
@@ -181,6 +214,8 @@ def select_target_words(
     from wordfreq import zipf_frequency
 
     vocab_set = set(vocab)
+    # Words with a ß/ss orthographic twin in the vocabulary are unfair solutions.
+    twins = orthographic_twins(vocab)
     source = frequency_order if frequency_order is not None else vocab
     seen: set[str] = set()
     ordered: list[str] = []
@@ -190,6 +225,8 @@ def select_target_words(
         if len(w) < 3 or len(w) > 15 or w not in vectors:
             continue
         if w in EXCLUDED_TARGET_WORDS:
+            continue
+        if w in twins:
             continue
         # Common enough that virtually everyone knows the word.
         if zipf_frequency(w, "de") < min_solution_zipf:
