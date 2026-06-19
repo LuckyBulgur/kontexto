@@ -7,6 +7,7 @@ import Keyboard from "./Keyboard";
 import WordleBoardSkeleton from "./WordleBoardSkeleton";
 import type { TileColor, GameStatus } from "@/lib/wordle-types";
 import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
+import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
 import { reportCompletion } from "@/lib/analytics";
 import { fireBurst } from "@/lib/confetti";
 import {
@@ -208,17 +209,8 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
     }
   }, [gameStatus, currentGuess, submitGuess]);
 
-  // Physical keyboard listener
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "Enter") handleKey("ENTER");
-      else if (e.key === "Backspace") handleKey("BACKSPACE");
-      else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [handleKey]);
+  // Physical keyboard listener (ignoriert Eingaben in fokussierten Textfeldern)
+  useWordlePhysicalKeyboard(handleKey);
 
   if (loadError) {
     return <div className="flex justify-center py-20 text-destructive">Spiel konnte nicht geladen werden.</div>;

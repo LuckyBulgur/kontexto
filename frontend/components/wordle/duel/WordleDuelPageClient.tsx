@@ -9,6 +9,7 @@ import DuelHeader from "@/components/wordle/duel/DuelHeader";
 import DuelResultCard from "@/components/wordle/duel/DuelResultCard";
 import JoinForm from "@/components/wordle/duel/JoinForm";
 import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
+import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
 import {
   getWordleDuelState, submitWordleDuelGuess, getWordleDuelHistory, joinWordleDuel,
 } from "@/lib/wordle-api";
@@ -286,16 +287,9 @@ export default function WordleDuelPageClient() {
     }
   }, [gameStatus, currentGuess, submitGuess]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "Enter") handleKey("ENTER");
-      else if (e.key === "Backspace") handleKey("BACKSPACE");
-      else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [handleKey]);
+  // Während der Beitreten-Ansicht abgeschaltet, damit Tipp-Eingaben im Nickname-Feld
+  // nicht ins Grid gespiegelt werden; der Fokus-Guard im Hook deckt den Rest ab.
+  useWordlePhysicalKeyboard(handleKey, !needsJoin);
 
   const copyLink = async () => {
     const url = `${window.location.origin}/wordle/duel/${duelId}/`;

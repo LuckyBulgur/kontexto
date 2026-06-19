@@ -16,6 +16,36 @@ from wordle_duel import get_wordle_player_history, set_wordle_player_connected
 
 logger = logging.getLogger(__name__)
 
+# A socket that cannot accept a frame within this budget is treated as stuck: the
+# frame is dropped for that one socket so it can never stall delivery to everyone
+# else in the room (head-of-line blocking) or hold up the 1 s poll loop.
+_SEND_TIMEOUT_SECONDS = 2.0
+
+
+async def _send_to_all(
+    conns: dict[str, WebSocket], message: dict, exclude_token: str | None
+) -> None:
+    """Fan a message out to every socket in a room concurrently.
+
+    Sending sequentially meant one slow/backpressured socket delayed delivery to
+    every socket after it in the room and held up the poll loop, which under load
+    pushed the inter-broadcast gap into multi-second territory. Sending
+    concurrently makes a broadcast cost ~one round-trip (the slowest single send,
+    capped by a timeout) instead of the sum of all sends. Per-socket failures are
+    swallowed: a dropped frame is recovered by the next state diff or on reconnect.
+    """
+    targets = [(t, ws) for t, ws in list(conns.items()) if t != exclude_token]
+    if not targets:
+        return
+
+    async def _one(ws: WebSocket) -> None:
+        try:
+            await asyncio.wait_for(ws.send_json(message), timeout=_SEND_TIMEOUT_SECONDS)
+        except Exception:
+            pass
+
+    await asyncio.gather(*(_one(ws) for _, ws in targets))
+
 
 class DuelConnectionManager:
     def __init__(self) -> None:
@@ -52,15 +82,10 @@ class DuelConnectionManager:
     async def broadcast(
         self, duel_id: str, message: dict, exclude_token: str | None = None
     ) -> None:
-        if duel_id not in self.connections:
+        conns = self.connections.get(duel_id)
+        if not conns:
             return
-        for token, ws in list(self.connections[duel_id].items()):
-            if token == exclude_token:
-                continue
-            try:
-                await ws.send_json(message)
-            except Exception:
-                pass
+        await _send_to_all(conns, message, exclude_token)
 
     async def poll_and_broadcast(self, db_path: str) -> None:
         """Poll SQLite for changes and broadcast updates. Runs as background task."""
@@ -187,15 +212,10 @@ class WordleDuelConnectionManager:
     async def broadcast(
         self, duel_id: str, message: dict, exclude_token: str | None = None
     ) -> None:
-        if duel_id not in self.connections:
+        conns = self.connections.get(duel_id)
+        if not conns:
             return
-        for token, ws in list(self.connections[duel_id].items()):
-            if token == exclude_token:
-                continue
-            try:
-                await ws.send_json(message)
-            except Exception:
-                pass
+        await _send_to_all(conns, message, exclude_token)
 
     async def poll_and_broadcast(self, db_path: str) -> None:
         """Poll SQLite for changes and broadcast updates. Runs as background task."""
@@ -347,15 +367,10 @@ class KoopConnectionManager:
     async def broadcast(
         self, koop_id: str, message: dict, exclude_token: str | None = None
     ) -> None:
-        if koop_id not in self.connections:
+        conns = self.connections.get(koop_id)
+        if not conns:
             return
-        for token, ws in list(self.connections[koop_id].items()):
-            if token == exclude_token:
-                continue
-            try:
-                await ws.send_json(message)
-            except Exception:
-                pass
+        await _send_to_all(conns, message, exclude_token)
 
     async def poll_and_broadcast(self, db_path: str) -> None:
         """Poll SQLite for changes and broadcast updates. Runs as background task."""

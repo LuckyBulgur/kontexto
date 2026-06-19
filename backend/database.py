@@ -233,11 +233,22 @@ async def configure_connection(db: aiosqlite.Connection) -> None:
     """Apply the connection-level PRAGMAs every connection must use.
 
     journal_mode=WAL is persisted in the database header (set once, on disk), but
-    foreign_keys and busy_timeout are per-connection and must be re-applied on
-    every open. Centralised here so every writer — request connections, the
-    background loop, and ad-hoc analytics connections — shares the same settings.
+    the rest are per-connection and must be re-applied on every open. Centralised
+    here so every writer — request connections, the background loop, and ad-hoc
+    analytics connections — shares the same settings.
+
+    synchronous=NORMAL is the recommended companion to WAL: under WAL the only
+    durability it sacrifices is that the last few committed transactions may be
+    rolled back after an OS crash or power loss; the database can NEVER be
+    corrupted (per the SQLite docs). In exchange it drops the per-commit fsync
+    that, under FULL, serialises every one of the five writers behind a disk flush
+    and was the dominant cause of multi-second write latency under load. WAL is
+    still checkpointed (and fsync'd) periodically, so committed data reaches disk.
+    temp_store=MEMORY keeps transient indices/sorts off disk.
     """
     await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA synchronous=NORMAL")
+    await db.execute("PRAGMA temp_store=MEMORY")
     await db.execute("PRAGMA foreign_keys=ON")
     await db.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
 
