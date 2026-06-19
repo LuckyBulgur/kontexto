@@ -130,6 +130,13 @@ async def lifespan(app: FastAPI):
     if os.path.isdir(wordle_dir):
         _wordle_state = WordleState(data_dir)
 
+    # The action-counter batcher runs in EVERY worker (unlike the singleton
+    # aggregation/cleanup/broadcast loops below, which run only in the WS worker):
+    # each worker must persist the counters for the requests it served. Its writes
+    # are commutative additive upserts, so concurrent per-worker flushers stay
+    # correct against the shared SQLite file.
+    await analytics.start_counter_batcher(_db_path)
+
     tasks = []
     is_ws_mode = os.environ.get("KONTEXTO_WS_MODE")
     is_dev = os.environ.get("KONTEXTO_DEV")
@@ -147,6 +154,8 @@ async def lifespan(app: FastAPI):
 
     for t in tasks:
         t.cancel()
+    # Drain buffered counters before exit so the last flush window isn't lost.
+    await analytics.stop_counter_batcher()
     global _game_state
     _game_state = None
     _wordle_state = None
@@ -1046,6 +1055,10 @@ async def admin_live(authorization: str = Header(default="")):
 async def admin_stats(authorization: str = Header(default="")):
     if not _verify_admin(authorization):
         return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    # Persist this worker's buffered counters before reading so the dashboard
+    # reflects the very latest actions it served (counters are otherwise flushed
+    # on a short interval).
+    await analytics.flush_counters()
     db = await get_db(_db_path)
     try:
         stats = await analytics.get_stats(db, _now())

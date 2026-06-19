@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 import aiosqlite
 
+import counter_batcher
 from database import configure_connection
 from server_secret import server_secret as _server_secret
 
@@ -331,6 +332,48 @@ async def _commit_with_retry(db: aiosqlite.Connection, write, *, description: st
     return False
 
 
+# --- Coalescing counter writer ------------------------------------------------
+#
+# Action counters (analytics_counters / analytics_game_stats / analytics_word_counts)
+# are written through a per-worker in-memory batcher (counter_batcher.py) so that a
+# burst of guesses no longer means a burst of individual fsync'd transactions all
+# serialising on the single SQLite write lock. record_action/record_game_stat below
+# enqueue into it when it is running, and fall back to an immediate write otherwise
+# (tests, scripts, any context that did not start the batcher).
+_batcher: counter_batcher.CounterBatcher | None = None
+
+
+async def start_counter_batcher(
+    db_path: str, flush_interval: float = counter_batcher.DEFAULT_FLUSH_INTERVAL
+) -> None:
+    """Start the per-worker counter batcher. Call once at worker startup."""
+    global _batcher
+    if _batcher is not None and _batcher.running:
+        return
+    _batcher = counter_batcher.CounterBatcher(db_path, flush_interval)
+    await _batcher.start()
+
+
+async def stop_counter_batcher() -> None:
+    """Stop the batcher and flush any buffered increments. Call at shutdown."""
+    global _batcher
+    if _batcher is not None:
+        await _batcher.stop()
+        _batcher = None
+
+
+async def flush_counters() -> None:
+    """Flush this worker's buffered counters immediately (no-op if not batching).
+
+    Used to freshen the serving worker's own contributions before an analytics
+    read (the admin dashboard). Other workers' sub-flush-interval buffers are not
+    visible, but everything older than one interval is already in SQLite, so the
+    dashboard is effectively current.
+    """
+    if _batcher is not None and _batcher.running:
+        await _batcher.flush()
+
+
 async def record_pageview(
     db: aiosqlite.Connection,
     *,
@@ -519,6 +562,15 @@ async def record_action(
     date_str = now.strftime("%Y-%m-%d")
     w = word.strip().lower()[:60] if (metric == "guesses" and word and word.strip()) else None
 
+    # Fast path: coalesce in memory, off the request's critical path. The batcher
+    # flushes additive upserts in batches, so a guess no longer waits on the write
+    # lock. Falls through to an immediate write when the batcher isn't running.
+    if _batcher is not None and _batcher.running:
+        _batcher.incr_counter(date_str, metric, dimension, 1)
+        if w:
+            _batcher.incr_word(w, 1)
+        return
+
     async def _write(conn: aiosqlite.Connection) -> None:
         await _bump(conn, "analytics_counters", date_str, metric, dimension, 1)
         if w:
@@ -558,6 +610,10 @@ async def record_game_stat(
     {guesses, solves, reveals, hints}; this powers the dashboard's "hardest /
     easiest target words" ranking (solve rate, avg guesses per word).
     """
+    if _batcher is not None and _batcher.running:
+        _batcher.incr_game_stat(mode, game_number, metric, 1)
+        return
+
     async def _write(conn: aiosqlite.Connection) -> None:
         await conn.execute(
             "INSERT INTO analytics_game_stats (mode, game_number, metric, value) VALUES (?, ?, ?, 1) "
