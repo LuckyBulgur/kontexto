@@ -5,6 +5,7 @@ import {
   JoinKoopResponse,
   KoopGuessResult,
   KoopGuessEntry,
+  NextGameResult,
 } from "./koop-types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -81,6 +82,34 @@ export async function getKoopTip(
     `${API_BASE}/koop/${koopId}/tip?token=${playerToken}&difficulty=${difficulty}`
   );
   if (res.status === 403) throw new Error("tips_disabled");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function giveUpKoop(
+  koopId: string,
+  playerToken: string
+): Promise<{ word: string }> {
+  const res = await fetch(`${API_BASE}/koop/${koopId}/give-up`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 404) throw new Error("koop_not_found");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function koopNextGame(
+  koopId: string,
+  playerToken: string
+): Promise<NextGameResult> {
+  const res = await fetch(`${API_BASE}/koop/${koopId}/next-game`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 404) throw new Error("no_games");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

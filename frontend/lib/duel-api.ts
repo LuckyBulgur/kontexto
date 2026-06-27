@@ -4,6 +4,7 @@ import {
   CreateDuelResponse,
   JoinDuelResponse,
   DuelGuessHistoryEntry,
+  NextGameResult,
 } from "./duel-types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -87,6 +88,20 @@ export async function getDuelTip(
     `${API_BASE}/duel/${duelId}/tip?token=${playerToken}&difficulty=${difficulty}&best_rank=${bestRank}${ranksParam}`
   );
   if (res.status === 403) throw new Error("tips_disabled");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function duelNextGame(
+  duelId: string,
+  playerToken: string
+): Promise<NextGameResult> {
+  const res = await fetch(`${API_BASE}/duel/${duelId}/next-game`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 404) throw new Error("no_games");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

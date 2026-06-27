@@ -12,6 +12,7 @@ import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
 import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
 import {
   getWordleDuelState, submitWordleDuelGuess, getWordleDuelHistory, joinWordleDuel,
+  wordleDuelNextGame,
 } from "@/lib/wordle-api";
 import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
@@ -138,8 +139,27 @@ export default function WordleDuelPageClient() {
     load().catch(() => setLoadError(true));
   }, [duelId, playerToken]);
 
+  // Reset all local round state for a freshly advanced duel game (triggered by
+  // "Nächstes Spiel" locally or via the next_game broadcast for the opponent).
+  const resetForNextGame = useCallback((newGameNumber: number) => {
+    setGuesses([]);
+    setEvaluations([]);
+    setCurrentGuess("");
+    setGameStatus("playing");
+    setLetterStates(new Map());
+    setShakeRow(null);
+    setWonRow(null);
+    setOpponentGuesses(new Map());
+    setGameNumber(newGameNumber);
+    setPlayers((prev) => prev.map((p) => ({ ...p, guesses_used: 0, solved: false, results: [] })));
+  }, []);
+
   // WebSocket handler
   const handleWsMessage = useCallback((msg: WordleDuelWsMessage) => {
+    if (msg.type === "next_game") {
+      resetForNextGame(msg.game_number);
+      return;
+    }
     if (msg.type === "state") {
       setPlayers(msg.players);
       const myNick = duelId ? loadDuelNickname(duelId) : null;
@@ -192,7 +212,7 @@ export default function WordleDuelPageClient() {
         prev.map((p) => p.nickname === msg.nickname ? { ...p, connected: true } : p)
       );
     }
-  }, [duelId]);
+  }, [duelId, resetForNextGame]);
 
   useWordleDuelWs({ duelId, token: playerToken, onMessage: handleWsMessage });
 
@@ -298,6 +318,17 @@ export default function WordleDuelPageClient() {
     else prompt("Link kopieren:", url);
   };
 
+  // Start the next game in the same duel room for both players (rematch).
+  const handleNextGame = useCallback(async () => {
+    if (!duelId || !playerToken) return;
+    try {
+      const result = await wordleDuelNextGame(duelId, playerToken);
+      resetForNextGame(result.game_number);
+    } catch {
+      toast("Nächstes Spiel konnte nicht gestartet werden");
+    }
+  }, [duelId, playerToken, resetForNextGame]);
+
   const allFinished = players.length > 1 && players.every((p) => p.solved || p.guesses_used >= 6);
 
   if (needsJoin) {
@@ -372,7 +403,7 @@ export default function WordleDuelPageClient() {
 
       <Keyboard letterStates={letterStates} onKey={handleKey} />
 
-      {allFinished && <DuelResultCard players={players} currentNickname={nickname} />}
+      {allFinished && <DuelResultCard players={players} currentNickname={nickname} onNextGame={handleNextGame} />}
     </div>
   );
 }
