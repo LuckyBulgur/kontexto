@@ -153,6 +153,42 @@ class TestDuelCRUD:
                 await conn.close()
         self._run(run())
 
+    def test_advance_duel_game_resets_round(self, db):
+        from duel import (
+            create_duel, record_guess, advance_duel_game,
+            get_duel_state, get_player_history,
+        )
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_duel(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                await record_guess(conn, created["duel_id"], created["player_token"], "birne", 2)
+                new_game = await advance_duel_game(conn, created["duel_id"], lambda current, played: 2)
+                assert new_game == 2
+                state = await get_duel_state(conn, created["duel_id"])
+                assert state["game_number"] == 2
+                p = state["players"][0]
+                assert p["guess_count"] == 0
+                assert p["best_rank"] is None
+                assert p["solved"] is False
+                history = await get_player_history(conn, created["duel_id"], created["player_token"])
+                assert history == []
+            finally:
+                await conn.close()
+        self._run(run())
+
+    def test_advance_duel_game_no_games(self, db):
+        from duel import create_duel, advance_duel_game
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_duel(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                new_game = await advance_duel_game(conn, created["duel_id"], lambda current, played: None)
+                assert new_game is None
+            finally:
+                await conn.close()
+        self._run(run())
+
     def test_cleanup_stale_duels(self, db):
         from duel import create_duel, cleanup_stale_duels, get_duel_state
         async def run():
@@ -338,3 +374,33 @@ class TestDuelEndpoints:
         data = resp.json()
         assert data["nickname"] == "Alice"
         assert data["duel_id"] == created["duel_id"]
+
+    def test_duel_next_game(self, api_client):
+        created = api_client.post("/api/duel", json={
+            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+        }).json()
+        api_client.post(f"/api/duel/{created['duel_id']}/guess", json={
+            "word": "birne", "player_token": created["player_token"],
+        })
+        resp = api_client.post(
+            f"/api/duel/{created['duel_id']}/next-game",
+            json={"player_token": created["player_token"]},
+        )
+        assert resp.status_code == 200
+        # Daily (game 1) is excluded, so the only other game in the pool is 2.
+        assert resp.json()["game_number"] == 2
+        state = api_client.get(f"/api/duel/{created['duel_id']}").json()
+        assert state["game_number"] == 2
+        history = api_client.get(
+            f"/api/duel/{created['duel_id']}/history?token={created['player_token']}"
+        ).json()
+        assert history["guesses"] == []
+
+    def test_duel_next_game_unknown_player(self, api_client):
+        created = api_client.post("/api/duel", json={
+            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+        }).json()
+        resp = api_client.post(
+            f"/api/duel/{created['duel_id']}/next-game", json={"player_token": "bogus"}
+        )
+        assert resp.status_code == 404

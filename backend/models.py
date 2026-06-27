@@ -57,6 +57,16 @@ class InfiniteNextResponse(BaseModel):
     totalGames: int
 
 
+class NextGameRequest(BaseModel):
+    """Body for the multiplayer "Nächstes Spiel" endpoints (koop/duel/wordle-duel)."""
+    player_token: str
+
+
+class NextGameResponse(BaseModel):
+    game_number: int
+    total: int
+
+
 class CreateDuelRequest(BaseModel):
     game_number: int = Field(..., ge=1)
     nickname: str = Field(..., min_length=1, max_length=20)
@@ -141,6 +151,7 @@ class KoopStateResponse(BaseModel):
     tips_allowed: bool
     solved: bool
     solved_by: str | None
+    gave_up: bool
     best_rank: int | None
     total: int
     players: list[KoopPlayerInfo]
@@ -154,6 +165,14 @@ class JoinKoopResponse(KoopStateResponse):
 class KoopGuessRequest(BaseModel):
     word: str = Field(..., min_length=1, max_length=100)
     player_token: str
+
+
+class KoopGiveUpRequest(BaseModel):
+    player_token: str
+
+
+class KoopGiveUpResponse(BaseModel):
+    word: str
 
 
 class KoopGuessResponse(BaseModel):

@@ -26,11 +26,12 @@ from server_secret import server_secret
 from duel import (
     create_duel, join_duel, get_duel_state, record_guess, record_tip,
     get_player_history, get_player_info, cleanup_stale_duels,
-    set_player_connected,
+    set_player_connected, advance_duel_game,
 )
 from koop import (
     create_koop, join_koop, get_koop_state, get_koop_guesses,
     record_koop_guess, record_koop_tip, cleanup_stale_koops,
+    give_up_koop, advance_koop_game,
 )
 from koop import get_player_info as get_koop_player_info
 from game import GameState
@@ -43,6 +44,7 @@ from models import (
     DuelGuessHistoryResponse,
     CreateKoopRequest, CreateKoopResponse, JoinKoopRequest, JoinKoopResponse,
     KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
+    KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
 )
 from websocket_manager import (
     manager as ws_manager,
@@ -59,7 +61,8 @@ from wordle_models import (
 from wordle_duel import (
     create_wordle_duel, join_wordle_duel, record_wordle_guess,
     get_wordle_duel_state, get_wordle_player_history,
-    cleanup_stale_wordle_duels,
+    cleanup_stale_wordle_duels, advance_wordle_duel_game,
+    is_wordle_duel_member,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,6 +116,22 @@ def _resolve_game_number(game: int | None, *, infinite: bool = False) -> int:
     if game_date >= date.today():
         raise ValueError(f"Spiel {game} ist noch nicht verfügbar")
     return game
+
+
+def _pick_next_kontexto_game(current: int, played: set[int]) -> int | None:
+    """Choose the next game for a multiplayer room's "Nächstes Spiel".
+
+    Mirrors ``/api/infinite/next``: never the daily (so the room can't spoil it)
+    or the current game; avoids games already played in this room until the pool
+    is exhausted, then relaxes back to just {daily, current}.
+    """
+    gs = _get_game_state()
+    daily = _get_current_game_number()
+    base = {daily, current}
+    chosen = gs.random_game_number(base | played)
+    if chosen is None:
+        chosen = gs.random_game_number(base)
+    return chosen
 
 
 @asynccontextmanager
@@ -504,6 +523,35 @@ async def duel_tip_endpoint(
         await db.close()
 
 
+@app.post("/api/duel/{duel_id}/next-game", response_model=NextGameResponse)
+async def duel_next_game_endpoint(duel_id: str, req: NextGameRequest):
+    gs = _get_game_state()
+    db = await get_db(_db_path)
+    try:
+        state = await get_duel_state(db, duel_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "duel_not_found", "message": "Duell nicht gefunden"},
+            )
+        info = await get_player_info(db, req.player_token)
+        if info is None or info["duel_id"] != duel_id:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        new_game = await advance_duel_game(db, duel_id, _pick_next_kontexto_game)
+        if new_game is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+            )
+        await analytics.record_action(_db_path, "rounds", "duel")
+        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
 @app.websocket("/ws/duel/{duel_id}")
 async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(...)):
     db = await get_db(_db_path)
@@ -698,6 +746,61 @@ async def koop_tip_endpoint(
         await db.close()
 
 
+@app.post("/api/koop/{koop_id}/give-up", response_model=KoopGiveUpResponse)
+async def koop_give_up_endpoint(koop_id: str, req: KoopGiveUpRequest):
+    gs = _get_game_state()
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        game_num = state["game_number"]
+        target = gs.get_target_word(game_num)
+        result = await give_up_koop(db, koop_id, req.player_token, target)
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        await analytics.record_action(_db_path, "reveals", "koop")
+        await analytics.record_game_stat(_db_path, "koop", game_num, "reveals")
+        return {"word": result["word"]}
+    finally:
+        await db.close()
+
+
+@app.post("/api/koop/{koop_id}/next-game", response_model=NextGameResponse)
+async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
+    gs = _get_game_state()
+    db = await get_db(_db_path)
+    try:
+        state = await get_koop_state(db, koop_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
+            )
+        info = await get_koop_player_info(db, req.player_token)
+        if info is None or info["koop_id"] != koop_id:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        new_game = await advance_koop_game(db, koop_id, _pick_next_kontexto_game)
+        if new_game is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+            )
+        await analytics.record_action(_db_path, "rounds", "koop")
+        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
 @app.websocket("/ws/koop/{koop_id}")
 async def koop_websocket(websocket: WebSocket, koop_id: str, token: str = Query(...)):
     db = await get_db(_db_path)
@@ -830,6 +933,35 @@ async def wordle_duel_history(
         db.row_factory = aiosqlite.Row
         guesses = await get_wordle_player_history(db, duel_id, token)
     return WordleDuelHistoryResponse(guesses=guesses)
+
+
+@app.post("/api/wordle/duel/{duel_id}/next-game", response_model=NextGameResponse)
+async def wordle_duel_next_game(
+    duel_id: str, req: NextGameRequest, ws: WordleState = Depends(get_wordle_state)
+):
+    def pick_next(current: int, played: set[int]) -> int | None:
+        daily = ws.get_game_number()
+        base = {daily, current}
+        chosen = ws.random_game_number(base | played)
+        if chosen is None:
+            chosen = ws.random_game_number(base)
+        return chosen
+
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        if not await is_wordle_duel_member(db, duel_id, req.player_token):
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        new_game = await advance_wordle_duel_game(db, duel_id, pick_next)
+    if new_game is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+    await analytics.record_action(_db_path, "rounds", "duel")
+    return NextGameResponse(game_number=new_game, total=len(ws.solutions))
 
 
 @app.websocket("/ws/wordle/duel/{duel_id}")

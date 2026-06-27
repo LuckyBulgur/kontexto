@@ -12,6 +12,8 @@ from wordle_duel import (
     record_wordle_guess,
     get_wordle_duel_state,
     get_wordle_player_history,
+    advance_wordle_duel_game,
+    is_wordle_duel_member,
 )
 
 
@@ -155,6 +157,58 @@ class TestDuelStateResults:
                     conn, created["duel_id"], created["player_token"]
                 )
                 assert [h["word"] for h in history] == words
+            finally:
+                await conn.close()
+        asyncio.run(_test())
+
+
+class TestNextGame:
+    def test_membership_check(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                assert await is_wordle_duel_member(conn, created["duel_id"], created["player_token"]) is True
+                assert await is_wordle_duel_member(conn, created["duel_id"], "bogus") is False
+            finally:
+                await conn.close()
+        asyncio.run(_test())
+
+    def test_advance_resets_round(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                await record_wordle_guess(
+                    conn, duel_id=created["duel_id"], player_token=created["player_token"],
+                    word="stern", result=["GRAY"] * 5,
+                )
+                new_game = await advance_wordle_duel_game(
+                    conn, created["duel_id"], lambda current, played: 7
+                )
+                assert new_game == 7
+                state = await get_wordle_duel_state(conn, created["duel_id"])
+                assert state["game_number"] == 7
+                assert state["players"][0]["guesses_used"] == 0
+                assert state["players"][0]["solved"] is False
+                assert state["players"][0]["results"] == []
+                history = await get_wordle_player_history(
+                    conn, created["duel_id"], created["player_token"]
+                )
+                assert history == []
+            finally:
+                await conn.close()
+        asyncio.run(_test())
+
+    def test_advance_no_games(self, db):
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Max", game_number=42)
+                result = await advance_wordle_duel_game(
+                    conn, created["duel_id"], lambda current, played: None
+                )
+                assert result is None
             finally:
                 await conn.close()
         asyncio.run(_test())
