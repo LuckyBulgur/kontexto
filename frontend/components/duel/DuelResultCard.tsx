@@ -2,12 +2,15 @@
 
 import { Guess } from "@/lib/types";
 import { DuelPlayer } from "@/lib/duel-types";
+import { Button } from "@/components/ui/button";
 
 interface DuelResultCardProps {
   gameNumber: number;
   guesses: Guess[];
   players: DuelPlayer[];
   currentNickname: string;
+  /** When set, shows a prominent "Nächstes Spiel" button (rematch). */
+  onNextGame?: () => void;
 }
 
 export default function DuelResultCard({
@@ -15,6 +18,7 @@ export default function DuelResultCard({
   guesses,
   players,
   currentNickname,
+  onNextGame,
 }: DuelResultCardProps) {
   const sorted = [...players].sort((a, b) => {
     if (a.solved && !b.solved) return -1;
@@ -66,6 +70,12 @@ export default function DuelResultCard({
           </div>
         ))}
       </div>
+
+      {onNextGame && (
+        <Button size="lg" className="w-full mt-4" onClick={onNextGame}>
+          Nächstes Spiel
+        </Button>
+      )}
     </div>
   );
 }

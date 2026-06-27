@@ -29,10 +29,16 @@ export interface DuelGuessHistoryEntry {
   guessed_at: string;
 }
 
+export interface NextGameResult {
+  game_number: number;
+  total: number;
+}
+
 export type DuelWsMessage =
   | { type: "player_joined"; nickname: string }
   | { type: "rank_update"; nickname: string; best_rank: number; guess_count: number; tip_count: number }
   | { type: "player_solved"; nickname: string; guess_count: number; tip_count: number }
+  | { type: "next_game"; game_number: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string }
   | { type: "state"; players: DuelPlayer[] };

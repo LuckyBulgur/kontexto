@@ -164,6 +164,85 @@ class TestKoopCRUD:
                 await conn.close()
         self._run(run())
 
+    def test_give_up_reveals_word_for_team(self, db):
+        from koop import create_koop, give_up_koop, get_koop_state, get_koop_guesses
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                koop_id = created["koop_id"]
+                res = await give_up_koop(conn, koop_id, created["player_token"], "apfel")
+                assert res is not None
+                assert res["word"] == "apfel"
+                state = await get_koop_state(conn, koop_id)
+                assert state["gave_up"] is True
+                guesses = await get_koop_guesses(conn, koop_id)
+                assert any(g["word"] == "apfel" and g["rank"] == 1 for g in guesses)
+                # Reveal is not a contribution.
+                assert all(p["contribution_count"] == 0 for p in state["players"])
+                # Idempotent: a second give-up doesn't duplicate the reveal row.
+                res2 = await give_up_koop(conn, koop_id, created["player_token"], "apfel")
+                assert res2["word"] == "apfel"
+                assert len(await get_koop_guesses(conn, koop_id)) == 1
+            finally:
+                await conn.close()
+        self._run(run())
+
+    def test_give_up_unknown_player(self, db):
+        from koop import create_koop, give_up_koop
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                res = await give_up_koop(conn, created["koop_id"], "bogus-token", "apfel")
+                assert res is None
+            finally:
+                await conn.close()
+        self._run(run())
+
+    def test_advance_koop_game_resets_round(self, db):
+        from koop import (
+            create_koop, record_koop_guess, advance_koop_game,
+            get_koop_state, get_koop_guesses,
+        )
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                koop_id = created["koop_id"]
+                await record_koop_guess(conn, koop_id, created["player_token"], "birne", 2)
+                new_game = await advance_koop_game(conn, koop_id, lambda current, played: 2)
+                assert new_game == 2
+                state = await get_koop_state(conn, koop_id)
+                assert state["game_number"] == 2
+                assert state["solved"] is False
+                assert state["gave_up"] is False
+                assert state["best_rank"] is None
+                assert all(p["contribution_count"] == 0 for p in state["players"])
+                assert await get_koop_guesses(conn, koop_id) == []
+                # played history now records the game we left.
+                cursor = await conn.execute(
+                    "SELECT round, played_games FROM koops WHERE id = ?", (koop_id,)
+                )
+                row = await cursor.fetchone()
+                assert row["round"] == 2
+                assert "1" in row["played_games"].split(",")
+            finally:
+                await conn.close()
+        self._run(run())
+
+    def test_advance_koop_game_no_games(self, db):
+        from koop import create_koop, advance_koop_game
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                new_game = await advance_koop_game(conn, created["koop_id"], lambda current, played: None)
+                assert new_game is None
+            finally:
+                await conn.close()
+        self._run(run())
+
     def test_record_unknown_player(self, db):
         from koop import create_koop, record_koop_guess
         async def run():
@@ -362,3 +441,55 @@ class TestKoopEndpoints:
         data = resp.json()
         assert data["nickname"] == "Alice"
         assert data["koop_id"] == created["koop_id"]
+
+    def test_koop_state_exposes_gave_up(self, api_client):
+        created = self._create(api_client)
+        state = api_client.get(f"/api/koop/{created['koop_id']}").json()
+        assert state["gave_up"] is False
+
+    def test_koop_give_up_endpoint(self, api_client):
+        created = self._create(api_client)
+        resp = api_client.post(
+            f"/api/koop/{created['koop_id']}/give-up",
+            json={"player_token": created["player_token"]},
+        )
+        assert resp.status_code == 200
+        # "apfel" is target_words[0] → the solution for game 1.
+        assert resp.json()["word"] == "apfel"
+        state = api_client.get(f"/api/koop/{created['koop_id']}").json()
+        assert state["gave_up"] is True
+        guesses = api_client.get(f"/api/koop/{created['koop_id']}/guesses").json()["guesses"]
+        assert any(g["word"] == "apfel" and g["rank"] == 1 for g in guesses)
+
+    def test_koop_give_up_unknown_player(self, api_client):
+        created = self._create(api_client)
+        resp = api_client.post(
+            f"/api/koop/{created['koop_id']}/give-up", json={"player_token": "bogus"}
+        )
+        assert resp.status_code == 404
+
+    def test_koop_next_game_endpoint(self, api_client):
+        created = self._create(api_client)
+        api_client.post(f"/api/koop/{created['koop_id']}/guess", json={
+            "word": "birne", "player_token": created["player_token"],
+        })
+        resp = api_client.post(
+            f"/api/koop/{created['koop_id']}/next-game",
+            json={"player_token": created["player_token"]},
+        )
+        assert resp.status_code == 200
+        # Daily (game 1) is excluded, so the only other game in the pool is 2.
+        assert resp.json()["game_number"] == 2
+        state = api_client.get(f"/api/koop/{created['koop_id']}").json()
+        assert state["game_number"] == 2
+        assert state["solved"] is False
+        assert state["gave_up"] is False
+        guesses = api_client.get(f"/api/koop/{created['koop_id']}/guesses").json()["guesses"]
+        assert guesses == []
+
+    def test_koop_next_game_unknown_player(self, api_client):
+        created = self._create(api_client)
+        resp = api_client.post(
+            f"/api/koop/{created['koop_id']}/next-game", json={"player_token": "bogus"}
+        )
+        assert resp.status_code == 404
