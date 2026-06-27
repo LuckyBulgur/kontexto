@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 from datetime import date, datetime, timezone, timedelta
 
 BERLIN_TZ = timezone(timedelta(hours=1))
@@ -59,6 +60,20 @@ class WordleState:
 
     def get_solution(self, game_number: int) -> str:
         return self.solutions[game_number % len(self.solutions)]
+
+    def random_game_number(self, exclude: set[int]) -> int | None:
+        """Pick a random game number whose solution isn't excluded.
+
+        Solutions are addressed modulo the pool size, so exclusion is compared on
+        the solution index (``game_number % len``) to avoid handing back a game
+        that maps to an already-played or to-be-protected solution. Returns None
+        when every solution is excluded (caller relaxes and retries)."""
+        n = len(self.solutions)
+        excluded_idx = {e % n for e in exclude}
+        candidates = [i for i in range(n) if i not in excluded_idx]
+        if not candidates:
+            return None
+        return random.choice(candidates)
 
     def is_valid_word(self, word: str) -> bool:
         return word.lower() in self.all_valid
