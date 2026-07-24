@@ -86,3 +86,13 @@ export async function getWordleDuelHistory(
 ): Promise<{ guesses: WordleDuelGuessEntry[] }> {
   return request(`/wordle/duel/${duelId}/history?token=${token}`);
 }
+
+export async function wordleDuelNextGame(
+  duelId: string,
+  playerToken: string
+): Promise<{ game_number: number; total: number }> {
+  return request(`/wordle/duel/${duelId}/next-game`, {
+    method: "POST",
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+}

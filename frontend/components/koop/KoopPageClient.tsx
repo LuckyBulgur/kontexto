@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
@@ -9,6 +9,7 @@ import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
 import CreditsDialog from "@/components/CreditsDialog";
+import GiveUpDialog from "@/components/GiveUpDialog";
 import PlayerBar from "@/components/koop/PlayerBar";
 import JoinDialog from "@/components/koop/JoinDialog";
 import KoopResultCard from "@/components/koop/KoopResultCard";
@@ -23,6 +24,8 @@ import {
   submitKoopGuess,
   getKoopTip,
   getKoopPlayerInfo,
+  giveUpKoop,
+  koopNextGame,
 } from "@/lib/koop-api";
 import { KoopPlayer, KoopWsMessage, KoopState } from "@/lib/koop-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
@@ -74,8 +77,14 @@ export default function KoopPageClient() {
   const [showFAQ, setShowFAQ] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showGiveUp, setShowGiveUp] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false);
+  // Mirrors `gaveUp` for the guess-append path so confetti is suppressed for the
+  // reveal word without waiting on the async state update.
+  const gaveUpRef = useRef(false);
 
   const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
+  const roundOver = solved || gaveUp;
 
   // Extract koop ID from URL.
   useEffect(() => {
@@ -115,6 +124,8 @@ export default function KoopPageClient() {
         setKoopState(state);
         setPlayers(state.players);
         setSolvedBy(state.solved_by);
+        setGaveUp(state.gave_up);
+        gaveUpRef.current = state.gave_up;
         setTotal(state.total);
         const loaded = shared.map((g) => ({
           word: g.word,
@@ -127,7 +138,7 @@ export default function KoopPageClient() {
           getKoopPlayerInfo(playerToken)
             .then((info) => {
               setNickname(info.nickname);
-              if (state.solved) setTimeout(fireConfetti, 300);
+              if (state.solved && !state.gave_up) setTimeout(fireConfetti, 300);
               setLoading(false);
             })
             .catch(() => {
@@ -154,7 +165,27 @@ export default function KoopPageClient() {
       return [...prev, { word, rank, isTip }];
     });
     setLatestWord(word);
-    if (rank === 1) fireConfetti();
+    // No win-confetti for a revealed (gave-up) word.
+    if (rank === 1 && !gaveUpRef.current) fireConfetti();
+  }, []);
+
+  // Reset all local round state for a freshly advanced koop game (triggered by
+  // "Nächstes Spiel" locally or via the next_game broadcast for other players).
+  const resetForNextGame = useCallback((gameNumber: number) => {
+    gaveUpRef.current = false;
+    setGaveUp(false);
+    setSolvedBy(null);
+    setGuesses([]);
+    setLatestWord(undefined);
+    setPendingWord(undefined);
+    setPodestError(undefined);
+    setError(null);
+    setKoopState((prev) =>
+      prev
+        ? { ...prev, game_number: gameNumber, solved: false, solved_by: null, gave_up: false, best_rank: null }
+        : prev
+    );
+    setPlayers((prev) => prev.map((p) => ({ ...p, contribution_count: 0 })));
   }, []);
 
   // WebSocket: live shared-list and team updates.
@@ -176,6 +207,13 @@ export default function KoopPageClient() {
         setSolvedBy(msg.nickname);
         setKoopState((prev) => (prev ? { ...prev, solved: true, solved_by: msg.nickname } : prev));
         if (msg.word) appendGuess(msg.word, 1, false);
+      } else if (msg.type === "koop_gave_up") {
+        gaveUpRef.current = true;
+        setGaveUp(true);
+        setKoopState((prev) => (prev ? { ...prev, gave_up: true } : prev));
+        if (msg.word) appendGuess(msg.word, 1, false);
+      } else if (msg.type === "next_game") {
+        resetForNextGame(msg.game_number);
       } else if (msg.type === "player_joined") {
         setPlayers((prev) => {
           if (prev.some((p) => p.nickname === msg.nickname)) return prev;
@@ -194,7 +232,7 @@ export default function KoopPageClient() {
         );
       }
     },
-    [appendGuess]
+    [appendGuess, resetForNextGame]
   );
 
   useKoopWebSocket({
@@ -297,6 +335,37 @@ export default function KoopPageClient() {
     }
   }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess]);
 
+  // Give up — reveals the word for the whole team.
+  const handleGiveUp = useCallback(async () => {
+    setShowGiveUp(false);
+    if (!koopId || !playerToken) return;
+    setError(null);
+    try {
+      const result = await giveUpKoop(koopId, playerToken);
+      gaveUpRef.current = true;
+      setGaveUp(true);
+      setKoopState((prev) => (prev ? { ...prev, gave_up: true } : prev));
+      appendGuess(result.word, 1, false);
+    } catch {
+      setError("Lösungswort konnte nicht geladen werden");
+    }
+  }, [koopId, playerToken, appendGuess]);
+
+  // Start the next game in the same koop room for everyone.
+  const handleNextGame = useCallback(async () => {
+    if (!koopId || !playerToken) return;
+    try {
+      const result = await koopNextGame(koopId, playerToken);
+      resetForNextGame(result.game_number);
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === "no_games") {
+        toast.error("Keine weiteren Spiele verfügbar");
+      } else {
+        setError("Nächstes Spiel konnte nicht geladen werden");
+      }
+    }
+  }, [koopId, playerToken, resetForNextGame]);
+
   // Copy link.
   const handleCopyLink = useCallback(async () => {
     if (!koopId) return;
@@ -342,17 +411,16 @@ export default function KoopPageClient() {
     <div className="max-w-4xl mx-auto min-h-screen flex flex-col">
       <Header
         onTip={handleTip}
-        onGiveUp={() => {}}
+        onGiveUp={() => setShowGiveUp(true)}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
         onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
         onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
-        tipDisabled={solved || !koopState?.tips_allowed}
-        giveUpDisabled
+        tipDisabled={roundOver || !koopState?.tips_allowed}
+        giveUpDisabled={roundOver}
         onCopyLink={handleCopyLink}
         hideTip={!koopState?.tips_allowed}
-        hideGiveUp
         hidePastGames
         hideDuelCreate
         hideKoopCreate
@@ -366,7 +434,7 @@ export default function KoopPageClient() {
             <PlayerBar players={players} currentNickname={nickname ?? ""} />
           </div>
 
-          {!solved && players.length < 2 && (
+          {!roundOver && players.length < 2 && (
             <ShareInviteBar
               title="Warte auf Mitspieler …"
               description="Teile den Link – jeder, der beitritt, rät am selben Wort mit."
@@ -374,13 +442,15 @@ export default function KoopPageClient() {
             />
           )}
 
-          {solved ? (
+          {roundOver ? (
             <KoopResultCard
               gameNumber={koopState?.game_number ?? 0}
               guesses={guesses}
               players={players}
               solvedBy={solvedBy}
               currentNickname={nickname ?? ""}
+              gaveUp={gaveUp}
+              onNextGame={handleNextGame}
             />
           ) : (
             <>
@@ -392,7 +462,7 @@ export default function KoopPageClient() {
                   <span className="text-[18px] font-bold">{guesses.length}</span>
                 </span>
               </div>
-              <GuessInput onGuess={handleGuess} disabled={solved} error={error} />
+              <GuessInput onGuess={handleGuess} disabled={roundOver} error={error} />
             </>
           )}
 
@@ -425,6 +495,12 @@ export default function KoopPageClient() {
         onSortModeChange={(s) => { setSortMode(s); saveSortMode(s); }}
       />
       <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
+      <GiveUpDialog
+        open={showGiveUp}
+        onClose={() => setShowGiveUp(false)}
+        onConfirm={handleGiveUp}
+        description="Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten."
+      />
     </div>
   );
 }

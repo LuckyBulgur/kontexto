@@ -2,6 +2,7 @@
 
 import { Guess } from "@/lib/types";
 import { KoopPlayer } from "@/lib/koop-types";
+import { Button } from "@/components/ui/button";
 
 interface KoopResultCardProps {
   gameNumber: number;
@@ -9,6 +10,10 @@ interface KoopResultCardProps {
   players: KoopPlayer[];
   solvedBy: string | null;
   currentNickname: string;
+  /** True when the team revealed the word via "Aufgeben" instead of solving. */
+  gaveUp?: boolean;
+  /** When set, shows a prominent "Nächstes Spiel" button. */
+  onNextGame?: () => void;
 }
 
 export default function KoopResultCard({
@@ -17,6 +22,8 @@ export default function KoopResultCard({
   players,
   solvedBy,
   currentNickname,
+  gaveUp = false,
+  onNextGame,
 }: KoopResultCardProps) {
   const solvedWord = guesses.find((g) => g.rank === 1)?.word ?? "";
   const sorted = [...players].sort(
@@ -25,13 +32,15 @@ export default function KoopResultCard({
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4 text-center">
-      <h2 className="text-xl font-bold">Gemeinsam gelöst!</h2>
+      <h2 className="text-xl font-bold">
+        {gaveUp ? "Aufgegeben" : "Gemeinsam gelöst!"}
+      </h2>
       <p className="text-muted-foreground">
         Spiel #{gameNumber} · Das Wort war{" "}
         <strong className="text-foreground text-lg uppercase">{solvedWord}</strong>
       </p>
       <p className="text-sm text-muted-foreground">
-        {solvedBy ? (
+        {!gaveUp && solvedBy ? (
           <>
             Gefunden von{" "}
             <strong className="text-foreground">
@@ -62,6 +71,12 @@ export default function KoopResultCard({
           </div>
         ))}
       </div>
+
+      {onNextGame && (
+        <Button size="lg" className="w-full" onClick={onNextGame}>
+          Nächstes Spiel
+        </Button>
+      )}
     </div>
   );
 }

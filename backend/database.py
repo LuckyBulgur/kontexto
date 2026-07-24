@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS duels (
     game_number INTEGER NOT NULL,
     created_by TEXT NOT NULL,
     tips_allowed BOOLEAN NOT NULL DEFAULT 1,
+    round INTEGER NOT NULL DEFAULT 1,
+    played_games TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -50,7 +52,10 @@ CREATE TABLE IF NOT EXISTS koops (
     tips_allowed BOOLEAN NOT NULL DEFAULT 1,
     solved BOOLEAN NOT NULL DEFAULT 0,
     solved_by TEXT,
+    gave_up BOOLEAN NOT NULL DEFAULT 0,
     best_rank INTEGER,
+    round INTEGER NOT NULL DEFAULT 1,
+    played_games TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -80,6 +85,8 @@ CREATE TABLE IF NOT EXISTS wordle_duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,
     created_by TEXT NOT NULL,
+    round INTEGER NOT NULL DEFAULT 1,
+    played_games TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -267,6 +274,22 @@ async def init_db(db_path: str) -> None:
         # Migration: add per-event OS class for the operating-system breakdown.
         try:
             await db.execute("ALTER TABLE analytics_events ADD COLUMN os TEXT")
+        except Exception:
+            pass  # column already exists
+        # Migration: "Nächstes Spiel" — round counter + per-room played-game history
+        # so a multiplayer room can advance to a fresh game on the same link.
+        for table in ("duels", "koops", "wordle_duels"):
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN round INTEGER NOT NULL DEFAULT 1")
+            except Exception:
+                pass  # column already exists
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN played_games TEXT NOT NULL DEFAULT ''")
+            except Exception:
+                pass  # column already exists
+        # Migration: koop "Aufgeben" — team-wide give-up flag.
+        try:
+            await db.execute("ALTER TABLE koops ADD COLUMN gave_up BOOLEAN NOT NULL DEFAULT 0")
         except Exception:
             pass  # column already exists
         await db.commit()
