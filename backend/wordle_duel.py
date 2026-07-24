@@ -16,6 +16,15 @@ def _generate_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _parse_played(raw: str) -> set[int]:
+    """Parse the CSV of already-played game numbers stored on the duel row."""
+    return {int(p) for p in raw.split(",") if p.strip().lstrip("-").isdigit()}
+
+
+def _format_played(games: set[int]) -> str:
+    return ",".join(str(n) for n in sorted(games))
+
+
 async def create_wordle_duel(
     db: aiosqlite.Connection, nickname: str, game_number: int
 ) -> dict:
@@ -133,6 +142,53 @@ async def get_wordle_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict:
             }
         )
     return {"game_number": duel["game_number"], "players": players}
+
+
+async def is_wordle_duel_member(
+    db: aiosqlite.Connection, duel_id: str, player_token: str
+) -> bool:
+    cursor = await db.execute(
+        "SELECT 1 FROM wordle_duel_players WHERE duel_id = ? AND player_token = ?",
+        (duel_id, player_token),
+    )
+    return await cursor.fetchone() is not None
+
+
+async def advance_wordle_duel_game(
+    db: aiosqlite.Connection, duel_id: str, pick_next
+) -> int | None:
+    """Advance the Wördle duel to a fresh game on the same link (rematch).
+
+    ``pick_next(current, played)`` returns the next game number (or None). In one
+    transaction the round counter is bumped, the new game set, the old game
+    appended to the played history, both boards wiped and player stats reset.
+    Returns the new game number or None.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, played_games FROM wordle_duels WHERE id = ?", (duel_id,)
+    )
+    row = await cursor.fetchone()
+    if not row:
+        return None
+    current = row["game_number"]
+    played = _parse_played(row["played_games"])
+    new_game = pick_next(current, played)
+    if new_game is None:
+        return None
+
+    played_str = _format_played(played | {current})
+    await db.execute(
+        "UPDATE wordle_duels SET game_number = ?, round = round + 1, played_games = ?, "
+        "last_activity = CURRENT_TIMESTAMP WHERE id = ?",
+        (new_game, played_str, duel_id),
+    )
+    await db.execute("DELETE FROM wordle_duel_guesses WHERE duel_id = ?", (duel_id,))
+    await db.execute(
+        "UPDATE wordle_duel_players SET guesses_used = 0, solved = 0 WHERE duel_id = ?",
+        (duel_id,),
+    )
+    await db.commit()
+    return new_game
 
 
 async def get_wordle_player_history(

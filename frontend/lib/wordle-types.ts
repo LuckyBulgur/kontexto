@@ -59,5 +59,6 @@ export type WordleDuelWsMessage =
   | { type: "guess_made"; nickname: string; guess_number: number; result: TileColor[] }
   | { type: "player_solved"; nickname: string; guesses_used: number }
   | { type: "player_failed"; nickname: string }
+  | { type: "next_game"; game_number: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string };

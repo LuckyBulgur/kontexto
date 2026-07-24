@@ -51,6 +51,8 @@ class DuelConnectionManager:
     def __init__(self) -> None:
         self.connections: dict[str, dict[str, WebSocket]] = {}
         self._known_state: dict[str, dict[str, dict]] = {}
+        # duel_id -> last seen round counter (for "Nächstes Spiel" detection).
+        self._known_round: dict[str, int] = {}
 
     async def connect(
         self, duel_id: str, player_token: str, websocket: WebSocket, db_path: str
@@ -72,6 +74,7 @@ class DuelConnectionManager:
             if not self.connections[duel_id]:
                 del self.connections[duel_id]
                 self._known_state.pop(duel_id, None)
+                self._known_round.pop(duel_id, None)
 
         db = await get_db(db_path)
         try:
@@ -94,18 +97,52 @@ class DuelConnectionManager:
 
             if not self.connections:
                 self._known_state.clear()
+                self._known_round.clear()
                 continue
 
             try:
                 db = await get_db(db_path)
                 try:
                     for duel_id in list(self.connections.keys()):
+                        # "Nächstes Spiel": a bumped round means the room advanced
+                        # to a fresh game. Tell everyone and re-seed the baseline so
+                        # the stat-reset wipe isn't mis-read as rank/solve diffs.
+                        cursor = await db.execute(
+                            "SELECT game_number, round FROM duels WHERE id = ?",
+                            (duel_id,),
+                        )
+                        duel_row = await cursor.fetchone()
+                        if duel_row is None:
+                            continue
+                        new_round = duel_row["round"]
+                        prev_round = self._known_round.get(duel_id)
+
                         cursor = await db.execute(
                             "SELECT player_token, nickname, best_rank, guess_count, tip_count, solved, connected "
                             "FROM duel_players WHERE duel_id = ?",
                             (duel_id,),
                         )
                         players = await cursor.fetchall()
+
+                        if prev_round is not None and new_round > prev_round:
+                            await self.broadcast(
+                                duel_id,
+                                {"type": "next_game", "game_number": duel_row["game_number"]},
+                            )
+                            self._known_state[duel_id] = {
+                                p["player_token"]: {
+                                    "nickname": p["nickname"],
+                                    "best_rank": p["best_rank"],
+                                    "guess_count": p["guess_count"],
+                                    "tip_count": p["tip_count"],
+                                    "solved": bool(p["solved"]),
+                                    "connected": bool(p["connected"]),
+                                }
+                                for p in players
+                            }
+                            self._known_round[duel_id] = new_round
+                            continue
+                        self._known_round[duel_id] = new_round
 
                         prev = self._known_state.get(duel_id, {})
                         current = {}
@@ -181,6 +218,8 @@ class WordleDuelConnectionManager:
     def __init__(self) -> None:
         self.connections: dict[str, dict[str, WebSocket]] = {}
         self._known_state: dict[str, dict[str, dict]] = {}
+        # duel_id -> last seen round counter (for "Nächstes Spiel" detection).
+        self._known_round: dict[str, int] = {}
 
     async def connect(
         self, duel_id: str, player_token: str, websocket: WebSocket, db_path: str
@@ -202,6 +241,7 @@ class WordleDuelConnectionManager:
             if not self.connections[duel_id]:
                 del self.connections[duel_id]
                 self._known_state.pop(duel_id, None)
+                self._known_round.pop(duel_id, None)
 
         db = await get_db(db_path)
         try:
@@ -224,18 +264,50 @@ class WordleDuelConnectionManager:
 
             if not self.connections:
                 self._known_state.clear()
+                self._known_round.clear()
                 continue
 
             try:
                 db = await get_db(db_path)
                 try:
                     for duel_id in list(self.connections.keys()):
+                        # "Nächstes Spiel": a bumped round means the room advanced
+                        # to a fresh game. Tell everyone and re-seed the baseline so
+                        # the board wipe isn't mis-read as guesses/solves.
+                        cursor = await db.execute(
+                            "SELECT game_number, round FROM wordle_duels WHERE id = ?",
+                            (duel_id,),
+                        )
+                        duel_row = await cursor.fetchone()
+                        if duel_row is None:
+                            continue
+                        new_round = duel_row["round"]
+                        prev_round = self._known_round.get(duel_id)
+
                         cursor = await db.execute(
                             "SELECT player_token, nickname, guesses_used, solved, connected "
                             "FROM wordle_duel_players WHERE duel_id = ?",
                             (duel_id,),
                         )
                         players = await cursor.fetchall()
+
+                        if prev_round is not None and new_round > prev_round:
+                            await self.broadcast(
+                                duel_id,
+                                {"type": "next_game", "game_number": duel_row["game_number"]},
+                            )
+                            self._known_state[duel_id] = {
+                                p["player_token"]: {
+                                    "nickname": p["nickname"],
+                                    "guesses_used": p["guesses_used"],
+                                    "solved": bool(p["solved"]),
+                                    "connected": bool(p["connected"]),
+                                }
+                                for p in players
+                            }
+                            self._known_round[duel_id] = new_round
+                            continue
+                        self._known_round[duel_id] = new_round
 
                         prev = self._known_state.get(duel_id, {})
                         current = {}
@@ -391,32 +463,71 @@ class KoopConnectionManager:
             except Exception:
                 logger.exception("Error in koop poll_and_broadcast")
 
+    async def _seed_state(self, db, koop_id: str, koop) -> dict:
+        """Capture the current MAX guess id + flags so existing rows aren't
+        replayed as guess_added to freshly connected (or re-seeded) clients."""
+        cursor = await db.execute(
+            "SELECT COALESCE(MAX(id), 0) AS max_id FROM koop_guesses WHERE koop_id = ?",
+            (koop_id,),
+        )
+        row = await cursor.fetchone()
+        cursor = await db.execute(
+            "SELECT player_token, connected FROM koop_players WHERE koop_id = ?",
+            (koop_id,),
+        )
+        players = {p["player_token"]: bool(p["connected"]) for p in await cursor.fetchall()}
+        return {
+            "last_guess_id": row["max_id"],
+            "solved": bool(koop["solved"]) if koop else False,
+            "gave_up": bool(koop["gave_up"]) if koop else False,
+            "round": koop["round"] if koop else 1,
+            "players": players,
+        }
+
     async def _poll_one(self, db, koop_id: str) -> None:
         prev = self._known_state.get(koop_id)
 
-        # First sighting: seed last_guess_id with the current MAX so the existing
-        # list is not replayed to a freshly connected client as guess_added.
+        cursor = await db.execute(
+            "SELECT solved, solved_by, gave_up, round, game_number FROM koops WHERE id = ?",
+            (koop_id,),
+        )
+        koop = await cursor.fetchone()
+        if koop is None:
+            return
+
+        # First sighting: seed and return (nothing to diff yet).
         if prev is None:
+            self._known_state[koop_id] = await self._seed_state(db, koop_id, koop)
+            return
+
+        # "Nächstes Spiel": a bumped round means the team advanced to a fresh
+        # game. Tell everyone and re-seed so the wiped list isn't replayed.
+        if koop["round"] > prev["round"]:
+            await self.broadcast(
+                koop_id,
+                {"type": "next_game", "game_number": koop["game_number"]},
+            )
+            self._known_state[koop_id] = await self._seed_state(db, koop_id, koop)
+            return
+
+        # Team gave up: reveal the solution to everyone. Swallow the rank-1 reveal
+        # row from the guess feed so clients don't fire the win-confetti for it.
+        if bool(koop["gave_up"]) and not prev["gave_up"]:
+            cursor = await db.execute(
+                "SELECT word FROM koop_guesses WHERE koop_id = ? AND rank = 1 LIMIT 1",
+                (koop_id,),
+            )
+            row = await cursor.fetchone()
+            await self.broadcast(
+                koop_id,
+                {"type": "koop_gave_up", "word": row["word"] if row else None},
+            )
+            prev["gave_up"] = True
             cursor = await db.execute(
                 "SELECT COALESCE(MAX(id), 0) AS max_id FROM koop_guesses WHERE koop_id = ?",
                 (koop_id,),
             )
-            row = await cursor.fetchone()
-            cursor = await db.execute(
-                "SELECT solved FROM koops WHERE id = ?", (koop_id,)
-            )
-            koop = await cursor.fetchone()
-            cursor = await db.execute(
-                "SELECT player_token, connected FROM koop_players WHERE koop_id = ?",
-                (koop_id,),
-            )
-            players = {p["player_token"]: bool(p["connected"]) for p in await cursor.fetchall()}
-            self._known_state[koop_id] = {
-                "last_guess_id": row["max_id"],
-                "solved": bool(koop["solved"]) if koop else False,
-                "players": players,
-            }
-            return
+            prev["last_guess_id"] = (await cursor.fetchone())["max_id"]
 
         # New shared guesses since the last poll → broadcast each (excluding the
         # author, who already has it from the REST response).
@@ -440,10 +551,6 @@ class KoopConnectionManager:
             prev["last_guess_id"] = g["id"]
 
         # Team solved transition.
-        cursor = await db.execute(
-            "SELECT solved, solved_by FROM koops WHERE id = ?", (koop_id,)
-        )
-        koop = await cursor.fetchone()
         if koop and bool(koop["solved"]) and not prev["solved"]:
             cursor = await db.execute(
                 "SELECT word FROM koop_guesses WHERE koop_id = ? AND rank = 1 LIMIT 1",

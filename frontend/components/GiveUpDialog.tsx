@@ -12,16 +12,18 @@ interface GiveUpDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  /** Override the default warning copy (e.g. for the cooperative koop flow). */
+  description?: string;
 }
 
-export default function GiveUpDialog({ open, onClose, onConfirm }: GiveUpDialogProps) {
+export default function GiveUpDialog({ open, onClose, onConfirm, description }: GiveUpDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-xl">Aufgeben</DialogTitle>
           <DialogDescription>
-            Bist du sicher? Das Lösungswort wird angezeigt und du kannst heute nicht mehr weiterspielen.
+            {description ?? "Bist du sicher? Das Lösungswort wird angezeigt und du kannst heute nicht mehr weiterspielen."}
           </DialogDescription>
         </DialogHeader>
 

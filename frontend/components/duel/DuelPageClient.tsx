@@ -23,6 +23,7 @@ import {
   getDuelHistory,
   getDuelTip,
   getPlayerInfo,
+  duelNextGame,
 } from "@/lib/duel-api";
 import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
@@ -146,10 +147,26 @@ export default function DuelPageClient() {
       });
   }, [duelId, playerToken]);
 
+  // Reset all local round state for a freshly advanced duel game (triggered by
+  // "Nächstes Spiel" locally or via the next_game broadcast for the opponent).
+  const resetForNextGame = useCallback((gameNumber: number) => {
+    setGuesses([]);
+    setLatestWord(undefined);
+    setPendingWord(undefined);
+    setPodestError(undefined);
+    setError(null);
+    setDuelState((prev) => (prev ? { ...prev, game_number: gameNumber } : prev));
+    setPlayers((prev) =>
+      prev.map((p) => ({ ...p, best_rank: null, guess_count: 0, tip_count: 0, solved: false }))
+    );
+  }, []);
+
   // WebSocket
   const handleWsMessage = useCallback((msg: DuelWsMessage) => {
     if (msg.type === "state") {
       setPlayers(msg.players);
+    } else if (msg.type === "next_game") {
+      resetForNextGame(msg.game_number);
     } else if (msg.type === "rank_update") {
       setPlayers((prev) =>
         prev.map((p) =>
@@ -194,7 +211,7 @@ export default function DuelPageClient() {
         )
       );
     }
-  }, []);
+  }, [resetForNextGame]);
 
   useDuelWebSocket({
     duelId,
@@ -341,6 +358,21 @@ export default function DuelPageClient() {
     }
   }, [duelId, playerToken, duelState, guesses, difficulty, nickname]);
 
+  // Start the next game in the same duel room for both players (rematch).
+  const handleNextGame = useCallback(async () => {
+    if (!duelId || !playerToken) return;
+    try {
+      const result = await duelNextGame(duelId, playerToken);
+      resetForNextGame(result.game_number);
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === "no_games") {
+        toast.error("Keine weiteren Spiele verfügbar");
+      } else {
+        setError("Nächstes Spiel konnte nicht geladen werden");
+      }
+    }
+  }, [duelId, playerToken, resetForNextGame]);
+
   // Copy link
   const handleCopyLink = useCallback(async () => {
     if (!duelId) return;
@@ -424,6 +456,7 @@ export default function DuelPageClient() {
               guesses={guesses}
               players={players}
               currentNickname={nickname ?? ""}
+              onNextGame={handleNextGame}
             />
           ) : (
             <>

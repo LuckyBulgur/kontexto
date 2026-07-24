@@ -15,6 +15,15 @@ def _generate_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _parse_played(raw: str) -> set[int]:
+    """Parse the CSV of already-played game numbers stored on the duel row."""
+    return {int(p) for p in raw.split(",") if p.strip().lstrip("-").isdigit()}
+
+
+def _format_played(games: set[int]) -> str:
+    return ",".join(str(n) for n in sorted(games))
+
+
 async def create_duel(
     db: aiosqlite.Connection,
     game_number: int,
@@ -161,6 +170,42 @@ async def record_tip(
         "tip_count": new_tip_count,
         "solved": solved,
     }
+
+
+async def advance_duel_game(db: aiosqlite.Connection, duel_id: str, pick_next) -> int | None:
+    """Advance the duel to a fresh game on the same link (rematch).
+
+    ``pick_next(current, played)`` returns the next game number (or None). In one
+    transaction the round counter is bumped, the new game set, the old game
+    appended to the played history, both players' guesses wiped and their stats
+    reset. Returns the new game number or None.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, played_games FROM duels WHERE id = ?", (duel_id,)
+    )
+    row = await cursor.fetchone()
+    if not row:
+        return None
+    current = row["game_number"]
+    played = _parse_played(row["played_games"])
+    new_game = pick_next(current, played)
+    if new_game is None:
+        return None
+
+    played_str = _format_played(played | {current})
+    await db.execute(
+        "UPDATE duels SET game_number = ?, round = round + 1, played_games = ?, "
+        "last_activity = CURRENT_TIMESTAMP WHERE id = ?",
+        (new_game, played_str, duel_id),
+    )
+    await db.execute("DELETE FROM duel_guesses WHERE duel_id = ?", (duel_id,))
+    await db.execute(
+        "UPDATE duel_players SET best_rank = NULL, guess_count = 0, tip_count = 0, "
+        "solved = 0 WHERE duel_id = ?",
+        (duel_id,),
+    )
+    await db.commit()
+    return new_game
 
 
 async def get_player_history(

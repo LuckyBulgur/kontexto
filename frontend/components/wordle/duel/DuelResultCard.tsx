@@ -2,13 +2,16 @@
 
 import type { WordleDuelPlayer } from "@/lib/wordle-types";
 import { Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DuelResultCardProps {
   players: WordleDuelPlayer[];
   currentNickname: string | null;
+  /** When set, shows a prominent "Nächstes Spiel" button (rematch). */
+  onNextGame?: () => void;
 }
 
-export default function DuelResultCard({ players, currentNickname }: DuelResultCardProps) {
+export default function DuelResultCard({ players, currentNickname, onNextGame }: DuelResultCardProps) {
   const sorted = [...players].sort((a, b) => {
     if (a.solved && !b.solved) return -1;
     if (!a.solved && b.solved) return 1;
@@ -39,6 +42,12 @@ export default function DuelResultCard({ players, currentNickname }: DuelResultC
           </div>
         ))}
       </div>
+
+      {onNextGame && (
+        <Button size="lg" className="w-full mt-4" onClick={onNextGame}>
+          Nächstes Spiel
+        </Button>
+      )}
     </div>
   );
 }
