@@ -1,5 +1,5 @@
-fastapi==0.139.2
-uvicorn[standard]==0.51.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
 numpy==2.5.1
 pydantic==2.13.4
 pybloom_live==4.0.0
@@ -14,4 +14,8 @@ german-nouns==1.2.5
 aiosqlite==0.22.1
 webauthn==3.0.0
 pytest==9.1.1
-httpx==0.28.1
+# Test-only: transport layer behind starlette.testclient.TestClient. Starlette
+# deprecated plain `httpx` here in favour of `httpx2` (the maintained
+# continuation of the project); keeping httpx would emit a deprecation warning
+# on every test run and eventually stop working.
+httpx2==2.9.1
