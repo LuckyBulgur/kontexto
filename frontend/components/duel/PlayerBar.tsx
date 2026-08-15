@@ -91,7 +91,7 @@ function PlayerEntry({
             #{player.best_rank}
           </span>
         ) : (
-          <span className="text-muted-foreground text-xs">—</span>
+          <span className="text-muted-foreground text-xs">ohne Rang</span>
         )}
         <span className="text-xs text-muted-foreground">
           {player.guess_count}x

@@ -4,7 +4,7 @@ import { SeoSection, RelatedLinks } from "@/components/seo/SeoPrimitives";
 export default function KoopSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto-Koop – gemeinsam spielen</h1>
+      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto-Koop: gemeinsam spielen</h1>
       <p className="mb-6 max-w-prose">
         Im Koop-Modus sucht ihr gemeinsam dasselbe geheime Wort. Erstelle einen{" "}
         <Link

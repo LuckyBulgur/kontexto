@@ -7,10 +7,10 @@
  *
  * Die einzelnen Ad-Slot-IDs stammen aus `NEXT_PUBLIC_*`-Umgebungsvariablen, die
  * bei diesem Static Export zur Build-Zeit inlined werden. Ist ein Slot nicht
- * gesetzt, rendert die zugehörige `<AdUnit>` nichts – unkonfigurierte
+ * gesetzt, rendert die zugehörige `<AdUnit>` nichts, unkonfigurierte
  * Platzierungen bleiben so ein sauberer No-op, ohne Platzhalter-IDs im Quellcode.
  *
- * Slots werden im AdSense-Dashboard unter „Ads → By ad unit" angelegt; die
+ * Slots werden im AdSense-Dashboard unter „Ads → By ad unit“ angelegt; die
  * resultierenden `data-ad-slot`-Werte werden anschließend in der Build-Umgebung
  * gesetzt (siehe `.env.development` für die Variablennamen):
  *   NEXT_PUBLIC_AD_SLOT_KONTEXTO_RESULT

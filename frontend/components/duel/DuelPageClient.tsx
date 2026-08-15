@@ -300,7 +300,7 @@ export default function DuelPageClient() {
         } else if (e instanceof Error && e.message === "stopword") {
           setPodestError({
             word: word.toLowerCase(),
-            message: "Dieses Wort zählt nicht – es ist zu allgemein",
+            message: "Dieses Wort zählt nicht, es ist zu allgemein",
           });
         } else {
           setError("Fehler bei der Verbindung");

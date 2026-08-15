@@ -132,7 +132,7 @@ export default function Header({
             variant="ghost"
             size="icon"
             className="relative h-10 w-10"
-            aria-label={showInfiniteHighlight ? "Unendlich-Modus – neue Funktion" : "Unendlich-Modus"}
+            aria-label={showInfiniteHighlight ? "Unendlich-Modus, neue Funktion" : "Unendlich-Modus"}
             onClick={() => {
               if (showInfiniteHighlight) dismissInfiniteHighlight();
               onInfiniteStart();
@@ -161,9 +161,9 @@ export default function Header({
               className="relative h-10 w-10"
               aria-label={
                 showDuelHighlight
-                  ? "Menü – neue Funktion: Duell"
+                  ? "Menü, neue Funktion: Duell"
                   : showKoopHighlight
-                    ? "Menü – neue Funktion: Koop"
+                    ? "Menü, neue Funktion: Koop"
                     : "Menü"
               }
             >

@@ -1,41 +1,110 @@
-# Worteinbettungen einfach erklärt: Wie Computer Bedeutung verstehen
+# Worteinbettungen: wie ein Computer Bedeutung berechnet
 
-Kontexto weiß, dass „Hund“ und „Katze“ verwandt sind, „Hund“ und „Hundert“ aber nicht. Woher? Die Antwort heißt **Worteinbettung** (englisch: word embedding). Dieser Artikel erklärt das Konzept ohne Formeln – Schritt für Schritt und mit Alltagsbeispielen.
+Ein Computer, dem man `Hund` gibt, sieht vier Zeichen. Er weiß nicht, dass ein Hund ein Tier ist,
+bellt, gefüttert wird oder mit einer Katze mehr gemein hat als mit der Zahl hundert. Damit eine
+Maschine mit Bedeutung rechnen kann, muss Bedeutung erst in Zahlen übersetzt werden.
 
-## Das Grundproblem: Computer kennen keine Bedeutung
+Die Technik, die das leistet, heißt Worteinbettung, und sie steckt nicht nur hinter Kontexto,
+sondern hinter praktisch jedem modernen Sprachsystem.
 
-Für einen Computer ist „Hund“ zunächst nur eine Folge von Buchstaben. Er hat keine Ahnung, dass ein Hund ein Tier ist, bellt oder mit einer Katze mehr gemein hat als mit der Zahl Hundert. Damit eine Maschine mit Bedeutung rechnen kann, muss man Bedeutung in Zahlen übersetzen. Genau das leistet eine Worteinbettung.
+## Die Idee: jedes Wort bekommt Koordinaten
 
-## Die Idee: Jedes Wort wird ein Punkt im Raum
+Eine Worteinbettung ordnet jedem Wort eine Liste von Zahlen zu. Bei dem Modell hinter Kontexto
+sind es 300 Zahlen pro Wort. Man kann sich das als Koordinaten vorstellen: So wie ein Ort auf
+einer Landkarte zwei Koordinaten hat, hat `Hund` dreihundert.
 
-Eine [Worteinbettung](/glossar/#worteinbettung) ordnet jedem Wort eine lange Zahlenreihe zu – einen **Vektor**. Man kann sich das wie Koordinaten vorstellen: So wie „Berlin“ einen Punkt auf der Landkarte hat, hat „Hund“ einen Punkt in einem [Bedeutungsraum](/glossar/#vektorraum). Echte Modelle nutzen nicht zwei oder drei, sondern oft 300 Dimensionen – zu viele zum Zeichnen, aber dasselbe Prinzip.
+Der entscheidende Punkt ist nicht die Zahl der Dimensionen, sondern was Nähe darin bedeutet.
+**Zwei Wörter liegen nah beieinander, wenn sie in ähnlichen Zusammenhängen vorkommen.** `Hund`
+und `Katze` liegen dicht, `Hund` und `Demokratie` weit auseinander.
 
-Das Entscheidende: **Nähe in diesem Raum bedeutet Ähnlichkeit in der Bedeutung.** „Hund“ und „Katze“ liegen dicht beieinander, „Hund“ und „Demokratie“ weit auseinander.
+300 Dimensionen kann sich niemand vorstellen, und das ist auch nicht nötig. Alle Eigenschaften,
+über die es sich zu reden lohnt, funktionieren in zwei Dimensionen genauso. Mehr Dimensionen
+bedeuten nur, dass mehr unabhängige Bedeutungsaspekte gleichzeitig unterschieden werden können.
 
 ## Woher das Modell weiß, was zusammengehört
 
-Hier kommt die schöne Grundidee der Sprachwissenschaft ins Spiel, oft so zusammengefasst:
+Niemand sagt dem Modell, was ein Hund ist. Es gibt kein Lexikon im Training, keine Kategorien,
+keine Regeln. Es gibt nur Text.
 
-> „Du erkennst ein Wort an der Gesellschaft, die es hält.“
+Zugrunde liegt eine Beobachtung aus der Sprachwissenschaft, die John Rupert Firth 1957 auf die
+Formel brachte: Man erkennt ein Wort an der Gesellschaft, die es hält.
 
-Wörter mit ähnlicher Bedeutung kommen in ähnlichen Zusammenhängen vor. „Hund“ und „Katze“ stehen beide neben „füttern“, „Tierarzt“, „streicheln“, „Fell“. Das Modell liest gigantische Mengen deutscher Texte – einen sogenannten [Korpus](/glossar/#korpus) – und beobachtet, welche Wörter gemeinsam auftauchen. Wörter mit ähnlicher Nachbarschaft bekommen ähnliche Vektoren. Niemand sagt dem Modell, was ein Hund ist; es schließt die Bedeutung allein aus dem [Kontext](/glossar/#kontext).
+Wörter mit ähnlicher Bedeutung kommen in ähnlicher Nachbarschaft vor. `Hund` und `Katze` stehen
+beide neben `füttern`, `Tierarzt`, `streicheln`, `Fell`, `Napf`. Das Modell liest Milliarden von
+Sätzen und beobachtet nichts anderes als diese Nachbarschaften. Wörter mit ähnlicher Nachbarschaft
+bekommen ähnliche Zahlenreihen.
 
-## Das Verblüffende: Rechnen mit Bedeutung
+Für Deutsch wird dabei ein Korpus aus Common Crawl und der deutschen Wikipedia verwendet, also
+aus dem, was Menschen tatsächlich ins Netz geschrieben haben. Das ist wichtig für das Verständnis
+der Ergebnisse: Das Modell bildet ab, wie über Dinge geschrieben wird, nicht wie sie sind.
 
-Weil Bedeutung jetzt in Zahlen steckt, kann man mit ihr rechnen. Das berühmteste Beispiel:
+## Das Verblüffende: man kann mit Bedeutung rechnen
 
-**König − Mann + Frau ≈ Königin**
+Weil Bedeutung in Zahlen steckt, lassen sich Vektoren addieren und subtrahieren. Das berühmteste
+Beispiel:
 
-Die Richtung von „Mann“ zu „König“ entspricht ungefähr der von „Frau“ zu „Königin“ – das Modell hat das Konzept „königlich“ und das Konzept „weiblich“ als eigene Richtungen im Raum gelernt, ohne dass es ihm jemand beigebracht hat. Solche Strukturen entstehen einfach aus dem Lesen von Text.
+> König minus Mann plus Frau ergibt ungefähr Königin.
 
-## Warum „Hund“ und „Hundert“ weit auseinanderliegen
+Die Richtung von `Mann` zu `König` entspricht ungefähr der Richtung von `Frau` zu `Königin`. Das
+Modell hat das Konzept „königlich“ und das Konzept „weiblich“ als eigene Richtungen im Raum
+gelernt, ohne dass irgendjemand ihm diese Begriffe beigebracht hätte. Sie sind aus der Statistik
+der Nachbarschaften herausgefallen.
 
-Jetzt wird das Eingangsrätsel auflösbar. „Hund“ erscheint in Tier-Kontexten, „Hundert“ in Zahl-Kontexten. Ihre Nachbarschaft ist völlig verschieden – also liegen ihre Vektoren weit auseinander, trotz fast gleicher Buchstaben. Schreibweise spielt für die Bedeutung schlicht keine Rolle.
+Solche Analogien funktionieren nicht immer, aber dass sie überhaupt funktionieren, war eine der
+größeren Überraschungen der Sprachverarbeitung des letzten Jahrzehnts.
 
-## Der Bezug zu Kontexto
+## Warum Hund und Hundert weit auseinanderliegen
 
-Genau diese Vektoren sind das Herz von Kontexto. Wenn du ein Wort eingibst, vergleicht das Spiel dessen Vektor mit dem des Zielworts und sortiert daraus den [Rang](/glossar/#rang). Das Modell dahinter heißt [fastText](/glossar/#fasttext) – mehr dazu im Artikel [Wie funktioniert die KI-Wortähnlichkeit](/blog/wie-funktioniert-fasttext/). Wie genau aus zwei Vektoren eine Ähnlichkeitszahl wird, erklärt [Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/).
+Damit ist das Eingangsrätsel gelöst. `Hund` erscheint in Texten über Tiere, `Hundert` in Texten
+über Zahlen und Mengen. Ihre Nachbarschaften sind vollständig verschieden, also sind ihre Vektoren
+weit voneinander entfernt. Dass sie fast gleich geschrieben werden, spielt für die Bedeutung keine
+Rolle.
 
-## Fazit
+Mit einer Einschränkung, die bei fastText dazukommt: Das Modell berücksichtigt zusätzlich
+Zeichenabschnitte, damit es auch seltene und zusammengesetzte Wörter einschätzen kann. Dadurch
+hat Buchstabenähnlichkeit doch einen kleinen Effekt. Er ist klein genug, dass `Hund` und `Hundert`
+weit auseinanderbleiben, aber groß genug, dass man ihn bei Grenzfällen kennen sollte, siehe
+[Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
 
-Worteinbettungen verwandeln Wörter in Punkte eines Bedeutungsraums, in dem Nähe Ähnlichkeit heißt. Sie sind die stille Technik hinter Suchmaschinen, Übersetzern – und eben hinter Kontexto. Wer das verstanden hat, sieht das Spiel mit anderen Augen: Du wanderst durch einen Raum aus Bedeutung. Wie du darin am besten navigierst, zeigt die [Strategie](/strategie/).
+## Drei Eigenschaften, die man kennen muss
+
+Worteinbettungen haben Eigenheiten, die beim Spielen regelmäßig für Verwirrung sorgen. Alle drei
+folgen direkt aus dem Trainingsverfahren.
+
+**Gegenteile liegen nah beieinander.** `heiß` und `kalt` erscheinen in identischen Satzmustern:
+Das Wasser ist heiß, das Wasser ist kalt. Ihre Nachbarschaft ist fast deckungsgleich, also sind
+ihre Vektoren ähnlich. Das Modell misst nicht „bedeutet dasselbe“, sondern „erscheint an
+denselben Stellen“.
+
+**Mehrdeutige Wörter bekommen einen einzigen Vektor.** `Bank` heißt Sitzmöbel und Geldinstitut,
+und beide Bedeutungen fließen in dieselbe Zahlenreihe. Das Ergebnis liegt zwischen beiden Feldern
+und gehört zu keinem richtig.
+
+**Seltene Wörter sind ungenau eingebettet.** Ein Wort, das im Trainingstext nur ein paar hundert
+Mal vorkam, hat einen Vektor mit wenig statistischer Substanz. Seine Position ist eher Schätzung
+als Messung.
+
+## Der Drift, den man wegrechnen muss
+
+Eine vierte Eigenschaft ist weniger bekannt und für ein Spiel wie Kontexto entscheidend: Rohe
+Worteinbettungen sind nicht sauber um den Nullpunkt zentriert. Alle Vektoren teilen sich eine
+gemeinsame Komponente, und diese Komponente kodiert vor allem, wie häufig ein Wort ist.
+
+Unbehandelt hätte das eine unangenehme Folge: Häufige Allerweltswörter wären zu jedem beliebigen
+Zielwort ähnlich, und ein Rang würde messen, wie gebräuchlich dein Wort ist statt wie passend.
+Kontexto entfernt diesen Drift deshalb, bevor irgendein Rang berechnet wird. Wie das geht, steht
+in [All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/).
+
+## Was das für dein Spiel bedeutet
+
+Wenn du beim Raten daran denkst, dass das Modell **Kontextnachbarschaft** misst und nicht
+begriffliche Verwandtschaft, wirst du weniger überrascht.
+
+`Gabel` und `Löffel` liegen nah, weil sie ständig in denselben Sätzen stehen. `Gabel` und
+`Astgabel` klingen verwandt und stehen in völlig verschiedenen Texten, also liegen sie weit
+auseinander. Deine Intuition sagt „beides ist gegabelt“, das Modell sagt „das eine steht neben
+Messer, das andere neben Baum“. Beide haben recht, sie beantworten verschiedene Fragen.
+
+Wie aus zwei Vektoren dann eine einzelne Zahl wird, erklärt
+[Kosinus-Ähnlichkeit](/blog/kosinus-aehnlichkeit-einfach-erklaert/), und was beim Rang schiefgehen
+kann, steht in [Warum hat mein Wort einen schlechten Rang?](/blog/warum-schlechter-rang/).

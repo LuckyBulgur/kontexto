@@ -1,41 +1,111 @@
-# Kosinus-Ähnlichkeit einfach erklärt
+# Kosinus-Ähnlichkeit: wie aus zwei Wörtern eine Zahl wird
 
-Kontexto wandelt zwei Wörter in eine einzige Zahl um: wie ähnlich sie sich sind. Das Werkzeug dahinter heißt **Kosinus-Ähnlichkeit**. Klingt nach Mathematikunterricht – ist aber erstaunlich anschaulich. Hier ist die Erklärung ganz ohne schwere Formeln.
+Zwischen deiner Eingabe und dem Rang, den du siehst, steht genau eine Rechnung. Sie hat einen
+einschüchternden Namen und ist am Ende eine Winkelmessung, die man auf einem Bierdeckel erklären
+kann.
 
 ## Wörter sind Pfeile
 
-Wie im Artikel [Worteinbettungen einfach erklärt](/blog/worteinbettungen-erklaert/) beschrieben, ist jedes Wort ein Punkt in einem [Bedeutungsraum](/glossar/#vektorraum). Vom Nullpunkt aus betrachtet ist jeder dieser Punkte das Ende eines **Pfeils** (eines Vektors). Jedes Wort hat also eine Richtung, in die sein Pfeil zeigt.
+Jedes Wort im Vokabular ist ein Vektor: eine Liste aus 300 Zahlen. Man kann sich das als Punkt in
+einem 300-dimensionalen Raum vorstellen, oder besser noch, weil es für das Weitere wichtig ist,
+als **Pfeil vom Nullpunkt zu diesem Punkt**.
 
-## Es kommt auf den Winkel an
+300 Dimensionen kann sich niemand vorstellen, und das muss man auch nicht. Alles, was gleich
+passiert, funktioniert in zwei Dimensionen genau so und lässt sich dort aufzeichnen. Die
+Dimensionszahl ändert nur, wie fein die Bedeutungen aufgelöst werden, nicht die Logik.
 
-Um zu messen, wie ähnlich sich zwei Wörter sind, schaut die Kosinus-Ähnlichkeit auf den **Winkel zwischen ihren Pfeilen**:
+## Der Winkel misst die Ähnlichkeit
 
-- Zeigen zwei Pfeile in fast dieselbe Richtung (kleiner Winkel), sind die Wörter sehr ähnlich.
-- Stehen sie im rechten Winkel zueinander, haben die Wörter wenig miteinander zu tun.
-- Zeigen sie in entgegengesetzte Richtungen, sind sie inhaltlich gegensätzlich.
+Zwei Pfeile schließen einen Winkel ein. Dieser Winkel ist das Maß:
 
-Der „Kosinus“ ist dabei nur die mathematische Funktion, die einen Winkel in eine handliche Zahl übersetzt.
+- **Kleiner Winkel**, beide zeigen fast in dieselbe Richtung: Die Wörter kommen in ähnlichen
+  Kontexten vor.
+- **Rechter Winkel**: Die Wörter haben nichts miteinander zu tun.
+- **Entgegengesetzte Richtung**: die maximal mögliche Unähnlichkeit.
 
-## Die Skala von -1 bis 1
+Der Kosinus ist lediglich die Funktion, die einen Winkel in eine handliche Zahl übersetzt. Er
+liefert 1 bei null Grad, 0 bei neunzig Grad und -1 bei hundertachtzig Grad. Deshalb heißt das
+Maß Kosinus-Ähnlichkeit, und deshalb liegt es immer zwischen -1 und 1.
 
-Die [Kosinus-Ähnlichkeit](/glossar/#kosinus-aehnlichkeit) liefert immer einen Wert zwischen -1 und 1:
+## Warum der Winkel und nicht der Abstand
 
-- **1** – identische Richtung, maximale Ähnlichkeit.
-- **0** – kein Zusammenhang.
-- **-1** – genau entgegengesetzt.
+Die naheliegende Alternative wäre, einfach den Abstand zwischen zwei Punkten zu messen. Man macht
+es nicht, und der Grund ist praktisch.
 
-Für „Hund“ und „Katze“ läge der Wert hoch (nahe 1), für „Hund“ und „Steuererklärung“ nahe 0.
+Die **Länge** eines Wortvektors korreliert mit der Häufigkeit des Wortes im Trainingstext.
+Häufige Wörter bekommen tendenziell längere Pfeile. Würde man Abstände messen, ginge diese Länge
+in jede Messung ein, und der Rang würde dann teilweise messen, wie gebräuchlich ein Wort ist statt
+wie passend.
 
-## Warum der Winkel und nicht der Abstand?
+Der Winkel ignoriert die Länge vollständig. Zwei Kompassnadeln zeigen in dieselbe Richtung,
+unabhängig davon, wie lang sie sind. Genau deshalb ist die Kosinus-Ähnlichkeit das Standardmaß
+für Worteinbettungen und nicht der euklidische Abstand.
 
-Eine berechtigte Frage: Warum misst man nicht einfach den Abstand zwischen den Punkten? Der Grund: Häufige Wörter haben oft „längere“ Pfeile als seltene. Würde man den Abstand messen, bekämen häufige Wörter unfair andere Werte. Der **Winkel** ignoriert die Länge und schaut nur auf die Richtung – also auf die reine Bedeutung. Genau deshalb ist die Kosinus-Ähnlichkeit das Standardmaß für Worteinbettungen.
+Das genügt allerdings nicht ganz. Die Häufigkeit steckt nicht nur in der Länge, sondern auch in
+der Richtung: Alle Vektoren teilen sich einen gemeinsamen Drift, der ebenfalls mit Häufigkeit zu
+tun hat. Kontexto entfernt den vor der Rangberechnung, sonst wären häufige Allerweltswörter zu
+jedem Zielwort ähnlich. Wie das geht, steht in
+[All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/).
 
-> Stell dir zwei Kompassnadeln vor: Es ist egal, wie lang sie sind – wichtig ist nur, ob sie in dieselbe Richtung zeigen.
+## Von der Ähnlichkeit zum Rang
 
-## Vom Ähnlichkeitswert zum Rang
+Angezeigt wird dir der Kosinuswert nie. Das ist eine bewusste Entscheidung, und sie ist der
+Hauptunterschied zu Spielen wie Semantle.
 
-Kontexto zeigt dir den Kosinus-Wert nicht direkt an. Warum? Weil „0,42“ schwer einzuordnen ist. Stattdessen berechnet das Spiel die Ähnlichkeit deines Wortes zum Zielwort, vergleicht sie mit der **aller anderen Wörter** und gibt dir die Position in dieser sortierten Liste: den [Rang](/glossar/#rang). „Rang 1“ ist das Zielwort, „Rang 300“ ist greifbar besser als „Rang 5.000“. So wird aus einer abstrakten Zahl ein verständlicher Fortschritt – ein Vorteil gegenüber Spielen wie Semantle, die rohe Prozentwerte zeigen (siehe [Spielvergleich](/vergleich/)).
+Der Grund: 0,42 ist nicht einzuordnen. Ist das gut? Bei Worteinbettungen liegen fast alle
+sinnvollen Wortpaare in einem schmalen Band, und ohne Vergleichsmaßstab sagt ein einzelner Wert
+nichts. Zwischen 0,41 und 0,48 kann der Unterschied zwischen „völlig danebengegriffen“ und
+„unmittelbar davor“ liegen.
 
-## Fazit
+Kontexto rechnet deshalb einmal für jedes Rätsel die Ähnlichkeit **aller 80.000 Vokabelwörter**
+zum Zielwort aus, sortiert sie absteigend und speichert die Positionen. Was du siehst, ist diese
+Position: Rang 1 ist das Zielwort, Rang 2 sein nächster Nachbar, Rang 80.000 das entfernteste
+Wort im Vokabular.
 
-Die Kosinus-Ähnlichkeit misst den Winkel zwischen zwei Wort-Pfeilen und damit, wie ähnlich sich ihre Bedeutung ist. Kontexto übersetzt dieses Maß in einen Rang, den du beim Spielen direkt nutzt. Wer das Prinzip kennt, versteht auch, [warum manche Wörter überraschend schlecht ranken](/blog/warum-schlechter-rang/) – und spielt mit mehr Gespür für die Logik dahinter.
+Ein Rang ist damit eine relative Aussage und genau deshalb lesbar. Rang 300 heißt: Von 80.000
+Wörtern sind nur 299 näher dran. Das kann jeder einordnen, ohne zu wissen, wie ein
+Kosinuswert skaliert.
+
+Der Nebeneffekt ist Geschwindigkeit. Weil alle Ränge vorberechnet sind, ist ein Rateversuch zur
+Laufzeit ein Tabellenzugriff und keine Rechnung. Was dabei alles vorher passiert, beschreibt
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).
+
+## Was das Maß nicht kann
+
+Zwei Eigenschaften überraschen regelmäßig, und beide folgen direkt aus der Definition.
+
+**Gegenteile liegen nah beieinander.** `heiß` und `kalt` erscheinen in praktisch identischen
+Sätzen: Das Wasser ist heiß, das Wasser ist kalt. Ihre Kontexte sind fast deckungsgleich, also
+ist der Winkel zwischen ihren Vektoren klein, also ist die Kosinus-Ähnlichkeit hoch. Ein sehr
+guter Rang für `heiß` bei Zielwort `kalt` ist kein Fehler des Systems, sondern die korrekte
+Antwort auf eine Frage, die anders lautet als vermutet: nicht „bedeutet dasselbe“, sondern
+„erscheint in denselben Zusammenhängen“.
+
+**Mehrdeutige Wörter haben nur einen Vektor.** `Bank` bekommt eine einzige Zahlenliste, obwohl es
+Sitzmöbel und Geldinstitut heißt. Das Ergebnis ist ein Kompromissvektor, der irgendwo zwischen
+beiden Bedeutungen liegt und zu keiner von beiden richtig gehört. Wenn ein mehrdeutiges Wort einen
+mittelmäßigen Rang bekommt, weißt du deshalb nicht, welche seiner Bedeutungen gemessen wurde.
+
+Warum daraus manchmal völlig unerwartete Ränge entstehen, steht in
+[Warum hat mein Wort einen schlechten Rang?](/blog/warum-schlechter-rang/).
+
+## Selbst nachrechnen
+
+Wer es mit eigenen Zahlen sehen will, braucht drei Zeilen. Nimm zwei Vektoren, bilde das
+Skalarprodukt, teile durch das Produkt der beiden Längen. Das ist die vollständige Formel; die
+Division durch die Längen ist genau der Schritt, der die Länge herausrechnet und nur die Richtung
+übriglässt.
+
+In der Praxis normalisiert man alle Vektoren einmal vorab auf Länge 1. Danach ist die
+Kosinus-Ähnlichkeit einfach das Skalarprodukt, und eine ganze Rangliste wird zu einer einzigen
+Matrixmultiplikation. Genau so macht es Kontexto beim Aufbau der Spieldaten.
+
+## Warum die Zahl trotzdem irgendwo steht
+
+Der Kosinuswert verschwindet nicht, er wird nur nicht angezeigt. Beim Aufbau der Spieldaten wird er
+für jedes der 80.000 Wörter berechnet, danach sortiert, und ab diesem Moment interessiert nur noch
+die Position in der sortierten Liste. Der Wert selbst wird gar nicht erst gespeichert.
+
+Das ist eine bewusste Vereinfachung mit einem messbaren Nebeneffekt: Eine Rangliste aus ganzen
+Zahlen lässt sich deutlich kompakter ablegen als 80.000 Fließkommazahlen, und genau das macht es
+möglich, mehrere tausend Rätsel vorzuberechnen und trotzdem in Sekundenbruchteilen auszuliefern.

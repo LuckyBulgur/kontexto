@@ -125,7 +125,7 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
 
   let summary: string;
   if (visitors === 0 && guesses === 0) {
-    summary = "Heute ist noch alles ruhig – wähle links einen Bereich für den gesamten Verlauf.";
+    summary = "Heute ist noch alles ruhig. Wähle links einen Bereich für den gesamten Verlauf.";
   } else {
     const solvedPart = solves > 0 ? `, davon ${formatNumber(solves)} gelöst` : "";
     summary = `Heute waren schon ${formatNumber(visitors)} Besucher:innen da und haben `
@@ -276,10 +276,10 @@ function TotalsSection({ stats }: SectionProps) {
         <Panel title="Rekorde" hint="bester einzelner Tag">
           <div>
             <DefRow label="Meiste Besucher"
-              value={stats.records.best_visitors_day ? formatNumber(stats.records.best_visitors_day.value) : "–"}
+              value={stats.records.best_visitors_day ? formatNumber(stats.records.best_visitors_day.value) : "k. A."}
               sub={stats.records.best_visitors_day ? `am ${fullDate(stats.records.best_visitors_day.date)}` : undefined} />
             <DefRow label="Meiste Rateversuche"
-              value={stats.records.best_guesses_day ? formatNumber(stats.records.best_guesses_day.value) : "–"}
+              value={stats.records.best_guesses_day ? formatNumber(stats.records.best_guesses_day.value) : "k. A."}
               sub={stats.records.best_guesses_day ? `am ${fullDate(stats.records.best_guesses_day.date)}` : undefined} />
           </div>
         </Panel>
@@ -376,7 +376,7 @@ function GameplaySection({ stats, range }: SectionProps) {
       <Panel title="Lösungsrate-Trend">
         <AreaTrend data={sliceTimeline(stats.solve_rate_timeline, range)} accent={3} valueFormatter={(v) => formatPercent(Number(v))} />
       </Panel>
-      <Panel title="Ø Versuche bis zur Lösung – Trend">
+      <Panel title="Ø Versuche bis zur Lösung: Trend">
         <AreaTrend data={sliceTimeline(avgPerSolve, range)} accent={0} valueFormatter={(v) => formatDecimal(Number(v))} />
       </Panel>
       <Panel title="Modus-Beliebtheit über Zeit" hint="abgeschlossene Spiele/Monat" className="lg:col-span-2">
@@ -389,22 +389,22 @@ function GameplaySection({ stats, range }: SectionProps) {
         <BarRanking data={stats.hints_by_difficulty} accent={3} labelMap={DIFFICULTY_LABELS}
           emptyLabel="Noch keine Tipps genutzt" />
       </Panel>
-      <Panel title="Versuche bis zur Lösung – Kontexto">
+      <Panel title="Versuche bis zur Lösung: Kontexto">
         <Histogram data={dist["dist_guesses_kontexto"] ?? {}} order={GUESS_BUCKETS} accent={2} />
       </Panel>
-      <Panel title="Zeit bis zur Lösung – Kontexto">
+      <Panel title="Zeit bis zur Lösung: Kontexto">
         <Histogram data={dist["dist_time_kontexto"] ?? {}} order={TIME_BUCKETS} accent={0} />
       </Panel>
-      <Panel title="Versuche bis zur Lösung – Unendlich">
+      <Panel title="Versuche bis zur Lösung: Unendlich">
         <Histogram data={dist["dist_guesses_infinite"] ?? {}} order={GUESS_BUCKETS} accent={3} />
       </Panel>
-      <Panel title="Zeit bis zur Lösung – Unendlich">
+      <Panel title="Zeit bis zur Lösung: Unendlich">
         <Histogram data={dist["dist_time_infinite"] ?? {}} order={TIME_BUCKETS} accent={3} />
       </Panel>
-      <Panel title="Bester Rang beim Aufgeben – Kontexto & Unendlich">
+      <Panel title="Bester Rang beim Aufgeben: Kontexto und Unendlich">
         <Histogram data={dist["dist_giveup_rank"] ?? {}} order={RANK_BUCKETS} accent={4} />
       </Panel>
-      <Panel title="Versuche bis zur Lösung – Wördle">
+      <Panel title="Versuche bis zur Lösung: Wördle">
         <Histogram data={dist["dist_guesses_wordle"] ?? {}} order={GUESS_BUCKETS} accent={1} />
       </Panel>
     </div>

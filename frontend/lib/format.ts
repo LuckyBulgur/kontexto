@@ -7,19 +7,19 @@ const decimalFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 
 
 /** 1234 -> "1.234" */
 export function formatNumber(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "–";
+  if (value == null || Number.isNaN(value)) return "k. A.";
   return numberFormat.format(value);
 }
 
 /** 4.7 -> "4,7"; integers stay integer. */
 export function formatDecimal(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "–";
+  if (value == null || Number.isNaN(value)) return "k. A.";
   return decimalFormat.format(value);
 }
 
 /** 0.732 -> "73 %" (ratio in 0..1). */
 export function formatPercent(ratio: number | null | undefined, digits = 0): string {
-  if (ratio == null || Number.isNaN(ratio)) return "–";
+  if (ratio == null || Number.isNaN(ratio)) return "k. A.";
   return `${(ratio * 100).toLocaleString("de-DE", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,

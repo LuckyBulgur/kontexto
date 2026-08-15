@@ -188,7 +188,7 @@ function ChartTooltip({
           {p.color && <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />}
           {p.name && <span>{p.name}:</span>}
           <span className="font-medium text-popover-foreground">
-            {p.value != null ? valueFormatter(p.value) : "–"}
+            {p.value != null ? valueFormatter(p.value) : "k. A."}
           </span>
         </div>
       ))}
@@ -411,7 +411,7 @@ export function Heatmap({ data }: { data: number[][] }) {
   if (total === 0) return <Empty />;
 
   // Peak cell + quartile thresholds of the non-zero values. Cheap per render
-  // (168 cells) — no memoisation needed.
+  // (168 cells), no memoisation needed.
   let peak = { wd: 0, h: 0, v: -1 };
   data.forEach((row, wd) => row.forEach((v, h) => { if (v > peak.v) peak = { wd, h, v }; }));
   const nz = flat.filter((v) => v > 0).sort((a, b) => a - b);
@@ -426,7 +426,7 @@ export function Heatmap({ data }: { data: number[][] }) {
 
   return (
     <div>
-      {/* Peak readout — context for the busiest slot. */}
+      {/* Peak readout, context for the busiest slot. */}
       <p className="mb-3 flex items-center gap-2 text-sm">
         <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: HEATMAP_LEVEL_BG[4] }} />
         <span>
@@ -447,7 +447,7 @@ export function Heatmap({ data }: { data: number[][] }) {
               ))}
             </div>
 
-            {/* Weekday rows — each cell shows its count, shaded by intensity. */}
+            {/* Weekday rows: each cell shows its count, shaded by intensity. */}
             {data.map((row, wd) => (
               <div key={wd} role="row" className="mt-1 grid items-center" style={gridStyle}>
                 <span className="pr-1 text-right text-xs font-medium text-muted-foreground">{WEEKDAY_LABELS[wd]}</span>
@@ -490,7 +490,7 @@ export function Heatmap({ data }: { data: number[][] }) {
         </div>
       </div>
 
-      {/* Cursor-following tooltip — instant, styled, shown on hover/touch. */}
+      {/* Cursor-following tooltip: instant, styled, shown on hover/touch. */}
       {tip && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-md"

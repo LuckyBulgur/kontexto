@@ -1,7 +1,7 @@
 export interface LegalInfo {
   /** First postal line: display name (pseudonym) followed by the real name. */
   name: string;
-  /** "c/o" line of the booked Impressum-address service — required for correct mail delivery. */
+  /** "c/o" line of the booked Impressum-address service, required for correct mail delivery. */
   careOf: string;
   /** Street and house number. */
   street: string;

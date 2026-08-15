@@ -61,7 +61,7 @@ export default function KoopCreatePageClient() {
       <main className="flex-1 px-4 py-6 flex flex-col gap-5">
         <div className="rounded-xl border bg-card p-5 space-y-5">
           <p className="text-sm text-muted-foreground">
-            Sucht gemeinsam dasselbe geheime Wort. Teile den Link – jeder Tipp
+            Sucht gemeinsam dasselbe geheime Wort. Teile den Link, jeder Tipp
             ist sofort für alle sichtbar, und ihr gewinnt als Team.
           </p>
 

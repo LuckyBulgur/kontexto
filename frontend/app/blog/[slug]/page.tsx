@@ -7,10 +7,29 @@ import { buildMetadata } from "@/lib/seo";
 import { posts, getPost } from "@/lib/blog";
 import { AUTHOR_NAME, AUTHOR_BIO, AUTHOR_PROFILE_PATH } from "@/lib/author";
 
-// Explicit static loader map — avoids template-literal dynamic imports which
+// Explicit static loader map. Avoids template-literal dynamic imports which
 // are fragile under static export. Every module is statically known at
 // build time, enabling reliable tree-shaking and chunk splitting.
 const loaders: Record<string, () => Promise<{ default: ComponentType }>> = {
+  "startwort-benchmark": () => import("@/content/blog/startwort-benchmark.mdx"),
+  "wie-viele-versuche-sind-normal": () =>
+    import("@/content/blog/wie-viele-versuche-sind-normal.mdx"),
+  "wie-das-loesungswort-entsteht": () =>
+    import("@/content/blog/wie-das-loesungswort-entsteht.mdx"),
+  "tipp-funktion-richtig-nutzen": () =>
+    import("@/content/blog/tipp-funktion-richtig-nutzen.mdx"),
+  "spieldesign-unbegrenzte-versuche": () =>
+    import("@/content/blog/spieldesign-unbegrenzte-versuche.mdx"),
+  "all-but-the-top-vektoren-entzerren": () =>
+    import("@/content/blog/all-but-the-top-vektoren-entzerren.mdx"),
+  "wenn-du-feststeckst": () => import("@/content/blog/wenn-du-feststeckst.mdx"),
+  "duell-und-koop-taktik": () => import("@/content/blog/duell-und-koop-taktik.mdx"),
+  "woerdle-wortliste-deutsch": () =>
+    import("@/content/blog/woerdle-wortliste-deutsch.mdx"),
+  "woerter-die-kontexto-nicht-kennt": () =>
+    import("@/content/blog/woerter-die-kontexto-nicht-kennt.mdx"),
+  "komposita-und-teilwoerter": () =>
+    import("@/content/blog/komposita-und-teilwoerter.mdx"),
   "warum-keine-namen-mehr-als-loesungswoerter": () =>
     import("@/content/blog/warum-keine-namen-mehr-als-loesungswoerter.mdx"),
   "kontexto-tipps-schneller-gewinnen": () =>

@@ -14,7 +14,7 @@ export const AUTHOR_NAME = "Ugur Aydogan";
 export const AUTHOR_PROFILE_PATH = "/ueber/";
 
 export const AUTHOR_BIO =
-  "Ugur Aydogan hat Kontexto entwickelt – die deutsche Version des semantischen " +
+  "Ugur Aydogan hat Kontexto entwickelt, die deutsche Version des semantischen " +
   "Wort-Ratespiels Contexto. Er beschäftigt sich mit Worteinbettungen, " +
   "natürlicher Sprachverarbeitung und der Frage, wie sich die Bedeutung von " +
   "Wörtern berechnen lässt, und schreibt hier über die Technik und Strategie " +

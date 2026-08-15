@@ -1,35 +1,135 @@
-# Neustart: Warum keine Namen mehr als Lösungswörter auftauchen
+# Neustart: warum keine Namen mehr als Lösungswörter auftauchen
 
-Kontexto hat ein großes Update bekommen – und startet deshalb wieder bei Tag 1. Der Grund: Der Algorithmus, der die täglichen Lösungswörter auswählt, wurde komplett neu gebaut. Der häufigste Kritikpunkt der Community war, dass viel zu oft Eigennamen wie „Emma", „Dirk", „Merkel" oder „Berlin" das gesuchte Wort waren. Genau das gehört jetzt der Vergangenheit an.
+Die häufigste Rückmeldung zu Kontexto war lange dieselbe, und sie war berechtigt: Zu oft war das
+gesuchte Wort ein Name. `Emma`, `Dirk`, `Merkel`, `Berlin`. Das ist bei einem Spiel, das
+Bedeutungsnähe misst, nicht bloß ärgerlich, sondern ein Konstruktionsfehler.
 
-## Warum überhaupt Namen als Lösung kamen
+Der Auswahlalgorithmus wurde deshalb komplett neu gebaut. Weil sich damit die Zuordnung von Tag zu
+Wort geändert hat, startet die Rätselreihe bei Tag 1 neu. Hier steht, was schiefging und was jetzt
+anders ist.
 
-Die Lösungswörter stammten bisher schlicht aus den häufigsten Wörtern eines großen deutschen Textkorpus. Das klingt sinnvoll, hat aber einen Haken: In Texten aus dem Web tauchen Vornamen, Nachnamen, Städte- und Markennamen extrem häufig auf. Sie landen damit ganz oben in der Häufigkeitsliste – direkt neben echten Alltagswörtern.
+## Warum ein Name als Lösung unfair ist
 
-Erschwerend kam hinzu, dass alle Wörter kleingeschrieben verarbeitet wurden. Im Deutschen ist die Großschreibung aber das wichtigste Signal, um einen Eigennamen von einem normalen Wort zu unterscheiden. Dieses Signal ging verloren – und so rutschten Namen ungefiltert in die Auswahl.
+Bei einem Buchstabenspiel wäre ein Name eine normale Schwierigkeit. Man kann sich über Buchstaben
+herantasten, egal ob das Wort `Blume` oder `Berlin` heißt.
 
-Für ein **semantisches** Ratespiel ist das besonders ärgerlich: Die Nachbarschaft eines Namens besteht fast nur aus anderen Namen. Man kann sich also nicht über die Bedeutung herantasten, sondern muss wahllos Vornamen durchprobieren. Das ist kein Rätsel mehr, sondern Raten ins Blaue.
+Bei einem semantischen Spiel funktioniert das nicht. Die Bedeutungsnachbarschaft eines Vornamens
+besteht fast ausschließlich aus anderen Vornamen, weil Namen in Texten neben Namen stehen. Wenn
+das Zielwort `Emma` ist, dann sind die Ränge 2 bis 50 belegt mit `Anna`, `Lena`, `Marie` und so
+weiter.
 
-## Was sich geändert hat
+Damit gibt es keinen Weg von einem Alltagswort zur Lösung. Du kannst nicht einkreisen, sondern nur
+Vornamen durchprobieren, bis du zufällig den richtigen erwischst. Das ist kein Rätsel mehr.
 
-Der neue Algorithmus prüft jedes mögliche Lösungswort mit mehreren unabhängigen Verfahren, die sich gegenseitig absichern:
+## Wie die Namen überhaupt hineingerieten
 
-- **Wortart-Analyse**: Eine deutsche Grammatik-Erkennung lässt nur Inhaltswörter zu – Nomen, Verben und Adjektive. Erkennt sie einen Eigennamen, fliegt das Wort raus.
-- **Wörterbuch-Abgleich**: Ein deutsches Wörterbuch unterscheidet ein echtes Gattungswort von einem bloßen Namen. So bleibt „Sommer" (auch ein Nachname, aber ein echtes Wort) drin, während „Sebastian" verschwindet.
-- **Namensliste**: Rund 35.000 Vor- und Nachnamen dienen als Sicherheitsnetz für Namen, die die Grammatik fälschlich für ein Wort hält.
-- **Fremdwort-Check**: Echte englische Wörter wie „beach" oder „music" fallen weg, eingedeutschte Lehnwörter wie „Team" oder „Training" bleiben erhalten.
-- **Keine religiösen Begriffe** und keine Marken mehr als Lösung.
+Die alte Auswahl war denkbar einfach: Nimm die häufigsten Wörter aus dem Korpus.
+
+Das klingt vernünftig und hat zwei Haken.
+
+**Der erste Haken ist der Korpus.** Das Modell ist auf Common Crawl trainiert, also auf gecrawlten
+Webseiten. In diesem Material sind Vornamen, Nachnamen, Städte und Marken außerordentlich häufig,
+häufiger als viele ganz normale Alltagswörter. Sie stehen deshalb im oberen Band der
+Häufigkeitsliste, direkt neben echten Inhaltswörtern.
+
+**Der zweite Haken ist die Kleinschreibung.** Für die Verarbeitung wird alles kleingeschrieben,
+damit `Haus` und `haus` nicht zwei Einträge werden. Im Deutschen ist die Großschreibung aber das
+wichtigste einzelne Signal, um einen Eigennamen von einem Gattungsnamen zu unterscheiden. Genau
+dieses Signal wurde dabei zerstört.
+
+Ein Filter, der nur prüft „ist kleingeschrieben, besteht aus Buchstaben, ist ein bekanntes Lemma“,
+lässt `emma`, `merkel` und `berlin` also anstandslos durch. Zusätzlich rutschten englische
+Netzwörter wie `school` und `music` mit, weil auch sie in einem Web-Korpus deutscher Seiten häufig
+vorkommen.
+
+## Was jetzt geprüft wird
+
+Der neue Filter legt vier voneinander unabhängige Signale übereinander. Kein einzelnes davon
+reicht, und genau das ist der Punkt: Wo eines versagt, greift ein anderes.
+
+**Wortartanalyse.** Ein deutscher Wortarten-Tagger prüft, wie das Wort gelesen wird. Die
+großgeschriebene Form muss als Gattungsname durchgehen, die kleingeschriebene Form rettet Verben
+und Adjektive. Alles, dessen beste Lesart ein Eigenname ist, fällt raus.
+
+**Wörterbuchabgleich.** Ein aus dem Wiktionary abgeleitetes Lexikon unterscheidet einen echten
+Gattungsnamen mit Deklinationstabelle von einem bloßen Vornamen- oder Nachnameneintrag. Dieses
+Signal rettet Wörter, die zufällig auch Nachnamen sind: `Löwe`, `Rose`, `Stein`, `Sommer`,
+`Koch`, `Jäger`.
+
+**Namensliste.** Rund 35.000 Vor- und Nachnamen dienen als Sicherheitsnetz für Namen, die der
+Tagger fälschlich als Gattungsnamen liest und die im Wörterbuch nicht als solche stehen, etwa
+`torsten` oder `jörn`.
+
+**Fremdwortprüfung.** Ein Vergleich der deutschen und der englischen Worthäufigkeit. Ein Wort mit
+hoher englischer und deutlich niedrigerer deutscher Häufigkeit ist ein englisches Wort, das
+mitgeschwommen ist. `music` fällt weg, eingedeutschte Lehnwörter wie `Team`, `Training` oder
+`Code` bleiben.
+
+Dazu kommen von Hand gepflegte Sperrlisten für Marken, Abkürzungen, religiöse Begriffe und vulgäre
+Ausdrücke.
+
+## Die Fälle, die keiner Regel gehorchen
+
+Zwei Kategorien ließen sich nicht automatisch lösen und brauchen eine Liste von Hand.
+
+**Wörter, die dominant Name und nebenbei Gattungsname sind.** `Dirk` ist ein Vorname und zugleich
+der Name eines Taus in der Segeltechnik. `Franziska` ist ein Vorname und zugleich eine fränkische Wurfaxt. Im
+Wörterbuch sehen diese Wörter genauso aus wie `Löwe`: ein Name mit einem Substantiveintrag
+daneben. Nur würde niemand `Dirk` als Ding erraten. Solche Wörter sind einzeln geprüft und
+ausgeschlossen.
+
+**Wörter mit einem obskuren Substantiveintrag.** `Mars`, `Flora`, `Eden`, `Milan` haben alle
+irgendwo einen Lexikoneintrag als Gattungsname und sind trotzdem für die allermeisten Menschen ein
+Name. Sie stehen auf einer expliziten Sperrliste.
+
+Das Prinzip dahinter ist bewusst asymmetrisch: Ein grenzwertig gutes Wort zu verwerfen ist in
+Ordnung, einen Namen durchzulassen nicht. Der Kandidatenpool ist deutlich größer als die Zahl der
+benötigten Rätsel, Strenge kostet also nichts.
 
 ## Nur noch Wörter, die wirklich jeder kennt
 
-Zusätzlich gibt es jetzt eine Häufigkeits-Schwelle: Als Lösung kommen nur Wörter infrage, die im Deutschen so verbreitet sind, dass sie praktisch jeder kennt. Damit fallen auch seltene Fachbegriffe und ungewöhnliche Komposita aus der Tagesauswahl – geraten werden dürfen sie weiterhin, sie sind nur kein gesuchtes Wort mehr.
+Zusätzlich gibt es eine Häufigkeitsschwelle. Als Lösung kommen nur Wörter infrage, die im
+Deutschen so verbreitet sind, dass praktisch jede erwachsene Person sie kennt.
 
-Wer mehr über die Technik dahinter wissen will, findet in unseren Artikeln zu [Worteinbettungen](/blog/worteinbettungen-erklaert/) und [fastText](/blog/wie-funktioniert-fasttext/) die Grundlagen. Auch unser [Wördle](/wordle/) hat dieselbe Qualitätsprüfung bekommen.
+Damit fallen auch seltene Fachbegriffe und ungewöhnliche Komposita aus der Tagesauswahl. Geraten
+werden dürfen sie weiterhin, das ratbare Vokabular bleibt mit 80.000 Wörtern deutlich größer als
+der Lösungspool. Der komplette Ablauf steht in
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).
 
-## Warum das Spiel bei Tag 1 startet
+## Zwei Nachträge aus dem laufenden Betrieb
 
-Weil die komplette Lösungsliste neu erzeugt wurde, hat sich die Zuordnung von Tag zu Wort geändert. Der sauberste Weg ist deshalb ein echter Neuanfang: Tag 1 ist das erste Rätsel der neuen Ära. Deine Statistik bleibt dabei erhalten.
+Zwei Probleme tauchten erst auf, nachdem der neue Filter schon lief.
 
-## Danke an die Community
+**Vulgäre Wörter.** Nach einem Tag, an dem `Arsch` die Lösung war, kam eine Sperrliste für
+eindeutig derbe, sexuelle und beleidigende Ausdrücke dazu. Der Zuschnitt ist bewusst eng:
+Homografen, deren übliche Bedeutung harmlos ist, bleiben Lösungen. `Schwanz` ist ein Tierschwanz,
+`Sack` ist ein Beutel, `Eier` sind Eier.
 
-Dieses Update gibt es vor allem dank eures Feedbacks. Ein ganz besonderer Dank geht an [@danielschueler auf TikTok](https://www.tiktok.com/@danielschueler), dessen Rückmeldung den Anstoß gegeben hat. Probiert das frische [Kontexto](/) aus – und sagt uns, wie es euch gefällt.
+**Alte und neue Rechtschreibung.** Ein deutscher Web-Korpus enthält beide Schreibweisen der von
+der Reform betroffenen Wörter. Als `anlässlich` Lösung war, lag `anläßlich` auf Rang 2. Wer die
+alte Schreibweise tippte, sah einen Rang, der praktisch „richtig“ schreit, und gewann trotzdem
+nicht. Seitdem gilt: Jedes Wort, das seine ß-zu-ss-gefaltete Form mit einem anderen Wort im
+Vokabular teilt, ist als Lösung gesperrt. Ratbar bleibt es. ß und ss zur Laufzeit
+zusammenzufalten wäre der falsche Weg gewesen, weil es echte Minimalpaare zerstört: `Maße` und
+`Masse` sind verschiedene Wörter.
+
+## Warum die Zählung bei Tag 1 beginnt
+
+Weil die Lösungsliste vollständig neu erzeugt wurde, hat sich die Zuordnung von Tag zu Wort
+geändert. Es gab keine Möglichkeit, die alte Nummerierung sinnvoll fortzuschreiben, ohne dass
+Rätselnummern auf andere Wörter zeigen als vorher. Der saubere Weg war ein echter Neuanfang.
+
+Die persönliche Statistik bleibt davon unberührt. Sie liegt lokal im Browser und wurde nicht
+zurückgesetzt.
+
+Dieselbe Qualitätsprüfung läuft übrigens auch für [Wördle](/wordle/), dessen Wortlisten aus
+demselben Vokabular gebaut werden.
+
+## Danke
+
+Dieses Update gibt es vor allem wegen des Feedbacks aus der Community. Ein besonderer Dank geht an
+[@danielschueler auf TikTok](https://www.tiktok.com/@danielschueler), dessen Rückmeldung den
+Anstoß gegeben hat.
+
+Wenn dir etwas auffällt, das als Lösung nicht hätte kommen dürfen: Schreib uns. Die Sperrlisten
+sind ausdrücklich dafür gedacht, erweitert zu werden.

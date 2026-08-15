@@ -4,7 +4,7 @@ import { SeoSection, RelatedLinks } from "@/components/seo/SeoPrimitives";
 export default function DuelSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto-Duell – gegen Freunde spielen</h1>
+      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto-Duell: gegen Freunde spielen</h1>
       <p className="mb-6 max-w-prose">
         Im Duell-Modus tretet ihr beim selben geheimen Wort gegeneinander an. Erstelle
         ein{" "}

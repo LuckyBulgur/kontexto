@@ -1,0 +1,120 @@
+# Warum Kontexto unbegrenzte Versuche hat
+
+Wordle gibt dir sechs Versuche. Kontexto gibt dir beliebig viele. Das ist die auffälligste
+Regelabweichung zwischen den beiden Spielen, und sie wird regelmäßig als fehlende Härte gelesen:
+ohne Limit kein Druck, ohne Druck kein Spiel.
+
+Der Verzicht auf ein Limit ist aber keine Nachlässigkeit, sondern folgt zwingend aus der
+Mechanik. Ein Versuchslimit würde bei einem semantischen Spiel etwas völlig anderes bedeuten als
+bei einem Buchstabenspiel.
+
+## Warum sechs Versuche bei Wordle funktionieren
+
+Bei Wordle ist der Suchraum von Anfang an vollständig bekannt: fünf Positionen, ein festes
+Alphabet, eine endliche Wortliste. Jeder Zug liefert eine strukturierte Rückmeldung, aus der sich
+der Raum berechenbar verkleinern lässt. Grün heißt Position sicher, gelb heißt Buchstabe vorhanden
+an anderer Stelle, grau heißt ausgeschlossen.
+
+Ein guter Wordle-Spieler kann ausrechnen, welcher Zug im Erwartungswert am meisten Unsicherheit
+beseitigt. Das Limit von sechs ist deshalb eine faire Herausforderung: Es ist knapp genug, um
+schlechte Züge zu bestrafen, und weit genug, dass gutes Spiel zuverlässig gewinnt.
+
+## Warum dieselbe Logik bei Kontexto zusammenbricht
+
+Bei Kontexto bekommst du auf jeden Zug genau eine Zahl. Diese Zahl sagt dir, wie weit du weg
+bist, aber nicht, in welche Richtung du gehen musst.
+
+Der Unterschied ist grundsätzlich. Ein Wordle-Zug schneidet Möglichkeiten weg. Ein Kontexto-Zug
+misst eine Entfernung an einer einzigen Stelle in einem 80.000 Wörter großen Raum. Aus einer
+einzelnen Entfernung folgt keine Richtung, und aus zwei Entfernungen auch nicht zuverlässig.
+
+Damit hängt die Zahl der nötigen Züge nicht in erster Linie von Können ab, sondern davon, wie nah
+dein persönlicher Assoziationsraum zufällig am Zielwort liegt. Wer beim Zielwort `Kieme` früh an
+Fische denkt, ist in acht Zügen fertig. Wer bei denselben Startwörtern an Werkzeuge denkt,
+braucht dreißig, ohne schlechter gespielt zu haben.
+
+Ein Limit von zwanzig Versuchen würde deshalb nicht Können messen, sondern Glück. Es würde einen
+Teil der Spieler regelmäßig ausschließen, ohne dass sie irgendetwas falsch gemacht hätten.
+
+## Was das Spiel stattdessen tut
+
+Ohne Limit braucht das Spiel eine andere Quelle für Spannung. Kontexto verlagert sie vom Zeitdruck
+auf die **Qualität der eigenen Züge**.
+
+Die Fragen, die eine Partie interessant machen, sind nicht „schaffe ich es noch“, sondern:
+Erkenne ich, wann ich im falschen Feld stehe? Lese ich einen schlechten Rang als Information
+statt als Fehlschlag? Weiß ich, wann ein Feldwechsel mehr bringt als Feinarbeit? Genau darum
+dreht sich [Wenn du feststeckst](/blog/wenn-du-feststeckst/).
+
+Deine Versuchszahl bleibt sichtbar und wird in der lokalen Statistik mitgeführt. Sie ist damit
+ein Maßstab, aber keine Schranke. Der Unterschied ist wichtig: Ein Maßstab lädt zum Besserwerden
+ein, eine Schranke sperrt aus.
+
+## Ein Wort pro Tag für alle
+
+Die zweite Grundentscheidung ist, dass alle am selben Tag dasselbe Wort raten: ein gemeinsames
+Tagesrätsel für alle.
+
+Das ist die Regel, die aus einem Einzelspiel ein gemeinsames macht. Sie erlaubt es, über die
+heutige Lösung zu reden, ohne zu klären, welche Partie gemeint war, und sie ist die Voraussetzung
+dafür, dass ein [Duell](/blog/duell-und-koop-taktik/) überhaupt fair sein kann.
+
+Wer an einem Tag mehr spielen will, kann das: Der Unendlich-Modus zieht beliebig viele weitere
+Partien aus demselben vorberechneten Pool. Was es nicht gibt, ist ein **datumsbezogenes Archiv**,
+in dem sich das Rätsel von vorletztem Dienstag nachholen lässt.
+
+Das hat zwei Gründe, einen technischen und einen inhaltlichen. Technisch: Der Frontend-Build läuft
+ohne Backend, Archivseiten hätten also zur Erzeugungszeit einen laufenden Server gebraucht. Eine
+frühe Fassung gab es, sie ist genau daran gescheitert und wurde zurückgenommen. Inhaltlich: Ein
+Anspruch auf jedes vergangene Datum würde das tägliche Rätsel zu einem beliebigen Rätsel machen,
+und der Reiz, dass gerade jetzt Tausende Menschen dasselbe Wort suchen, wäre weg.
+
+Welches Wort wann an der Reihe ist, steht seit dem letzten Datenaufbau fest und ist reine
+Rechnung: Rätselnummer gleich Anzahl der Tage seit dem Stichtag. Kein Zufall zur Laufzeit, keine
+Datenbankabfrage. Wie die Reihenfolge zustande kommt, beschreibt
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).
+
+## Kein Konto, kein Server-Spielstand
+
+Die dritte Entscheidung: Es gibt keine Anmeldung, und dein Spielstand liegt ausschließlich im
+Speicher deines Browsers.
+
+Der Gewinn ist, dass du sofort spielen kannst. Keine Registrierung, keine Bestätigungsmail, keine
+Passwortwahl. Für ein Spiel, das fünf Minuten dauert, ist jede Hürde davor teurer als das Spiel
+selbst.
+
+Der Preis ist, dass Streak und Statistik an dem Gerät und dem Browser hängen, in dem du spielst.
+Wechselst du das Gerät oder löschst die Browserdaten, fängst du bei null an. Das ist die direkte,
+unvermeidbare Folge davon, keine Konten zu führen. Wir halten den Tausch für richtig, aber es ist
+ein Tausch und keine kostenlose Verbesserung.
+
+Nebenbei bedeutet dieselbe Entscheidung, dass über dich als Person nichts gespeichert wird. Die
+Auswertung, die es gibt, arbeitet mit anonymisierten Summen und nicht mit wiedererkennbaren
+Profilen.
+
+## Was wir dafür nicht bauen
+
+Zu einer Designentscheidung gehört, was man weglässt. Drei naheliegende Funktionen gibt es
+bewusst nicht.
+
+**Keine Bestenliste.** Eine Rangliste nach Versuchszahl würde messen, wessen Assoziationsraum
+zufällig günstig lag, und genau das ist der Grund gegen ein Versuchslimit. Eine Bestenliste würde
+dieselbe Ungerechtigkeit durch die Hintertür einführen.
+
+**Keine Tagesserie mit Druck.** Eine Streak wird geführt, aber sie ist nirgends öffentlich und
+kostet nichts, wenn sie reißt.
+
+**Keine Benachrichtigungen.** Es gibt keinen Grund, warum ein Wortspiel dich erinnern müsste. Wer
+morgen wiederkommen will, kommt wieder.
+
+## Was daraus folgt
+
+Diese drei Entscheidungen zusammen, unbegrenzte Versuche, ein Wort pro Tag, kein Konto, ergeben
+ein Spiel mit einer bestimmten Haltung: Es will dich nicht binden, nicht hetzen und nicht
+aussortieren.
+
+Ob das die richtige Bauart für ein Wortspiel ist, hängt davon ab, was du suchst. Wer den
+gemessenen Wettkampf will, findet ihn im Duell oder bei
+[Wördle](/blog/woerdle-wortliste-deutsch/) mit seinen sechs Versuchen. Wer fünf ruhige Minuten
+mit der deutschen Sprache will, ist beim unbegrenzten Modus richtig. Beides steht auf derselben
+Seite, und das ist ebenfalls Absicht.

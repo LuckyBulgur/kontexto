@@ -2,7 +2,7 @@ import { SITE_URL, DEFAULT_OG_IMAGE } from "./seo";
 import { faqs } from "./faqs";
 import { AUTHOR_NAME, AUTHOR_PROFILE_PATH } from "./author";
 
-// Named person (E-E-A-T) — same source as the visible by-line on blog articles.
+// Named person (E-E-A-T), same source as the visible by-line on blog articles.
 const EDITORIAL_AUTHOR = {
   "@type": "Person",
   name: AUTHOR_NAME,
@@ -86,7 +86,7 @@ export function blogPostingSchema(p: {
   };
 }
 
-/** DefinedTermSet for the glossary — semantic clarity / AEO (no rich snippet). */
+/** DefinedTermSet for the glossary: semantic clarity / AEO (no rich snippet). */
 export function definedTermSetSchema(
   name: string,
   path: string,
@@ -111,7 +111,7 @@ export function definedTermSetSchema(
 
 /**
  * HowTo for the Anleitung page. Note: Google removed the HowTo rich result for
- * most sites in 2023 — this is kept for semantic/AEO value only.
+ * most sites in 2023. This is kept for semantic/AEO value only.
  */
 export function howToSchema(p: {
   name: string;

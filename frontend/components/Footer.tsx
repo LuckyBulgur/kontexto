@@ -21,13 +21,16 @@ const links = [
   { href: "/", label: "Kontexto" },
   { href: "/wordle/", label: "Wördle" },
   { href: "/koop/create/", label: "Koop" },
-{ href: "/anleitung/", label: "Anleitung" },
+  { href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
   { href: "/vergleich/", label: "Vergleich" },
   { href: "/glossar/", label: "Glossar" },
   { href: "/faq/", label: "FAQ" },
   { href: "/blog/", label: "Blog" },
+  { href: "/zahlen/", label: "Zahlen" },
+  { href: "/changelog/", label: "Änderungen" },
   { href: "/ueber/", label: "Über" },
+  { href: "/kontakt/", label: "Kontakt" },
   { href: "/impressum/", label: "Impressum" },
   { href: "/datenschutz/", label: "Datenschutz" },
 ];
@@ -57,7 +60,7 @@ export default function Footer() {
           </a>
         ))}
       </div>
-      <p className="mt-4">© Kontexto – das deutsche Wort-Ratespiel · entwickelt von Ugur Aydogan</p>
+      <p className="mt-4">© Kontexto, das deutsche Wort-Ratespiel · entwickelt von Ugur Aydogan</p>
       <p className="mt-2 inline-flex items-center justify-center gap-1">
         Made with
         <Heart className="h-3 w-3 fill-red-500 text-red-500" aria-hidden="true" />

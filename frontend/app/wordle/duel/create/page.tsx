@@ -24,7 +24,7 @@ export default function WordleDuelCreatePage() {
 
   // noindex: thin, purely functional lobby-creation form. This page is a direct
   // client component (no static metadata export), so the robots meta is injected
-  // here — mirroring the ephemeral duel/koop live screens. (Not in sitemap.)
+  // here, mirroring the ephemeral duel/koop live screens. (Not in sitemap.)
   useEffect(() => {
     if (typeof document === "undefined") return;
     const m = document.createElement("meta");
@@ -46,7 +46,7 @@ export default function WordleDuelCreatePage() {
       const copied = await copyTextToClipboard(url);
       // Clipboard ohne gültige Nutzergeste blockiert (z.B. Safari nach dem
       // await). Der sichtbare Copy-Button im Duell-Header bleibt als Fallback.
-      toast.success(copied ? "Duell erstellt – Link kopiert!" : "Duell erstellt!");
+      toast.success(copied ? "Duell erstellt, Link kopiert!" : "Duell erstellt!");
       router.push(`/wordle/duel/${duel_id}/`);
     } catch {
       setCreating(false);
@@ -103,7 +103,7 @@ export default function WordleDuelCreatePage() {
             <p className="text-sm text-muted-foreground">
               {gameMode === "today"
                 ? `Spiel #${gameNumber ?? "..."} (heutiges Wördle)`
-                : "Zufälliges Wördle – für beide Spieler gleich"}
+                : "Zufälliges Wördle, für beide Spieler gleich"}
             </p>
           </div>
 

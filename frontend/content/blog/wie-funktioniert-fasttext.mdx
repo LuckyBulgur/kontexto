@@ -1,37 +1,113 @@
-# Wie funktioniert die KI-Wortähnlichkeit (fastText)?
+# fastText: das Modell hinter den Rängen
 
-Wenn du bei Kontexto das Wort „Hund" eingibst und einen Rang von 12 bekommst, aber „Hundert" auf Rang 4.200 landet, dann steckt dahinter kein Zufall und keine Handarbeit. Der Unterschied wird von einem KI-Modell namens fastText berechnet, das Sprache auf eine mathematisch greifbare Weise darstellt. Dieser Artikel erklärt, wie das funktioniert – ohne Vorkenntnisse in Mathematik oder Informatik.
+Kontexto könnte auf mehreren Verfahren laufen. Es läuft auf fastText, und diese Entscheidung ist
+nicht beliebig, sondern eine direkte Folge davon, dass hier Deutsch gespielt wird. Wäre Kontexto
+ein englisches Spiel, wäre die Wahl womöglich anders ausgefallen.
 
-## Was sind Worteinbettungen?
+Dieser Text handelt vom Modell selbst. Was Worteinbettungen überhaupt sind und wie sie entstehen,
+steht in [Worteinbettungen erklärt](/blog/worteinbettungen-erklaert/).
 
-Stell dir vor, jedes Wort der deutschen Sprache wäre ein Punkt in einem riesigen, mehrdimensionalen Raum. Wörter, die in ähnlichen Kontexten auftauchen – in denselben Sätzen, neben denselben anderen Wörtern – liegen in diesem Raum nahe beieinander. Wörter mit völlig unterschiedlichen Bedeutungen liegen weit voneinander entfernt.
+## Welches Modell genau
 
-Genau das sind Worteinbettungen (englisch: word embeddings): numerische Vektoren, die die Bedeutung eines Wortes als Liste von Zahlen kodieren. Ein Vektor für „Katze" könnte hunderte von Dimensionen haben, aber der entscheidende Punkt ist: Der Vektor für „Hund" liegt in diesem hochdimensionalen Raum sehr nah daneben.
+Verwendet wird `cc.de.300.bin`, eines der von Meta AI Research veröffentlichten fastText-Modelle
+für 157 Sprachen. Drei Angaben stecken in dem Namen:
 
-## Wie lernt fastText diese Vektoren?
+- **cc** steht für Common Crawl, ein öffentliches Archiv gecrawlter Webseiten, ergänzt um die
+  deutsche Wikipedia.
+- **de** ist die Sprache. Es ist kein mehrsprachiges Modell, sondern ausschließlich auf deutschem
+  Text trainiert.
+- **300** ist die Zahl der Dimensionen pro Wortvektor.
 
-fastText, ein von Facebook AI Research (Meta) entwickeltes Modell, wird auf riesigen deutschen Textkorpora trainiert – Millionen von Sätzen aus Nachrichtentexten, Wikipedia, Büchern und dem Web. Dabei analysiert das Modell immer wieder, welche Wörter gemeinsam auftreten und welche nicht.
+Die Datei enthält Vektoren für rund zwei Millionen Zeichenketten. „Zeichenketten“ ist dabei
+wörtlich zu nehmen: Ein Web-Korpus enthält Tippfehler, HTML-Reste, Domainnamen und englische
+Brocken. Die Filterung auf tatsächlich spielbare deutsche Wörter passiert erst danach und ist ein
+eigener Arbeitsschritt, beschrieben in
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).
 
-Der Schlüsselgedanke: Wörter, die denselben sprachlichen Kontext teilen, erhalten ähnliche Vektoren. „Meer" und „Ozean" tauchen in Texten über Wasser, Schiffe und Küsten auf. „Tisch" und „Stuhl" erscheinen in Texten über Möbel und Wohnräume. Das Modell erkennt diese Muster und kodiert sie als räumliche Nähe.
+## Was fastText von seinen Vorgängern unterscheidet
 
-Ein Vorteil von fastText gegenüber älteren Modellen: Es berücksichtigt auch Teilwörter (Subwörter). Das bedeutet, es kann auch seltene oder zusammengesetzte Wörter einschätzen, die es vielleicht nie vollständig gesehen hat – ein großer Pluspunkt für die deutsche Sprache mit ihrer ausgeprägten Wortbildung.
+Ältere Verfahren wie word2vec behandeln ein Wort als unteilbare Einheit. Sie lernen einen Vektor
+pro Wortform, und Wörter, die nicht im Training vorkamen, existieren für sie schlicht nicht.
 
-## Kosinus-Ähnlichkeit und der Rang
+fastText zerlegt jedes Wort zusätzlich in **Zeichen-n-Gramme**, also in Abschnitte von n
+aufeinanderfolgenden Zeichen. Für `Strandkorb` entstehen unter anderem `str`, `tra`, `ran`, `and`,
+`ndk`, `dko`, `kor`, `orb` und längere Varianten. Der endgültige Wortvektor ist die Summe aus dem
+Vektor der ganzen Wortform und den Vektoren aller dieser Abschnitte.
 
-Wenn du ein Wort bei Kontexto eingibst, berechnet das System die sogenannte Kosinus-Ähnlichkeit zwischen dem Vektor deines Wortes und dem Vektor des Zielworts. Dieser Wert liegt immer zwischen −1 und 1; je näher an 1, desto ähnlicher sind die Bedeutungen.
+Zwei Konsequenzen folgen daraus, und beide sind für Deutsch wichtig.
 
-Alle Wörter des deutschen Wortschatzes werden anhand dieser Ähnlichkeit sortiert. Das Zielwort selbst erhält Rang 1. Die nächsten ähnlichsten Wörter erhalten die Ränge 2, 3, 4 und so weiter. Dein Tipp bekommt den Rang, den es in dieser sortierten Liste hat – das ist die Zahl, die Kontexto dir nach jeder Eingabe anzeigt.
+**Seltene Wörter bekommen brauchbare Vektoren.** Auch wenn `Strandkorb` im Korpus kaum vorkommt,
+kennt das Modell `stran` aus `Strand` und `korb` aus `Korb` und kann daraus etwas
+zusammensetzen. Bei einem wortbasierten Modell gäbe es für dieses Wort gar nichts.
 
-## Das Beispiel: Hund, Katze, Hundert
+**Verwandte Wörter teilen sich Struktur automatisch.** `Strandkorb`, `Strandbad` und `Sandstrand`
+überlappen im Abschnitt `stran`, also ziehen sich ihre Vektoren an, ohne dass jemand diese
+Verwandtschaft eingetragen hätte.
 
-Der Unterschied zwischen „Hund" (Rang 12) und „Hundert" (Rang 4.200) beim Zielwort „Tier" erklärt sich so: „Hund" taucht in Texten über Tiere, Haustiere, Tierarztbesuche und Hundehalter auf – denselben Kontexten, in denen auch „Tier" erscheint. Die Vektoren liegen nahe beieinander.
+Für eine Sprache, in der man beliebig viele neue Wörter durch Zusammensetzung bilden kann, ist das
+genau die richtige Eigenschaft. Im Englischen, wo `fire department` zwei getrennte, jeweils
+häufige Wörter sind, wäre der Gewinn deutlich kleiner.
 
-„Hundert" hingegen erscheint in Texten über Zahlen, Mengen und Statistiken. Obwohl das Wort dieselben ersten fünf Buchstaben enthält, hat es semantisch nichts mit Tieren zu tun. Die Vektoren liegen weit voneinander entfernt.
+## Der Preis dieser Eigenschaft
 
-Das zeigt den fundamentalen Unterschied zu Wordle: Buchstaben spielen bei Kontexto keine Rolle. Nur der sprachliche Kontext zählt.
+Zeichenabschnitte kennen keine Bedeutung. Sie kennen Buchstabenfolgen.
 
-## Mehr über Kontexto
+Wenn zwei Wörter viele Zeichen teilen, aber inhaltlich nichts miteinander zu tun haben, zieht die
+Teilwortkomponente ihre Vektoren trotzdem ein Stück zueinander. `Wachstum` und `Wachs`, `Ausland`
+und `Auslauf`, `Verkehr` und `verkehrt`.
 
-Wenn du mehr über die Hintergründe des Spiels erfahren möchtest, findest du weitere Details auf der [Über-Seite](/ueber/). Dort erklären wir auch, warum Kontexto auf deutschen Trainingsdaten basiert und was das für die Qualität der Ähnlichkeitsberechnung bedeutet.
+Beim Spielen heißt das: Ein überraschend guter Rang ist nicht immer ein Bedeutungssignal, manchmal
+ist er ein Buchstabensignal. Wie man beides auseinanderhält, steht in
+[Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
 
-Zwei vertiefende Artikel erklären die Bausteine genauer: [Worteinbettungen einfach erklärt](/blog/worteinbettungen-erklaert/) zeigt, wie aus Text Bedeutung wird, und [Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/) erklärt, wie daraus eine Ähnlichkeitszahl entsteht. Die wichtigsten Begriffe stehen kompakt im [Glossar](/glossar/).
+Es ist ein Tausch, kein Fehler. Ohne Zeichenabschnitte gäbe es für einen erheblichen Teil des
+deutschen Wortschatzes überhaupt keine Vektoren.
+
+## Was das Modell nicht kann
+
+Drei Grenzen, die man kennen sollte, weil sie im Spiel sichtbar werden.
+
+**Ein Wort, ein Vektor.** fastText ist ein statisches Modell. `Bank` bekommt eine einzige
+Zahlenreihe, egal ob Sitzmöbel oder Geldinstitut gemeint ist. Moderne Sprachmodelle berechnen den
+Vektor eines Worts abhängig vom Satz, in dem es steht. fastText tut das nicht, weil es dafür einen
+Satz bräuchte, und beim Raten gibt es keinen Satz, sondern nur ein einzelnes Wort.
+
+**Keine Wortarten.** Das Modell unterscheidet nicht zwischen Substantiv, Verb und Adjektiv. Das
+ist beim Spielen sogar nützlich, weil es Wortartwechsel als Strategie überhaupt erst ermöglicht.
+
+**Keine Aktualität.** Das Modell hat einen Trainingsstand. Begriffe, die danach aufkamen,
+existieren darin nicht.
+
+## Warum kein größeres Modell
+
+Die naheliegende Frage: Warum kein aktuelles Sprachmodell, das Kontext berücksichtigt?
+
+Es gibt einen praktischen und einen prinzipiellen Grund.
+
+Praktisch: Kontexto berechnet zur Laufzeit nichts. Alle Ränge sind vorberechnet, ein Rateversuch
+ist ein Tabellenzugriff. Ein Modell, das pro Eingabe rechnen müsste, würde jeden einzelnen Zug
+spürbar verlangsamen und deutlich mehr Serverkapazität brauchen.
+
+Prinzipiell: Ein kontextabhängiges Modell braucht Kontext. Beim Raten gibst du ein einzelnes Wort
+ohne Satz ein. Man müsste künstlich einen Satz drumherum bauen, und die Wahl dieses Satzes würde
+das Ergebnis mitbestimmen. Ein statisches Modell ist für diese Aufgabe nicht die schlechtere Wahl,
+sondern die passende.
+
+## Von der Modelldatei zum Rang
+
+Der Weg vom Modell zu der Zahl, die du siehst, hat vier Schritte, und alle vier passieren offline,
+lange bevor du spielst:
+
+1. **Filtern.** Aus den rund zwei Millionen Zeichenketten werden die 80.000 häufigsten echten
+   deutschen Wörter ausgewählt.
+2. **Entzerren.** Mittelwert und die drei stärksten Hauptkomponenten werden entfernt, damit
+   Häufigkeit nicht als Ähnlichkeit durchschlägt, siehe
+   [All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/).
+3. **Sortieren.** Für jedes Rätsel wird die Kosinus-Ähnlichkeit aller 80.000 Wörter zum Zielwort
+   berechnet und absteigend sortiert.
+4. **Speichern.** Die Positionen werden als Rangtabelle abgelegt, eine Datei pro Rätsel.
+
+Zur Laufzeit bleibt: Wort nachschlagen, Position lesen, Zahl ausgeben. Kein Modell im
+Arbeitsspeicher, keine Matrixmultiplikation, keine Wartezeit. Wie aus dem Kosinuswert eine
+lesbare Zahl wird, erklärt
+[Kosinus-Ähnlichkeit](/blog/kosinus-aehnlichkeit-einfach-erklaert/).

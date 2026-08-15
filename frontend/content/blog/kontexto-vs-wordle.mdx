@@ -1,34 +1,97 @@
-# Kontexto vs. Wordle: Was ist der Unterschied?
+# Kontexto vs. Wordle: zwei Spiele, zwei völlig verschiedene Denkarten
 
-Wer täglich Wortspiele im Netz spielt, stößt früher oder später auf zwei Namen: Wordle und Kontexto. Beide sind kostenlos, beide erscheinen täglich neu, und beide drehen sich um deutsche Wörter – doch das Spielprinzip könnte kaum unterschiedlicher sein. Dieser Artikel erklärt, was die beiden Spiele trennt und welches besser zu dir passt.
+Beide sind kostenlos, beide erscheinen täglich, beide drehen sich um deutsche Wörter. Damit hören
+die Gemeinsamkeiten auf. Was in einem der beiden Spiele eine gute Gewohnheit ist, ist im anderen
+oft genau der Fehler, der dich Züge kostet.
 
-## Wordle: Buchstabe für Buchstabe
+## Wördle: ein Suchraum, der schrumpft
 
-Bei [Wördle](/wordle/) – der deutschen Wordle-Variante – lautet die Aufgabe: Ein fünfbuchstabiges Wort in höchstens sechs Versuchen erraten. Nach jedem Versuch zeigen Farben, wie nah du der Lösung bist: Grün steht für richtige Buchstabe an richtiger Stelle, Gelb für richtigen Buchstaben an falscher Stelle, und Grau bedeutet, der Buchstabe kommt im Zielwort nicht vor. Das Spiel belohnt logisches Ausschlussverfahren und Kenntnis häufiger Buchstabenkombinationen im Deutschen.
+Bei [Wördle](/wordle/) suchst du ein Wort mit fünf Buchstaben und hast sechs Versuche. Nach jeder
+Eingabe färben sich die Felder: Grün heißt richtiger Buchstabe an richtiger Stelle, Gelb heißt
+richtiger Buchstabe an falscher Stelle, Grau heißt der Buchstabe kommt nicht vor.
 
-Die Anzahl der Versuche ist hart begrenzt. Wer nach sechs Tipps die Lösung nicht gefunden hat, verliert. Das schafft eine klare Dramaturgie: Jeder Zug zählt, und ein falscher Buchstabe kann alles umwerfen.
+Entscheidend ist, was diese Rückmeldung leistet: Sie **schneidet Möglichkeiten weg**. Vor dem
+ersten Zug ist der Suchraum die gesamte Wortliste. Nach einem guten ersten Zug bleibt ein
+Bruchteil übrig, nach dem zweiten noch weniger. Der Raum ist von Anfang an vollständig bekannt und
+verkleinert sich mit jedem Zug berechenbar.
 
-## Kontexto: Bedeutung statt Buchstaben
+Deshalb funktioniert dort Optimierung. Man kann ausrechnen, welches Startwort im Durchschnitt am
+meisten Unsicherheit beseitigt, und gute Spieler tun genau das. Sechs Versuche sind knapp genug,
+um Schludrigkeit zu bestrafen, und weit genug, dass saubere Logik zuverlässig gewinnt.
 
-[Kontexto](/), die deutsche Version von Contexto, funktioniert nach einem völlig anderen Prinzip. Hier geht es nicht um die Schreibweise eines Wortes, sondern um seine Bedeutung im Sprachkontext. Jedes eingegebene Wort erhält einen Rang: Rang 1 ist das gesuchte Zielwort. Die Reihenfolge entsteht nicht durch Buchstabenvergleich, sondern durch KI-Worteinbettungen (fastText), die auf großen deutschen Textkorpora trainiert wurden.
+## Kontexto: ein Suchraum, der nur vermessen wird
 
-Das bedeutet: „Hund" liegt semantisch nah bei „Katze" oder „Tier", aber weit entfernt von „Hundert". Die Ähnlichkeit spiegelt wider, in welchen Texten und Zusammenhängen Wörter gemeinsam auftauchen – nicht wie sie aussehen.
+Bei [Kontexto](/) bekommst du auf jede Eingabe eine einzige Zahl: den Rang deines Wortes in einer
+nach Bedeutungsähnlichkeit sortierten Liste aller 80.000 Vokabelwörter. Rang 1 ist die Lösung.
 
-Kontexto kennt keine Versuche-Begrenzung. Du kannst so viele Wörter eingeben wie du möchtest, bis du das Zielwort gefunden hast. Das macht das Spiel zugänglicher, aber auch geduldsprüfender: Manchmal liegt man lange auf Rang 150 und kommt nicht weiter, bis ein plötzlicher Gedanke den Schlüssel liefert.
+Diese Zahl sagt dir, **wie weit** du weg bist. Sie sagt dir nicht, **wohin** du gehen musst.
 
-## Die Unterschiede auf einen Blick
+Das ist der fundamentale Unterschied. Ein Wördle-Zug schneidet Kandidaten weg. Ein Kontexto-Zug
+misst eine Entfernung an einer einzigen Stelle in einem riesigen Raum. Aus einer Entfernung folgt
+keine Richtung, und aus zwei Entfernungen auch nicht zuverlässig. Erst wenn du mehrere Messpunkte
+zu einem Bild zusammensetzt, entsteht eine Richtung.
 
-Die wichtigsten Unterschiede zwischen den beiden Spielen:
+Genau deshalb gibt es kein Versuchslimit. Bei einem Buchstabenspiel wäre ein Limit eine faire
+Härte, bei einem Bedeutungsspiel würde es überwiegend Glück messen. Die Begründung im Detail
+steht in [Warum Kontexto unbegrenzte Versuche hat](/blog/spieldesign-unbegrenzte-versuche/).
 
-- **Wördle** bewertet Buchstaben und ihre Position; **Kontexto** bewertet Bedeutung und semantischen Kontext.
-- **Wördle** gibt maximal sechs Versuche; **Kontexto** erlaubt unbegrenzt viele Tipps.
-- **Wördle** liefert immer ein fünfbuchstabiges Wort; bei **Kontexto** kann das Zielwort jede Länge haben.
-- **Wördle** ist mit logischem Ausschlussverfahren zu knacken; **Kontexto** erfordert assoziatives Denken und Sprachgefühl.
+## Die Unterschiede in einer Tabelle
 
-## Welches Spiel passt zu dir?
+| | Wördle | Kontexto |
+|---|---|---|
+| Was bewertet wird | Buchstaben und ihre Position | Bedeutung im Sprachkontext |
+| Versuche | genau 6 | unbegrenzt |
+| Wortlänge | immer 5 Buchstaben | beliebig |
+| Rückmeldung | drei Farben pro Buchstabe | eine Rangzahl |
+| Was der Zug bewirkt | schneidet Kandidaten weg | misst eine Entfernung |
+| Erfolgsfaktor | Ausschlusslogik | assoziatives Denken |
+| Dauer | meist unter 5 Minuten | 5 bis 30 Minuten |
+| Gefühl beim Verlieren | knapp verpasst | im falschen Feld gesucht |
 
-Wer klare Regeln und eine kurze Runde sucht, ist bei Wördle besser aufgehoben. Das Spiel lässt sich in wenigen Minuten abschließen und bietet einen harten Schnitt: gelöst oder nicht. Wer lieber exploriert, frei assoziiert und keine Angst vor langen Ratesessions hat, wird Kontexto lieben.
+## Was du im jeweils anderen Spiel verlernen musst
 
-Das Gute: Du musst dich nicht entscheiden. Beide Spiele erscheinen täglich neu – Kontexto auf der [Startseite](/), Wördle unter [/wordle/](/wordle/). Ein Morgenritual aus beiden Rätseln dauert selten mehr als zwanzig Minuten und trainiert das Sprachgefühl auf ganz unterschiedliche Arten.
+**Aus Wördle mitgebracht und bei Kontexto schädlich:** das Denken in Buchstaben. Wer bei Kontexto
+nach ähnlich klingenden oder geschriebenen Wörtern sucht, arbeitet gegen das Spielprinzip.
+`Hund` steckt vollständig in `Hundert` und hat semantisch nichts damit zu tun.
 
-> Du willst auch Contexto und Semantle einordnen? Der [große Spielvergleich](/vergleich/) stellt alle vier Spiele mit Tabelle gegenüber. Tipps fürs schnellere Lösen findest du in der [Strategie](/strategie/).
+Zweitens die Sparsamkeit. Bei Wördle ist ein Zug ohne klaren Informationsgewinn Verschwendung. Bei
+Kontexto ist ein Zug, der ein ganzes Themenfeld ausschließt, ein sehr guter Zug, auch wenn er
+Rang 7.000 einbringt.
+
+**Aus Kontexto mitgebracht und bei Wördle schädlich:** das freie Assoziieren. Bei Wördle bringt
+das schönste inhaltlich passende Wort nichts, wenn es keine neuen Buchstaben abfragt. Und die
+Geduld: Sechs Versuche verzeihen keinen Zug, der nur der Neugier dient.
+
+## Die deutsche Besonderheit
+
+Beide Spiele haben englische Vorbilder, und beide mussten für das Deutsche angepasst werden, an
+unterschiedlichen Stellen.
+
+Bei Wördle war das Problem das Alphabet. Ä, ö, ü und ß passen nicht in ein 26-Buchstaben-Raster,
+und jede Lösung dafür hat Nachteile. Wir haben uns entschieden, Wörter mit Umlauten gar nicht
+erst zuzulassen, damit es keine Sonderregeln bei der Farbrückmeldung gibt. Was das kostet und
+warum die Alternativen schlechter sind, steht in
+[Wie die deutsche Wördle-Wortliste gebaut wurde](/blog/woerdle-wortliste-deutsch/).
+
+Bei Kontexto war das Problem die Wortbildung. Deutsch setzt Wörter zusammen, wo Englisch sie
+nebeneinanderstellt, und das erzeugt eine praktisch unendliche Menge möglicher Wörter. Deshalb
+läuft Kontexto auf fastText, das Wörter zusätzlich in Zeichenabschnitte zerlegt. Der Effekt ist
+zweischneidig, siehe [Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
+
+## Welches passt zu dir
+
+Die ehrliche Antwort hängt weniger vom Wortspielgeschmack ab als davon, welche Art von Frustration
+du erträgst.
+
+Bei Wördle verlierst du **knapp**. Man sieht am Ende genau, welcher Zug der falsche war, und das
+nagt. Dafür ist die Runde in fünf Minuten vorbei und hat einen klaren Schnitt.
+
+Bei Kontexto verlierst du **orientierungslos**. Man stand vierzig Züge im falschen Feld und merkt
+es erst bei der Auflösung. Dafür gibt es diesen Moment, in dem drei Ränge plötzlich ein Muster
+ergeben und das Wort aus dem Nichts auftaucht. Den hat Wördle nicht.
+
+Du musst dich ohnehin nicht entscheiden. Beide laufen auf derselben Seite, beide erscheinen
+täglich neu, und zusammen dauern sie selten mehr als zwanzig Minuten. Wenn du auch Contexto und
+Semantle einordnen willst, stellt der [große Spielvergleich](/vergleich/) alle vier gegenüber. Und
+wenn du eines der beiden gegen Freunde spielen willst, beschreibt
+[Duell und Koop](/blog/duell-und-koop-taktik/) die Mehrspielermodi.

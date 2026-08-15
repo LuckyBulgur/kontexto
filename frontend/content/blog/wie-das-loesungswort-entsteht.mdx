@@ -1,0 +1,141 @@
+# Wie das Lösungswort entsteht: von 2 Millionen Wörtern auf 2.400 Rätsel
+
+Das Wort, das du heute suchst, wurde nicht heute ausgewählt. Es stand schon fest, als die
+Spieldaten das letzte Mal neu gebaut wurden, zusammen mit 2.399 weiteren. Kontexto berechnet zur
+Laufzeit nichts. Es schlägt nach.
+
+Dieser Aufbau hat einen praktischen Grund und eine unbequeme Folge. Der praktische Grund: Ein
+fastText-Modell für Deutsch belegt mehrere Gigabyte im Arbeitsspeicher, und für jeden Tipp
+alle Ähnlichkeiten neu zu berechnen, würde jeden einzelnen Rateversuch spürbar verzögern. Die
+unbequeme Folge: Jeder Fehler in der Auswahl ist für Jahre festgeschrieben. Wir haben das
+zweimal auf die harte Tour gelernt.
+
+## Stufe 1: das Rohmaterial
+
+Ausgangspunkt ist `cc.de.300.bin`, das deutsche fastText-Modell von Meta AI Research, trainiert
+auf Common Crawl und der deutschen Wikipedia. Es liefert für rund zwei Millionen Zeichenketten
+je einen Vektor mit 300 Zahlen.
+
+„Zeichenketten“ ist bewusst gewählt und nicht „Wörter“. Ein Web-Korpus enthält Tippfehler,
+HTML-Reste, englische Brocken, Domainnamen und alles, was Menschen sonst so tippen. Das Modell
+kennt `hallooo` genauso wie `Haus`.
+
+## Stufe 2: das ratbare Vokabular
+
+Aus dieser Masse wird zuerst das Vokabular gefiltert, also die Menge der Wörter, die du
+überhaupt eingeben darfst. Ein Wort kommt durch, wenn es zwischen 2 und 25 Zeichen lang ist,
+ausschließlich aus deutschen Kleinbuchstaben inklusive Umlauten und ß besteht, kein Stoppwort
+ist und von der Lemmatisierungs-Bibliothek `simplemma` als deutsches Wort erkannt wird.
+
+Das gefilterte deutsche Vokabular läuft bei etwa 116.000 Wörtern aus. Kontexto nimmt davon die
+80.000 häufigsten. Diese Grenze ist kein runder Zufallswert: Jenseits von etwa 100.000 beginnt
+ein Schwanz aus seltenen Formen und Beugungsvarianten, der die Ranglisten verwässert, ohne dass
+jemand diese Wörter je eintippt. Unterhalb von 80.000 fehlen dagegen Komposita und Fachbegriffe,
+die Spieler tatsächlich versuchen.
+
+Wichtig für das Spielgefühl: Diese 80.000 sind die Wörter, die du *raten* darfst. Welche davon
+Lösung werden können, entscheidet eine völlig getrennte Filterkette.
+
+## Stufe 3: die Vektoren werden entzerrt
+
+Bevor irgendetwas sortiert wird, laufen alle 80.000 Vektoren durch eine Nachbearbeitung, die in
+der Literatur „All-but-the-Top“ heißt: Der Mittelwert aller Vektoren wird abgezogen, danach
+werden die drei stärksten Hauptkomponenten entfernt.
+
+Der Grund ist, dass rohe Worteinbettungen einen gemeinsamen Drift haben. Alle Vektoren zeigen
+zu einem gewissen Grad in dieselbe Richtung, und diese Richtung kodiert vor allem, wie häufig
+ein Wort ist. Ohne diesen Schritt landen häufige Allerweltswörter bei jedem beliebigen Zielwort
+weit vorne, einfach weil sie häufig sind. Warum das so ist und was genau dabei passiert, steht
+ausführlich in [All-but-the-Top: warum Kontexto die Wortvektoren entzerrt](/blog/all-but-the-top-vektoren-entzerren/).
+
+## Stufe 4: Kandidaten für Lösungswörter
+
+Jetzt wird es streng. Die Kandidaten werden nach Häufigkeit absteigend durchlaufen, und ein Wort
+muss jede einzelne Hürde nehmen:
+
+1. **Länge zwischen 3 und 15 Zeichen.** Zweibuchstabige Wörter sind als Lösung frustrierend,
+   sehr lange Komposita sind kaum zu erraten.
+2. **Nicht auf der Funktionswortliste.** Rund 200 Adverbien, Konjunktionen, Pronomen und
+   Modalverben sind ausgeschlossen. `trotzdem` oder `jedenfalls` sind gültige Tipps, aber als
+   Lösung eines Bedeutungsspiels wären sie sinnlos, weil sie keine Bedeutungsnachbarschaft haben.
+3. **Kein ß/ss-Zwilling.** Dazu unten mehr, das ist eine eigene Geschichte.
+4. **Zipf-Häufigkeit mindestens 4,0.** Die Zipf-Skala der Bibliothek `wordfreq` ist logarithmisch;
+   4,0 entspricht etwa zehn Vorkommen pro Million Wörter. Praktisch heißt das: ein Wort,
+   das jede erwachsene Person kennt.
+5. **Grundform.** Das Wort muss sein eigenes Lemma sein. `häuser` fällt raus, `haus` bleibt.
+6. **Semantischer Filter.** Die aufwendigste Stufe, siehe nächster Abschnitt.
+
+Übrig bleiben rund 2.500 Wörter. Aus denen werden 2.400 Rätsel, was bei einem Wort pro Tag knapp
+sechseinhalb Jahre ergibt.
+
+Zum Schluss wird die Liste mit einem festen Zufallsstartwert gemischt. Ohne diesen Schritt wäre
+die Reihenfolge nach Häufigkeit sortiert, das Spiel würde also mit den allerhäufigsten Wörtern
+beginnen und über Jahre kontinuierlich schwerer werden. Der feste Startwert sorgt dafür, dass die
+Mischung reproduzierbar ist: Derselbe Datenstand erzeugt immer dieselbe Abfolge.
+
+## Stufe 5: der semantische Filter
+
+Anfangs gab es diese Stufe nicht. Die Lösungswörter kamen direkt von der Spitze der
+Häufigkeitsliste. In einem Web-Korpus ist dieses obere Band jedoch dicht besiedelt mit
+Vornamen, Nachnamen, Städten, Marken und englischem Netzvokabular. Ein Filter, der nur auf
+Kleinschreibung und „ist ein bekanntes Lemma“ prüft, lässt das alles durch.
+
+Das Ergebnis waren Lösungen wie `emma`, `merkel`, `berlin`, `school` und `music`. Für ein
+Bedeutungsspiel ist das ein Konstruktionsfehler, denn die semantische Nachbarschaft eines Namens
+besteht überwiegend aus anderen Namen. Man kann sich nicht heranarbeiten. Die ganze Geschichte
+dazu steht in [Warum keine Namen mehr als Lösungswörter auftauchen](/blog/warum-keine-namen-mehr-als-loesungswoerter/).
+
+Heute liegen vier voneinander unabhängige Signale übereinander:
+
+- **HanTa**, ein deutscher Wortarten-Tagger. Die großgeschriebene Form muss als Substantiv
+  gelesen werden. Die kleingeschriebene Form rettet Verben und Adjektive. Alles, dessen beste
+  Lesart „Eigenname“ ist, fliegt raus.
+- **german-nouns**, ein aus dem Wiktionary abgeleitetes Lexikon. Es unterscheidet ein echtes
+  Substantiv mit Deklinationstabelle von einem bloßen Vornamen- oder Nachnameneintrag. Dieses
+  Signal rettet Wörter wie `löwe`, `rose`, `stein` und `sommer`, die zugleich Nachnamen sind.
+- **Eine Namensliste mit 35.255 Einträgen.** Sie fängt Namen ab, die HanTa fälschlich als
+  Substantiv markiert und die im Wiktionary gar nicht erst als Gattungsname stehen, etwa
+  `torsten` oder `jörn`.
+- **Häufigkeitsvergleich Deutsch gegen Englisch.** Ein Wort mit hoher englischer und deutlich
+  niedrigerer deutscher Häufigkeit ist ein Fremdwort, das die anderen Filter passiert hat.
+  Etablierte Lehnwörter wie `team` oder `code` bleiben, `music` fällt.
+
+Dazu kommen von Hand gepflegte Sperrlisten für Marken, Abkürzungen, religiöse Begriffe und
+vulgäre Ausdrücke. Letztere kamen dazu, nachdem `Arsch` als Tageslösung erschien.
+
+Das Prinzip dahinter ist bewusst asymmetrisch: Es ist in Ordnung, ein grenzwertig gutes Wort zu
+verwerfen. Es ist nicht in Ordnung, einen Namen durchzulassen. Der Kandidatenpool ist deutlich
+größer als die Zahl der benötigten Rätsel, also kostet Strenge nichts.
+
+## Der Fall anlässlich
+
+Eine Kategorie hat keiner dieser Filter erwischt. Ein deutscher Web-Korpus enthält beide
+Schreibweisen der Wörter, die von der Rechtschreibreform 1996 betroffen sind. `anläßlich` und
+`anlässlich` stehen beide im Vokabular, als zwei getrennte Einträge mit zwei getrennten Rängen.
+
+Als `anlässlich` Tageslösung war, lag `anläßlich` auf Rang 2. Wer die alte Schreibweise tippte,
+sah einen Rang, der praktisch „richtig“ schreit, und gewann trotzdem nicht.
+
+Der naheliegende Reflex wäre, ß und ss zur Laufzeit zusammenzufalten. Das wäre falsch, weil es
+echte Minimalpaare zerstört: `Maße` und `Masse` sind verschiedene Wörter mit verschiedenen
+Bedeutungen. Die Lösung ist deshalb chirurgischer. Jedes Wort, das seine ß-zu-ss-gefaltete Form
+mit einem *anderen* Wort im Vokabular teilt, ist als Lösung gesperrt. Ratbar bleibt es.
+
+## Was am Ende auf der Platte liegt
+
+Für jedes der 2.400 Rätsel wird einmal die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und
+allen 80.000 Vokabelvektoren berechnet, absteigend sortiert und als Rangliste gespeichert. Eine
+komprimierte Datei pro Spiel.
+
+Dazu kommen das Vokabular als Wort-zu-Index-Tabelle, eine Lemma-Tabelle, die gebeugte Formen auf
+ihre Grundform zieht, und ein Bloom-Filter mit einer Fehlerrate von 0,001, der die Frage
+„kenne ich dieses Wort überhaupt“ in konstanter Zeit beantwortet, bevor eine teurere Suche
+startet.
+
+Wenn du also ein Wort eintippst, passiert serverseitig ungefähr das hier: Bloom-Filter fragen,
+gegebenenfalls auf die Grundform ziehen, Index im Vokabular nachschlagen, an dieser Position in
+das Rangarray des heutigen Spiels greifen, Zahl zurückgeben. Kein Modell, keine Matrixmultiplikation,
+keine Wartezeit.
+
+Welche Wörter dabei durchs Raster fallen und was du stattdessen eingeben kannst, steht in
+[Wörter, die Kontexto nicht kennt](/blog/woerter-die-kontexto-nicht-kennt/).

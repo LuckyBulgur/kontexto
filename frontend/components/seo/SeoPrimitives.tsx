@@ -123,7 +123,7 @@ export function ColorLegend() {
           <span className="text-sm">
             <span className="font-medium text-foreground">{r.label}</span>{" "}
             <span className="text-muted-foreground">({r.range})</span>{" "}
-            <span className="text-muted-foreground">– {r.desc}</span>
+            <span className="text-muted-foreground">{r.desc}</span>
           </span>
         </li>
       ))}

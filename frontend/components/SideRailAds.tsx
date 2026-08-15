@@ -14,7 +14,7 @@ import { AD_SLOTS } from "@/lib/adsense";
  * `/wordle/`, die von echtem Publisher-Content umgeben sind. Bewusst werbefrei
  * bleiben: Content-, Rechts- und Admin-Seiten sowie alle flüchtigen,
  * inhaltsleeren Duell-/Koop-Lobby- und Live-Screens (Pfade unter `/duel`,
- * `/wordle/duel`, die Erstellen-Formulare und die noindex-Live-Räume) – AdSense
+ * `/wordle/duel`, die Erstellen-Formulare und die noindex-Live-Räume). AdSense
  * untersagt Anzeigen auf Screens ohne Publisher-Content.
  *
  * Wird einmal im Root-Layout gemountet; `key={pathname}` erzwingt pro Route eine

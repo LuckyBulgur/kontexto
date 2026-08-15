@@ -4,7 +4,7 @@ import { SeoSection, RelatedLinks } from "@/components/seo/SeoPrimitives";
 export default function WordleSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">Wördle – Wordle auf Deutsch</h1>
+      <h1 className="mb-3 text-2xl font-bold text-foreground">Wördle: Wordle auf Deutsch</h1>
       <p className="mb-4 max-w-prose">
         Wördle ist die deutsche Wordle-Variante von Kontexto: Errate jeden Tag ein
         fünfbuchstabiges deutsches Wort in sechs Versuchen. Nach jedem Versuch zeigen
@@ -29,7 +29,7 @@ export default function WordleSeo() {
         heading="Weiterspielen"
         label="Weitere Spiele"
         links={[
-          { href: "/", label: "Kontexto – das semantische Wortspiel" },
+          { href: "/", label: "Kontexto: das semantische Wortspiel" },
           { href: "/wordle/duel/create/", label: "Wördle-Duell gegen Freunde" },
         ]}
       />

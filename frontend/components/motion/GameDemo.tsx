@@ -8,7 +8,7 @@ import { fireDemoBurst } from "@/lib/confetti";
 
 /**
  * Animated, self-explaining demo of how Kontexto works. Decorative
- * (`aria-hidden`) — the surrounding server-rendered prose is the accessible
+ * (`aria-hidden`). The surrounding server-rendered prose is the accessible
  * text alternative. Plays once when scrolled into view; offers a replay button.
  *
  * With `prefers-reduced-motion` it renders the final solved state immediately
@@ -18,7 +18,7 @@ import { fireDemoBurst } from "@/lib/confetti";
 type Guess = { word: string; rank: number };
 
 // Monotonically improving so each new guess is the best so far and can simply
-// be prepended — no list re-ordering / layout animation required.
+// be prepended, no list re-ordering / layout animation required.
 const GUESSES: Guess[] = [
   { word: "Computer", rank: 8420 },
   { word: "Meer", rank: 312 },
@@ -29,7 +29,7 @@ const GUESSES: Guess[] = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Closeness as a bar width in percent — log-scaled so rank 1 ≈ full, large ranks short. */
+/** Closeness as a bar width in percent, log-scaled so rank 1 ≈ full, large ranks short. */
 function barWidth(rank: number) {
   const v = 100 - Math.log10(rank) * 22;
   return Math.min(100, Math.max(6, Math.round(v)));
@@ -135,7 +135,7 @@ export default function GameDemo({ className }: { className?: string }) {
     >
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Beispiel · Zielwort „Strand"
+          Beispiel · Zielwort „Strand“
         </span>
         {done && !reduce && (
           <button

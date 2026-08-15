@@ -62,7 +62,8 @@ export default function DuelResultCard({
                 </span>
               ) : (
                 <span>
-                  Nicht gelöst · Bester Rang: #{p.best_rank ?? "—"}
+                  Nicht gelöst ·{" "}
+                  {p.best_rank ? `Bester Rang: #${p.best_rank}` : "ohne Rang"}
                   {p.tip_count > 0 && ` · ${p.tip_count} Tipps`}
                 </span>
               )}

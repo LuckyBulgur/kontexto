@@ -8,7 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
   path: "/faq/",
-  title: "FAQ – Häufige Fragen zu Kontexto",
+  title: "FAQ: häufige Fragen zu Kontexto",
   description:
     "Antworten auf die häufigsten Fragen zu Kontexto: Wie die KI-Ähnlichkeit funktioniert, wann es ein neues Wort gibt, was die Farben bedeuten, ob es eine App gibt und mehr.",
 });
@@ -17,7 +17,7 @@ export default function FaqPage() {
   return (
     <ArticleLayout
       title="Häufige Fragen (FAQ)"
-      lead="Alles, was du über Kontexto wissen musst – von der Spielmechanik über die Technik bis zu Datenschutz und Geräten."
+      lead="Alles, was du über Kontexto wissen musst, von der Spielmechanik über die Technik bis zu Datenschutz und Geräten."
       breadcrumbName="FAQ"
       path="/faq/"
     >

@@ -1,7 +1,7 @@
 /**
  * Kopiert Text in die Zwischenablage. Bevorzugt die asynchrone Clipboard-API
  * und fällt für unsichere Kontexte (kein HTTPS) oder ältere Browser auf das
- * Legacy-`execCommand`-Verfahren zurück. Gibt zurück, ob das Kopieren gelang –
+ * Legacy-`execCommand`-Verfahren zurück. Gibt zurück, ob das Kopieren gelang,
  * die Aufrufstelle entscheidet über die (deutschsprachige) Nutzer-Rückmeldung.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
@@ -10,7 +10,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      // Clipboard-API blockiert (z. B. fehlende Nutzergeste) – Fallback unten.
+      // Clipboard-API blockiert (z. B. fehlende Nutzergeste), Fallback unten.
     }
   }
 

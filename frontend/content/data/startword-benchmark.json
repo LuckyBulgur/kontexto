@@ -1,0 +1,459 @@
+{
+  "vocabulary_size": 80000,
+  "games_evaluated": 2400,
+  "words_not_in_vocabulary": [
+    "quastenflosser"
+  ],
+  "results": [
+    {
+      "word": "zeit",
+      "games": 2400,
+      "median": 16348,
+      "best": 1,
+      "worst": 79817,
+      "iqr": 35109,
+      "share_under_300": 0.0233,
+      "share_under_1500": 0.1033
+    },
+    {
+      "word": "arbeit",
+      "games": 2400,
+      "median": 18038,
+      "best": 4,
+      "worst": 79941,
+      "iqr": 39670,
+      "share_under_300": 0.0238,
+      "share_under_1500": 0.1192
+    },
+    {
+      "word": "weg",
+      "games": 2400,
+      "median": 18811,
+      "best": 1,
+      "worst": 79972,
+      "iqr": 37067,
+      "share_under_300": 0.0233,
+      "share_under_1500": 0.0958
+    },
+    {
+      "word": "spiel",
+      "games": 2400,
+      "median": 19736,
+      "best": 9,
+      "worst": 79529,
+      "iqr": 30801,
+      "share_under_300": 0.0213,
+      "share_under_1500": 0.0746
+    },
+    {
+      "word": "reise",
+      "games": 2400,
+      "median": 21284,
+      "best": 13,
+      "worst": 79942,
+      "iqr": 37734,
+      "share_under_300": 0.0154,
+      "share_under_1500": 0.0688
+    },
+    {
+      "word": "leben",
+      "games": 2400,
+      "median": 21839,
+      "best": 1,
+      "worst": 79995,
+      "iqr": 41503,
+      "share_under_300": 0.0208,
+      "share_under_1500": 0.0862
+    },
+    {
+      "word": "welt",
+      "games": 2400,
+      "median": 21988,
+      "best": 1,
+      "worst": 79909,
+      "iqr": 35381,
+      "share_under_300": 0.0163,
+      "share_under_1500": 0.0583
+    },
+    {
+      "word": "hand",
+      "games": 2400,
+      "median": 22243,
+      "best": 1,
+      "worst": 79913,
+      "iqr": 33529,
+      "share_under_300": 0.0104,
+      "share_under_1500": 0.0383
+    },
+    {
+      "word": "sport",
+      "games": 2400,
+      "median": 23024,
+      "best": 1,
+      "worst": 79863,
+      "iqr": 32419,
+      "share_under_300": 0.0183,
+      "share_under_1500": 0.0642
+    },
+    {
+      "word": "haus",
+      "games": 2400,
+      "median": 23032,
+      "best": 5,
+      "worst": 79730,
+      "iqr": 35746,
+      "share_under_300": 0.0246,
+      "share_under_1500": 0.0775
+    },
+    {
+      "word": "stadt",
+      "games": 2400,
+      "median": 23776,
+      "best": 1,
+      "worst": 79845,
+      "iqr": 36462,
+      "share_under_300": 0.0229,
+      "share_under_1500": 0.0663
+    },
+    {
+      "word": "geld",
+      "games": 2400,
+      "median": 26159,
+      "best": 1,
+      "worst": 79821,
+      "iqr": 39053,
+      "share_under_300": 0.02,
+      "share_under_1500": 0.0671
+    },
+    {
+      "word": "kind",
+      "games": 2400,
+      "median": 26479,
+      "best": 3,
+      "worst": 78466,
+      "iqr": 34485,
+      "share_under_300": 0.0163,
+      "share_under_1500": 0.0508
+    },
+    {
+      "word": "gehen",
+      "games": 2400,
+      "median": 26906,
+      "best": 1,
+      "worst": 79844,
+      "iqr": 41034,
+      "share_under_300": 0.05,
+      "share_under_1500": 0.1317
+    },
+    {
+      "word": "mensch",
+      "games": 2400,
+      "median": 27006,
+      "best": 1,
+      "worst": 79981,
+      "iqr": 41629,
+      "share_under_300": 0.0133,
+      "share_under_1500": 0.0563
+    },
+    {
+      "word": "buch",
+      "games": 2400,
+      "median": 27585,
+      "best": 6,
+      "worst": 79922,
+      "iqr": 38348,
+      "share_under_300": 0.0187,
+      "share_under_1500": 0.0567
+    },
+    {
+      "word": "essen",
+      "games": 2400,
+      "median": 27660,
+      "best": 1,
+      "worst": 79982,
+      "iqr": 34562,
+      "share_under_300": 0.0096,
+      "share_under_1500": 0.0346
+    },
+    {
+      "word": "musik",
+      "games": 2400,
+      "median": 27992,
+      "best": 1,
+      "worst": 79982,
+      "iqr": 38950,
+      "share_under_300": 0.0221,
+      "share_under_1500": 0.0646
+    },
+    {
+      "word": "gefühl",
+      "games": 2400,
+      "median": 28100,
+      "best": 1,
+      "worst": 79857,
+      "iqr": 41645,
+      "share_under_300": 0.0175,
+      "share_under_1500": 0.0642
+    },
+    {
+      "word": "sprechen",
+      "games": 2400,
+      "median": 28616,
+      "best": 1,
+      "worst": 79885,
+      "iqr": 37454,
+      "share_under_300": 0.0467,
+      "share_under_1500": 0.1071
+    },
+    {
+      "word": "sehen",
+      "games": 2400,
+      "median": 28663,
+      "best": 1,
+      "worst": 79936,
+      "iqr": 42567,
+      "share_under_300": 0.0375,
+      "share_under_1500": 0.1096
+    },
+    {
+      "word": "machen",
+      "games": 2400,
+      "median": 28883,
+      "best": 1,
+      "worst": 79971,
+      "iqr": 38842,
+      "share_under_300": 0.0362,
+      "share_under_1500": 0.1279
+    },
+    {
+      "word": "wetter",
+      "games": 2400,
+      "median": 29128,
+      "best": 21,
+      "worst": 79964,
+      "iqr": 36398,
+      "share_under_300": 0.0067,
+      "share_under_1500": 0.0333
+    },
+    {
+      "word": "schnell",
+      "games": 2400,
+      "median": 29757,
+      "best": 1,
+      "worst": 79775,
+      "iqr": 38433,
+      "share_under_300": 0.0371,
+      "share_under_1500": 0.0963
+    },
+    {
+      "word": "licht",
+      "games": 2400,
+      "median": 29836,
+      "best": 1,
+      "worst": 79980,
+      "iqr": 35684,
+      "share_under_300": 0.0079,
+      "share_under_1500": 0.0292
+    },
+    {
+      "word": "natur",
+      "games": 2400,
+      "median": 30187,
+      "best": 1,
+      "worst": 79941,
+      "iqr": 41340,
+      "share_under_300": 0.0133,
+      "share_under_1500": 0.0483
+    },
+    {
+      "word": "tier",
+      "games": 2400,
+      "median": 30728,
+      "best": 1,
+      "worst": 79752,
+      "iqr": 34324,
+      "share_under_300": 0.0096,
+      "share_under_1500": 0.0246
+    },
+    {
+      "word": "maschine",
+      "games": 2400,
+      "median": 30936,
+      "best": 14,
+      "worst": 79976,
+      "iqr": 34969,
+      "share_under_300": 0.0067,
+      "share_under_1500": 0.0304
+    },
+    {
+      "word": "groß",
+      "games": 2400,
+      "median": 31970,
+      "best": 4,
+      "worst": 79819,
+      "iqr": 37123,
+      "share_under_300": 0.0125,
+      "share_under_1500": 0.0608
+    },
+    {
+      "word": "krankheit",
+      "games": 2400,
+      "median": 32116,
+      "best": 6,
+      "worst": 79962,
+      "iqr": 41472,
+      "share_under_300": 0.0112,
+      "share_under_1500": 0.0417
+    },
+    {
+      "word": "alt",
+      "games": 2400,
+      "median": 32548,
+      "best": 13,
+      "worst": 79938,
+      "iqr": 39739,
+      "share_under_300": 0.0063,
+      "share_under_1500": 0.0413
+    },
+    {
+      "word": "schwer",
+      "games": 2400,
+      "median": 33651,
+      "best": 1,
+      "worst": 79822,
+      "iqr": 39780,
+      "share_under_300": 0.0258,
+      "share_under_1500": 0.0813
+    },
+    {
+      "word": "farbe",
+      "games": 2400,
+      "median": 34173,
+      "best": 1,
+      "worst": 79977,
+      "iqr": 42205,
+      "share_under_300": 0.0129,
+      "share_under_1500": 0.05
+    },
+    {
+      "word": "bauen",
+      "games": 2400,
+      "median": 34200,
+      "best": 1,
+      "worst": 79916,
+      "iqr": 45598,
+      "share_under_300": 0.0358,
+      "share_under_1500": 0.1096
+    },
+    {
+      "word": "grundbuch",
+      "games": 2400,
+      "median": 34662,
+      "best": 36,
+      "worst": 79962,
+      "iqr": 35901,
+      "share_under_300": 0.0037,
+      "share_under_1500": 0.0154
+    },
+    {
+      "word": "körper",
+      "games": 2400,
+      "median": 34690,
+      "best": 1,
+      "worst": 79759,
+      "iqr": 41107,
+      "share_under_300": 0.0096,
+      "share_under_1500": 0.03
+    },
+    {
+      "word": "pflanze",
+      "games": 2400,
+      "median": 36177,
+      "best": 5,
+      "worst": 79981,
+      "iqr": 35740,
+      "share_under_300": 0.0037,
+      "share_under_1500": 0.0154
+    },
+    {
+      "word": "thermodynamik",
+      "games": 2400,
+      "median": 36471,
+      "best": 5,
+      "worst": 79983,
+      "iqr": 37568,
+      "share_under_300": 0.0046,
+      "share_under_1500": 0.0217
+    },
+    {
+      "word": "wasser",
+      "games": 2400,
+      "median": 38216,
+      "best": 1,
+      "worst": 79908,
+      "iqr": 38440,
+      "share_under_300": 0.0092,
+      "share_under_1500": 0.0258
+    },
+    {
+      "word": "sonett",
+      "games": 2400,
+      "median": 38944,
+      "best": 8,
+      "worst": 79958,
+      "iqr": 36607,
+      "share_under_300": 0.0013,
+      "share_under_1500": 0.0083
+    },
+    {
+      "word": "hydraulik",
+      "games": 2400,
+      "median": 39645,
+      "best": 134,
+      "worst": 79983,
+      "iqr": 36528,
+      "share_under_300": 0.0017,
+      "share_under_1500": 0.01
+    },
+    {
+      "word": "klein",
+      "games": 2400,
+      "median": 42064,
+      "best": 6,
+      "worst": 79821,
+      "iqr": 40060,
+      "share_under_300": 0.0183,
+      "share_under_1500": 0.0729
+    },
+    {
+      "word": "zellmembran",
+      "games": 2400,
+      "median": 44186,
+      "best": 8,
+      "worst": 79996,
+      "iqr": 38074,
+      "share_under_300": 0.0013,
+      "share_under_1500": 0.0058
+    },
+    {
+      "word": "warm",
+      "games": 2400,
+      "median": 46792,
+      "best": 1,
+      "worst": 79950,
+      "iqr": 41136,
+      "share_under_300": 0.0138,
+      "share_under_1500": 0.0517
+    },
+    {
+      "word": "hell",
+      "games": 2400,
+      "median": 52114,
+      "best": 21,
+      "worst": 79994,
+      "iqr": 41577,
+      "share_under_300": 0.0138,
+      "share_under_1500": 0.0512
+    }
+  ]
+}

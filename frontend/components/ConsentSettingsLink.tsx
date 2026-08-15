@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
  * Die `googlefc`-API wird erst injiziert, sobald im AdSense-Dashboard eine
  * Datenschutz-Nachricht (CMP) veröffentlicht ist. Solange sie nicht verfügbar
  * ist (vor der Einrichtung, oder außerhalb der EU ohne Consent-Flow), wird der
- * Link gar nicht angezeigt – so entsteht nie ein toter Klick.
+ * Link gar nicht angezeigt, so entsteht nie ein toter Klick.
  *
  * Referenzen:
  * - https://support.google.com/adsense/answer/10959060
@@ -24,7 +24,7 @@ export default function ConsentSettingsLink({ className }: { className?: string 
       setAvailable(true);
       return;
     }
-    // Die CMP lädt asynchron nach dem AdSense-Loader – kurz darauf warten.
+    // Die CMP lädt asynchron nach dem AdSense-Loader, kurz darauf warten.
     let tries = 0;
     const id = window.setInterval(() => {
       tries += 1;

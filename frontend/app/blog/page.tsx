@@ -7,7 +7,7 @@ import { postsByCategory, type BlogMeta, type BlogCategory } from "@/lib/blog";
 
 export const metadata = buildMetadata({
   path: "/blog/",
-  title: "Blog – Tipps, Strategien & Wissen rund um Kontexto",
+  title: "Blog: Tipps, Strategien und Wissen rund um Kontexto",
   description:
     "Der Kontexto-Blog: Strategien zum schnelleren Gewinnen, der Vergleich mit Wordle, wie die KI-Wortähnlichkeit (fastText) funktioniert und mehr rund ums deutsche Wort-Ratespiel.",
 });
@@ -42,7 +42,7 @@ export default function BlogIndex() {
   return (
     <ArticleLayout
       title="Blog"
-      lead="Strategien, Hintergründe und Wissen rund um Kontexto – vom Einsteigertipp bis zur Funktionsweise der KI hinter dem Spiel."
+      lead="Strategien, Hintergründe und Wissen rund um Kontexto, vom Einsteigertipp bis zur Funktionsweise der KI hinter dem Spiel."
       breadcrumbName="Blog"
       path="/blog/"
     >

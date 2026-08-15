@@ -8,7 +8,7 @@ import { useEventTheme } from "@/lib/use-event-theme";
 /**
  * WM-2026-Hintergrund: einzelne Fußbälle, die in einer realistischen
  * Schuss-Parabel (echte Wurf-Physik mit Schwerkraft) über den Viewport
- * fliegen. Bewusst sparsam, langsam und dezent — hinter allem Inhalt,
+ * fliegen. Bewusst sparsam, langsam und dezent, hinter allem Inhalt,
  * `pointer-events:none` und `aria-hidden`.
  *
  * Performance/A11y:
@@ -28,8 +28,8 @@ type Phase = "waiting" | "flying";
 
 interface Ball {
   phase: Phase;
-  readyAt: number; // ms — Start des nächsten Schusses (im Wartezustand)
-  flightStart: number; // ms — Beginn des aktuellen Flugs (für Einblenden)
+  readyAt: number; // ms, Start des nächsten Schusses (im Wartezustand)
+  flightStart: number; // ms, Beginn des aktuellen Flugs (für Einblenden)
   x: number; y: number; // px
   vx: number; vy: number; // px/s
   g: number; // px/s² (Schwerkraft)
@@ -172,7 +172,7 @@ export default function EventBackdrop() {
       const margin = size;
       const x0 = fromLeft ? -margin : width + margin;
       const x1 = fromLeft ? width + margin : -margin;
-      const T = rand(5.5, 8); // Sekunden über den Schirm — bewusst langsam
+      const T = rand(5.5, 8); // Sekunden über den Schirm, bewusst langsam
       const y0 = rand(height * 0.6, height * 0.86);
       const apexY = rand(height * 0.12, height * 0.34);
       const riseH = Math.max(40, y0 - apexY);

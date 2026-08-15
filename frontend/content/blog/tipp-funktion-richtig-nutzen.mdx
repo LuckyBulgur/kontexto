@@ -1,0 +1,112 @@
+# Die Tipp-Funktion: was hinter den drei Schwierigkeitsgraden steckt
+
+Die meisten Spieler drücken auf Tipp, wenn sie nicht mehr weiterwissen, nehmen das Wort entgegen
+und machen weiter. Dabei bleibt der interessanteste Teil ungenutzt: Ein Tipp ist keine
+Zufallshilfe, sondern eine Rechnung, die von deinem bisher besten Rang ausgeht. Wenn du weißt,
+welche Rechnung das ist, kannst du steuern, wie viel Information du bekommst.
+
+Hier steht die Formel. Nicht ungefähr, sondern so, wie sie im Spiel steht.
+
+## Die gemeinsame Grundlage
+
+Alle drei Schwierigkeitsgrade arbeiten mit derselben Eingabe: deinem **besten bisherigen Rang**.
+Hast du noch gar nicht geraten, setzt das Spiel einen festen Startwert von 10.000 ein. Liegt dein
+bestes Wort auf Rang 900, dann ist 900 die Zahl, mit der gerechnet wird.
+
+Zwei Regeln gelten immer:
+
+- **Rang 1 wird nie ausgegeben.** Die Lösung bekommst du über einen Tipp grundsätzlich nicht.
+- **Bereits geratene Ränge werden übersprungen.** Wenn der berechnete Zielrang schon auf deiner
+  Liste steht, sucht das Spiel von dort aus in beide Richtungen nach dem nächsten unbenutzten
+  Rang. Du bekommst also nie ein Wort, das du bereits hattest.
+
+## Leicht: dein bester Rang wird halbiert
+
+Der Zielrang ist dein bester Rang geteilt durch zwei, mindestens aber 2.
+
+Bist du bei Rang 900, bekommst du das Wort auf Rang 450. Bist du bei 450, bekommst du 225. Dann
+112, dann 56, dann 28.
+
+Das ist eine geometrische Reihe, und sie hat eine angenehme Eigenschaft: Jeder Tipp bringt dich
+ungefähr gleich weit, gemessen in Größenordnungen. Von 900 auf 450 fühlt sich an wie von 56 auf
+28, weil es derselbe Sprung ist. Vom Startwert 10.000 aus sind es rund zwölf Tipps auf „leicht“
+bis in die unmittelbare Nähe der Lösung, von Rang 900 aus noch sieben bis acht.
+
+Der Nachteil ist die Menge. Wer sich so durchhangelt, hat am Ende viele Tipps verbraucht, und die
+zählen in deiner Statistik mit.
+
+## Mittel: das Wort direkt vor deinem besten
+
+Der Zielrang ist dein bester Rang minus eins.
+
+Liegst du auf Rang 900, bekommst du das Wort auf Rang 899. Das klingt nach fast nichts, und
+genau das ist der Punkt: Auf „mittel“ bekommst du nicht Nähe, sondern **Richtung**.
+
+Rang 899 und Rang 900 sind Nachbarn im Bedeutungsraum. Wenn dein Wort auf 900 `Werkzeug` war und
+der Tipp `Schraube` lautet, dann weißt du, dass du im richtigen Feld bist und in welche Ecke davon
+es geht. Wenn der Tipp dagegen ein Wort aus einem völlig anderen Bereich ist, dann weißt du, dass
+dein Rang 900 gar nicht durch inhaltliche Nähe zustande kam, sondern durch die Zufälligkeit des
+weiten Mittelfelds.
+
+Diese zweite Lesart ist der eigentliche Wert. Ein Tipp auf „mittel“ beantwortet die Frage: Ist
+mein bestes Wort ein echtes Signal oder Rauschen?
+
+Wenn du weit hinten stehst, ist der Modus fast nutzlos, weil in der Gegend um Rang 5.000 kaum
+noch Bedeutungsstruktur steckt. Sobald du unter etwa 500 bist, wird er stark.
+
+## Schwer: eine Zufallszahl zwischen 2 und deinem besten Rang
+
+Der Zielrang ist gleichverteilt zufällig aus dem Bereich von 2 bis zu deinem besten Rang minus
+eins gezogen.
+
+Der Erwartungswert liegt damit ungefähr bei der Hälfte deines besten Rangs, also grob dort, wo
+auch „leicht“ landet. Die Streuung ist aber riesig. Bei Rang 900 kannst du Rang 12 bekommen oder
+Rang 870, beides mit derselben Wahrscheinlichkeit pro Einzelrang.
+
+Praktisch heißt das: Ein Tipp auf „schwer“ ist ein Los. Meistens bekommst du etwas Mittelmäßiges,
+manchmal etwas Wertloses, gelegentlich etwas, das dich in einem einzigen Zug fast zur Lösung
+bringt.
+
+## Wann welcher Modus
+
+Aus den drei Formeln folgt eine ziemlich klare Empfehlung.
+
+**Du steckst bei Rang 3.000 oder schlechter fest und hast keine Idee mehr.** Nimm „leicht“. Du
+brauchst erst einmal irgendeinen Halt im Bedeutungsraum, und die Halbierung liefert den
+zuverlässig. „Mittel“ wäre hier verschwendet, weil ein Nachbar von Rang 3.000 keine verwertbare
+Richtung angibt.
+
+**Du liegst zwischen 100 und 500 und drehst dich im Kreis.** Nimm „mittel“. Genau hier ist die
+Nachbarschaft dicht genug, dass das Nachbarwort dir verrät, in welche Richtung des Feldes du
+gehen musst. Das ist der Modus mit dem besten Verhältnis von Information zu verbrauchtem Tipp.
+
+**Du willst die Partie nicht auflösen, sondern nur einen Anstoß.** Nimm „schwer“ und akzeptiere,
+dass du eventuell nichts Brauchbares bekommst. Der Modus ist für Leute gedacht, denen ein
+berechenbarer Tipp den Reiz nimmt.
+
+**Du bist unter Rang 20 und kommst nicht drauf.** Nimm keinen Tipp. Auf „leicht“ bekämst du Rang
+10, auf „mittel“ Rang 19, und beides sind Wörter, die du dir mit etwas Nachdenken selbst herleiten
+kannst. Lies stattdessen deine bisherigen Treffer noch einmal durch und frage dich, welches
+Konzept sie gemeinsam umkreisen.
+
+## Was am Ende der Partie sichtbar wird
+
+Wenn du gelöst oder aufgegeben hast, kannst du dir die **500 nächstliegenden Wörter** anzeigen
+lassen. Das ist die eigentliche Lernquelle, deutlich lehrreicher als jeder einzelne Tipp.
+
+Diese Liste zeigt dir die Bedeutungsnachbarschaft des Zielworts in ihrer echten Reihenfolge. Wer
+sie sich nach einer verlorenen Partie ansieht, entwickelt ein Gefühl dafür, wie das Modell
+Nachbarschaft sortiert, und dieses Gefühl ist bei der nächsten Partie mehr wert als drei Tipps.
+Besonders aufschlussreich sind die Wörter zwischen Rang 50 und 200: Dort steht oft genau der
+Begriff, an den du gedacht, aber nicht eingetippt hast.
+
+## Der Preis
+
+Tipps sind kostenlos und unbegrenzt. Sie werden aber in deiner lokalen Statistik mitgezählt und
+im Duell für alle sichtbar ausgewiesen. Wer eine Partie mit vier Versuchen und sechs Tipps
+abschließt, hat nicht in vier Versuchen gelöst.
+
+Wenn du grundsätzlich mit weniger Hilfe auskommen willst, ist der Weg dorthin nicht Härte,
+sondern Systematik. [Semantische Wortfelder](/blog/semantische-wortfelder-strategie/) beschreibt,
+wie man ein Bedeutungsfeld methodisch abtastet, und [Wenn du feststeckst](/blog/wenn-du-feststeckst/)
+zeigt eine komplette Partie Zug für Zug.

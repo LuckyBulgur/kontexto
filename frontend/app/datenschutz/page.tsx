@@ -25,7 +25,7 @@ export default function DatenschutzPage() {
               Der Schutz deiner Daten ist uns wichtig. Diese Datenschutzerklärung informiert dich darüber, welche Daten beim Besuch von Kontexto erhoben werden und wie sie verwendet werden.
             </p>
             <p>
-              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Zur Finanzierung schalten wir Google-AdSense-Werbung – werbebezogene Cookies und eine Datenübermittlung an Google erfolgen jedoch <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner (siehe Punkt 8).
+              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Zur Finanzierung schalten wir Google-AdSense-Werbung. Werbebezogene Cookies und eine Datenübermittlung an Google erfolgen jedoch <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner (siehe Punkt 8).
             </p>
           </section>
 
@@ -72,7 +72,7 @@ export default function DatenschutzPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-foreground">5. Anonyme Reichweitenmessung (Statistik)</h2>
             <p>
-              Wir messen die Nutzung der Website, um sie zu verbessern. Diese Statistik wird vollständig auf unserem eigenen Server erstellt – es werden <strong className="text-foreground">keine Daten an Dritte</strong> übermittelt und <strong className="text-foreground">keine Cookies</strong> gesetzt.
+              Wir messen die Nutzung der Website, um sie zu verbessern. Diese Statistik wird vollständig auf unserem eigenen Server erstellt, es werden <strong className="text-foreground">keine Daten an Dritte</strong> übermittelt und <strong className="text-foreground">keine Cookies</strong> gesetzt.
             </p>
             <p>
               Zur Unterscheidung von Besuchen bilden wir einen <strong className="text-foreground">anonymen, nicht umkehrbaren Hash-Wert</strong> aus deiner IP-Adresse und deinem Browser-Typ, kombiniert mit einem geheimen, monatlich wechselnden Schlüssel. Die <strong className="text-foreground">IP-Adresse selbst wird dabei nicht gespeichert</strong> und lässt sich aus dem Hash nicht wiederherstellen. Eine Identifizierung einzelner Personen ist nicht möglich.
@@ -98,20 +98,20 @@ export default function DatenschutzPage() {
               Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
             <p>
-              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe Punkt 5). Zur Finanzierung des kostenlosen Angebots binden wir jedoch <strong className="text-foreground">Google AdSense</strong> als Werbedienst ein – Einzelheiten dazu in Punkt 8.
+              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe Punkt 5). Zur Finanzierung des kostenlosen Angebots binden wir jedoch <strong className="text-foreground">Google AdSense</strong> als Werbedienst ein. Einzelheiten dazu stehen in Punkt 8.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-foreground">8. Werbung durch Google AdSense</h2>
             <p>
-              Zur Finanzierung dieses kostenlosen Angebots nutzen wir Google AdSense, einen Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House, Barrow Street, Dublin 4, Irland („Google"). Google AdSense verwendet Cookies und vergleichbare Technologien (z. B. Web Beacons), um Anzeigen auszuspielen und deren Auslieferung zu messen. Dabei können Informationen wie deine (gekürzte) IP-Adresse, Geräte- und Browserdaten sowie Interaktionen mit Anzeigen verarbeitet werden.
+              Zur Finanzierung dieses kostenlosen Angebots nutzen wir Google AdSense, einen Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House, Barrow Street, Dublin 4, Irland („Google“). Google AdSense verwendet Cookies und vergleichbare Technologien (z. B. Web Beacons), um Anzeigen auszuspielen und deren Auslieferung zu messen. Dabei können Informationen wie deine (gekürzte) IP-Adresse, Geräte- und Browserdaten sowie Interaktionen mit Anzeigen verarbeitet werden.
             </p>
             <p>
               <strong className="text-foreground">Einwilligung (Consent Management Platform):</strong> Bevor werbebezogene Cookies gesetzt oder personalisierte Anzeigen ausgeliefert werden, erhältst du über ein von Google bereitgestelltes, nach dem IAB Transparency &amp; Consent Framework (TCF v2.2) zertifiziertes Einwilligungsbanner die Möglichkeit, der Verarbeitung zuzustimmen oder sie abzulehnen. Rechtsgrundlage ist deine Einwilligung gemäß <strong className="text-foreground">Art. 6 Abs. 1 lit. a DSGVO</strong> sowie § 25 Abs. 1 TDDDG.
             </p>
             <p>
-              <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen von Google AdSense können Daten an Server von Google – auch in den USA – übermittelt werden. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
+              <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen von Google AdSense können Daten an Server von Google übermittelt werden, auch an Server in den USA. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
             </p>
             <p>
               <strong className="text-foreground">Widerruf:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder anpassen, indem du deine Auswahl im Einwilligungsbanner änderst. Personalisierte Werbung kannst du zusätzlich in den{" "}
@@ -120,7 +120,7 @@ export default function DatenschutzPage() {
             <p>
               Weitere Informationen findest du in der{" "}
               <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Datenschutzerklärung von Google</a>{" "}sowie unter{" "}
-              <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">„Wie Google Daten bei der Anzeigenschaltung verwendet"</a>.
+              <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">„Wie Google Daten bei der Anzeigenschaltung verwendet“</a>.
             </p>
           </section>
 

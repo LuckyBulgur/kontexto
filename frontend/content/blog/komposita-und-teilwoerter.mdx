@@ -1,0 +1,109 @@
+# Komposita: warum Deutsch für ein Bedeutungsspiel schwerer ist als Englisch
+
+Das englische Original Contexto und das deutsche Kontexto laufen auf demselben Prinzip, aber
+nicht auf demselben Schwierigkeitsgrad. Der Grund steckt in einer Eigenschaft des Deutschen, die
+im Alltag so selbstverständlich ist, dass sie kaum auffällt: Wir bauen neue Wörter, indem wir alte
+aneinanderhängen.
+
+Englisch schreibt `fire department`, zwei Wörter. Deutsch schreibt `Feuerwehr`, ein Wort. Für
+Menschen ist das dasselbe. Für ein Modell, das Wörter als Einheiten behandelt, ist es ein
+grundlegender Unterschied.
+
+## Das Zerlegungsproblem
+
+Ein klassisches Worteinbettungsmodell lernt einen Vektor pro Wortform. Es sieht `Feuerwehr` im
+Trainingstext, zählt die Kontexte, in denen es vorkommt, und leitet daraus einen Vektor ab.
+
+Solange das Wort häufig genug ist, funktioniert das gut. Das Problem beginnt am langen Ende. Im
+Deutschen ist die Menge der theoretisch möglichen Wörter unbegrenzt, weil Zusammensetzung
+produktiv ist. `Feuerwehrhauptmann`, `Feuerwehreinsatzleitung`, `Feuerwehrschlauchtrommel`: Jedes
+davon ist ein völlig normales deutsches Wort, das dennoch im Korpus so selten vorkommt, dass ein
+wortbasiertes Modell keinen brauchbaren Vektor dafür lernt. Oder es kommt gar nicht vor, dann
+existiert es für das Modell schlicht nicht.
+
+Im Englischen tritt dieses Problem in dieser Schärfe nicht auf, weil Zusammensetzungen dort meist
+aus getrennt geschriebenen, jeweils häufigen Wörtern bestehen.
+
+## Was fastText anders macht
+
+fastText behandelt ein Wort nicht als atomare Einheit, sondern zusätzlich als Folge von
+Zeichen-n-Grammen. Ein n-Gramm ist einfach ein Ausschnitt von n aufeinanderfolgenden Zeichen.
+
+Für `strandkorb`, denn intern wird alles kleingeschrieben verarbeitet, erzeugt das Modell unter
+anderem Ausschnitte wie `str`, `tra`, `ran`, `and`, `ndk`, `dko`, `kor`, `orb` und Varianten
+unterschiedlicher Länge. Der endgültige Wortvektor ist die Summe aus dem Vektor der ganzen
+Wortform und den Vektoren all dieser Teilstücke.
+
+Der Gewinn ist doppelt. Erstens kann das Modell auch für Wörter, die es nie oder kaum gesehen hat,
+einen Vektor zusammensetzen, solange es die Bestandteile kennt. Zweitens teilen sich verwandte
+Wörter automatisch Struktur: `Strandkorb`, `Strandbad` und `Sandstrand` überlappen im n-Gramm
+`stran`, also ziehen sich ihre Vektoren an.
+
+Für eine Sprache mit ausgeprägter Wortbildung ist das genau die richtige Eigenschaft. Das ist der
+Hauptgrund, warum Kontexto auf fastText läuft und nicht auf einem rein wortbasierten Verfahren.
+
+## Wo die Zeichenähnlichkeit in die Irre führt
+
+Derselbe Mechanismus hat eine Schattenseite, und die trifft dich beim Spielen.
+
+n-Gramme kennen keine Bedeutung. Sie kennen Buchstabenfolgen. Wenn zwei Wörter viele Zeichen
+teilen, aber inhaltlich nichts miteinander zu tun haben, dann zieht die Teilwortkomponente ihre
+Vektoren trotzdem ein Stück zueinander.
+
+Deutsch ist voll von solchen Fällen:
+
+- `Wachstum` und `Wachs` teilen fünf Zeichen am Wortanfang und haben nichts gemein.
+- `Ausland` und `Auslauf` überlappen stark, gehören aber in verschiedene Welten.
+- `Hoch` steckt in `Hochzeit`, `Hochschule`, `Hochwasser` und `Hochdruck`, die untereinander
+  kaum verwandt sind.
+- `Verkehr` und `verkehrt` sehen fast identisch aus und meinen Verschiedenes.
+
+Praktisch bedeutet das: Ein überraschend guter Rang ist nicht immer ein Bedeutungssignal.
+Manchmal ist er ein Buchstabensignal. Wenn du bei einem Zielwort aus dem Themenfeld Bauen das
+Wort `Wachstum` eingibst und einen mittleren Rang siehst, ist das womöglich kein Hinweis auf
+Botanik, sondern ein Nebeneffekt der Zeichenüberlappung.
+
+## Woran du den Unterschied erkennst
+
+Es gibt einen einfachen Test. Wenn ein Wort einen auffällig guten Rang bekommt, probiere ein
+**bedeutungsgleiches Wort mit völlig anderer Schreibweise**.
+
+Beispiel: `Fahrrad` liefert Rang 210. Ist das Bedeutung oder Zeichenähnlichkeit? Gib `Velo` oder
+`Zweirad` ein. Landen die ebenfalls vorn, ist das Themenfeld echt getroffen. Bleiben sie weit
+hinten, während `Fahrrad` vorn liegt, dann hat wahrscheinlich die Zeichenfolge geholfen und nicht
+der Inhalt.
+
+Umgekehrt gilt: Wenn ein Wort schlecht abschneidet, das inhaltlich passen müsste, prüfe, ob es
+ein sehr langes oder seltenes Kompositum ist. Je seltener das Wort, desto stärker hängt sein
+Vektor an den n-Grammen und desto ungenauer wird er.
+
+## Die praktische Konsequenz für dein Spiel
+
+Aus alldem folgen drei konkrete Gewohnheiten:
+
+**Zerlege lange Wörter.** Statt `Fahrradreparaturset` probiere `Fahrrad`, `Reparatur` und
+`Werkzeug` einzeln. Kurze, häufige Wörter haben stabilere Vektoren, weil ihr Anteil aus der
+vollen Wortform kommt und nicht aus zusammengestückelten Teilstücken.
+
+**Miss ein Themenfeld nie an einem einzigen Kompositum.** Ein schlechter Rang für
+`Gartenzaun` sagt wenig darüber aus, ob das Zielwort mit Gärten zu tun hat. Ein schlechter Rang
+für `Garten`, `Pflanze` und `Beet` zusammen sagt sehr viel.
+
+**Wechsle die Wortart.** Deutsche Wortbildung erzeugt Ketten wie `Kälte`, `kalt`, `frieren`,
+`Frost`. Diese vier haben unterschiedliche Zeichenprofile und unterschiedliche typische Kontexte.
+Wenn eines feststeckt, springt oft ein anderes deutlich nach vorne. Dieselbe Technik in
+systematischer Form beschreibt [Semantische Wortfelder](/blog/semantische-wortfelder-strategie/).
+
+## Auch die Wortliste ist davon betroffen
+
+Die Komposita-Eigenschaft wirkt nicht nur auf die Ränge, sondern auch darauf, welche Wörter
+Kontexto überhaupt kennt. Das ratbare Vokabular umfasst 80.000 Wörter, und diese Grenze ist
+bewusst so gewählt, dass gebräuchliche Zusammensetzungen hineinpassen. Trotzdem endet jede Liste
+irgendwo, und im Deutschen endet sie zwangsläufig mitten in einem unendlichen Raum möglicher
+Wörter. Welche Wörter das trifft, steht in
+[Wörter, die Kontexto nicht kennt](/blog/woerter-die-kontexto-nicht-kennt/).
+
+Als Lösungswort ist ein Kompositum übrigens nur bis 15 Zeichen zugelassen. Alles darüber wäre
+nicht mehr fair erratbar, weil die Zahl möglicher Zusammensetzungen zu groß ist. Wie die
+Lösungen ausgewählt werden, beschreibt
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).

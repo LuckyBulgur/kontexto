@@ -1,0 +1,128 @@
+# Wörter, die Kontexto nicht kennt
+
+„Dieses Wort kenne ich nicht“ ist die frustrierendste Rückmeldung im Spiel, weil sie so
+willkürlich wirkt. Du hast ein völlig normales deutsches Wort eingetippt, und das Spiel zuckt mit
+den Schultern.
+
+Willkürlich ist es nicht. Es gibt genau vier Gründe, warum ein Wort abgelehnt wird, und wenn du
+sie kennst, kannst du in fast jedem Fall in Sekunden eine Formulierung finden, die durchgeht.
+
+## Grund 1: Es steht nicht in den 80.000
+
+Das ratbare Vokabular umfasst 80.000 Wörter. Das ist viel, aber es ist eine Zahl, und jede Zahl
+hat ein Ende.
+
+Ausgewählt werden die 80.000 **häufigsten** Wörter aus dem gefilterten deutschen Wortschatz. Was
+darunterfällt, ist damit nicht willkürlich, sondern vorhersagbar: Je seltener ein Wort im
+allgemeinen Sprachgebrauch, desto wahrscheinlicher fehlt es.
+
+Typische Kandidaten:
+
+- **Lange Komposita.** `Fahrradreparaturset` und `Gartenzaunlatte` sind grammatisch tadellos und
+  im Korpus praktisch unsichtbar. Deutsch kann beliebig viele davon bilden, eine endliche Liste
+  kann sie unmöglich alle enthalten.
+- **Fachsprache.** `Anamnese`, `Konvolut`, `Hydraulikzylinder`: Wörter, die in ihrem Fachgebiet
+  alltäglich sind und im allgemeinen Sprachgebrauch selten.
+- **Regionalismen.** `Karnickel`, `Schrippe`, `Bemme` sind für viele Menschen normale Alltagswörter
+  und stehen trotzdem weit hinten in der Häufigkeitsliste.
+- **Neuere Begriffe.** Das fastText-Modell hat einen Trainingsstand. Was danach aufkam, existiert
+  darin nicht.
+
+**Was hilft:** Zerlege das Wort. Statt `Fahrradreparaturset` versuche `Fahrrad`, `Reparatur`,
+`Werkzeug`. Statt eines Fachbegriffs den Alltagsausdruck. Kürzere und häufigere Wörter haben
+ohnehin die stabileren Vektoren, siehe [Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
+
+## Grund 2: Es ist eine Beugungsform ohne Zuordnung
+
+Kontexto führt eine Lemma-Tabelle, die gebeugte Formen auf ihre Grundform zieht. Tippst du
+`Häuser`, wird daraus `Haus`, und du bekommst den Rang von `Haus`.
+
+Die Tabelle ist gut, aber nicht vollständig. Sie entsteht maschinell, und bei unregelmäßigen
+Formen, seltenen Konjugationen oder Partizipien greift sie nicht immer.
+
+**Was hilft:** Gib die Grundform ein. Substantive im Nominativ Singular, Verben im Infinitiv,
+Adjektive unflektiert. `ging` wird vielleicht abgelehnt, `gehen` geht durch. Das kostet dich
+nichts, denn eine erfolgreich zugeordnete Beugungsform bekommt sowieso exakt den Rang ihrer
+Grundform. Es gibt im Spiel keinen Vorteil darin, gebeugt zu raten.
+
+## Grund 3: Es ist ein Stoppwort
+
+Knapp 60 Wörter sind als „zu allgemein“ markiert und bekommen eine eigene Fehlermeldung statt der
+normalen Ablehnung: Artikel, Pronomen, häufige Präpositionen, Hilfsverben. `der`, `und`, `mit`,
+`ist`, `nicht`.
+
+Diese Wörter haben im Bedeutungsraum keine sinnvolle Position. Sie kommen in jedem Text vor, ihre
+Vektoren stehen für nichts Bestimmtes, und ein Rang für `und` wäre eine Zufallszahl. Deshalb
+lehnen wir sie ausdrücklich ab, statt eine irreführende Zahl auszugeben.
+
+**Was hilft:** Nichts, und das ist Absicht. Wenn du bei einem Stoppwort landest, hast du eine
+Sackgasse erwischt. Nimm ein Inhaltswort.
+
+## Grund 4: Schreibweise
+
+Das Spiel gleicht exakt ab, nachdem es kleingeschrieben hat. Groß- und Kleinschreibung ist also
+egal, alles andere nicht.
+
+- **Tippfehler** werden nicht korrigiert. Es gibt keine Ähnlichkeitssuche, keine „meintest du“-Logik.
+- **Alte Rechtschreibung** ist ein Sonderfall. Ein deutscher Web-Korpus enthält beide Varianten,
+  also existieren `anläßlich` und `anlässlich` als zwei getrennte Einträge mit zwei getrennten
+  Rängen. Beide sind ratbar, aber sie sind nicht dasselbe Wort. Als Lösung sind solche
+  Doppelformen gesperrt, weil man sonst die richtige Bedeutung treffen und trotzdem verlieren
+  könnte.
+- **Bindestriche und Leerzeichen** gehen nicht durch. `E-Mail` und `Wohn Zimmer` scheitern,
+  `Wohnzimmer` funktioniert.
+
+## Warum die Prüfung so schnell ist
+
+Bevor überhaupt im Vokabular gesucht wird, läuft dein Wort durch einen Bloom-Filter. Das ist eine
+kompakte Datenstruktur, die die Frage „habe ich dieses Wort jemals gesehen“ in konstanter Zeit
+beantwortet, unabhängig davon, wie groß das Vokabular ist.
+
+Ein Bloom-Filter kann sich irren, aber nur in eine Richtung: Er sagt nie fälschlich „kenne ich
+nicht“. Er kann gelegentlich fälschlich „kenne ich“ sagen, mit einer eingestellten Rate von
+0,1 Prozent. Dann läuft die eigentliche Suche und findet nichts, das Ergebnis für dich ist
+identisch. Der Filter spart in den 99,9 Prozent der Fälle Arbeit, in denen die Antwort ohnehin
+Nein lautet.
+
+## Warum die Liste nicht einfach größer ist
+
+Die naheliegende Frage: Wenn 80.000 zu wenig sind, warum nicht 200.000?
+
+Zwei Gründe sprechen dagegen. Der erste ist Qualität. Jenseits von etwa 100.000 beginnt im
+gefilterten deutschen Wortschatz ein Schwanz aus sehr seltenen Formen, deren Vektoren kaum
+statistische Substanz haben. Diese Wörter würden nicht nur selbst unzuverlässige Ränge bekommen,
+sie würden auch die Ränge aller anderen Wörter verschieben, weil jeder Rang eine Position in der
+Gesamtliste ist. Ein zusätzliches unsinniges Wort auf Platz 40 verschlechtert alles, was dahinter
+liegt.
+
+Der zweite Grund ist banal: Für jedes Rätsel wird eine vollständige Rangliste über das gesamte
+Vokabular gespeichert. Die Größe dieser Daten wächst linear mit dem Vokabular, multipliziert mit
+der Zahl der vorberechneten Rätsel.
+
+80.000 ist der Punkt, an dem beides zusammen am besten aufgeht: gebräuchliche Komposita und
+Fachbegriffe sind drin, der unzuverlässige Schwanz bleibt draußen.
+
+## Was du dagegen tun kannst
+
+Die praktische Zusammenfassung passt in vier Zeilen:
+
+1. Grundform statt Beugung.
+2. Kurzes, häufiges Wort statt langem Kompositum.
+3. Alltagsausdruck statt Fachbegriff.
+4. Ein Wort, keine Bindestriche, keine Leerzeichen.
+
+Und ein Trost: Ein abgelehntes Wort zählt nicht als Versuch. Es kostet dich nur die Sekunde, die
+du zum Tippen gebraucht hast.
+
+## Der umgekehrte Fall
+
+Es gibt eine Gruppe von Wörtern, die überraschenderweise **funktioniert**: Eigennamen. `berlin`,
+`merkel` und `emma` stehen im Vokabular und liefern dir einen Rang.
+
+Als **Lösung** sind sie gesperrt, denn die Bedeutungsnachbarschaft eines Namens besteht
+überwiegend aus anderen Namen, und man kann sich nicht heranarbeiten. Die Geschichte dazu steht in
+[Warum keine Namen mehr als Lösungswörter auftauchen](/blog/warum-keine-namen-mehr-als-loesungswoerter/).
+
+Als **Tipp** sind sie manchmal nützlich. Wenn du vermutest, das Zielwort liege im Feld Politik
+oder Geografie, kann ein Städtename als Sonde funktionieren. Verlass dich nicht darauf, aber
+schreib es nicht ab.

@@ -44,7 +44,7 @@ export default function CreditsDialog({ open, onClose }: CreditsDialogProps) {
             <h3 className="font-medium text-foreground">Entwicklung</h3>
             <p>Entwickelt mit Next.js, FastAPI und viel Liebe zur deutschen Sprache.</p>
             <p>
-              Von Ugur Aydogan –{" "}
+              Von Ugur Aydogan,{" "}
               <a href="https://github.com/LuckyBulgur" target="_blank" rel="me noopener noreferrer" className="underline hover:text-foreground">
                 GitHub
               </a>

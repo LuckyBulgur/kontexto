@@ -1,0 +1,674 @@
+{
+  "generated_on": "2026-08-15",
+  "labels": {
+    "guesses": "Rateversuche",
+    "solves": "gelöste Rätsel",
+    "hints": "abgerufene Tipps",
+    "reveals": "aufgelöste Rätsel",
+    "duels_created": "erstellte Mehrspieler-Runden"
+  },
+  "totals": {
+    "guesses": 868000,
+    "solves": 10200,
+    "hints": 45500,
+    "reveals": 4100,
+    "duels_created": 370
+  },
+  "guesses_per_solve": 85.1,
+  "last_30_days": {
+    "guesses": [
+      {
+        "date": "2026-07-16",
+        "value": 10700
+      },
+      {
+        "date": "2026-07-17",
+        "value": 12900
+      },
+      {
+        "date": "2026-07-18",
+        "value": 11600
+      },
+      {
+        "date": "2026-07-19",
+        "value": 7300
+      },
+      {
+        "date": "2026-07-20",
+        "value": 10600
+      },
+      {
+        "date": "2026-07-21",
+        "value": 14200
+      },
+      {
+        "date": "2026-07-22",
+        "value": 11700
+      },
+      {
+        "date": "2026-07-23",
+        "value": 15400
+      },
+      {
+        "date": "2026-07-24",
+        "value": 15400
+      },
+      {
+        "date": "2026-07-25",
+        "value": 6200
+      },
+      {
+        "date": "2026-07-26",
+        "value": 5000
+      },
+      {
+        "date": "2026-07-27",
+        "value": 13700
+      },
+      {
+        "date": "2026-07-28",
+        "value": 15300
+      },
+      {
+        "date": "2026-07-29",
+        "value": 15800
+      },
+      {
+        "date": "2026-07-30",
+        "value": 18300
+      },
+      {
+        "date": "2026-07-31",
+        "value": 16200
+      },
+      {
+        "date": "2026-08-01",
+        "value": 10300
+      },
+      {
+        "date": "2026-08-02",
+        "value": 8600
+      },
+      {
+        "date": "2026-08-03",
+        "value": 7900
+      },
+      {
+        "date": "2026-08-04",
+        "value": 14100
+      },
+      {
+        "date": "2026-08-05",
+        "value": 10900
+      },
+      {
+        "date": "2026-08-06",
+        "value": 13500
+      },
+      {
+        "date": "2026-08-07",
+        "value": 13600
+      },
+      {
+        "date": "2026-08-08",
+        "value": 10300
+      },
+      {
+        "date": "2026-08-09",
+        "value": 13300
+      },
+      {
+        "date": "2026-08-10",
+        "value": 14200
+      },
+      {
+        "date": "2026-08-11",
+        "value": 13200
+      },
+      {
+        "date": "2026-08-12",
+        "value": 20900
+      },
+      {
+        "date": "2026-08-13",
+        "value": 17500
+      },
+      {
+        "date": "2026-08-14",
+        "value": 15700
+      },
+      {
+        "date": "2026-08-15",
+        "value": 7000
+      }
+    ],
+    "solves": [
+      {
+        "date": "2026-07-16",
+        "value": 130
+      },
+      {
+        "date": "2026-07-17",
+        "value": 230
+      },
+      {
+        "date": "2026-07-18",
+        "value": 170
+      },
+      {
+        "date": "2026-07-19",
+        "value": 150
+      },
+      {
+        "date": "2026-07-20",
+        "value": 140
+      },
+      {
+        "date": "2026-07-21",
+        "value": 180
+      },
+      {
+        "date": "2026-07-22",
+        "value": 130
+      },
+      {
+        "date": "2026-07-23",
+        "value": 180
+      },
+      {
+        "date": "2026-07-24",
+        "value": 110
+      },
+      {
+        "date": "2026-07-25",
+        "value": 100
+      },
+      {
+        "date": "2026-07-26",
+        "value": 90
+      },
+      {
+        "date": "2026-07-27",
+        "value": 130
+      },
+      {
+        "date": "2026-07-28",
+        "value": 150
+      },
+      {
+        "date": "2026-07-29",
+        "value": 180
+      },
+      {
+        "date": "2026-07-30",
+        "value": 200
+      },
+      {
+        "date": "2026-07-31",
+        "value": 180
+      },
+      {
+        "date": "2026-08-01",
+        "value": 120
+      },
+      {
+        "date": "2026-08-02",
+        "value": 90
+      },
+      {
+        "date": "2026-08-03",
+        "value": 150
+      },
+      {
+        "date": "2026-08-04",
+        "value": 180
+      },
+      {
+        "date": "2026-08-05",
+        "value": 140
+      },
+      {
+        "date": "2026-08-06",
+        "value": 140
+      },
+      {
+        "date": "2026-08-07",
+        "value": 100
+      },
+      {
+        "date": "2026-08-08",
+        "value": 90
+      },
+      {
+        "date": "2026-08-09",
+        "value": 170
+      },
+      {
+        "date": "2026-08-10",
+        "value": 140
+      },
+      {
+        "date": "2026-08-11",
+        "value": 190
+      },
+      {
+        "date": "2026-08-12",
+        "value": 320
+      },
+      {
+        "date": "2026-08-13",
+        "value": 190
+      },
+      {
+        "date": "2026-08-14",
+        "value": 140
+      },
+      {
+        "date": "2026-08-15",
+        "value": 90
+      }
+    ]
+  },
+  "top_words": [
+    {
+      "word": "haus",
+      "count": 5500
+    },
+    {
+      "word": "mensch",
+      "count": 4700
+    },
+    {
+      "word": "tier",
+      "count": 4600
+    },
+    {
+      "word": "essen",
+      "count": 4300
+    },
+    {
+      "word": "wasser",
+      "count": 4100
+    },
+    {
+      "word": "auto",
+      "count": 4000
+    },
+    {
+      "word": "schule",
+      "count": 3600
+    },
+    {
+      "word": "sport",
+      "count": 3300
+    },
+    {
+      "word": "arbeit",
+      "count": 3100
+    },
+    {
+      "word": "geld",
+      "count": 2800
+    },
+    {
+      "word": "natur",
+      "count": 2600
+    },
+    {
+      "word": "baum",
+      "count": 2500
+    },
+    {
+      "word": "leben",
+      "count": 2300
+    },
+    {
+      "word": "land",
+      "count": 2200
+    },
+    {
+      "word": "liebe",
+      "count": 2200
+    },
+    {
+      "word": "urlaub",
+      "count": 2100
+    },
+    {
+      "word": "sonne",
+      "count": 2000
+    },
+    {
+      "word": "familie",
+      "count": 2000
+    },
+    {
+      "word": "beruf",
+      "count": 2000
+    },
+    {
+      "word": "kind",
+      "count": 1900
+    },
+    {
+      "word": "spiel",
+      "count": 1900
+    },
+    {
+      "word": "zeit",
+      "count": 1900
+    },
+    {
+      "word": "stadt",
+      "count": 1800
+    },
+    {
+      "word": "frau",
+      "count": 1800
+    },
+    {
+      "word": "fußball",
+      "count": 1700
+    },
+    {
+      "word": "mann",
+      "count": 1700
+    },
+    {
+      "word": "buch",
+      "count": 1700
+    },
+    {
+      "word": "hund",
+      "count": 1700
+    },
+    {
+      "word": "laufen",
+      "count": 1600
+    },
+    {
+      "word": "erde",
+      "count": 1600
+    },
+    {
+      "word": "garten",
+      "count": 1600
+    },
+    {
+      "word": "lernen",
+      "count": 1500
+    },
+    {
+      "word": "musik",
+      "count": 1500
+    },
+    {
+      "word": "trinken",
+      "count": 1500
+    },
+    {
+      "word": "meer",
+      "count": 1400
+    },
+    {
+      "word": "politik",
+      "count": 1400
+    },
+    {
+      "word": "polizei",
+      "count": 1400
+    },
+    {
+      "word": "pflanze",
+      "count": 1400
+    },
+    {
+      "word": "farbe",
+      "count": 1400
+    },
+    {
+      "word": "grün",
+      "count": 1300
+    },
+    {
+      "word": "sommer",
+      "count": 1300
+    },
+    {
+      "word": "gehen",
+      "count": 1200
+    },
+    {
+      "word": "ball",
+      "count": 1200
+    },
+    {
+      "word": "wald",
+      "count": 1200
+    },
+    {
+      "word": "wohnung",
+      "count": 1100
+    },
+    {
+      "word": "körper",
+      "count": 1100
+    },
+    {
+      "word": "gebäude",
+      "count": 1100
+    },
+    {
+      "word": "fahren",
+      "count": 1100
+    },
+    {
+      "word": "handy",
+      "count": 1100
+    },
+    {
+      "word": "luft",
+      "count": 1100
+    },
+    {
+      "word": "klein",
+      "count": 1100
+    },
+    {
+      "word": "holz",
+      "count": 1100
+    },
+    {
+      "word": "himmel",
+      "count": 1100
+    },
+    {
+      "word": "katze",
+      "count": 1100
+    },
+    {
+      "word": "arzt",
+      "count": 1100
+    },
+    {
+      "word": "lehrer",
+      "count": 1100
+    },
+    {
+      "word": "flugzeug",
+      "count": 1100
+    },
+    {
+      "word": "blau",
+      "count": 1100
+    },
+    {
+      "word": "wort",
+      "count": 1100
+    },
+    {
+      "word": "computer",
+      "count": 1100
+    },
+    {
+      "word": "film",
+      "count": 1000
+    },
+    {
+      "word": "kinder",
+      "count": 1000
+    },
+    {
+      "word": "rot",
+      "count": 1000
+    },
+    {
+      "word": "straße",
+      "count": 1000
+    },
+    {
+      "word": "job",
+      "count": 1000
+    },
+    {
+      "word": "bett",
+      "count": 1000
+    },
+    {
+      "word": "gefühl",
+      "count": 1000
+    },
+    {
+      "word": "spielen",
+      "count": 1000
+    },
+    {
+      "word": "feuer",
+      "count": 1000
+    },
+    {
+      "word": "wetter",
+      "count": 1000
+    },
+    {
+      "word": "tag",
+      "count": 1000
+    },
+    {
+      "word": "hilfe",
+      "count": 1000
+    },
+    {
+      "word": "tür",
+      "count": 1000
+    },
+    {
+      "word": "schreiben",
+      "count": 1000
+    },
+    {
+      "word": "blume",
+      "count": 990
+    },
+    {
+      "word": "kleidung",
+      "count": 980
+    },
+    {
+      "word": "kaufen",
+      "count": 970
+    },
+    {
+      "word": "licht",
+      "count": 970
+    },
+    {
+      "word": "winter",
+      "count": 970
+    },
+    {
+      "word": "rennen",
+      "count": 970
+    },
+    {
+      "word": "deutschland",
+      "count": 960
+    },
+    {
+      "word": "kalt",
+      "count": 960
+    },
+    {
+      "word": "schlafen",
+      "count": 950
+    },
+    {
+      "word": "ort",
+      "count": 950
+    },
+    {
+      "word": "welt",
+      "count": 950
+    },
+    {
+      "word": "lesen",
+      "count": 950
+    },
+    {
+      "word": "groß",
+      "count": 940
+    },
+    {
+      "word": "warm",
+      "count": 930
+    },
+    {
+      "word": "arbeiten",
+      "count": 930
+    },
+    {
+      "word": "fliegen",
+      "count": 920
+    },
+    {
+      "word": "strand",
+      "count": 910
+    },
+    {
+      "word": "tisch",
+      "count": 900
+    },
+    {
+      "word": "maus",
+      "count": 880
+    },
+    {
+      "word": "machen",
+      "count": 880
+    },
+    {
+      "word": "bus",
+      "count": 870
+    },
+    {
+      "word": "küche",
+      "count": 870
+    },
+    {
+      "word": "fenster",
+      "count": 870
+    },
+    {
+      "word": "zug",
+      "count": 860
+    },
+    {
+      "word": "person",
+      "count": 860
+    },
+    {
+      "word": "technik",
+      "count": 860
+    }
+  ]
+}

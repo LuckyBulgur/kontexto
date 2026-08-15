@@ -2,7 +2,7 @@
 
 // Responsive navigation for the admin stats dashboard. On large screens it is a
 // vertical, grouped, sticky sidebar; on smaller screens it collapses into a
-// horizontally scrollable pill bar. Purely presentational — it receives the
+// horizontally scrollable pill bar. Purely presentational: it receives the
 // grouped sections and the active id, and reports selections back up.
 
 import type { LucideIcon } from "lucide-react";
