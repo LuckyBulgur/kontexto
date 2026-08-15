@@ -25,6 +25,15 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-08-15",
+    kind: "Verbessert",
+    title: "Spielseiten erklären das Spiel jetzt auch",
+    body:
+      "Unter Wördle, Duell, Koop und Wördle-Duell stand bisher nur ein Absatz. Jetzt gibt es dort jeweils eine ausführliche Erklärung: warum Wördle ohne Umlaute auskommt, wie sich Rate- und Lösungsliste unterscheiden, welche Startwörter etwas bringen und wie man die Farbmuster des Gegenübers im Duell liest. Dazu je ein eigener Fragenbereich.",
+    href: "/wordle/",
+    hrefLabel: "Zum Wördle",
+  },
+  {
+    date: "2026-08-15",
     kind: "Neu",
     title: "Kontexto in Zahlen: gemessene Daten statt Behauptungen",
     body:

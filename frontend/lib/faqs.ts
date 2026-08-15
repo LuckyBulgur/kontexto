@@ -97,3 +97,131 @@ export const faqs: Faq[] = [
     a: `Deine Rateliste liegt lokal in deinem Browser. An den Server geht das einzelne Wort, um seinen Rang nachzuschlagen; es wird nicht personenbezogen gespeichert. Für die Reichweitenmessung werden nur anonymisierte Summen geführt, ohne wiedererkennbare Kennung.`,
   },
 ];
+
+/**
+ * Wördle-spezifische Fragen für /wordle/. Bewusst getrennt von `faqs`: Die
+ * Kontexto-Antworten (Rang, Bedeutungsähnlichkeit, unbegrenzte Versuche) gelten
+ * dort nicht, und eine gemischte Liste würde beide Spiele verwischen.
+ */
+export const wordleFaqs: Faq[] = [
+  {
+    q: `Was ist Wördle?`,
+    a: `Wördle ist die deutsche Variante von Wordle: Du errätst ein Wort mit fünf Buchstaben in höchstens sechs Versuchen. Nach jeder Eingabe zeigen Farben, welche Buchstaben stimmen. Jeden Tag um Mitternacht gibt es ein neues Wort, für alle dasselbe.`,
+  },
+  {
+    q: `Was bedeuten die Farben?`,
+    a: `Grün heißt richtiger Buchstabe an richtiger Stelle. Gelb heißt richtiger Buchstabe an falscher Stelle. Grau heißt, der Buchstabe kommt im Lösungswort nicht vor.`,
+  },
+  {
+    q: `Warum gibt es keine Umlaute?`,
+    a: `Wördle nutzt das Alphabet von a bis z, also 26 Buchstaben. Wörter mit ä, ö, ü oder ß sind dadurch ausgeschlossen. Die Alternativen wären schlechter gewesen: Umlaute auf der Tastatur machen das Layout auf dem Smartphone unhandlich und erfordern eine Sonderregel, ob „a“ als Teiltreffer für „ä“ zählt. Umlaute aufzulösen („ä“ zu „ae“) würde die Buchstabenzahl verfälschen, aus dem vierbuchstabigen „Käse“ würde ein fünfbuchstabiges „kaese“.`,
+  },
+  {
+    q: `Kann die Lösung eine Mehrzahl oder eine gebeugte Form sein?`,
+    a: `Nein. Lösungswörter sind immer Grundformen, also Nominativ Singular beim Substantiv und Infinitiv beim Verb. Als Tipp darfst du gebeugte Formen trotzdem eingeben, um Buchstaben abzufragen. Das ist eine echte Information: Du kannst Pluralformen aus deiner Kandidatenliste streichen.`,
+  },
+  {
+    q: `Warum wird mein Wort nicht akzeptiert?`,
+    a: `Akzeptiert wird jedes Fünfbuchstabenwort aus a bis z, das im Wortschatz steht, inklusive gebeugter Formen. Abgelehnt werden Wörter mit Umlauten, Eigennamen, sehr seltene Begriffe und Tippfehler. Die Rateliste ist bewusst großzügiger als die Lösungsliste.`,
+  },
+  {
+    q: `Können Eigennamen die Lösung sein?`,
+    a: `Nein. Lösungswörter durchlaufen dieselbe Prüfung wie bei Kontexto: keine Vornamen, keine Nachnamen, keine Städte, keine Marken, keine Fremdwörter und keine Fragmente. Übrig bleiben allgemein bekannte deutsche Inhaltswörter.`,
+  },
+  {
+    q: `Welches Startwort ist gut?`,
+    a: `Eines, das viele häufige Buchstaben gleichzeitig abfragt und keinen davon wiederholt. Wörter wie „reise“, „laden“, „staub“ oder „monat“ decken mehrere Vokale und häufige Konsonanten ab. Ein Wort mit doppeltem Buchstaben verschenkt dagegen eine Position.`,
+  },
+  {
+    q: `Woher stammen die Wörter?`,
+    a: `Beide Listen werden aus demselben deutschen Wortschatz erzeugt, auf dem auch Kontexto läuft. Es gibt keinen externen Download, der veralten könnte, und beide Spiele auf dieser Seite teilen denselben Wortschatzbegriff.`,
+  },
+  {
+    q: `Kann ich Wördle gegen Freunde spielen?`,
+    a: `Ja, im Wördle-Duell. Beide raten dasselbe Wort mit denselben sechs Versuchen, und du siehst live, wie weit dein Gegenüber ist. Der Einladungslink läuft ohne Konto und ohne Installation.`,
+  },
+  {
+    q: `Kostet Wördle etwas?`,
+    a: `Nein. Wördle ist komplett kostenlos und ohne Anmeldung spielbar. Der Spielstand liegt lokal in deinem Browser und wird nicht zwischen Geräten synchronisiert.`,
+  },
+];
+
+/** Fragen zum Duell-Modus für /duel/. */
+export const duelFaqs: Faq[] = [
+  {
+    q: `Wie funktioniert das Kontexto-Duell?`,
+    a: `Alle Beteiligten raten dasselbe geheime Wort, aber jeder für sich. Du siehst vom Gegenüber den besten Rang, die Zahl der Versuche, die Zahl der benutzten Tipps und ob es gelöst hat. Die geratenen Wörter selbst bleiben verborgen. Wer zuerst auf Rang 1 landet, gewinnt.`,
+  },
+  {
+    q: `Wie lade ich jemanden ein?`,
+    a: `Beim Erstellen bekommst du einen Link mit einer sechsstelligen Kennung. Den verschickst du, das Gegenüber öffnet ihn, gibt einen Namen ein und ist dabei. Kein Konto, keine Bestätigungsmail, keine App.`,
+  },
+  {
+    q: `Was kann ich beim Erstellen einstellen?`,
+    a: `Zwei Dinge: welches Rätsel gespielt wird, das heutige oder ein zufälliges aus dem Pool, und ob Tipps erlaubt sind. Für ein sportliches Duell lohnt es sich, Tipps auszuschalten, denn ein Tipp auf „leicht“ halbiert den besten Rang und entscheidet knappe Rennen.`,
+  },
+  {
+    q: `Wie schnell wird der Fortschritt aktualisiert?`,
+    a: `Im Sekundentakt über eine dauerhafte Verbindung. Fällt sie aus, siehst du das am Verbindungszustand des anderen Spielers.`,
+  },
+  {
+    q: `Wie lange bleibt ein Duell bestehen?`,
+    a: `Eine Runde ohne verbundene Spieler wird nach einer Stunde ohne Aktivität automatisch aufgeräumt. Nach einer beendeten Partie könnt ihr direkt ein neues Rätsel starten, ein bereits gespieltes wird dabei nicht noch einmal gezogen.`,
+  },
+  {
+    q: `Kann ich auch gemeinsam statt gegeneinander spielen?`,
+    a: `Ja, im Koop-Modus. Dort teilen sich alle eine einzige Rateliste, jeder Zug ist für alle sichtbar, und es gibt keinen Sieger, sondern ein gemeinsames Ergebnis.`,
+  },
+];
+
+/** Fragen zum Koop-Modus für /koop/. */
+export const koopFaqs: Faq[] = [
+  {
+    q: `Wie funktioniert der Koop-Modus?`,
+    a: `Alle Beteiligten suchen gemeinsam dasselbe geheime Wort und teilen sich eine einzige Rateliste. Jedes Wort, das jemand eintippt, erscheint bei allen anderen mit seinem Rang. Es gibt keinen Sieger, nur ein gemeinsames Ergebnis.`,
+  },
+  {
+    q: `Wie viele Leute können mitspielen?`,
+    a: `Beliebig viele. Jeder, der den Link öffnet und einen Namen eingibt, rät am selben Wort mit. Gleiche Namen werden automatisch unterscheidbar gemacht.`,
+  },
+  {
+    q: `Was ist die beste Taktik zu mehreren?`,
+    a: `Den Bedeutungsraum vorher aufteilen. Der häufigste Fehler ist, dass alle gleichzeitig Synonyme derselben Idee eintippen und damit dieselbe Information mehrfach messen. Besser: Einer nimmt Natur und Konkretes, einer Gesellschaft und Abstraktes, einer Tätigkeiten und Eigenschaften.`,
+  },
+  {
+    q: `Was passiert, wenn jemand aufgibt?`,
+    a: `Der Aufgeben-Knopf löst für alle auf, weil eine geteilte Rateliste ohne geteiltes Ende keinen Sinn ergäbe. Vorher lohnt ein Blick auf die 500 nächstliegenden Wörter, die nach dem Auflösen sichtbar werden.`,
+  },
+  {
+    q: `Eignet sich Koop, um jemandem das Spiel beizubringen?`,
+    a: `Ja, besser als jeder andere Modus. Man sieht die Ränge der anderen, kann fragen, warum jemand ein bestimmtes Wort gewählt hat, und lernt am fremden Zug oft mehr als am eigenen.`,
+  },
+];
+
+/** Fragen zum Wördle-Duell für /wordle/duel/. */
+export const wordleDuelFaqs: Faq[] = [
+  {
+    q: `Wie funktioniert das Wördle-Duell?`,
+    a: `Alle Beteiligten raten dasselbe Wort mit fünf Buchstaben und haben dieselben sechs Versuche. Du siehst live, wie weit dein Gegenüber ist. Wer das Wort mit weniger Versuchen findet, gewinnt.`,
+  },
+  {
+    q: `Sehe ich die Wörter meines Gegenübers?`,
+    a: `Nein, nur die Farbmuster. Von jedem fremden Versuch siehst du die Reihe aus grünen, gelben und grauen Feldern, aber nicht die Buchstaben. Du erfährst also, wie nah jemand dran ist, ohne die Lösung geschenkt zu bekommen.`,
+  },
+  {
+    q: `Kann ich aus den Farben des Gegners etwas ableiten?`,
+    a: `Ja, und das ist der taktische Reiz. Drei grüne Felder beim Gegenüber heißen, dass die Zeit knapp wird und du eher raten als absichern solltest. Viele graue Felder heißen umgekehrt, dass ihr beide noch am Anfang steht und sich ein sauberer Ausschlusszug lohnt.`,
+  },
+  {
+    q: `Wie lade ich jemanden ein?`,
+    a: `Beim Erstellen bekommst du einen Link mit sechsstelliger Kennung. Verschicken, öffnen, Namen eingeben, fertig. Kein Konto, keine Installation.`,
+  },
+  {
+    q: `Welches Wort wird gespielt?`,
+    a: `Du wählst beim Erstellen zwischen dem heutigen Wördle und einem zufälligen Wort aus dem Pool. In beiden Fällen raten alle dasselbe Wort.`,
+  },
+  {
+    q: `Was passiert, wenn beide das Wort nicht finden?`,
+    a: `Die Partie endet, sobald alle gelöst haben oder ihre sechs Versuche aufgebraucht sind. Danach könnt ihr direkt eine neue Runde starten.`,
+  },
+];

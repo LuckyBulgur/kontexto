@@ -1,6 +1,9 @@
 import WordleDuelPageClient from "@/components/wordle/duel/WordleDuelPageClient";
 import WordleDuelSeo from "@/components/seo/WordleDuelSeo";
+import StructuredData from "@/components/StructuredData";
+import { faqSchema } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
+import { wordleDuelFaqs } from "@/lib/faqs";
 
 export const metadata = buildMetadata({
   path: "/wordle/duel/",
@@ -9,5 +12,11 @@ export const metadata = buildMetadata({
 });
 
 export default function WordleDuelPage() {
-  return (<><WordleDuelPageClient /><WordleDuelSeo /></>);
+  return (
+    <>
+      <StructuredData data={faqSchema(wordleDuelFaqs)} />
+      <WordleDuelPageClient />
+      <WordleDuelSeo />
+    </>
+  );
 }

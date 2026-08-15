@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { faqs } from "@/lib/faqs";
+import { faqs, type Faq } from "@/lib/faqs";
 
 /**
  * FAQ list built from native <details>/<summary>. Stays a Server Component, so all
@@ -7,10 +7,10 @@ import { faqs } from "@/lib/faqs";
  * the DOM, not display:none) and remains fully crawlable, unlike a client-side
  * accordion. Keyboard- and screen-reader-accessible with zero ARIA.
  */
-export default function SeoFaq() {
+export default function SeoFaq({ items = faqs }: { items?: Faq[] } = {}) {
   return (
     <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card">
-      {faqs.map((f) => (
+      {items.map((f) => (
         <details key={f.q} className="group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-foreground transition-colors hover:bg-accent [&::-webkit-details-marker]:hidden">
             <span>{f.q}</span>
