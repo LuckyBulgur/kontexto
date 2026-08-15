@@ -4,7 +4,7 @@ import { faqs } from "@/lib/faqs";
 /**
  * FAQ list built from native <details>/<summary>. Stays a Server Component, so all
  * answer text is always present in the static HTML export (collapsed content is in
- * the DOM, not display:none) and remains fully crawlable — unlike a client-side
+ * the DOM, not display:none) and remains fully crawlable, unlike a client-side
  * accordion. Keyboard- and screen-reader-accessible with zero ARIA.
  */
 export default function SeoFaq() {

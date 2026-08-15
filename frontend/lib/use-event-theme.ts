@@ -24,7 +24,7 @@ const EVENT_CHANGE = "kontexto:event-theme-change";
 interface EventThemeState {
   /** Event-Skin wird gerade angezeigt (Fenster läuft UND nicht abgewählt). */
   active: boolean;
-  /** Event-Zeitfenster läuft — steuert, ob der Opt-out-Schalter angeboten wird. */
+  /** Event-Zeitfenster läuft. Steuert, ob der Opt-out-Schalter angeboten wird. */
   available: boolean;
   /** User-Präferenz: Event-Design eingeschaltet (nicht abgewählt). */
   enabled: boolean;
@@ -37,7 +37,7 @@ interface EventThemeState {
  * (auch tab-übergreifend via `storage`-Event) sowie dem Event-Ende synchron.
  *
  * Server und erster Client-Render liefern bewusst `active=false`, damit es
- * keinen Hydration-Mismatch gibt — die rein CSS-getriebene Skin (Klasse auf
+ * keinen Hydration-Mismatch gibt. Die rein CSS-getriebene Skin (Klasse auf
  * `<html>`) ist davon unberührt und bereits vor der Hydration sichtbar.
  */
 export function useEventTheme(): EventThemeState {
@@ -82,7 +82,7 @@ export function useEventTheme(): EventThemeState {
       if (next) localStorage.removeItem(EVENT_OPTOUT_KEY);
       else localStorage.setItem(EVENT_OPTOUT_KEY, "off");
     } catch {
-      /* localStorage nicht verfügbar — UI-State unten genügt für diese Session */
+      /* localStorage nicht verfügbar, UI-State unten genügt für diese Session */
     }
     setEnabledState(next);
     document.documentElement.classList.toggle(EVENT_CLASS, isEventActive());

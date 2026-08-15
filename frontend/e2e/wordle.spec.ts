@@ -12,7 +12,7 @@ test.describe("Wördle Einzelspieler", () => {
     // Mit Delay tippen, damit React jeden Buchstaben committet. Anschließend NICHT
     // sofort die physische Enter-Taste drücken (Race: submitGuess würde über ein
     // noch nicht aktualisiertes currentGuess schließen), sondern den On-Screen-
-    // Enter-Button klicken — eine eigene, actionability-geprüfte Aktion, die erst
+    // Enter-Button klicken, eine eigene, actionability-geprüfte Aktion, die erst
     // nach dem letzten Render feuert.
     await page.keyboard.type("feuer", { delay: 60 });
     await page.getByRole("button", { name: "Enter", exact: true }).click();

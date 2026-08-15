@@ -30,7 +30,7 @@ export default function StatsDialog({ open, onClose }: StatsDialogProps) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Deine Statistik</DialogTitle>
-          <DialogDescription>Dein persönlicher Spielverlauf – nur auf diesem Gerät gespeichert.</DialogDescription>
+          <DialogDescription>Dein persönlicher Spielverlauf, nur auf diesem Gerät gespeichert.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-4 gap-2">
@@ -41,7 +41,7 @@ export default function StatsDialog({ open, onClose }: StatsDialogProps) {
           <StatTile label="Gelöst" value={stats.solved} />
           <StatTile label="Aufgegeben" value={stats.gaveUp} />
           <StatTile label="Ø Versuche" value={formatDecimal(avgGuesses)} />
-          <StatTile label="Beste Lösung" value={stats.fewestGuesses ?? "–"} />
+          <StatTile label="Beste Lösung" value={stats.fewestGuesses ?? "k. A."} />
         </div>
 
         <div className="space-y-2">

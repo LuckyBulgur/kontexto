@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Structure-faithful placeholder for the admin stats dashboard. Deliberately
 // self-contained: it must NOT import from charts.tsx, which pulls recharts into
-// the bundle — keeping recharts confined to the lazily-loaded Dashboard chunk.
+// the bundle, keeping recharts confined to the lazily-loaded Dashboard chunk.
 // The container classes mirror the real shell in StatsCharts.tsx (grouped
 // sidebar + the default "Überblick" section) so swapping skeleton → dashboard
 // does not shift layout.

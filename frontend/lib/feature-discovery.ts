@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
  * Die Persistenz-Helfer sind pur und nehmen das `Storage` als Parameter, damit
  * sie ohne DOM (node-Vitest-Umgebung) getestet werden können. Alle Zugriffe
  * sind in try/catch gekapselt: Im Privatmodus oder bei deaktivierten Cookies
- * kann `localStorage` werfen – dann fällt der Hinweis still auf „nicht
+ * kann `localStorage` werfen, dann fällt der Hinweis still auf „nicht
  * hervorgehoben" zurück, statt die App zu brechen.
  */
 
@@ -27,7 +27,7 @@ export function markFeatureDiscovered(storage: Storage | undefined, key: string)
   try {
     storage?.setItem(key, DISCOVERED_VALUE);
   } catch {
-    // Persistenz ist optional – der Hinweis ist für diese Session bereits ausgeblendet.
+    // Persistenz ist optional, der Hinweis ist für diese Session bereits ausgeblendet.
   }
 }
 

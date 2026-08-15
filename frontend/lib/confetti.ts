@@ -34,7 +34,7 @@ function loadConfetti(): Promise<ConfettiApi> {
 
 let cachedShapes: ConfettiShape[] | null = null;
 /**
- * Mischung aus runden Ball-Körpern und einem Fünfeck-Panel — evoziert
+ * Mischung aus runden Ball-Körpern und einem Fünfeck-Panel, evoziert
  * Fußbälle, ganz ohne Emojis (Content-Richtlinie). Einmalig gecacht.
  */
 function footballShapes(confetti: ConfettiApi): ConfettiShape[] {
@@ -89,7 +89,7 @@ export async function fireConfetti(): Promise<void> {
 }
 
 /**
- * Einzelner zentraler Burst — für die Wördle-Lösungen (nach der Flip-Animation).
+ * Einzelner zentraler Burst für die Wördle-Lösungen (nach der Flip-Animation).
  */
 export async function fireBurst(): Promise<void> {
   const confetti = await loadConfetti();

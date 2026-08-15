@@ -94,7 +94,7 @@ export default function WordleDuelPageClient() {
 
       // Seed opponent boards with their already-played rows (colours only).
       // Merge instead of replace: a guess_made may have arrived over the WS
-      // during the await above — never shrink what we already have.
+      // during the await above. Never shrink what we already have.
       const myNick = loadDuelNickname(duelId);
       setOpponentGuesses((prev) => {
         const next = new Map(prev);
@@ -184,7 +184,7 @@ export default function WordleDuelPageClient() {
     } else if (msg.type === "guess_made") {
       setOpponentGuesses((prev) => {
         const existing = prev.get(msg.nickname) || [];
-        // Idempotent by guess number — ignore duplicates (e.g. a row already
+        // Idempotent by guess number, ignore duplicates (e.g. a row already
         // seeded via a `state` message after a reconnect).
         if (msg.guess_number <= existing.length) return prev;
         const next = new Map(prev);

@@ -44,7 +44,7 @@ interface WordleHeaderProps {
 /**
  * Wördle-Header im Kontexto-Stil: zentrierter Titel, keine Trennlinie, alle
  * Aktionen gebündelt in einem 3-Punkte-Dropdown. Repliziert bewusst die Hülle
- * von `components/Header.tsx`, zeigt aber Wördle-eigene Menüpunkte – beide
+ * von `components/Header.tsx`, zeigt aber Wördle-eigene Menüpunkte, beide
  * Spiele bleiben so entkoppelt bei identischem Erscheinungsbild.
  */
 export default function WordleHeader({
@@ -92,7 +92,7 @@ export default function WordleHeader({
                   variant="ghost"
                   size="icon"
                   className="relative h-10 w-10"
-                  aria-label={showDuelHighlight ? "Menü – neue Funktion: Duell" : "Menü"}
+                  aria-label={showDuelHighlight ? "Menü, neue Funktion: Duell" : "Menü"}
                 >
                   <EllipsisVertical className="h-6! w-6!" />
                   {showDuelHighlight && (

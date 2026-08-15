@@ -31,7 +31,7 @@ export default function StatsModal({ open, onOpenChange, gameNumber, guesses, ev
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Statistiken</DialogTitle>
-          <DialogDescription>Dein persönlicher Spielverlauf – nur auf diesem Gerät gespeichert.</DialogDescription>
+          <DialogDescription>Dein persönlicher Spielverlauf, nur auf diesem Gerät gespeichert.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-4 gap-2">

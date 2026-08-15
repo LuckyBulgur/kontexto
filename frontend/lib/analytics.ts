@@ -43,7 +43,7 @@ export async function trackPageview(page: string): Promise<void> {
 // Live-presence heartbeat. Sent on a short interval while a page is open so the
 // admin dashboard can show how many people currently have the site open. Carries
 // only the page path + the same signed token as the pageview beacon; identity is
-// derived server-side. Fire-and-forget — never disrupts the user experience.
+// derived server-side. Fire-and-forget, never disrupts the user experience.
 export async function sendHeartbeat(page: string): Promise<void> {
   try {
     const t = await ensureToken();

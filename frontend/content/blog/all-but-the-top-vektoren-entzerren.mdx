@@ -1,0 +1,109 @@
+# All-but-the-Top: warum Kontexto die Wortvektoren entzerrt
+
+Nimm ein frisch trainiertes Worteinbettungsmodell, such dir ein beliebiges Zielwort aus und lass
+dir die zehn ähnlichsten Wörter ausgeben. Dann nimm ein völlig anderes Zielwort und mach dasselbe.
+In vielen Fällen überschneiden sich die Listen. Nicht bei den Wörtern, die inhaltlich passen,
+sondern bei einer Handvoll sehr häufiger Allerweltsbegriffe, die überall vorne mitlaufen.
+
+Das ist kein Fehler im Training. Es ist eine bekannte geometrische Eigenschaft von
+Worteinbettungen, und sie macht ein Spiel wie Kontexto ohne Gegenmaßnahme fast unspielbar.
+Deshalb läuft jeder Vektor bei uns durch eine Nachbearbeitung, bevor auch nur ein einziger Rang
+berechnet wird.
+
+## Das Problem: alle Vektoren zeigen ein bisschen in dieselbe Richtung
+
+Man stellt sich einen Vektorraum gern als sauber zentrierte Wolke vor, in der die Wörter
+gleichmäßig um den Nullpunkt herum verteilt liegen und die Richtung eines Vektors reine
+Bedeutung kodiert.
+
+So sieht es nicht aus. Der Mittelwert aller Wortvektoren ist deutlich von null verschieden. Die
+gesamte Wolke ist verschoben. Und darüber hinaus gibt es einige wenige Richtungen im Raum, in
+denen extrem viel Varianz steckt und die von fast allen Wörtern geteilt werden.
+
+Diese dominanten Richtungen kodieren keine Bedeutung. Sie kodieren im Wesentlichen, **wie häufig**
+ein Wort im Trainingskorpus vorkommt. Mu und Viswanath haben das 2018 in der Arbeit
+*All-but-the-Top: Simple and Effective Postprocessing for Word Representations* systematisch
+beschrieben und gezeigt, dass das Entfernen dieser Richtungen die Qualität von
+Ähnlichkeitsmessungen messbar verbessert.
+
+Für Kontexto ist der Effekt handfest. Die Kosinus-Ähnlichkeit misst den Winkel zwischen zwei
+Vektoren. Wenn alle Vektoren eine gemeinsame Komponente haben, dann ist der Winkel zwischen
+beliebigen zwei Wörtern systematisch kleiner, als er inhaltlich sein müsste. Und Wörter mit
+besonders großer gemeinsamer Komponente, also besonders häufige Wörter, sind zu allem ähnlich.
+
+Ohne Korrektur läge bei einem Zielwort wie `Erdbeere` nicht `Himbeere` vorne, sondern eine
+Ansammlung von hochfrequenten Substantiven, die zu allem passen. Der Rang würde messen, wie
+gebräuchlich dein Wort ist, nicht wie nah es an der Bedeutung liegt. Das Spiel würde sich in
+eine Häufigkeitsraterei verwandeln.
+
+## Die Korrektur in zwei Schritten
+
+Der Eingriff ist erstaunlich klein. Er besteht aus zwei Operationen auf der Matrix aller
+80.000 Vokabelvektoren.
+
+**Schritt 1: Mittelwert abziehen.** Für jede der 300 Dimensionen wird der Durchschnitt über alle
+Wörter gebildet, und dieser Durchschnittsvektor wird von jedem einzelnen Wortvektor subtrahiert.
+Danach liegt der Schwerpunkt der Wolke im Nullpunkt. Das ist gewöhnliches Zentrieren, wie man es
+aus der Statistik kennt.
+
+**Schritt 2: die drei stärksten Hauptkomponenten entfernen.** Auf die zentrierte Matrix wird eine
+Singulärwertzerlegung angewandt. Sie liefert die Richtungen im Raum, sortiert danach, wie viel
+Varianz jede erklärt. Von jedem Wortvektor wird anschließend seine Projektion auf die drei
+stärksten dieser Richtungen abgezogen.
+
+Anschaulich: Wenn du eine Punktwolke hast, die insgesamt schräg im Raum liegt, entfernst du damit
+genau die Schräglage, ohne die Feinstruktur innerhalb der Wolke anzutasten. Die Bedeutungsstruktur
+bleibt vollständig erhalten, der gemeinsame Drift verschwindet.
+
+Warum ausgerechnet drei? Das ist der Wert aus der ursprünglichen Arbeit und die Größenordnung, die
+sich in der Praxis bewährt hat. Entfernt man zu wenige Komponenten, bleibt der Häufigkeitseffekt
+sichtbar. Entfernt man zu viele, greift man in echte Bedeutungsachsen ein und die Nachbarschaften
+werden willkürlich.
+
+## Warum das im Spiel spürbar ist
+
+Die Auswirkung merkst du an einer Stelle, an der du sie wahrscheinlich nicht vermutest: bei
+Wörtern, die eindeutig danebenliegen.
+
+Nach der Entzerrung bekommt ein häufiges, aber thematisch unpassendes Wort einen ehrlich
+schlechten Rang. Genau das macht die Information verwertbar. Wenn du `Zeit` eingibst und Rang
+4.100 siehst, dann ist das eine echte Aussage über das Zielwort, nämlich dass es nichts mit
+zeitlichen Konzepten zu tun hat. Ohne Entzerrung hätte `Zeit` fast immer einen mittelmäßig guten
+Rang bekommen, egal worum es geht, und die Eingabe wäre wertlos gewesen.
+
+Das ist der Grund, warum die Strategie aus [Die besten Startwörter für Kontexto](/blog/beste-startwoerter/)
+überhaupt funktioniert. Ein breites Alltagswort als erster Zug liefert nur dann ein Signal, wenn
+sein Rang tatsächlich von der Bedeutung abhängt und nicht von seiner Häufigkeit.
+
+## Was die Entzerrung nicht repariert
+
+Sie behebt einen systematischen geometrischen Effekt. Sie macht das Modell nicht klüger.
+
+Was bleibt, sind die Eigenheiten des Trainingskorpus. fastText für Deutsch ist auf Common Crawl
+und Wikipedia trainiert, also auf dem, was Menschen ins Netz schreiben. Themen, über die viel
+geschrieben wird, sind feiner aufgelöst als Themen, über die wenig geschrieben wird. Wörter mit
+mehreren Bedeutungen bekommen einen einzigen Vektor, der irgendwo zwischen ihren Bedeutungen
+liegt: `Bank` sitzt zwischen Möbelstück und Geldinstitut, und keiner der beiden Nachbarschaften
+gehört sie ganz an.
+
+Auch Gegensätze bleiben nah beieinander. `heiß` und `kalt` erscheinen in praktisch identischen
+Kontexten, deshalb liegen ihre Vektoren dicht zusammen. Für die Rangberechnung heißt das: Ein
+guter Rang bedeutet „im richtigen Bedeutungsfeld“, nicht „inhaltlich zutreffend“. Wer bei
+Zielwort `kalt` das Wort `heiß` eingibt, bekommt einen sehr guten Rang und ist trotzdem beim
+Gegenteil. Mehr dazu in [Warum hat mein Wort einen schlechten Rang?](/blog/warum-schlechter-rang/).
+
+## Nachrechnen
+
+Der Schritt ist im Repository nachvollziehbar. Die Funktion heißt `postprocess_vectors`, sie
+steht in `backend/prepare.py` und ist nicht länger als acht Zeilen: Matrix bilden, Mittelwert
+abziehen, Singulärwertzerlegung, die obersten drei Zeilen der rechten Singulärvektoren nehmen,
+Projektion abziehen, fertig.
+
+Wer es selbst ausprobieren will, braucht dafür kein Kontexto. Lade ein beliebiges vortrainiertes
+Einbettungsmodell, berechne die zehn nächsten Nachbarn für ein paar Zielwörter, wende die zwei
+Schritte an und berechne die Nachbarn erneut. Der Unterschied ist ohne Messwerkzeug sichtbar: Die
+generischen Dauergäste verschwinden aus den vorderen Plätzen und machen Platz für Wörter, die
+inhaltlich etwas mit dem Zielwort zu tun haben.
+
+Wie aus den entzerrten Vektoren dann eine einzelne Zahl wird, erklärt
+[Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/).

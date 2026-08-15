@@ -4,7 +4,7 @@
 
 const KEY = "kontexto_stats";
 
-/** Guess-count buckets — same labels as the server-side histogram. */
+/** Guess-count buckets, same labels as the server-side histogram. */
 export const KONTEXTO_GUESS_BUCKETS = ["1", "2-3", "4-5", "6-10", "11-20", "21-50", "51-100", "100+"] as const;
 
 export function guessBucket(n: number): string {

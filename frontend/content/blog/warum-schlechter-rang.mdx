@@ -1,35 +1,110 @@
 # Warum hat mein Wort einen schlechten Rang?
 
-Du tippst ein Wort, das perfekt zum Thema zu passen scheint – und bekommst Rang 4.000. Frustrierend. Doch dahinter steckt kein Fehler, sondern eine klare Logik. Dieser Artikel erklärt, wie der Rang entsteht, warum dein Bauchgefühl manchmal danebenliegt und was ein hoher Rang wirklich bedeutet.
+Du suchst ein Wort aus dem Bereich Küche, tippst `Astgabel` nicht, sondern `Gabel`, und bekommst
+Rang 3.900. Das Wort passt doch. Oder du tippst bei einem Zielwort aus der Natur `Bank` und
+bekommst überraschend Rang 180, obwohl du an Sitzmöbel gedacht hast und es um einen Fluss geht.
 
-## Wie der Rang berechnet wird
+Beides sind keine Fehler. Es sind vorhersagbare Konsequenzen daraus, was ein Rang tatsächlich
+misst, und wenn man diese fünf Ursachen kennt, wird aus einem ärgerlichen Rang ein verwertbarer
+Messwert.
 
-Hinter Kontexto steht ein KI-Modell, das jedem deutschen Wort einen [Vektor](/glossar/#vektorraum) zuordnet – eine lange Zahlenreihe, die seine Bedeutung beschreibt. Diese [Worteinbettungen](/glossar/#worteinbettung) entstehen daraus, **mit welchen anderen Wörtern ein Wort in echten Texten gemeinsam vorkommt**.
+## Was ein Rang eigentlich ist
 
-Zum Raten vergleicht Kontexto deinen Wortvektor mit dem des Zielworts über die [Kosinus-Ähnlichkeit](/glossar/#kosinus-aehnlichkeit). Dann sortiert es **den gesamten Wortschatz** nach dieser Ähnlichkeit. Dein Rang ist schlicht die Position deines Wortes in dieser Rangliste. Rang 1 ist das Zielwort, Rang 50.000 das unähnlichste Wort.
+Zuerst die Mechanik, weil sie oft anders vermutet wird.
 
-## Warum „passende“ Wörter trotzdem hinten landen
+Jedes der 80.000 Wörter im Vokabular hat einen Vektor. Beim Aufbau der Spieldaten wird einmal für
+jedes Rätsel die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und **allen** Vokabelvektoren
+berechnet, absteigend sortiert und die Position gespeichert.
 
-Hier kommt der entscheidende Punkt: Das Modell kennt **Kontext-Nähe**, nicht deine persönliche Assoziation. Drei typische Überraschungen:
+Dein Rang ist genau diese Position. Rang 1 ist das Zielwort, Rang 2 sein nächster Nachbar,
+Rang 80.000 das entfernteste Wort im gesamten Vokabular.
 
-- **Logische Verwandtschaft ≠ Kontext-Nähe.** „Gabel“ und „Löffel“ liegen nah, weil sie in Texten oft zusammen auftauchen. „Gabel“ und „Astgabel“ klingen verwandt, kommen aber in völlig verschiedenen Kontexten vor – also großer Abstand.
-- **Mehrdeutigkeit verwässert.** Wörter wie „Bank“ oder „Schloss“ haben mehrere Bedeutungen. Ihr Vektor ist eine Mischung daraus und liegt deshalb selten ganz nah an einer speziellen Bedeutung.
-- **Seltene Wörter sind schlecht eingebettet.** Wörter, die im Trainingstext kaum vorkamen, haben ungenaue Vektoren und landen oft unerwartet weit hinten.
+Daraus folgt sofort etwas, das viele unterschätzen: Ein Rang ist eine **relative** Aussage. Rang
+340 heißt nicht „ziemlich nah“, sondern „von 80.000 Wörtern sind 339 näher dran“. Das ist das
+obere halbe Prozent, und in dieses halbe Prozent passen mehrere komplette Themenfelder
+nebeneinander.
 
-> Ein hoher Rang heißt nicht „falsches Wort“, sondern „in echten deutschen Texten steht dieses Wort selten im selben Kontext wie das Zielwort“.
+## Ursache 1: Kontextnähe ist nicht begriffliche Verwandtschaft
 
-## Warum die Schreibweise egal ist
+Das Modell hat nie gelernt, was Dinge sind. Es hat gelernt, welche Wörter in denselben Sätzen
+stehen.
 
-Eine häufige Verwirrung: „Hund“ liegt nah bei „Katze“, aber „Hundert“ ist meilenweit entfernt – obwohl es fast gleich geschrieben wird. Der Grund: Das Modell schaut nicht auf Buchstaben, sondern auf Bedeutung im Kontext. „Hundert“ erscheint in Texten über Zahlen, „Hund“ in Texten über Tiere. Buchstabenähnlichkeit ist reiner Zufall.
+`Gabel` und `Löffel` liegen sehr nah beieinander, weil sie in echten Texten ständig gemeinsam
+auftreten. `Gabel` und `Astgabel` beschreiben beide eine Verzweigung, erscheinen aber in völlig
+getrennten Textsorten, also liegen sie weit auseinander.
 
-## Was du aus einem schlechten Rang lernst
+Der Rang beantwortet nie die Frage „sind diese beiden Dinge verwandt“, sondern immer die Frage
+„stehen diese beiden Wörter in denselben Sätzen“. Wer das einmal verinnerlicht hat, sagt bei einem
+überraschenden Rang nicht mehr „das kann nicht sein“, sondern fragt sich, in welchen Texten sein
+Wort eigentlich vorkommt.
 
-Ein hoher Rang ist kein verlorener Zug, sondern Information:
+## Ursache 2: Mehrdeutigkeit verwässert
 
-1. Er schließt ein Bedeutungsfeld aus und verkleinert den Suchraum.
-2. Er zeigt, dass deine Assoziation nicht der Kontext-Nähe entspricht – probiere ein anderes Feld.
-3. Mehrere hohe Ränge in einem Feld sind das klare Signal, dieses Feld zu verlassen.
+`Bank`, `Schloss`, `Strom`, `Ball`, `Kiefer`: Jedes dieser Wörter hat zwei oder mehr Bedeutungen
+und bekommt trotzdem genau einen Vektor.
 
-## Fazit
+Das Ergebnis ist ein Kompromiss. Der Vektor von `Bank` liegt irgendwo zwischen Möbelstück und
+Geldinstitut und gehört zu keinem der beiden Felder richtig. Bei einem Zielwort aus dem
+Finanzbereich bekommt `Bank` deshalb einen schlechteren Rang, als du erwarten würdest, weil die
+Möbelbedeutung den Vektor wegzieht.
 
-Der Rang spiegelt nicht, wie verwandt zwei Wörter für dich sind, sondern wie nah sie sich in echten deutschen Texten kontextuell stehen. Wer das versteht, ärgert sich weniger über überraschende Ränge und nutzt sie stattdessen als Wegweiser. Mehr zur Technik in [Worteinbettungen einfach erklärt](/blog/worteinbettungen-erklaert/) und [Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/); konkrete Spielzüge in der [Strategie](/strategie/).
+Umgekehrt kann derselbe Effekt ein überraschend **gutes** Ergebnis erzeugen. Wenn ein Wort
+unerwartet weit vorne liegt, lohnt die Frage: Welche zweite Bedeutung könnte gemeint sein? Das ist
+eine der zuverlässigsten Methoden, um in ein Feld zu kommen, an das man nicht gedacht hat.
+
+## Ursache 3: Gegenteile liegen nah beieinander
+
+`heiß` und `kalt` erscheinen in fast identischen Satzmustern. Ihre Kontexte sind deckungsgleich,
+also sind ihre Vektoren ähnlich, also ist der Rang gut.
+
+Für dich heißt das: Ein sehr guter Rang bedeutet „im richtigen Bedeutungsfeld“, nicht „inhaltlich
+zutreffend“. Wenn `heiß` auf Rang 6 liegt, ist die Lösung möglicherweise `kalt`. Das ist keine
+Schwäche, sondern nutzbar: Wer ein Wort ganz vorn hat und nicht weiterkommt, sollte als Nächstes
+sein Gegenteil probieren.
+
+## Ursache 4: seltene Wörter sind ungenau eingebettet
+
+Die Vektorqualität hängt daran, wie oft ein Wort im Trainingstext vorkam. Ein Wort mit ein paar
+hundert Vorkommen hat einen Vektor, der eher Schätzung als Messung ist.
+
+Das trifft im Deutschen besonders lange Komposita und Fachbegriffe. Bei fastText werden solche
+Wörter zu einem großen Teil aus Zeichenabschnitten zusammengesetzt, und dabei geht Genauigkeit
+verloren. Ein schlechter Rang für `Fahrradreparaturset` sagt deshalb wenig darüber aus, ob das
+Zielwort mit Fahrrädern zu tun hat.
+
+**Konsequenz:** Miss ein Themenfeld nie an einem einzigen langen Wort. Nimm kurze, häufige
+Vertreter des Feldes.
+
+## Ursache 5: die Buchstabenfalle
+
+Der Vollständigkeit halber die Ursache, die in die andere Richtung wirkt. Weil fastText
+Zeichenabschnitte mitzählt, können Wörter mit hoher Buchstabenüberlappung einen leicht besseren
+Rang bekommen, als ihre Bedeutung rechtfertigt. `Wachstum` und `Wachs`, `Ausland` und `Auslauf`,
+`Verkehr` und `verkehrt`.
+
+Ein Test dafür: Wenn ein Wort auffällig gut abschneidet, probiere ein bedeutungsgleiches Wort mit
+völlig anderer Schreibweise. Landet das auch vorn, ist das Feld echt getroffen. Bleibt es hinten,
+war es Buchstabenähnlichkeit. Mehr dazu in
+[Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
+
+## Was du aus einem schlechten Rang machst
+
+Ein hoher Rang ist kein verlorener Zug. Er ist meistens der informativere.
+
+1. **Er schließt aus.** Rang 7.800 für `Zeit` entfernt das komplette abstrakt-zeitliche Feld aus
+   deinem Suchraum. Das ist mehr Eingrenzung, als ein Treffer auf Rang 400 dir liefert.
+2. **Er kalibriert deine Intuition.** Wenn dein sicherster Kandidat weit hinten landet, war deine
+   Assoziation keine Kontextnachbarschaft. Diese Rückmeldung ist unmittelbar nutzbar.
+3. **Mehrere hohe Ränge im selben Feld sind ein Abbruchsignal.** Fünf gezielte Züge ohne
+   Verbesserung heißen: Feld wechseln, und zwar weit.
+
+## Die Zusammenfassung in einem Satz
+
+Der Rang misst nicht, wie verwandt zwei Wörter für dich sind, sondern wie oft sie in echten
+deutschen Texten in derselben Umgebung stehen. Wer diesen Satz verinnerlicht, ärgert sich seltener
+und liest mehr aus seinen Zügen heraus.
+
+Wie das Verfahren im Zusammenhang aussieht, zeigt
+[Wenn du feststeckst](/blog/wenn-du-feststeckst/); die technische Grundlage steht in
+[Worteinbettungen](/blog/worteinbettungen-erklaert/) und
+[Kosinus-Ähnlichkeit](/blog/kosinus-aehnlichkeit-einfach-erklaert/).

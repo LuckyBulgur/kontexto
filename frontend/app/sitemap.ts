@@ -23,6 +23,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/glossar/", freq: "monthly", prio: 0.6 },
     { path: "/ueber/", freq: "monthly", prio: 0.5 },
     { path: "/blog/", freq: "weekly", prio: 0.6 },
+    { path: "/zahlen/", freq: "monthly", prio: 0.7 },
+    { path: "/changelog/", freq: "monthly", prio: 0.5 },
+    { path: "/kontakt/", freq: "yearly", prio: 0.4 },
     { path: "/impressum/", freq: "yearly", prio: 0.2 },
     { path: "/datenschutz/", freq: "yearly", prio: 0.2 },
   ];

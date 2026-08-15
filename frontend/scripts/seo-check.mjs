@@ -1,6 +1,6 @@
 // Asserts SEO invariants against the static export in ./out. Exit 1 on any failure.
-import { readFile, access } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readFile, access, readdir } from "node:fs/promises";
+import { resolve, join, relative } from "node:path";
 
 const OUT = resolve(process.cwd(), "out");
 const failures = [];
@@ -58,13 +58,16 @@ const visibleWords = (html) =>
     .filter(Boolean).length;
 
 const contentPages = [
-  { file: "anleitung/index.html", path: "/anleitung/", minWords: 400, schema: '"@type":"HowTo"' },
-  { file: "strategie/index.html", path: "/strategie/", minWords: 500 },
-  { file: "faq/index.html", path: "/faq/", minWords: 400, schema: '"@type":"FAQPage"' },
-  { file: "ueber/index.html", path: "/ueber/", minWords: 400 },
-  { file: "vergleich/index.html", path: "/vergleich/", minWords: 450 },
-  { file: "glossar/index.html", path: "/glossar/", minWords: 350, schema: '"@type":"DefinedTermSet"' },
+  { file: "anleitung/index.html", path: "/anleitung/", minWords: 800, schema: '"@type":"HowTo"' },
+  { file: "strategie/index.html", path: "/strategie/", minWords: 900 },
+  { file: "faq/index.html", path: "/faq/", minWords: 700, schema: '"@type":"FAQPage"' },
+  { file: "ueber/index.html", path: "/ueber/", minWords: 700 },
+  { file: "vergleich/index.html", path: "/vergleich/", minWords: 800 },
+  { file: "glossar/index.html", path: "/glossar/", minWords: 700, schema: '"@type":"DefinedTermSet"' },
   { file: "blog/index.html", path: "/blog/", minWords: 250 },
+  { file: "kontakt/index.html", path: "/kontakt/", minWords: 250 },
+  { file: "changelog/index.html", path: "/changelog/", minWords: 400 },
+  { file: "zahlen/index.html", path: "/zahlen/", minWords: 800 },
 ];
 for (const p of contentPages) {
   const html = await read(p.file);
@@ -83,12 +86,61 @@ for (const p of contentPages) {
 const blogSlugs = [
   ...new Set([...sm.matchAll(/\/blog\/([a-z0-9-]+)\//g)].map((m) => m[1])),
 ];
-ok(blogSlugs.length >= 8, `expected >=8 blog posts in sitemap, found ${blogSlugs.length}`);
+// AdSense-Programmrichtlinie „Mindestanforderungen an den Content“: jeder Artikel
+// muss eigenständig tragen. 900 Wörter gerenderter Text ist die harte Untergrenze,
+// unterhalb derer Google von „thin content“ ausgeht.
+const MIN_BLOG_WORDS = 900;
+const MIN_BLOG_POSTS = 18;
+ok(
+  blogSlugs.length >= MIN_BLOG_POSTS,
+  `expected >=${MIN_BLOG_POSTS} blog posts in sitemap, found ${blogSlugs.length}`,
+);
 for (const slug of blogSlugs) {
   const html = await read(`blog/${slug}/index.html`);
   ok(html.includes(`href="https://kontexto.de/blog/${slug}/"`), `blog/${slug}: missing self-canonical`);
   ok(html.includes('"@type":"BlogPosting"'), `blog/${slug}: missing BlogPosting schema`);
   ok((html.match(/<h1/g) || []).length === 1, `blog/${slug}: expected exactly one <h1>`);
+  const w = visibleWords(html);
+  ok(w >= MIN_BLOG_WORDS, `blog/${slug}: thin content (${w} < ${MIN_BLOG_WORDS} words)`);
+}
+
+// --- Typografie über den gesamten Auslieferungsstand ---
+// Geviertstrich und Horizontal Bar sind projektweit verboten; im Deutschen ist der
+// Gedankenstrich falsch und er ist ein sofort sichtbarer Marker für maschinell
+// erzeugten Text. Gerade Anführungszeichen im Fließtext sind ebenfalls ein Fehler:
+// deutsche Paare sind „…“.
+async function htmlFiles(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await htmlFiles(full)));
+    else if (entry.name.endsWith(".html")) out.push(full);
+  }
+  return out;
+}
+
+const visibleText = (html) =>
+  html
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<style[\s\S]*?<\/style>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;|&#39;/g, "'");
+
+// Aus dem Codepoint gebaut, damit diese Datei nicht selbst gegen die Regel
+// verstoesst, die sie durchsetzt.
+const EM_DASH = new RegExp(`[${String.fromCharCode(0x2014, 0x2015)}]`);
+
+for (const file of await htmlFiles(OUT)) {
+  const rel = relative(OUT, file).replace(/\\/g, "/");
+  const html = await readFile(file, "utf8");
+  ok(!EM_DASH.test(html), `${rel}: contains an em dash (U+2014/U+2015)`);
+
+  const text = visibleText(html);
+  const open = (text.match(/„/g) || []).length;
+  const close = (text.match(/“/g) || []).length;
+  ok(open === close, `${rel}: unbalanced German quotes (${open}x „ vs ${close}x “)`);
+  ok(!text.includes('"'), `${rel}: straight double quote in visible text (use „…“)`);
 }
 
 if (process.env.KONTEXTO_REQUIRE_IMPRESSUM === "1") {

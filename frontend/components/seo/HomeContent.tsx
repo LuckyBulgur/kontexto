@@ -22,11 +22,11 @@ export default function HomeContent() {
         crawlable, content-first copy lives here below it.
       */}
       <h1 className="mb-3 text-2xl font-bold text-foreground">
-        Kontexto – die deutsche Version von Contexto
+        Kontexto: die deutsche Version von Contexto
       </h1>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
-        Errate das geheime Wort des Tages – nach jedem Tipp zeigt dir Kontexto, wie
+        Errate das geheime Wort des Tages. Nach jedem Tipp zeigt dir Kontexto, wie
         nah du an der Bedeutung des Zielworts bist. Je kleiner die Zahl, desto näher
         bist du dran.
       </p>
@@ -34,17 +34,17 @@ export default function HomeContent() {
       <SeoHeading>Warum Kontexto spielen?</SeoHeading>
       <FeatureGrid>
         <FeatureCard icon={Brain} title="Trainiert dein Sprachgefühl">
-          Es zählt die Bedeutung im Kontext, nicht die Buchstaben – ein Workout für
+          Es zählt die Bedeutung im Kontext, nicht die Buchstaben, ein Workout für
           deinen deutschen Wortschatz.
         </FeatureCard>
         <FeatureCard icon={InfinityIcon} title="Unbegrenzt viele Versuche">
           Kein Druck: Du darfst so oft raten, wie du willst, bis du das Zielwort findest.
         </FeatureCard>
         <FeatureCard icon={CalendarDays} title="Jeden Tag ein neues Wort">
-          Um Mitternacht startet ein neues Rätsel – alle raten dasselbe Wort des Tages.
+          Um Mitternacht startet ein neues Rätsel, alle raten dasselbe Wort des Tages.
         </FeatureCard>
         <FeatureCard icon={Gift} title="Kostenlos & ohne Konto">
-          Komplett kostenlos und ohne Anmeldung – einfach die Seite öffnen und losraten.
+          Komplett kostenlos und ohne Anmeldung, einfach die Seite öffnen und losraten.
         </FeatureCard>
       </FeatureGrid>
 
@@ -70,7 +70,7 @@ export default function HomeContent() {
       <SeoHeading>Ein Beispiel</SeoHeading>
       <p className="mb-2 max-w-prose">
         Gesucht ist das Wort <strong className="font-medium text-foreground">Strand</strong>.
-        So könnte sich eine Partie Schritt für Schritt entwickeln – jeder Tipp rückt
+        So könnte sich eine Partie Schritt für Schritt entwickeln, jeder Tipp rückt
         näher an die Bedeutung:
       </p>
       <ComparisonTable
@@ -84,7 +84,7 @@ export default function HomeContent() {
         caption="Beispielhafte Tipps für das Zielwort Strand"
       />
       <p className="max-w-prose">
-        Auf der{" "}
+        In der{" "}
         <Link href="/anleitung/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
           Spielanleitung
         </Link>{" "}
@@ -102,7 +102,7 @@ export default function HomeContent() {
         </Link>{" "}
         errätst du ein Wort Buchstabe für Buchstabe. Bei Kontexto geht es um Bedeutung:
         Es gibt unbegrenzt viele Versuche, und jeder Tipp bringt dich der Lösung
-        semantisch näher. Beide Spiele gibt es hier täglich neu – auf Deutsch.
+        semantisch näher. Beide Spiele gibt es hier täglich neu, auf Deutsch.
       </p>
 
       <SeoHeading>Häufige Fragen</SeoHeading>

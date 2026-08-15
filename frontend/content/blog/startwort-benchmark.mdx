@@ -1,0 +1,148 @@
+# Startwort-Benchmark: 2.400 Rätsel gemessen, drei eigene Empfehlungen widerlegt
+
+Auf dieser Seite stand von Anfang an derselbe Rat wie überall sonst im Netz: Fang mit breiten
+Alltagswörtern an, `Zeit`, `Mensch`, `Wasser`. Der Rat klang plausibel und war nie überprüft.
+
+Jetzt ist er überprüft. Für jedes der 2.400 vorberechneten Rätsel liegt eine vollständige
+Rangliste über alle 80.000 Vokabelwörter vor. Damit lässt sich für jedes Kandidatenwort exakt
+ausrechnen, welchen Rang es in jedem einzelnen Rätsel bekommen hätte. Kein Sampling, keine
+Schätzung, 108.000 Einzelmessungen.
+
+Das Ergebnis hat zwei unserer drei Standardempfehlungen kassiert.
+
+## Was überhaupt gemessen wurde
+
+46 Kandidaten in drei Gruppen: Wörter, die wir für breit hielten; mittelbreite Begriffe als
+Kontrollgruppe; bewusst enge Spezialbegriffe als Gegenprobe. Verben und Adjektive sind
+absichtlich dabei.
+
+Pro Wort und Rätsel wurde der Rang abgelesen, daraus Median, Spannweite, Streuung und zwei
+Trefferquoten berechnet: wie oft das Wort unter Rang 300 landet (grün) und wie oft unter
+Rang 1500 (gelb oder besser).
+
+Ein Kandidat fiel schon vor der Messung durch: `Quastenflosser` steht gar nicht im Vokabular. Das
+Wort diente in der alten Fassung dieser Seite als Beispiel für ein zu enges Startwort, und es ist
+tatsächlich so selten, dass es die Aufnahmeschwelle nicht schafft.
+
+## Die erste Überraschung: grün ist praktisch unerreichbar
+
+Die naive Erwartung an ein gutes Startwort ist, dass es einen guten Rang liefert. Das tut keines.
+
+Der Spitzenreiter `gehen` landet in **5,0 Prozent** der Rätsel unter Rang 300, dahinter
+`sprechen` mit 4,7 Prozent. Bei den klassisch empfohlenen Substantiven liegt die Quote
+zwischen 1 und 2,5 Prozent.
+
+Anders gesagt: In neunzehn von zwanzig Partien ist dein erster Zug rot, egal wie gut das Startwort
+gewählt ist. Das ist kein Versagen, sondern Statistik. Rang 300 von 80.000 ist das obere
+0,4 Prozent des Wortschatzes, und die Wahrscheinlichkeit, dass ein einzelnes Wort dort zufällig
+landet, ist entsprechend klein.
+
+Wer also nach dem ersten Zug enttäuscht ist, misst an der falschen Messlatte.
+
+## Die eigentliche Kennzahl
+
+Nützlich ist ein Startwort nicht, wenn es grün wird, sondern wenn es **überhaupt ein Signal
+gibt**. Die dafür passende Zahl ist der Anteil der Rätsel unter Rang 1500, also gelb oder besser.
+In diesem Bereich beginnt der Rang, etwas über das Themenfeld auszusagen.
+
+Hier ist die Rangfolge, gemessen über alle 2.400 Rätsel:
+
+| Wort | Median-Rang | unter 1500 | unter 300 |
+|---|---:|---:|---:|
+| gehen | 26.906 | 13,2 % | 5,0 % |
+| machen | 28.883 | 12,8 % | 3,6 % |
+| arbeit | 18.038 | 11,9 % | 2,4 % |
+| sehen | 28.663 | 11,0 % | 3,8 % |
+| bauen | 34.200 | 11,0 % | 3,6 % |
+| sprechen | 28.616 | 10,7 % | 4,7 % |
+| zeit | 16.348 | 10,3 % | 2,3 % |
+| weg | 18.811 | 9,6 % | 2,3 % |
+| schnell | 29.757 | 9,6 % | 3,7 % |
+| leben | 21.839 | 8,6 % | 2,1 % |
+| haus | 23.032 | 7,8 % | 2,5 % |
+| spiel | 19.736 | 7,5 % | 2,1 % |
+| mensch | 27.006 | 5,6 % | 1,3 % |
+| wasser | 38.216 | 2,6 % | 0,9 % |
+| thermodynamik | 36.471 | 2,2 % | 0,5 % |
+
+Die vollständige Tabelle mit allen 45 Kandidaten steht unter [Kontexto in Zahlen](/zahlen/).
+
+## Die zweite Überraschung: Verben schlagen Substantive deutlich
+
+Die fünf besten Wörter im Feld sind vier Verben und ein Substantiv. `gehen`, `machen`, `sehen`,
+`bauen` und `sprechen` liegen alle über 10 Prozent, während die Mehrheit der empfohlenen
+Substantive zwischen 5 und 8 Prozent hängt.
+
+Der Grund ist vermutlich grammatisch. Ein Verb erscheint in Sätzen über praktisch jedes Thema,
+weil fast jeder Sachverhalt eine Handlung enthält. Ein Substantiv trägt dagegen selbst schon ein
+Thema mit sich. `Wasser` steht in Texten über Wasser.
+
+Die Empfehlung „variiere die Wortart, wenn du feststeckst“ stand schon vorher auf dieser Seite.
+Die Daten sagen etwas Schärferes: Fang gleich mit einem Verb an.
+
+## Die dritte Überraschung: Wasser ist ein schlechtes Startwort
+
+`Wasser` stand hier an drei Stellen als Musterbeispiel für ein breites Startwort. Gemessen liegt
+es auf Platz 39 von 45.
+
+Sein Median-Rang ist 38.216, sein Anteil unter 1500 beträgt 2,6 Prozent. Beides ist schlechter als
+bei `Thermodynamik`, das ausdrücklich als Gegenbeispiel für ein zu enges Wort in der Tabelle stand.
+
+Im Nachhinein ist der Grund erkennbar. `Wasser` fühlt sich breit an, weil es in vielen
+Lebensbereichen vorkommt: Chemie, Küche, Geografie, Wetter. Für das Modell zählt aber nicht, in
+wie vielen Bereichen ein Wort **auftaucht**, sondern wie ähnlich sich seine typischen Satzumgebungen
+sind. Und die sind bei `Wasser` erstaunlich einheitlich: Es geht fast immer buchstäblich um
+Flüssigkeit.
+
+`Zeit` dagegen erscheint in Sätzen über Geschichte, Physik, Termine, Musik, Alter, Erinnerung.
+Diese Umgebungen haben untereinander wenig gemein, und genau daraus entsteht die Verbindung in
+viele Richtungen.
+
+Wir haben die Empfehlungen auf der [Strategie-Seite](/strategie/), in der
+[Spielanleitung](/anleitung/) und in [Die besten Startwörter](/blog/beste-startwoerter/)
+entsprechend korrigiert.
+
+## Was nicht funktioniert hat
+
+Zur Ehrlichkeit gehört auch, welche Kennzahl sich als unbrauchbar erwiesen hat.
+
+Vor der Messung war die Erwartung, dass die **Streuung** das entscheidende Merkmal ist: Ein gutes
+Startwort sollte einen Rang haben, der je nach Zielwort stark schwankt, während ein Wort mit
+konstantem Rang keine Information trägt. Das ist theoretisch richtig und praktisch nutzlos, denn
+der Interquartilsabstand liegt bei **allen** 45 Kandidaten zwischen 30.000 und 46.000. Er
+unterscheidet nichts.
+
+Auch der Median allein führt in die Irre. `Zeit` hat mit 16.348 den besten Median im Feld, liegt
+bei der Trefferquote aber nur auf Platz sieben. Ein niedriger Median entsteht schon dadurch, dass
+ein Wort selten sehr weit hinten landet, und das hilft beim Raten nicht.
+
+Nur der Anteil unter Rang 1500 misst, was zählt.
+
+## Die überarbeitete Empfehlung
+
+Aus den Daten folgt ein Startsatz, der anders aussieht als der alte:
+
+1. **gehen**, das messbar beste Startwort im Feld.
+2. **arbeit**, das beste Substantiv im Feld und insgesamt auf Platz drei.
+3. **sehen** oder **sprechen**, ein zweites Verb aus einem anderen Bereich.
+4. **zeit**, für die abstrakt-zeitliche Richtung.
+
+Jedes dieser vier Wörter liefert für sich genommen in rund jeder neunten Partie einen Rang unter
+1500. Wie oft mindestens eines davon trifft, sagt die Messung nicht: Die vier Ergebnisse hängen
+voneinander ab, weil bei einem gut erreichbaren Zielwort oft mehrere gleichzeitig anschlagen.
+Einfach zusammenzählen wäre deshalb falsch.
+
+Wichtiger als die konkrete Auswahl bleibt aber die Lesart: Auch ein rotes Startwort ist ein
+Ergebnis. Warum die Absagen oft mehr wert sind als die Treffer, steht in
+[Die besten Startwörter](/blog/beste-startwoerter/), und wie es nach der Eröffnung weitergeht in
+[Wenn du feststeckst](/blog/wenn-du-feststeckst/).
+
+## Methodik zum Nachrechnen
+
+Die Zahlen stammen aus `scripts/export-startword-benchmark.py` im Projektarchiv. Das Skript liest
+die vorberechneten Rangarrays der Rätsel, schlägt für jeden Kandidaten seinen Vokabelindex nach
+und liest an dieser Position den Rang ab, Rätsel für Rätsel.
+
+Stand der Auswertung: 15. August 2026, 2.400 Rätsel, 80.000 Vokabelwörter, 45 Kandidaten. Der
+Datensatz liegt als JSON im Projekt und lässt sich nach jedem Neuaufbau der Spieldaten erneut
+erzeugen.

@@ -233,7 +233,7 @@ export default function GameClient() {
       if (e instanceof Error && e.message === "unknown_word") {
         setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
       } else if (e instanceof Error && e.message === "stopword") {
-        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht – es ist zu allgemein" });
+        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
       } else {
         setError("Fehler bei der Verbindung");
       }

@@ -44,7 +44,7 @@ export interface PastGame {
 export interface InfiniteSession {
   /** The game currently in progress (or the one just finished). */
   current: GameState;
-  /** Game numbers already finished this session — used to avoid repeats. */
+  /** Game numbers already finished this session, used to avoid repeats. */
   played: number[];
   /** Games solved this session (shown on the result card). */
   solvedCount: number;

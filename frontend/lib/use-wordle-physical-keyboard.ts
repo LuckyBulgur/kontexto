@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 /** True, wenn das Ziel ein eigenes Texteingabe-Element ist (input/textarea/select/
- *  contentEditable) und daher rohe Tastenereignisse behalten muss — z. B. das
+ *  contentEditable) und daher rohe Tastenereignisse behalten muss, z. B. das
  *  Nickname-Feld der Duell-Beitreten-Form, das sonst ins Grid gespiegelt würde.
  *  Duck-typed (kein `instanceof`), damit ohne DOM-Globals testbar. */
 export function isTextEntryTarget(target: EventTarget | null): boolean {

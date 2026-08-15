@@ -239,7 +239,7 @@ async def guess(req: GuessRequest, game: int | None = Query(None), infinite: boo
     if gs.is_stopword(req.word):
         return JSONResponse(
             status_code=422,
-            content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
+            content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
         )
 
     result = gs.guess(req.word, game_num)
@@ -453,7 +453,7 @@ async def duel_guess_endpoint(duel_id: str, req: DuelGuessRequest):
         if gs.is_stopword(req.word):
             return JSONResponse(
                 status_code=422,
-                content={"error": "stopword", "message": "Dieses Wort zahlt nicht -- es ist zu allgemein"},
+                content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
             )
 
         result = gs.guess(req.word, game_num)
@@ -672,7 +672,7 @@ async def koop_guess_endpoint(koop_id: str, req: KoopGuessRequest):
         if gs.is_stopword(req.word):
             return JSONResponse(
                 status_code=422,
-                content={"error": "stopword", "message": "Dieses Wort zählt nicht – es ist zu allgemein"},
+                content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
             )
 
         result = gs.guess(req.word, game_num)

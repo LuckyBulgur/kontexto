@@ -1,44 +1,121 @@
 # Die besten Startwörter für Kontexto
 
-Der erste Zug bei Kontexto ist besonders wichtig. Du weißt noch nichts über das Zielwort – keine Buchstaben, kein Thema, keine Wortart. Ein gutes Startwort gibt dir sofort ein Signal, in welche Richtung du denken solltest. Ein schlechtes Startwort lässt dich im Dunkeln tappen. Dieser Artikel erklärt, welche Wörter sich am besten eignen und warum.
+Der erste Zug ist der einzige, den du machst, ohne irgendetwas zu wissen. Keine Buchstaben, kein
+Thema, keine Wortart. Genau deshalb lohnt es sich, ihn nicht dem Zufall zu überlassen, sondern
+sich ein festes Repertoire zurechtzulegen, das man jeden Tag ohne Nachdenken abspielt.
 
-## Warum breite Alltagsbegriffe funktionieren
+Was ein gutes Startwort ausmacht, folgt direkt aus der Bauart des Spiels. Und es ist etwas anderes,
+als die meisten vermuten.
 
-Die Logik hinter Kontexto basiert auf Worteinbettungen: Wörter werden danach eingestuft, mit welchen anderen Wörtern sie in deutschen Texten gemeinsam auftauchen. Je häufiger ein Wort verwendet wird und je vielfältiger seine Kontexte sind, desto mehr Berührungspunkte hat es mit anderen Wörtern.
+## Was ein Startwort leisten muss
 
-Ein Wort wie „Zeit" kommt in Texten über Geschichte, Physik, Alltagsplanung, Psychologie, Musik und Hunderte andere Themen vor. Wenn das Zielwort irgendwie mit einem dieser Bereiche zusammenhängt, landet „Zeit" nicht allzu weit hinten. Ein Spezialbegriff wie „Thermodynamik" hingegen hat sehr enge Kontexte – er hilft dir nur, wenn das Zielwort tatsächlich aus der Physik stammt.
+Ein Startwort ist gut, wenn sein Rang **aussagekräftig** ist, egal wo das Zielwort liegt. Das ist
+etwas anderes als „liefert einen guten Rang“.
 
-## Bewährte Startwörter
+Der Unterschied ist entscheidend. Ein Wort, das bei fast jedem Zielwort auf Rang 6.000 landet,
+liefert dir keine Information, weil du das Ergebnis schon vorher kanntest. Ein Wort, dessen Rang
+je nach Zielwort zwischen 200 und 8.000 schwankt, liefert bei jedem Rätsel etwas Neues.
 
-Gute erste Wörter haben gemeinsam, dass sie häufig, thematisch weit gefasst und semantisch zentral im deutschen Wortschatz sind. Ein paar Beispiele, die sich in der Praxis bewähren:
+Diese Schwankungsbreite ist die eigentliche Zielgröße, und sie hängt daran, mit wie vielen
+Bedeutungsfeldern ein Wort verbunden ist.
 
-- **Mensch** – ein universeller Begriff, der in fast jedem thematischen Feld auftaucht.
-- **Zeit** – verbindet Geschichte, Natur, Alltag und Philosophie.
-- **Wasser** – central für Natur, Chemie, Küche und Geographie.
-- **Leben** – breit genug, um sowohl biologische als auch abstrakte Bedeutungsfelder abzudecken.
-- **Haus** – verbindet Architektur, Wohnen, Familie und viele alltägliche Konzepte.
-- **Arbeit** – taucht in Texten über Wirtschaft, Technik, Alltag und Soziales auf.
+## Warum breite Alltagswörter funktionieren
 
-Diese Wörter sind keine Garantie für einen guten Rang, aber sie geben dir mit hoher Wahrscheinlichkeit ein erstes Signal, ob das Zielwort eher im Bereich Natur, Gesellschaft, Technik oder Alltag liegt.
+Der Rang entsteht aus Kontextnachbarschaft: Wörter, die in denselben Sätzen vorkommen, liegen im
+Vektorraum nah beieinander.
 
-## Vom Treffer das Themenfeld eingrenzen
+`Zeit` kommt in Texten über Geschichte, Physik, Alltagsplanung, Psychologie, Musik und hunderte
+andere Themen vor. Es hat also Berührungspunkte in viele Richtungen. Liegt das Zielwort irgendwo
+in der Nähe eines dieser Themen, schlägt `Zeit` aus. Liegt es weit weg von allen, schlägt es
+deutlich nicht aus. Beides ist verwertbar.
 
-Wenn dein Startwort einen Rang unter 500 liefert, hast du bereits wertvolle Information: Du kennst das grobe semantische Feld. Jetzt ist es Zeit, dieses Feld systematisch abzutasten.
+`Thermodynamik` hat sehr wenige Berührungspunkte. Es landet bei praktisch jedem Zielwort weit
+hinten, außer das Zielwort stammt zufällig aus der Physik. In 99 von 100 Rätseln erfährst du damit
+nichts.
 
-Liegt „Wasser" auf Rang 80? Dann probiere eng verwandte Konzepte: „Fluss", „Regen", „Meer", „feucht", „trinken". Schaut die Ränge dieser Wörter an und folg dem, das am niedrigsten liegt. Du verengerst so schrittweise den semantischen Raum, bis du das Zielwort einkreist.
+Ein zweiter Punkt kommt dazu, und er ist weniger offensichtlich. Damit ein häufiges Wort
+überhaupt einen aussagekräftigen Rang bekommen kann, muss der Häufigkeitseinfluss aus den Vektoren
+entfernt sein. Sonst wären häufige Wörter zu allem ähnlich und ihr Rang wäre eine Konstante.
+Genau dafür läuft die Entzerrung, die in
+[All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/) beschrieben ist. Ohne sie würde die
+gesamte Startwortstrategie nicht funktionieren.
 
-Liegt „Wasser" hingegen auf Rang 3.000? Dann hilft es wenig, im Wasserbereich zu bleiben. Wechsle zu einem anderen Ausgangspunkt und beginne ein neues Cluster.
+## Ein Repertoire, das den Raum aufspannt
 
-## Synonyme und Wortarten variieren
+Nicht die Einzelqualität eines Startworts zählt, sondern wie gut ein **Satz** von vier Wörtern den
+Bedeutungsraum aufspannt. Vier gute Wörter aus demselben Bereich sind schlechter als vier
+mittelmäßige aus vier verschiedenen.
 
-Ein häufiger Fehler ist, immer nur Nomen auszuprobieren. Das Zielwort kann ein Verb, ein Adjektiv oder ein seltenes Nomen sein. Wenn du dich festgefahren hast, wechsle die Wortart: Statt „Kälte" probiere „kalt" oder „frieren". Oft springt der Rang dadurch deutlich nach vorne.
+Welche Wörter das leisten, ist inzwischen gemessen und nicht mehr geraten. Über alle 2.400
+vorberechneten Rätsel hinweg wurde für 46 Kandidaten ausgerechnet, wie oft sie einen Rang unter
+1500 liefern. Die vier besten:
 
-Auch Synonyme und verwandte Begriffe lohnen sich: Statt „Freude" probiere „Glück", „Lachen", „Begeisterung", „fröhlich". Jedes davon liegt in einem leicht anderen Teil des semantischen Raums und kann dich einen Schritt weiterbringen.
+- **gehen** liefert in 13,2 Prozent der Rätsel ein verwertbares Signal, der Spitzenwert im Feld.
+- **arbeit** kommt auf 11,9 Prozent und ist damit das beste Substantiv.
+- **sehen** liegt bei 11,0 Prozent und deckt eine andere Handlungsrichtung ab als `gehen`.
+- **zeit** erreicht 10,3 Prozent und öffnet die abstrakt-zeitliche Richtung.
 
-## Strategie und Geduld
+Drei der vier sind Verben, und das ist kein Zufall: Ein Verb erscheint in Sätzen über praktisch
+jedes Thema, weil fast jeder Sachverhalt eine Handlung enthält. Ein Substantiv bringt dagegen sein
+eigenes Thema schon mit.
 
-Kontexto hat keine Versuche-Begrenzung – das ist Absicht. Das Spiel belohnt systematisches Denken und Geduld mehr als schnelles Raten. Eine detaillierte [Strategie-Anleitung](/strategie/) erklärt weitere Techniken, und in der [Spielanleitung](/anleitung/) findest du alles zum grundlegenden Spielprinzip. Nimm dir Zeit, folge den Rängen, und vertraue deinem Sprachgefühl.
+Bemerkenswert ist, was **nicht** funktioniert. `Wasser` galt hier lange als Musterbeispiel für ein
+breites Startwort und liegt gemessen auf Platz 39 von 45, mit 2,6 Prozent schlechter als
+`Thermodynamik`, das als Gegenbeispiel gedacht war. Es fühlt sich breit an, weil es in vielen
+Lebensbereichen vorkommt, aber seine Satzumgebungen ähneln sich stark: Es geht fast immer
+buchstäblich um Flüssigkeit. Die vollständige Auswertung steht in
+[Startwort-Benchmark](/blog/startwort-benchmark/).
 
-> Profi-Routine: Leg dir vier feste Startwörter aus verschiedenen Bereichen zurecht und spiele sie immer zuerst. So deckst du das halbe Bedeutungsspektrum ab, bevor du gezielt eingrenzt. Mehr davon in den [12 Strategien zum schnelleren Gewinnen](/blog/kontexto-tipps-schneller-gewinnen/).
+Der Vorteil eines festen Satzes ist nicht nur die Abdeckung. Er kostet dich keine Denkzeit, und du
+lernst mit der Zeit, wie sich seine typischen Ränge anfühlen. Nach ein paar Wochen weißt du, dass
+`Mensch` auf 5.000 etwas anderes bedeutet als `Mensch` auf 2.000, weil du beides schon oft gesehen
+hast.
 
-Warum überhaupt manche Wörter so weit hinten landen, erklärt der Artikel [Warum hat mein Wort einen schlechten Rang?](/blog/warum-schlechter-rang/) – und die Begriffe dahinter findest du im [Glossar](/glossar/).
+## Die Auswertung: bei den Absagen anfangen
+
+Nach vier Zügen hast du vier Zahlen. Der übliche Reflex ist, auf die beste zu schauen. Nützlicher
+ist es, mit den schlechtesten anzufangen.
+
+Ein Wort auf Rang 8.000 schließt sein komplettes Feld aus, und zwar sicher: Bei diesem Rang gibt
+es kaum eine Möglichkeit, dass das Zielwort doch dort liegt. Drei solche Absagen sind deshalb
+verlässlicher als ein einzelner mittlerer Treffer.
+
+Ein Treffer auf Rang 400 ist dagegen unsicher. Bei 80.000 Wörtern ist Rang 400 das obere halbe
+Prozent, und darin liegen mehrere komplette Themenfelder nebeneinander. Er sagt dir, dass du in
+der Gegend bist, nicht dass du im richtigen Feld stehst.
+
+## Was danach kommt
+
+Sobald ein Startwort ausschlägt, ändert sich die Aufgabe. Jetzt geht es nicht mehr um Abdeckung,
+sondern um **Richtung**.
+
+Der häufigste Fehler an dieser Stelle ist, Synonyme des besten Startworts zu probieren. Liegt
+`Wasser` auf 380, kommen `Flüssigkeit`, `nass`, `feucht`. Das bringt fast nie etwas, weil Synonyme
+in derselben Ecke liegen und dieselbe Information ein zweites Mal liefern.
+
+Nützlich ist stattdessen, die Achsen abzugehen, die von deinem besten Wort wegführen. Bei `Wasser`
+zum Beispiel: Gewässer, Wetter, Lebewesen im Wasser, Nutzung, Eigenschaft. Nimm aus jeder Achse
+genau ein Wort. Danach weißt du, welche Achse zählt, und erst dann lohnt sich Feinarbeit. Wie das
+Zug für Zug aussieht, steht in [Wenn du feststeckst](/blog/wenn-du-feststeckst/).
+
+## Wortart nicht vergessen
+
+Eine Sache, die viele erst nach Wochen entdecken: Das Lösungswort muss kein Substantiv sein. Es
+ist ein deutsches Inhaltswort in Grundform, und das schließt Verben im Infinitiv und unflektierte
+Adjektive ein. `laufen`, `kalt`, `hell`, `bauen` sind ganz normale Lösungen.
+
+Es lohnt sich deshalb, mindestens ein Verb und ein Adjektiv im Startrepertoire zu haben,
+beispielsweise `gehen` und `groß`. Sie erscheinen in anderen Satzmustern als Substantive und
+tasten den Raum dadurch anders ab.
+
+## Der Test für dein eigenes Repertoire
+
+Wenn du dir eigene Startwörter zusammenstellen willst, gibt es eine einfache Prüfung: Spiele deinen
+Satz zwei Wochen lang unverändert und notiere die Ränge.
+
+Ein Wort, dessen Rang über zwei Wochen kaum schwankt, ist wertlos, egal wie hoch oder niedrig er
+liegt. Tausch es aus. Ein Wort, dessen Rang stark schwankt, arbeitet für dich.
+
+Mehr Techniken für die Phase danach stehen in
+[12 Strategien](/blog/kontexto-tipps-schneller-gewinnen/), und die Gewohnheiten, die dagegen
+arbeiten, in [7 häufige Fehler](/blog/haeufige-fehler-bei-kontexto/).

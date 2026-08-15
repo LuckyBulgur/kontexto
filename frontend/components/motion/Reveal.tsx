@@ -7,7 +7,7 @@ type Tag = "div" | "section" | "li" | "ul";
 const MOTION_TAG = { div: m.div, section: m.section, li: m.li, ul: m.ul } as const;
 
 /**
- * Subtle scroll-in fade/slide for content sections — SEO-safe by design.
+ * Subtle scroll-in fade/slide for content sections, SEO-safe by design.
  *
  * - The server-rendered HTML contains NO `opacity:0`: content is fully visible
  *   without JavaScript and for crawlers/AI bots that don't run JS.

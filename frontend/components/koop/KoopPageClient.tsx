@@ -297,7 +297,7 @@ export default function KoopPageClient() {
         if (e instanceof Error && e.message === "unknown_word") {
           setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
         } else if (e instanceof Error && e.message === "stopword") {
-          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht – es ist zu allgemein" });
+          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
         } else {
           setError("Fehler bei der Verbindung");
         }
@@ -308,7 +308,7 @@ export default function KoopPageClient() {
     [koopId, playerToken, guesses, nickname, appendGuess]
   );
 
-  // Tip — shared with the whole team. best_rank/guessed_ranks are derived
+  // Tip, shared with the whole team. best_rank/guessed_ranks are derived
   // server-side from the shared list.
   const handleTip = useCallback(async () => {
     if (!koopId || !playerToken || !koopState?.tips_allowed) return;
@@ -335,7 +335,7 @@ export default function KoopPageClient() {
     }
   }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess]);
 
-  // Give up — reveals the word for the whole team.
+  // Give up, reveals the word for the whole team.
   const handleGiveUp = useCallback(async () => {
     setShowGiveUp(false);
     if (!koopId || !playerToken) return;
@@ -437,7 +437,7 @@ export default function KoopPageClient() {
           {!roundOver && players.length < 2 && (
             <ShareInviteBar
               title="Warte auf Mitspieler …"
-              description="Teile den Link – jeder, der beitritt, rät am selben Wort mit."
+              description="Teile den Link, jeder der beitritt rät am selben Wort mit."
               onCopy={handleCopyLink}
             />
           )}

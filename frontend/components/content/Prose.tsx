@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Typography container for runs of authored prose (headings, paragraphs, lists,
- * inline links). Deliberately scoped: only wrap plain text with this — never
+ * inline links). Deliberately scoped: only wrap plain text with this, never
  * structured card components (Step, ColorLegend, ComparisonTable, …), whose own
  * styles would otherwise be overridden by these descendant selectors.
  *

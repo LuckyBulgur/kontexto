@@ -1,0 +1,105 @@
+# Wie die deutsche Wördle-Wortliste gebaut wurde
+
+Ein Wördle mit fünf Buchstaben, sechs Versuchen und einer deutschen Tastatur klingt nach einem
+Nachmittagsprojekt. Zwei Fragen fressen dabei die ganze Zeit, und beide haben mit dem Alphabet zu
+tun: Was passiert mit ä, ö, ü und ß? Und welche Wörter dürfen überhaupt Lösung sein?
+
+Die Antworten sind Entscheidungen, keine Naturgesetze. Andere deutsche Wördle-Varianten
+entscheiden anders. Hier steht, wie wir entschieden haben und warum.
+
+## Das Umlaut-Problem
+
+Die englische Vorlage arbeitet mit 26 Buchstaben. Deutsch hat vier Zeichen mehr, und für jedes
+gibt es genau drei Möglichkeiten.
+
+**Möglichkeit eins: Umlaute auf die Tastatur nehmen.** Dann wird das Tastaturlayout unhandlich,
+gerade auf dem Smartphone, und die Farbrückmeldung muss klären, ob ein `a` als Teiltreffer für
+ein `ä` zählt. Sagt man ja, verrät man zu viel. Sagt man nein, fühlt es sich unfair an.
+
+**Möglichkeit zwei: Umlaute auflösen.** `ä` wird zu `ae`, `ß` zu `ss`. Das zerstört die
+Buchstabenzahl: Aus `Käse` mit vier Buchstaben würde `kaese` mit fünf. Die Wortlängen im Spiel
+hätten dann nichts mehr mit den Wortlängen zu tun, die man kennt.
+
+**Möglichkeit drei: Wörter mit Umlauten gar nicht erst zulassen.** Genau das machen wir. Das
+Alphabet ist a bis z, exakt 26 Zeichen. Wörter mit ä, ö, ü oder ß fallen bei der Listenerstellung
+per Konstruktion heraus, weil der Filter nur `^[a-z]{5}$` durchlässt.
+
+Das kostet echte Wörter. `Käfig`, `Möbel`, `Küche`, `Straße` sind schöne Fünfbuchstabenwörter und
+kommen nicht vor. Der Gewinn ist ein Spiel ohne Sonderregeln: Was auf der Tastatur steht, gilt,
+und es gibt keinen einzigen Fall, in dem du raten musst, wie eine Rückmeldung zu lesen ist.
+
+## Woher die Wörter kommen
+
+Die naheliegende Quelle wäre eine fertige deutsche Wortliste aus dem Netz. Genau das war die
+erste Fassung, und genau das ging kaputt: Die verwendete Quelle wurde umstrukturiert, die
+deutsche Wortdatei antwortete danach mit 404, und ein Neuaufbau der Spieldaten wäre daran
+gescheitert.
+
+Heute stammen beide Listen aus dem Vokabular, das Kontexto ohnehin erzeugt. Das ist derselbe
+Bestand, aus dem auch die semantischen Ränge berechnet werden, beschrieben in
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/). Kein externer Download, der
+verrotten kann, und die beiden Spiele auf der Seite teilen sich denselben Wortschatzbegriff.
+
+## Zwei Listen mit gegensätzlichen Zielen
+
+Wördle braucht zwei getrennte Listen, und die Anforderungen an sie widersprechen sich.
+
+**Die Ratewortliste soll großzügig sein.** Nichts ist ärgerlicher, als ein völlig normales
+deutsches Wort einzutippen und „ungültig“ zu lesen. Also enthält sie jedes Fünfbuchstabenwort aus
+a bis z, das im Vokabular steht, ergänzt um gebeugte Formen aus der Lemma-Tabelle. Plural,
+konjugierte Verben, Adjektivformen: alles erlaubt.
+
+**Die Lösungsliste soll streng sein.** Eine Lösung, die niemand kennt, ist kein Rätsel, sondern
+Pech. Deshalb läuft sie durch dieselbe Filterkette wie die Kontexto-Lösungen: keine Eigennamen,
+keine Fremdwörter, keine gebeugten Formen, keine Fragmente, keine Funktionswörter. Was dort
+passiert, steht im Detail im Artikel über die Lösungsauswahl.
+
+Eine Lösung ist immer auch ein gültiger Tipp. Umgekehrt gilt das ausdrücklich nicht.
+
+## Der Schwellenwert, an dem es eng wurde
+
+Kontexto verlangt von seinen Lösungswörtern eine Zipf-Häufigkeit von mindestens 4,0. Die
+Zipf-Skala ist logarithmisch; 4,0 entspricht etwa zehn Vorkommen pro Million Wörter,
+also einem Wort, das jede erwachsene Person kennt.
+
+Bei Wördle ließ sich dieser Wert nicht halten. Die Fünfbuchstabenbeschränkung schneidet den
+Kandidatenpool bereits hart zusammen, und die Umlautbeschränkung schneidet noch einmal. Bei 4,0
+wäre gerade genug für etwa ein Jahr tägliche Rätsel übrig geblieben.
+
+Der Wert liegt deshalb bei 3,0. Das ist immer noch klar im Bereich allgemein bekannter Wörter,
+verlängert die Reihe aber auf mehrere Jahre. Es ist ein bewusster Kompromiss, und er ist die
+einzige Stelle, an der Wördle laxer ist als Kontexto.
+
+## Die Reihenfolge
+
+Nach dem Filtern wird die Lösungsliste nach Häufigkeit sortiert und anschließend mit einem festen
+Zufallsstartwert gemischt.
+
+Beides zusammen ist wichtig. Ohne Mischen käme das häufigste Wort zuerst und das Spiel würde über
+Jahre stetig schwerer. Ohne festen Startwert wäre die Reihenfolge bei jedem Neubau der Daten eine
+andere, und dieselbe Datenbasis würde unterschiedliche Rätsel erzeugen. Der feste Startwert macht
+den gesamten Vorgang reproduzierbar: Gleiche Eingabe, gleiche Ausgabe, jedes Mal.
+
+Die tägliche Zuordnung ist danach reine Rechnung. Es gibt einen Stichtag, und die Nummer des
+heutigen Rätsels ist die Zahl der Tage seit diesem Stichtag. Kein Zufall zur Laufzeit, keine
+Datenbankabfrage, kein Zustand, der auseinanderlaufen könnte.
+
+## Was das für dein Spiel bedeutet
+
+Vier praktische Folgerungen:
+
+1. **Denke nie in Umlauten.** Wenn dir `Bäume` einfällt, ist es kein Kandidat. Weder als Lösung
+   noch als Tipp. Das schließt eine ganze Klasse von Wörtern von vornherein aus und verkleinert
+   deinen Suchraum spürbar.
+2. **Gebeugte Formen sind als Tipp erlaubt, als Lösung nie.** `hunde` darfst du eingeben, um
+   Buchstaben abzufragen, aber du musst nicht befürchten, dass die Lösung eine Pluralform ist.
+   Das ist eine echte Information, die du für die Auswahl deiner Kandidaten nutzen kannst.
+3. **Die Lösung ist ein bekanntes Wort.** Fachbegriffe, Namen und Fremdwörter kannst du aus
+   deiner Kandidatenliste streichen, sobald es eng wird.
+4. **Als Startwort zählen Vokale und häufige Konsonanten.** Wörter wie `reise`, `staub` oder
+   `laden` decken mehrere häufige Buchstaben gleichzeitig ab, ohne einen zu wiederholen.
+
+Wenn du das Buchstabenraten gegen Bedeutungsraten tauschen willst, findest du den Vergleich beider
+Prinzipien in [Kontexto vs. Wordle](/blog/kontexto-vs-wordle/). Und wenn du Wördle gegen jemanden
+spielen willst statt allein, beschreibt
+[Duell und Koop](/blog/duell-und-koop-taktik/) die Mehrspielermodi.

@@ -10,7 +10,7 @@ interface AdUnitProps {
   format?: string;
   /** Volle Breite auf Mobilgeräten (nur im responsiven Modus). */
   fullWidthResponsive?: boolean;
-  /** Feste Größe statt responsiv – z. B. für vertikale Side-Rails. */
+  /** Feste Größe statt responsiv, z. B. für vertikale Side-Rails. */
   fixed?: { width: number; height: number };
   /** Reservierte Mindesthöhe gegen Layout-Shift (CLS) im responsiven Modus. */
   minHeight?: number;
@@ -60,7 +60,7 @@ export function AdUnit({
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushedRef.current = true;
     } catch {
-      /* geblockt / Consent verweigert / nicht geladen – UI nie brechen */
+      /* geblockt / Consent verweigert / nicht geladen: UI nie brechen */
     }
   }, [slot]);
 

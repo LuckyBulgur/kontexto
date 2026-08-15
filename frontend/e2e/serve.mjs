@@ -124,7 +124,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-// WebSocket upgrade proxy (/ws/*) — raw socket tunnelling to the backend.
+// WebSocket upgrade proxy (/ws/*): raw socket tunnelling to the backend.
 server.on("upgrade", (req, clientSocket, head) => {
   if (!req.url || !req.url.startsWith("/ws/")) {
     clientSocket.destroy();

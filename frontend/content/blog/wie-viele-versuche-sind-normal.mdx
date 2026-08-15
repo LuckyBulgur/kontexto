@@ -1,0 +1,129 @@
+# Wie viele Versuche sind normal? 868.000 Rateversuche ausgewertet
+
+Die häufigste Frage nach einer langen Partie lautet: Bin ich zu schlecht dafür? Die Antwort steht
+seit dem Neustart im Juni in der Datenbank, sie wurde nur nie jemandem gezeigt.
+
+Alle Zahlen unten stammen aus der serverseitigen Zählung, die vom 8. Juni bis zum 15. August 2026
+läuft. Sie enthält keine persönlichen Profile, keine Zuordnung zu Personen und keine Sitzungen,
+sondern nur Tagessummen pro Aktion. Die Absolutwerte sind gerundet.
+
+## Die Antwort auf die Titelfrage
+
+**85 Rateversuche pro gelöstem Rätsel.** Das ist der Durchschnitt über 868.000 Rateversuche und
+10.200 gelöste Partien.
+
+Wenn du also nach 60 Wörtern das Gefühl hast, es dauert zu lange, liegst du unter dem Schnitt. Nach
+120 liegst du darüber, aber immer noch in einem völlig gewöhnlichen Bereich, denn ein Durchschnitt
+von 85 entsteht aus einer sehr schiefen Verteilung: viele Partien im zweistelligen Bereich, einige
+wenige mit mehreren hundert Zügen, die den Schnitt nach oben ziehen.
+
+Den Median können wir nicht ausweisen, und zwar aus einem strukturellen Grund: Gezählt werden
+Tagessummen pro Aktion, nicht einzelne Partien. Bei einer rechtsschiefen Verteilung liegt der
+Median typischerweise unter dem Mittelwert, aber das ist eine Erwartung aus der Form solcher
+Verteilungen und keine Messung.
+
+## Die Gesamtbilanz
+
+| Kennzahl | Wert |
+|---|---:|
+| Rateversuche | 868.000 |
+| gelöste Rätsel | 10.200 |
+| aufgelöste Rätsel (Aufgaben) | 4.100 |
+| abgerufene Tipps | 45.500 |
+| erstellte Mehrspieler-Runden | 370 |
+
+Daraus folgen drei Verhältnisse, die mehr über das Spiel sagen als die Einzelzahlen.
+
+**Die Lösungsquote liegt bei 71 Prozent.** Auf zehn beendete Partien kommen sieben Lösungen und
+drei Aufgaben. Für ein Spiel ohne Versuchslimit ist das erstaunlich niedrig, und es bestätigt
+etwas, das viele vermuten: Wer aufgibt, tut das nicht wegen eines Limits, sondern weil er im
+falschen Feld feststeckt und es merkt.
+
+**Auf jede gelöste Partie kommen 4,5 Tipps.** Das war die größte Überraschung in den Daten. Die
+Tipp-Funktion ist nicht die Notbremse für Ausnahmefälle, für die sie gebaut wurde, sondern ein
+regulärer Teil des Spielablaufs. Umso mehr lohnt es sich zu wissen, wie die drei
+Schwierigkeitsgrade rechnen, denn ein Tipp auf „leicht“ halbiert deinen besten Rang, während einer
+auf „mittel“ dir die Richtung verrät. Die Formeln stehen in
+[Die Tipp-Funktion](/blog/tipp-funktion-richtig-nutzen/).
+
+**Auf 27 gelöste Einzelpartien kommt eine Mehrspieler-Runde.** Duell und Koop sind eine
+Minderheitenveranstaltung, was angesichts der Hürde „man braucht jemanden zum Mitspielen“ nicht
+überrascht.
+
+## Was die Leute tatsächlich eintippen
+
+Interessanter als die Summen ist, welche Wörter Menschen wählen. Die zehn häufigsten Eingaben über
+den gesamten Zeitraum:
+
+| Rang | Wort | Eingaben |
+|---:|---|---:|
+| 1 | haus | 5.500 |
+| 2 | mensch | 4.700 |
+| 3 | tier | 4.600 |
+| 4 | essen | 4.300 |
+| 5 | wasser | 4.100 |
+| 6 | auto | 4.000 |
+| 7 | schule | 3.600 |
+| 8 | sport | 3.300 |
+| 9 | arbeit | 3.100 |
+| 10 | geld | 2.800 |
+
+Auf den Plätzen dahinter geht es in derselben Richtung weiter: `natur`, `baum`, `leben`, `land`,
+`liebe`, `urlaub`, `sonne`, `familie`, `beruf`, `kind`. Erst weiter unten tauchen die ersten
+Verben auf: `laufen`, `lernen`, `trinken`, `gehen`, `fahren`.
+
+Die Liste ist ein Abbild kollektiver Assoziation, und sie zeigt ein klares Muster: **Menschen
+tippen konkrete Substantive.** Dinge, die man anfassen kann, Orte, Lebensbereiche. Verben und
+Adjektive kommen selten und spät.
+
+## Warum das ein Problem ist
+
+Genau diese Gewohnheit kostet Züge, und zwar messbar.
+
+Für 2.400 Rätsel wurde ausgerechnet, welchen Rang gängige Startwörter jeweils bekommen hätten.
+Das Ergebnis: Verben schlagen Substantive deutlich. `gehen` liefert in 13,2 Prozent der Rätsel
+einen Rang unter 1500, `sehen` in 11,0 Prozent. Das meistgetippte Wort überhaupt, `haus`, kommt auf
+7,8 Prozent. Und `wasser`, auf Platz fünf der Beliebtheitsliste, auf 2,6 Prozent.
+
+Alle drei populärsten Eingaben schneiden damit schlechter ab als das beste gemessene Wort, und
+`tier` liegt sogar im hinteren Sechstel des gesamten Testfelds. Die vollständige Auswertung samt Methodik
+steht in [Startwort-Benchmark](/blog/startwort-benchmark/).
+
+## Kontexto ist ein Werktagsspiel
+
+Vor dem Blick in die Daten war die Erwartung, dass ein Rätsel ohne Zeitdruck vor allem am
+Wochenende gespielt wird. Gemessen über 31 Tage ist es genau umgekehrt.
+
+| Wochentag | Rateversuche im Schnitt |
+|---|---:|
+| Donnerstag | 15.100 |
+| Mittwoch | 14.800 |
+| Freitag | 14.800 |
+| Dienstag | 14.200 |
+| Montag | 11.600 |
+| Samstag | 9.100 |
+| Sonntag | 8.600 |
+
+Sonntag erreicht knapp 57 Prozent des Donnerstagswerts. Der Einbruch beginnt am Samstag und hält
+bis Montagmittag an, danach steigt die Kurve über die Woche wieder an.
+
+Das passt nicht zu einem Spiel, für das man sich Zeit nimmt, sondern zu einem, das in eine Pause
+passt: Kaffee, Bahnfahrt, Mittagspause. Wer am Wochenende frei hat, spielt offenbar nicht mehr,
+sondern weniger. Für die Gestaltung heißt das, dass die tägliche Verfügbarkeit um Mitternacht
+wichtiger ist als jedes Wochenendthema.
+
+## Was hier bewusst nicht gemessen wird
+
+Zur Einordnung der Zahlen gehört, was fehlt.
+
+Es gibt keine Verteilung der Versuchszahlen, keinen Median, keine Angabe, wie lange eine Partie
+dauert, und keine Auswertung nach Gerät oder Herkunft einzelner Personen. Der Grund ist die
+Bauart: Gezählt werden Tagessummen pro Aktion, nicht Partien pro Person. Für eine Verteilung
+müssten einzelne Spielverläufe gespeichert werden, und das findet nicht statt.
+
+Auch die Wortliste oben ist eine reine Wort-zu-Anzahl-Tabelle. Sie weiß nicht, wer ein Wort
+eingegeben hat, wann, oder in welcher Partie. Deshalb lässt sich aus ihr ablesen, was gespielt
+wird, aber nichts über einzelne Spielende.
+
+Die vollständigen Zahlen samt der Top-100-Wortliste stehen unter
+[Kontexto in Zahlen](/zahlen/) und werden bei jeder Aktualisierung des Datenstands neu erzeugt.

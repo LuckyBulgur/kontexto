@@ -1,34 +1,113 @@
-# Semantische Wortfelder: So denkst du wie das KI-Modell
+# Semantische Wortfelder: so denkst du wie das Modell
 
-Wer bei Kontexto regelmäßig schnell gewinnt, hat meist eine Sache verinnerlicht: Wörter stehen nicht allein, sondern in **Feldern**. Wer in Feldern denkt statt in Einzelwörtern, kreist das Zielwort viel zielsicherer ein. Dieser Artikel erklärt, was semantische Wortfelder sind und wie du sie strategisch nutzt.
+Es gibt einen Punkt, an dem Kontexto aufhört, ein Ratespiel zu sein, und anfängt, ein
+Navigationsproblem zu werden. Dieser Punkt liegt genau dort, wo man aufhört, in einzelnen Wörtern
+zu denken, und anfängt, in Feldern zu denken.
 
-## Was ist ein semantisches Wortfeld?
+## Was ein semantisches Feld ist
 
-Ein [semantisches Feld](/glossar/#semantisches-feld) ist eine Gruppe von Wörtern, die thematisch zusammengehören. „Meer, Küste, Welle, Sand, Ebbe, Strand“ bilden ein Feld rund ums Wasser am Ufer. „Arzt, Krankenhaus, Diagnose, Heilung, Patient“ bilden ein medizinisches Feld.
+Ein semantisches Feld ist eine Gruppe von Wörtern, die in denselben Zusammenhängen auftauchen.
+`Meer`, `Küste`, `Welle`, `Sand`, `Ebbe`, `Möwe` bilden eines. `Arzt`, `Krankenhaus`, `Diagnose`,
+`Patient`, `Heilung` bilden ein anderes.
 
-Für Menschen ist das intuitiv. Und genau diese Intuition bildet auch das KI-Modell hinter Kontexto ab: Wörter, die in deutschen Texten häufig gemeinsam auftauchen, liegen im [Vektorraum](/glossar/#vektorraum) nah beieinander. Das Spiel misst diese Nähe mit der [Kosinus-Ähnlichkeit](/glossar/#kosinus-aehnlichkeit) und macht daraus den Rang.
+Für Menschen ist das eine intuitive Kategorie. Für das Modell hinter Kontexto ist es kein Konzept,
+sondern schlicht das, was beim Training herauskommt: Wörter, die in ähnlicher Nachbarschaft
+stehen, landen im Vektorraum nah beieinander. Die Felder sind nicht eingebaut, sie sind ein
+Nebenprodukt.
 
-## Warum das deine Strategie verändert
+Das ist der Grund, warum die Strategie funktioniert. Du nutzt keinen Trick, sondern die Struktur,
+die das Modell selbst gelernt hat.
 
-Wenn du verstehst, dass Wörter in Feldern liegen, ändert sich dein Vorgehen grundlegender, als du denkst:
+## Was sich dadurch am Spiel ändert
 
-- Ein einzelner guter Treffer ist nie nur ein Wort – er ist ein **Wegweiser in ein ganzes Feld**.
-- Statt wild zu raten, fragst du dich: „Welche Wörter gehören zum selben Feld wie mein bester Treffer?“
-- Ein rotes Wort schließt nicht nur sich selbst aus, sondern oft sein ganzes Feld.
+Drei Umstellungen, jede davon spürbar:
 
-## So gehst du systematisch vor
+**Ein guter Treffer ist ein Wegweiser, kein Ergebnis.** Rang 340 bedeutet nicht „fast geschafft“,
+sondern „hier ist ein Feld, das du jetzt untersuchen solltest“.
 
-1. **Feld öffnen.** Starte mit breiten Wörtern, bis eines einen guten Rang liefert. Das ist dein Einstieg in ein Feld.
-2. **Feld abtasten.** Liste innerlich fünf bis zehn Wörter aus demselben Feld auf und teste sie. Liegt „Küste“ auf Rang 80, probiere „Strand“, „Hafen“, „Welle“, „Sand“, „Ufer“.
-3. **Dem Gefälle folgen.** Eines dieser Wörter liegt meist deutlich besser. Mach es zum neuen Zentrum und taste das engere Feld darum ab.
-4. **Feld wechseln, wenn nötig.** Wird nichts besser, ist das Zielwort woanders. Geh zurück und öffne ein neues Feld.
+**Ein schlechter Treffer schließt ein ganzes Feld aus, nicht nur ein Wort.** `Zeit` auf Rang 8.000
+räumt sämtliche zeitlich-abstrakten Begriffe ab. Das ist meistens mehr Eingrenzung als ein
+mittelmäßiger Treffer.
 
-> Stell dir das Spiel wie eine Wanderung im Gebirge vor: Der Rang ist deine Höhenangabe. Du suchst nicht blind, sondern gehst immer bergab Richtung „Tal“ – dem Zielwort auf Rang 1.
+**Du misst Richtungen, nicht Wörter.** Der einzelne Zug hört auf, wichtig zu sein. Wichtig wird das
+Muster aus vier oder fünf Zügen.
 
-## Felder überschneiden sich
+## Das Verfahren
 
-Eine Feinheit: Wörter gehören oft zu mehreren Feldern. „Bank“ liegt zwischen „Geld“ und „Sitzen“, „Schloss“ zwischen „Burg“ und „Tür“. Solche Mehrdeutigkeiten können dich in die Irre führen – oder dir, wenn du sie erkennst, eine Brücke in ein ganz anderes Feld bauen. Wenn ein Wort unerwartet gut liegt, lohnt es sich zu fragen: Welche zweite Bedeutung könnte gemeint sein?
+**Schritt 1: Feld öffnen.** Spiele deine breiten Startwörter, bis eines deutlich ausschlägt. Vier
+Wörter aus vier Grundrichtungen genügen meist, siehe
+[Die besten Startwörter](/blog/beste-startwoerter/).
 
-## Fazit
+**Schritt 2: Achsen bestimmen, nicht Synonyme sammeln.** Das ist der Schritt, an dem die meisten
+scheitern. Von deinem besten Wort führen mehrere Achsen weg, und sie führen weit auseinander.
 
-Kontexto ist im Kern eine Übung im Denken in Bedeutungsfeldern. Wer jeden guten Treffer als Tür zu einem Feld begreift und dieses Feld systematisch abtastet, spielt schneller und müheloser. Vertiefe das mit den [12 Strategien zum schnelleren Gewinnen](/blog/kontexto-tipps-schneller-gewinnen/) und der allgemeinen [Strategie-Übersicht](/strategie/).
+Bei `Wasser` sind das zum Beispiel:
+
+| Achse | Sonde |
+|---|---|
+| Gewässer | Fluss |
+| Wetter | Regen |
+| Lebewesen im Wasser | Fisch |
+| Nutzung durch Menschen | trinken |
+| Eigenschaft | nass |
+
+Spiele aus jeder Achse **genau ein** Wort. Nicht zwei, nicht drei. Fünf Züge, danach weißt du, in
+welche Richtung es geht.
+
+**Schritt 3: dem Gefälle folgen.** Eine der Sonden liegt deutlich besser als die anderen. Sie ist
+dein neues Zentrum. Wiederhole Schritt 2 von dort aus mit engeren Achsen.
+
+**Schritt 4: rechtzeitig abbrechen.** Fünf gezielte Züge ohne Verbesserung des besten Rangs heißen:
+Das Feld ist falsch. Zurück zu Schritt 1, und diesmal weit weg vom bisherigen Feld.
+
+## Warum Synonyme so wenig bringen
+
+Es lohnt sich, das ausdrücklich zu benennen, weil es der teuerste Reflex im Spiel ist.
+
+`Wasser` liegt auf 380, also probierst du `Flüssigkeit`, `nass`, `feucht`, `Nässe`. Alle vier
+liegen in derselben Ecke des Vektorraums wie `Wasser`, weil sie in denselben Sätzen vorkommen.
+Ihre Ränge werden ähnlich sein. Du hast vier Züge ausgegeben und misst zum vierten Mal dieselbe
+Stelle.
+
+Der Sprung nach vorn kommt fast immer vom Achsenwechsel, nicht vom besseren Synonym. Von `Wasser`
+auf `Fisch` zu gehen ist ein Achsenwechsel. Von `Wasser` auf `Flüssigkeit` ist keiner.
+
+## Felder überschneiden sich, und das ist nutzbar
+
+Wörter gehören oft zu mehreren Feldern gleichzeitig. `Bank` liegt zwischen Geld und Sitzen,
+`Schloss` zwischen Burg und Tür, `Strom` zwischen Elektrizität und Fluss.
+
+Beim Raten kann das dich in die Irre führen, weil der Vektor eines mehrdeutigen Worts ein
+Kompromiss ist, der zu keinem Feld richtig gehört.
+
+Es ist aber auch eine der besten Brücken, die es gibt. **Wenn ein Wort unerwartet gut liegt, frag
+dich nach seiner zweiten Bedeutung.** Wenn `Bank` bei einem Zielwort auffällig weit vorn steht und
+du an Geld gedacht hast, probiere `sitzen`, `Park`, `Holz`. Auf diese Weise kommt man regelmäßig
+in Felder, an die man von allein nicht gedacht hätte.
+
+## Die Falle: Wortstämme sind keine Felder
+
+Eine Warnung, die konkret Züge spart. `Fisch`, `Fischer`, `Fischerei`, `fischen` sehen aus wie ein
+enges Feld, sind aber vor allem eine Zeichenfamilie.
+
+Weil fastText Wörter zusätzlich in Zeichenabschnitte zerlegt, ziehen sich Wörter mit gemeinsamem
+Stamm auch dann an, wenn ihre Bedeutungen auseinanderlaufen. Ein guter Rang für `Fischer` kann
+daher von der Schreibweise kommen und nicht vom Inhalt. Der Test dafür steht in
+[Komposita und Teilwörter](/blog/komposita-und-teilwoerter/): Probiere ein bedeutungsgleiches Wort
+mit völlig anderer Schreibweise und schau, ob es mithält.
+
+Ein echtes Feld besteht aus Wörtern, die inhaltlich zusammengehören und unterschiedlich
+geschrieben werden: `Kieme`, `Schuppe`, `Teich`, `Angel`, `schwimmen`.
+
+## Die Landkarte am Ende
+
+Nach jeder Partie kannst du dir die 500 nächstliegenden Wörter anzeigen lassen. Das ist die beste
+Übung für das Denken in Feldern, die es gibt, denn es ist ein echtes Feld in seiner echten
+Reihenfolge.
+
+Wer sich das ein paar Mal ansieht, entwickelt ein Gefühl dafür, wie eng oder weit die Felder des
+Modells sind und welche Wörter darin überraschend weit vorn oder hinten stehen. Dieses Gefühl ist
+am Ende das, was gute Spieler von schnellen Ratern unterscheidet.
+
+Wie das Verfahren an einer kompletten Partie aussieht, zeigt
+[Wenn du feststeckst](/blog/wenn-du-feststeckst/).

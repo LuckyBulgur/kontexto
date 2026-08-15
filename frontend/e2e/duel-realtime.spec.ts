@@ -39,8 +39,8 @@ test.describe("Kontexto-Duell (WebSocket-Echtzeit)", () => {
     // 5. Bob rät ein Wort; Alice sieht seinen Fortschritt (WS "rank_update").
     //    guess_count wird zu "1x". toBeAttached (nicht toBeVisible): PlayerBar
     //    rendert Desktop- und Mobil-Variante doppelt, von denen je nach Viewport
-    //    welche per CSS versteckt sind. Geprüft wird der WS-Datenpfad — dass das
-    //    Update in Alices DOM ankommt —, nicht welcher Klon sichtbar ist.
+    //    welche per CSS versteckt sind. Geprüft wird der WS-Datenpfad, also dass das
+    //    Update in Alices DOM ankommt, nicht welcher Klon sichtbar ist.
     const bobInput = bob.getByRole("textbox");
     await bobInput.fill("apfel");
     await bobInput.press("Enter");

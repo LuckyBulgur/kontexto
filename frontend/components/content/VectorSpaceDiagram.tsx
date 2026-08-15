@@ -25,9 +25,9 @@ export default function VectorSpaceDiagram() {
       >
         <title id="vsd-title">Wörter im Vektorraum</title>
         <desc id="vsd-desc">
-          Das Zielwort „Strand" liegt im Zentrum. Bedeutungsverwandte Wörter wie
-          „Küste", „Sand" und „Meer" liegen nah dabei, während unverwandte Wörter
-          wie „Computer" und „Steuer" weit entfernt sind.
+          Das Zielwort „Strand“ liegt im Zentrum. Bedeutungsverwandte Wörter wie
+          „Küste“, „Sand“ und „Meer“ liegen nah dabei, während unverwandte Wörter
+          wie „Computer“ und „Steuer“ weit entfernt sind.
         </desc>
 
         {/* connection lines from target to nearby words */}
