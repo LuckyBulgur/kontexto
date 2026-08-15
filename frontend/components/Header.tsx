@@ -99,6 +99,12 @@ export default function Header({
   const showKoopHighlight = !hideKoopCreate && koopHighlight;
   // Ping am Kebab, falls Duell- oder Koop-Hinweis aktiv ist.
   const showPing = showDuelHighlight || showKoopHighlight;
+  // Der Unendlich-Button ist unter sm ausgeblendet, sein Hinweis wandert dort an den Kebab.
+  const pingClass = showPing
+    ? "flex"
+    : showInfiniteHighlight
+      ? "flex sm:hidden"
+      : null;
 
   useEffect(() => {
     if (!showCountdown) return;
@@ -131,7 +137,7 @@ export default function Header({
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-10 w-10"
+            className="relative hidden h-10 w-10 sm:inline-flex"
             aria-label={showInfiniteHighlight ? "Unendlich-Modus, neue Funktion" : "Unendlich-Modus"}
             onClick={() => {
               if (showInfiniteHighlight) dismissInfiniteHighlight();
@@ -164,13 +170,15 @@ export default function Header({
                   ? "Menü, neue Funktion: Duell"
                   : showKoopHighlight
                     ? "Menü, neue Funktion: Koop"
-                    : "Menü"
+                    : showInfiniteHighlight
+                      ? "Menü, neue Funktion: Unendlich-Modus"
+                      : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
-              {showPing && (
+              {pingClass && (
                 <span
-                  className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5"
+                  className={`absolute right-1.5 top-1.5 ${pingClass} h-2.5 w-2.5`}
                   aria-hidden
                 >
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />

@@ -68,6 +68,11 @@ const contentPages = [
   { file: "kontakt/index.html", path: "/kontakt/", minWords: 250 },
   { file: "changelog/index.html", path: "/changelog/", minWords: 400 },
   { file: "zahlen/index.html", path: "/zahlen/", minWords: 800 },
+  // Spielseiten. /wordle/ traegt Anzeigen und darf deshalb nie wieder duenn werden:
+  // Googles Richtlinie verbietet Anzeigen auf Seiten ohne Publisher-Inhalt.
+  { file: "wordle/index.html", path: "/wordle/", minWords: 800, schema: '"@type":"FAQPage"' },
+  { file: "duel/index.html", path: "/duel/", minWords: 600, schema: '"@type":"FAQPage"' },
+  { file: "koop/index.html", path: "/koop/", minWords: 600, schema: '"@type":"FAQPage"' },
 ];
 for (const p of contentPages) {
   const html = await read(p.file);

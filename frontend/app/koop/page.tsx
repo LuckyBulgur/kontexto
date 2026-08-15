@@ -1,6 +1,9 @@
 import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSeo from "@/components/seo/KoopSeo";
+import StructuredData from "@/components/StructuredData";
+import { faqSchema } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
+import { koopFaqs } from "@/lib/faqs";
 
 export const metadata = buildMetadata({
   path: "/koop/",
@@ -9,5 +12,11 @@ export const metadata = buildMetadata({
 });
 
 export default function KoopPage() {
-  return (<><KoopPageClient /><KoopSeo /></>);
+  return (
+    <>
+      <StructuredData data={faqSchema(koopFaqs)} />
+      <KoopPageClient />
+      <KoopSeo />
+    </>
+  );
 }
