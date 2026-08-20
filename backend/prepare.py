@@ -180,7 +180,7 @@ def orthographic_twins(vocab: list[str]) -> set[str]:
     the guessable vocabulary is unfair: a player can type the twin, be certain
     they are right, and still not win, because it is a separate ranked entry
     (this happened with the solution ``anlässlich`` while ``anläßlich`` sat at
-    rank 2). Such words are therefore dropped from the target pool — they remain
+    rank 2). Such words are therefore dropped from the target pool. They remain
     fully guessable. Runtime ß↔ss folding is deliberately avoided, because it
     would wrongly merge the genuine minimal pairs.
     """
@@ -201,8 +201,8 @@ def select_target_words(
     """Pick the *n* most frequent words that are sensible German solutions.
 
     Candidates are walked in descending frequency and kept only if they pass the
-    semantic :class:`TargetWordFilter` (a guessable German content word — common
-    noun, verb or adjective — never a proper noun, foreign or religious word, or
+    semantic :class:`TargetWordFilter` (a guessable German content word: a common
+    noun, verb or adjective, never a proper noun, foreign or religious word, or
     fragment) *and* are common enough that essentially everyone knows them
     (German Zipf frequency ≥ ``min_solution_zipf``; 4.0 ≈ a few per million).
     The top *n* survivors are then shuffled so daily difficulty varies.

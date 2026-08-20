@@ -401,7 +401,7 @@ class KoopConnectionManager:
 
     The mutable shared state is the de-duplicated guess list plus the team's
     solved flag, so the poll loop diffs the guess feed (by max id) and the
-    koops.solved transition — not per-player ranks like the duel.
+    koops.solved transition, not per-player ranks like the duel.
     """
 
     def __init__(self) -> None:

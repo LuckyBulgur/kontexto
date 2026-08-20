@@ -82,7 +82,7 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         (streak.currentStreak > 0 || streak.longestStreak > 0) && (
           <div className="rounded-lg border bg-muted/50 p-3 space-y-0.5 text-sm text-muted-foreground">
             <p>Aktuelle Serie: <span className="font-semibold text-foreground">{streak.currentStreak}</span> Tag(e)</p>
-            <p>Längste Serie: <span className="font-semibold text-foreground">{streak.longestStreak}</span> Tag(e) 🔥</p>
+            <p>Längste Serie: <span className="font-semibold text-foreground">{streak.longestStreak}</span> Tag(e)</p>
           </div>
         )
       )}

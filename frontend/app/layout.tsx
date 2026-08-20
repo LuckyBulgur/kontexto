@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | Kontexto",
   },
   description:
-    "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel. Errate das Zielwort anhand von Bedeutungsähnlichkeit - kostenlos und ohne Anmeldung.",
+    "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel. Errate das Zielwort anhand von Bedeutungsähnlichkeit, kostenlos und ohne Anmeldung.",
   applicationName: "Kontexto",
   authors: [{ name: "Kontexto" }],
   creator: "Kontexto",

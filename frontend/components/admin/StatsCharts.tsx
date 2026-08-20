@@ -129,22 +129,12 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
   } else {
     const solvedPart = solves > 0 ? `, davon ${formatNumber(solves)} gelöst` : "";
     summary = `Heute waren schon ${formatNumber(visitors)} Besucher:innen da und haben `
-      + `${formatNumber(guesses)} Wörter geraten${solvedPart}. 🎉`;
+      + `${formatNumber(guesses)} Wörter geraten${solvedPart}.`;
   }
 
   return (
-    <header
-      className="rounded-3xl border p-6 shadow-sm sm:p-8"
-      style={{
-        background:
-          "linear-gradient(135deg, color-mix(in oklab, var(--color-chart-1) 14%, var(--color-card)), "
-          + "color-mix(in oklab, var(--color-chart-4) 8%, var(--color-card)))",
-      }}
-    >
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Sparkles className="h-4 w-4" aria-hidden />
-        {greeting()}!
-      </div>
+    <header className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+      <div className="text-sm font-medium text-muted-foreground">{greeting()}</div>
       <p className="mt-2 max-w-3xl text-xl font-bold tracking-tight sm:text-2xl">{summary}</p>
       <p className="mt-3 text-xs text-muted-foreground">
         Stand: {fullDate(stats.generated_at.slice(0, 10))},{" "}
@@ -197,7 +187,7 @@ function Milestones({ stats }: { stats: StatsData }) {
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                <div className="h-full rounded-full transition-[width]" style={{ width: `${pct}%`, backgroundColor: color }} />
               </div>
             </div>
           );

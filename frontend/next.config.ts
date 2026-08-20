@@ -6,7 +6,7 @@ import createMDX from "@next/mdx";
 // `/duel/<id>/` are resolved to the single `/duel` page client-side (the page
 // reads the id from window.location.pathname). In production nginx performs the
 // fallback (`try_files $uri $uri/ /duel/index.html`, see nginx.conf), so Next's
-// `rewrites()` are neither used nor applied there — and Next warns about that
+// `rewrites()` are neither used nor applied there, and Next warns about that
 // during the export build. We therefore enable `rewrites()` ONLY for the dev
 // server, where they let a direct hit/refresh on `/duel/<id>/` resolve to the
 // `/duel` page instead of 404'ing. Keeping them out of the export build makes

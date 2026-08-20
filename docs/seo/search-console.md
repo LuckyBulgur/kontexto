@@ -4,7 +4,7 @@
 
 This document covers verifying `https://kontexto.de` in Google Search Console (GSC), submitting the sitemap, requesting indexing for key pages, and monitoring Coverage and Core Web Vitals. The same steps are summarised for Bing Webmaster Tools.
 
-The daily rebuild automatically regenerates `sitemap.xml` with fresh `lastmod` timestamps — no manual sitemap updates are needed.
+The daily rebuild automatically regenerates `sitemap.xml` with fresh `lastmod` timestamps, so no manual sitemap updates are needed.
 
 ---
 
@@ -16,7 +16,7 @@ Navigate to [https://search.google.com/search-console/welcome](https://search.go
 
 Two recommended verification methods:
 
-#### Option A — DNS TXT record (preferred)
+#### Option A: DNS TXT record (preferred)
 
 1. GSC will show a TXT record value such as `google-site-verification=<token>`.
 2. Add a DNS TXT record for `kontexto.de` with that value via your DNS provider.
@@ -24,7 +24,7 @@ Two recommended verification methods:
 
 This method survives re-deploys and CMS changes because it lives at the DNS layer.
 
-#### Option B — HTML file
+#### Option B: HTML file
 
 1. GSC will offer a file named `google<token>.html` to download.
 2. Place it in `frontend/public/` so Next.js copies it to `out/google<token>.html` at build time.
@@ -36,7 +36,7 @@ After verification the property shows as **Owner** in GSC.
 
 1. In the left sidebar select **Sitemaps**.
 2. Enter `https://kontexto.de/sitemap.xml` and click **Submit**.
-3. GSC will crawl and parse the sitemap. The daily rebuild keeps it current — no re-submission is needed after the first time.
+3. GSC will crawl and parse the sitemap. The daily rebuild keeps it current, so no re-submission is needed after the first time.
 
 ### 3. Request Indexing for Key Pages
 
@@ -44,13 +44,13 @@ After the sitemap is submitted, use the **URL Inspection** tool to request prior
 
 | URL | Priority |
 |-----|----------|
-| `https://kontexto.de/` | High — game homepage |
-| `https://kontexto.de/wordle/` | High — Wördle game |
-| `https://kontexto.de/faq/` | Medium — FAQ with structured data |
-| `https://kontexto.de/anleitung/` | Medium — rules page |
-| `https://kontexto.de/strategie/` | Medium — strategy guide |
-| `https://kontexto.de/archiv/` | Medium — archive index |
-| `https://kontexto.de/blog/` | Medium — blog index |
+| `https://kontexto.de/` | High, game homepage |
+| `https://kontexto.de/wordle/` | High, Wördle game |
+| `https://kontexto.de/faq/` | Medium, FAQ with structured data |
+| `https://kontexto.de/anleitung/` | Medium, rules page |
+| `https://kontexto.de/strategie/` | Medium, strategy guide |
+| `https://kontexto.de/archiv/` | Medium, archive index |
+| `https://kontexto.de/blog/` | Medium, blog index |
 | `https://kontexto.de/ueber/` | Low |
 
 For each URL: paste it into URL Inspection, click **Test Live URL**, then **Request Indexing**.
@@ -59,8 +59,8 @@ For each URL: paste it into URL Inspection, click **Test Live URL**, then **Requ
 
 In the **Pages** (formerly Coverage) report, watch for:
 
-- **Valid**: pages indexed — check that the main game routes and content pages appear here.
-- **Excluded — Noindex**: the dynamic duel-ID pages (`/duel/<id>/`, `/wordle/duel/<id>/`) should appear here because client-side `noindex` meta tags are injected for those ephemeral URLs.
+- **Valid**: pages indexed. Check that the main game routes and content pages appear here.
+- **Excluded, Noindex**: the dynamic duel-ID pages (`/duel/<id>/`, `/wordle/duel/<id>/`) should appear here because client-side `noindex` meta tags are injected for those ephemeral URLs.
 - **Errors**: fix any `404`, `Redirect error`, or `Submitted URL not found` entries promptly.
 
 ### 5. Monitor Core Web Vitals
@@ -81,7 +81,7 @@ The `scripts/daily-rebuild.sh` cron job rebuilds the static export every day. Th
 
 - `sitemap.xml` is regenerated with the current date as `lastmod` for daily-changing routes (`/`, `/wordle/`, `/archiv/`).
 - Archive entries for the new day's puzzle are added automatically.
-- No manual sitemap re-submission is needed — GSC re-fetches the sitemap on its own schedule.
+- No manual sitemap re-submission is needed, GSC re-fetches the sitemap on its own schedule.
 
 ---
 

@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 // The webServer block then boots the backend + the nginx-mirroring proxy.
 
 // Dedicated test ports: deliberately NOT 8000/8001, so the suite never collides
-// with — or silently reuses — a developer's running dev backend (which reads the
+// with, or silently reuses, a developer's running dev backend (which reads the
 // real data dir and lacks the broadcast loops). The proxy is told the backend
 // port via E2E_BACKEND_PORT.
 const BACKEND_PORT = 8123;

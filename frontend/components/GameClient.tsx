@@ -16,19 +16,12 @@ import GameResultCard from "@/components/GameResultCard";
 import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import StatsDialog from "@/components/StatsDialog";
 import { AdUnit } from "@/components/AdUnit";
-import { faqs } from "@/lib/faqs";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
 import { reportCompletion } from "@/lib/analytics";
 import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -217,14 +210,14 @@ export default function GameClient() {
     setError(null);
     setPodestError(undefined);
     if (gameState.guesses.some((g) => g.word === word.toLowerCase())) {
-      setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten!" });
+      setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten" });
       return;
     }
     setPendingWord(word.toLowerCase());
     try {
       const result = await submitGuess(word, apiGame, infinite);
       if (gameState.guesses.some((g) => g.word === result.word)) {
-        setPodestError({ word: result.word, message: "Wort bereits geraten!" });
+        setPodestError({ word: result.word, message: "Wort bereits geraten" });
         return;
       }
       addGuess({ word: result.word, rank: result.rank, isTip: false });
@@ -451,28 +444,15 @@ export default function GameClient() {
                 <div className="space-y-1">
                   <h4 className="font-medium text-foreground text-sm">Farben</h4>
                   <ul className="space-y-1 list-none">
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün - sehr nah (Rang 1-300)</li>
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb - auf dem richtigen Weg (Rang 301-1500)</li>
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot - noch weit entfernt (Rang 1501+)</li>
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
+                    <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot: noch weit entfernt (Rang 1501+)</li>
                   </ul>
                 </div>
                 <div className="space-y-1">
                   <h4 className="font-medium text-foreground text-sm">Tipps</h4>
                   <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
                 </div>
-              </div>
-            )}
-            {gameState.guesses.length === 0 && !gameOver && !podestError && (
-              <div className="rounded-xl border bg-card p-5 text-sm">
-                <h3 className="text-base font-semibold text-foreground mb-2">Häufige Fragen</h3>
-                <Accordion type="single" collapsible>
-                  {faqs.map((faq, i) => (
-                    <AccordionItem key={i} value={`faq-${i}`}>
-                      <AccordionTrigger className="text-sm text-left">{faq.q}</AccordionTrigger>
-                      <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
               </div>
             )}
           </>

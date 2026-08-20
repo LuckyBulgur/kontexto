@@ -78,7 +78,7 @@ export default function StatsSkeleton() {
 
         {/* Default "Überblick" section: greeting + two KPI grids */}
         <div className="space-y-4">
-          <div className="space-y-3 rounded-3xl border p-6 shadow-sm sm:p-8">
+          <div className="space-y-3 rounded-xl border bg-card p-6 shadow-sm sm:p-8">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-7 w-3/4 max-w-2xl" />
             <Skeleton className="h-3 w-48" />

@@ -155,3 +155,51 @@
   75% { opacity: 1; }
   100% { opacity: 0; transform: scale(1.05); }
 }
+/* =========================================================================
+   prefers-reduced-motion (WCAG 2.3.3)
+   Wer die Systemeinstellung gesetzt hat ("Bewegung reduzieren" unter macOS,
+   "Animationseffekte anzeigen" aus unter Windows), bekommt keine Bewegung.
+
+   Dauer und Wiederholung nahe null, NICHT `animation: none`: eine Animation
+   mit `animation-fill-mode: forwards` oder `both` springt so zu ihrem
+   Endzustand, statt im Anfangszustand haengen zu bleiben. Bei `none` blieben
+   `.animate-wordle-bounce` (fill-mode both) auf halber Hoehe und der
+   WM-Torjubel (`event-goal`, forwards, endet bei opacity 0) dauerhaft
+   sichtbar stehen. Vorbild und dieselbe Begruendung: W3C Technik C39.
+
+   Was das konkret heisst:
+     .animate-slideIn          neue Ratezeile erscheint sofort
+     .animate-wordle-pop       kein Skalieren beim Tippen
+     .animate-wordle-flip      Kachel zeigt ihre Farbe sofort, ohne Drehung
+     .animate-wordle-shake     ungueltiges Wort ohne Ruetteln (der rote
+                               Rahmen und der Toast tragen die Aussage)
+     .animate-wordle-bounce    Gewinnreihe ohne Huepfen
+     .animate-wordle-fade-in   kein Einblenden
+     event-goal                der Torjubel entfaellt
+
+   Framer Motion braucht diesen Block nicht, es haengt bereits an derselben
+   Einstellung ueber `MotionConfig reducedMotion="user"` in
+   components/motion/MotionProvider.tsx. Ebenso `lib/confetti.ts`,
+   `Reveal.tsx`, `GameDemo.tsx` und `EventBackdrop.tsx`.
+
+   Ausgenommen ist `.animate-spin`: ein auf halber Drehung eingefrorener
+   Kreisel liest sich als "kaputt" und nicht als "laedt". Das ist die einzige
+   Ausnahme, und sie steht hier, statt verschwiegen zu werden.
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

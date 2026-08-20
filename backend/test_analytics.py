@@ -303,7 +303,7 @@ class TestWriteResilience:
         assert run(go()) == 5000
 
     def test_concurrent_record_action_no_loss(self, db_path):
-        """Many concurrent writers must all land — none dropped to SQLITE_BUSY."""
+        """Many concurrent writers must all land, none dropped to SQLITE_BUSY."""
         async def go():
             await asyncio.gather(*[
                 analytics.record_action(db_path, "guesses", "kontexto", now=JAN)

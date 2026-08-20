@@ -15,7 +15,7 @@ def filt() -> TargetWordFilter:
     return TargetWordFilter()
 
 
-# Proper nouns must never be solution words — this is the core bug we are fixing.
+# Proper nouns must never be solution words; this is the core bug we are fixing.
 GIVEN_NAMES = [
     "emma", "dirk", "kurt", "erich", "benno", "jens", "hannes", "gregor",
     "anton", "alfred", "ulrich", "matthias", "franziska", "rudi", "luis",
@@ -108,7 +108,7 @@ def test_names_mistagged_as_nouns_are_still_rejected(filt, word):
     assert filt.is_valid_target(word) is False, f"{word!r} is a name and must be rejected even if POS-tagged NN"
 
 
-# Genuine common nouns that are *also* names must be kept — they have a
+# Genuine common nouns that are *also* names must be kept, because they have a
 # common-noun dictionary entry, so they are real words, not just names.
 NOUN_NAME_HOMOGRAPHS = ["sommer", "winter", "rose", "stein", "mark", "könig",
                         "löwe", "sturm", "engel", "horn", "kraft"]
@@ -193,7 +193,7 @@ def test_offensive_blocklist_folds_eszett(filt):
 
 # Homographs whose dominant sense is harmless, mild everyday words, and
 # substring false positives ("marsch"/"nachbarschaft" contain "arsch") must NOT
-# be over-blocked — they remain valid solutions.
+# be over-blocked; they remain valid solutions.
 NOT_OVERBLOCKED = ["schwanz", "sack", "nackt", "kotzen", "marsch",
                    "nachbarschaft", "geil", "popel", "furz"]
 

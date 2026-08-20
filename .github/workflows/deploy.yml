@@ -39,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # No `version:` here — pnpm/action-setup reads the version (with its
+      # No `version:` here. pnpm/action-setup reads the version (with its
       # integrity hash) from the `packageManager` field in package.json.
       # Specifying both triggers ERR_PNPM_BAD_PM_VERSION / a version-mismatch error.
       - name: Install pnpm

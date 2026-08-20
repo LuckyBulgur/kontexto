@@ -241,8 +241,8 @@ async def configure_connection(db: aiosqlite.Connection) -> None:
 
     journal_mode=WAL is persisted in the database header (set once, on disk), but
     the rest are per-connection and must be re-applied on every open. Centralised
-    here so every writer — request connections, the background loop, and ad-hoc
-    analytics connections — shares the same settings.
+    here so that every writer shares the same settings: request connections, the
+    background loop, and ad-hoc analytics connections.
 
     synchronous=NORMAL is the recommended companion to WAL: under WAL the only
     durability it sacrifices is that the last few committed transactions may be
@@ -276,7 +276,7 @@ async def init_db(db_path: str) -> None:
             await db.execute("ALTER TABLE analytics_events ADD COLUMN os TEXT")
         except Exception:
             pass  # column already exists
-        # Migration: "Nächstes Spiel" — round counter + per-room played-game history
+        # Migration "Nächstes Spiel": round counter + per-room played-game history
         # so a multiplayer room can advance to a fresh game on the same link.
         for table in ("duels", "koops", "wordle_duels"):
             try:
@@ -287,7 +287,7 @@ async def init_db(db_path: str) -> None:
                 await db.execute(f"ALTER TABLE {table} ADD COLUMN played_games TEXT NOT NULL DEFAULT ''")
             except Exception:
                 pass  # column already exists
-        # Migration: koop "Aufgeben" — team-wide give-up flag.
+        # Migration koop "Aufgeben": team-wide give-up flag.
         try:
             await db.execute("ALTER TABLE koops ADD COLUMN gave_up BOOLEAN NOT NULL DEFAULT 0")
         except Exception:

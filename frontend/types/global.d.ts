@@ -4,7 +4,7 @@ export {};
 declare global {
   interface Window {
     adsbygoogle?: Array<Record<string, unknown>>;
-    // Googles CMP / Funding Choices – nur vorhanden, wenn eine Datenschutz-
+    // Googles CMP / Funding Choices, nur vorhanden, wenn eine Datenschutz-
     // Nachricht im AdSense-Dashboard veröffentlicht ist.
     googlefc?: {
       showRevocationMessage?: () => void;

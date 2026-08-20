@@ -271,7 +271,7 @@ export default function KoopPageClient() {
       setPodestError(undefined);
 
       if (guesses.some((g) => g.word === word.toLowerCase())) {
-        setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten!" });
+        setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten" });
         return;
       }
 
@@ -279,7 +279,7 @@ export default function KoopPageClient() {
       try {
         const result = await submitKoopGuess(koopId, word, playerToken);
         if (result.already_guessed || guesses.some((g) => g.word === result.word)) {
-          setPodestError({ word: result.word, message: "Wort bereits geraten!" });
+          setPodestError({ word: result.word, message: "Wort bereits geraten" });
           return;
         }
         setTotal(result.total);

@@ -251,7 +251,7 @@ export default function DuelPageClient() {
       if (guesses.some((g) => g.word === word.toLowerCase())) {
         setPodestError({
           word: word.toLowerCase(),
-          message: "Wort bereits geraten!",
+          message: "Wort bereits geraten",
         });
         return;
       }
@@ -262,7 +262,7 @@ export default function DuelPageClient() {
         if (guesses.some((g) => g.word === result.word)) {
           setPodestError({
             word: result.word,
-            message: "Wort bereits geraten!",
+            message: "Wort bereits geraten",
           });
           return;
         }

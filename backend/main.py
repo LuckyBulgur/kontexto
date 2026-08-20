@@ -100,7 +100,7 @@ def _resolve_game_number(game: int | None, *, infinite: bool = False) -> int:
     In infinite mode the date gate is skipped: any pre-computed game in the
     pool (1..total_games) is playable on demand, independent of the daily
     schedule. The only game the caller must never hand out this way is today's
-    daily — that exclusion is enforced where the next game is selected
+    daily. That exclusion is enforced where the next game is selected
     (``/api/infinite/next``), not here.
     """
     if game is None:
@@ -165,8 +165,8 @@ async def lifespan(app: FastAPI):
         tasks.append(asyncio.create_task(koop_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_cleanup_loop()))
         # Exactly one worker (KONTEXTO_WS_MODE) runs analytics aggregation/pruning.
-        # Log it so a misconfiguration where it runs nowhere — rollups never built,
-        # raw events never pruned — is immediately visible at startup.
+        # Log it so a misconfiguration where it runs nowhere is immediately visible
+        # at startup: rollups never built, raw events never pruned.
         logger.info("analytics aggregation + cleanup loop active in this worker")
 
     yield
@@ -332,7 +332,7 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
     played = {int(p) for p in exclude.split(",") if p.strip().lstrip("-").isdigit()}
     chosen = gs.random_game_number(base_exclude | played)
     if chosen is None:
-        # Pool exhausted for this session — relax to allow already-played games
+        # Pool exhausted for this session, relax to allow already-played games
         # again, still never the daily or the current game.
         chosen = gs.random_game_number(base_exclude)
     if chosen is None:

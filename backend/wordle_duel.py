@@ -54,7 +54,7 @@ async def join_wordle_duel(
         raise ValueError("Duel not found")
     game_number = row["game_number"]
 
-    # Ensure the nickname is unique within the duel — identity (self/opponent
+    # Ensure the nickname is unique within the duel: identity (self/opponent
     # boards) is keyed by nickname on the client, so collisions break the game.
     cursor = await db.execute(
         "SELECT nickname FROM wordle_duel_players WHERE duel_id = ?", (duel_id,)

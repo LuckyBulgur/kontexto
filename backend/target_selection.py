@@ -4,20 +4,20 @@ Background: target words used to be drawn straight from the top of the
 fastText frequency list. In a web-crawl corpus that band is dense with proper
 nouns (first names, surnames, cities, brands) and English web vocabulary, all
 of which slip through a lowercasing + "is a known lemma" filter. The result was
-solutions like ``emma``, ``merkel``, ``berlin``, ``school`` or ``music`` —
+solutions like ``emma``, ``merkel``, ``berlin``, ``school`` or ``music``. Those are
 unfair for a *semantic* guessing game, because the neighbourhood of a name is
 just other names.
 
 This module guarantees that a target word is a genuine, guessable German
-content word — a common noun, a full verb, or an adjective — and never a proper
+content word, either a common noun, a full verb, or an adjective, and never a proper
 noun, foreign word, or rare fragment. It layers four offline, deterministic
 signals (no network, reproducible builds):
 
-* **HanTa** (Hanover Tagger) — German POS tagging. The capitalised form must
+* **HanTa** (Hanover Tagger): German POS tagging. The capitalised form must
   read as a common noun (``NN``); the lower-case form rescues verbs (``VV*``)
   and adjectives (``ADJ*``). Anything whose best reading is a proper noun
   (``NE``) is rejected.
-* **german-nouns** (a Wiktionary-derived lexicon) — distinguishes a true common
+* **german-nouns** (a Wiktionary-derived lexicon): distinguishes a true common
   noun (a ``Substantiv`` entry with a declension table) from a mere given
   name / surname (``Vorname`` / ``Nachname`` / ``Eigenname``). This both
   *rescues* common nouns that double as a surname (``löwe``, ``rose``,
@@ -25,10 +25,10 @@ signals (no network, reproducible builds):
   but that have no common-noun sense (``gloria`` style entries are kept; pure
   names like ``lotte`` are not).
 * A bundled **name gazetteer** (`german_names.txt`, ~35k given names and
-  surnames) — catches names that HanTa mis-tags ``NN`` *and* that Wiktionary
+  surnames): catches names that HanTa mis-tags ``NN`` *and* that Wiktionary
   does not even list as common nouns (``torsten``, ``jörn``). A gazetteer word
   survives only if it carries a genuine common-noun dictionary sense.
-* **wordfreq** — German vs. English Zipf frequency. A high English frequency
+* **wordfreq**: German vs. English Zipf frequency. A high English frequency
   with a clear gap over German marks a foreign word (``music``) that HanTa
   tagged as a common noun. Established loanwords (``team``, ``code``) stay.
 
@@ -78,11 +78,11 @@ NAME_BLOCKLIST: frozenset[str] = frozenset({
     "user", "wifi", "bike", "cape", "grant", "mini", "cover",
     # bare fragments / archaic stubs that read as noise
     "mär", "par", "sur", "gran", "ried", "net", "abc",
-    # slurs / sensitive terms — never acceptable as a puzzle solution
+    # slurs / sensitive terms, never acceptable as a puzzle solution
     "jude", "mohr", "neger", "zigeuner",
 })
 
-# Narrowly religious terms — excluded as solutions by content policy. Only
+# Narrowly religious terms, excluded as solutions by content policy. Only
 # unmistakably religious words; holidays (ostern, weihnachten) and secular-
 # dominant homographs (himmel = sky, kreuz = intersection, messe = trade fair,
 # seele, wunder) are deliberately NOT here. Exact-match (no substrings), so
@@ -106,13 +106,13 @@ RELIGION_BLOCKLIST: frozenset[str] = frozenset({
     "allah", "koscher", "ramadan", "sabbat", "tempel", "dom",
 })
 
-# Vulgar, sexual/FSK18, and strongly offensive terms — never acceptable as a
+# Vulgar, sexual/FSK18, and strongly offensive terms, never acceptable as a
 # puzzle *solution* (they stay fully guessable; this only governs the answer).
 # Content policy after solutions like ``Arsch`` surfaced. Scope is deliberate:
 # unambiguously crude/sexual/insulting words and slurs only. Homographs whose
 # dominant sense is harmless (``Schwanz`` = tail, ``Sack`` = bag, ``Eier`` =
 # eggs, ``geil`` = colloquial "great", ``blasen`` = to blow / bubbles) are NOT
-# here — they remain valid solutions. Mild everyday words (``nackt``, ``kotzen``,
+# here; they remain valid solutions. Mild everyday words (``nackt``, ``kotzen``,
 # ``pinkeln``, ``popel``, ``furz``) are also kept; only the taboo register is
 # removed. Entries are ß→ss-folded and matched folded (see ``reject_reason``),
 # so ``scheiße``/``scheisse`` are both caught by the single ``scheisse`` entry.
@@ -135,7 +135,7 @@ PROFANITY_BLOCKLIST: frozenset[str] = frozenset({
     # slurs (some duplicated in NAME_BLOCKLIST; kept here for category clarity)
     "kampflesbe", "spasti", "spast", "mongo", "kanake", "bimbo",
     "neger", "nigger", "analritter",
-    # sexual violence — disturbing for a casual puzzle
+    # sexual violence, disturbing for a casual puzzle
     "vergewaltigung", "vergewaltigen", "vergewaltiger",
 })
 
@@ -147,7 +147,7 @@ _NAMES_FILE = os.path.join(os.path.dirname(__file__), "german_names.txt")
 # look exactly like a dominant name with an obscure noun homograph (``dirk`` =
 # a halyard, ``franziska`` = a throwing axe), so each entry here is hand-verified
 # as a word players would recognise as a thing, not a name. This allowlist is the
-# ONLY way an ``NE`` / gazetteer word is kept — never add a name to it.
+# ONLY way an ``NE`` / gazetteer word is kept; never add a name to it.
 NOUN_RESCUE: frozenset[str] = frozenset({
     # animals & nature
     "löwe", "wolf", "fuchs", "vogel", "hahn", "rose", "linde", "busch",
@@ -194,7 +194,7 @@ class TargetWordFilter:
         self.foreign_margin = foreign_margin
         # A gazetteer of given names and surnames. Place names are deliberately
         # NOT bulk-loaded here: most are caught by HanTa's NE tag, and the few
-        # that slip through (``rom``, ``hamm``) go in NAME_BLOCKLIST — a broad
+        # that slip through (``rom``, ``hamm``) go in NAME_BLOCKLIST. A broad
         # town list would wrongly bury common words (``laufen``, ``essen``,
         # ``stein``, ``hof``) that merely happen to be town names too.
         self._names = _load_gazetteer(names_file)
@@ -237,7 +237,7 @@ class TargetWordFilter:
         """Whether Wiktionary lists *word* as a declinable common noun.
 
         True only if some entry is a ``Substantiv`` with **no** proper-noun tag
-        and an actual declension table or gender — i.e. a real common noun
+        and an actual declension table or gender, i.e. a real common noun
         (``Sommer``, ``Löwe``), not merely a name that also has a Wiktionary
         page (``Sebastian``, ``Lotte``).
         """
@@ -299,7 +299,7 @@ class TargetWordFilter:
         if word in self._names:
             # A known name token. It survives only as a genuine common noun:
             # HanTa must read the capitalised form as NN *and* Wiktionary must
-            # list a common-noun sense (``sommer``, ``könig``) — this rejects
+            # list a common-noun sense (``sommer``, ``könig``). This rejects
             # pure names HanTa mis-tags NN (``sebastian``, ``torsten``). A few
             # concrete nouns that HanTa tags NE come back via the rescue list
             # (``löwe``, ``rose``); names with an obscure noun homograph

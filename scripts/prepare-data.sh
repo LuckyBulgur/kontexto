@@ -12,7 +12,7 @@ MODEL_BIN="/tmp/cc.de.300.bin"
 # larger vocabulary only widens the *guessable* set, never the solution quality.
 VOCAB_SIZE="${VOCAB_SIZE:-80000}"
 # Solution words are restricted to ones virtually everyone knows (German Zipf
-# ≥ 4.0 in prepare.py), which yields a pool of ~2500 words — so the game count
+# ≥ 4.0 in prepare.py), which yields a pool of ~2500 words, so the game count
 # is capped a little below that. ~2400 daily puzzles ≈ 6.5 years.
 NUM_GAMES="${NUM_GAMES:-2400}"
 # Game 1 is the day the data is generated, so a regeneration restarts the daily
@@ -22,7 +22,7 @@ START_DATE="${START_DATE:-$(date +%F)}"
 echo "=== Kontexto Data Preparation ==="
 
 # A pre-seeded model can be supplied via FASTTEXT_MODEL to avoid the multi-GB
-# download on every (re)build — useful for local Docker iteration and for
+# download on every (re)build, useful for local Docker iteration and for
 # redeploys. It may be a .bin/.vec or a .gz of either (prepare.py reads both).
 if [ -n "${FASTTEXT_MODEL:-}" ]; then
     if [ ! -f "$FASTTEXT_MODEL" ]; then

@@ -176,7 +176,7 @@ async def _record_shared(
             "UPDATE koop_players SET contribution_count = contribution_count + 1 WHERE id = ?",
             (player["id"],),
         )
-        # Roll up team state with atomic, commutative SQL — no read-modify-write,
+        # Roll up team state with atomic, commutative SQL, no read-modify-write,
         # so concurrent guesses from the 4 API workers can't lose an update.
         await db.execute(
             "UPDATE koops SET "
@@ -236,7 +236,7 @@ async def give_up_koop(
     Sets the team-wide ``gave_up`` flag (idempotent) and drops the solution into
     the shared list as a rank-1 entry so it persists and renders for everyone,
     even on a fresh page load. Returns None if the token is not a member.
-    The contribution count is deliberately not bumped — a reveal is not a guess.
+    The contribution count is deliberately not bumped, because a reveal is not a guess.
     """
     cursor = await db.execute(
         "SELECT id, nickname FROM koop_players "

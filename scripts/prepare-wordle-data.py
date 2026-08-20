@@ -3,15 +3,15 @@
 
 Self-contained: the lists are derived from ``vocabulary.json`` / ``lemma_map.json``
 (produced by the Kontexto data preparation that runs first), so there is no
-external download to rot — the previous source (Hugo0/wordle) was restructured
+external download to rot. The previous source (Hugo0/wordle) was restructured
 and its German word file now 404s.
 
 Two tiers are written to ``<data>/wordle/``:
 
-* ``solutions.json`` — daily answers. Common, base-form German content words run
+* ``solutions.json``: daily answers. Common, base-form German content words run
   through the same :class:`TargetWordFilter` as Kontexto, so no names, foreign
   words, inflected forms or fragments ever become a solution.
-* ``valid_words.json`` — accepted guesses. Every 5-letter a-z word in the
+* ``valid_words.json``: accepted guesses. Every 5-letter a-z word in the
   vocabulary (plus inflected forms from the lemma map), kept permissive.
 
 Wördle here uses the 26-letter a-z alphabet (no ä/ö/ü/ß), matching the existing
@@ -72,7 +72,7 @@ def main() -> None:
         | {w for w in lemma_forms if FIVE_LETTER.match(w)}
     )
 
-    # Daily solutions: common, sensible, base-form words — no names, foreign
+    # Daily solutions, common, sensible and base-form: no names, foreign
     # words, fragments or function words.
     target_filter = TargetWordFilter()
     solutions = [

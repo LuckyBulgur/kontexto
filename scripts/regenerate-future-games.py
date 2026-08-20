@@ -4,15 +4,15 @@
 Background
 ----------
 Two classes of solution must never appear:
-  * offensive / FSK18 / insulting words (e.g. ``Arsch``) — now blocked by
+  * offensive / FSK18 / insulting words (e.g. ``Arsch``), now blocked by
     ``target_selection.PROFANITY_BLOCKLIST``;
   * ß/ss orthographic twins (solution ``anlässlich`` while ``anläßlich`` sits at
-    rank 2) — now excluded by ``prepare.orthographic_twins`` /
+    rank 2), now excluded by ``prepare.orthographic_twins`` /
     ``select_target_words``.
 
 We must fix the live game pool WITHOUT disturbing games that have already been
 played. Past and today's games stay byte-identical; only games strictly after
-today are rewritten — and even then, only the individual games whose solution is
+today are rewritten, and even then only the individual games whose solution is
 actually bad. ``duels.db`` (analytics + duels) is never touched.
 
 Why this is safe
@@ -22,7 +22,7 @@ positionally bound to ``vocabulary.json``. The vocabulary is built independently
 of solution selection, so a filter change leaves ``vocabulary.json`` /
 ``lemma_map.json`` / ``bloom.bin`` untouched. We therefore keep those files and
 prod's past npz, and only rewrite ``target_words.json`` plus the npz of the few
-replaced future games — all computed against prod's exact vocabulary order.
+replaced future games, all computed against prod's exact vocabulary order.
 
 This script is offline and deterministic. It verifies, before writing anything,
 that it reproduces prod's vocabulary exactly and prod's past npz bit-for-bit
@@ -65,9 +65,9 @@ from prepare import (  # noqa: E402
 )
 from target_selection import TargetWordFilter  # noqa: E402
 
-# Wördle's daily series epoch — must match backend/wordle.py (WordleState.epoch).
+# Wördle's daily series epoch, must match backend/wordle.py (WordleState.epoch).
 WORDLE_EPOCH = date(2026, 3, 28)
-# Looser frequency bar for Wördle solutions — must match scripts/prepare-wordle-data.py.
+# Looser frequency bar for Wördle solutions, must match scripts/prepare-wordle-data.py.
 WORDLE_MIN_ZIPF = 3.0
 # Every clean 5-letter word at zde>=3.0 is already a live Wördle solution, so
 # replacements for the few offensive future answers must come from just below
@@ -91,7 +91,7 @@ def stream_vocab_vectors(vec_path: str, vocab_size: int) -> tuple[dict[str, np.n
     """Reproduce prod's vocabulary + raw vectors from a fastText ``.vec`` file.
 
     Streams the file in frequency (file) order and keeps the first-seen cased
-    variant of each lowercased word — exactly ``filter_vocabulary``'s semantics,
+    variant of each lowercased word, exactly ``filter_vocabulary``'s semantics,
     but without loading all ~2M vectors into memory. Shares the membership
     predicate (``vocab_word_ok``) with ``filter_vocabulary`` so the result is
     identical; the caller still asserts equality against prod's vocabulary.json.
@@ -114,7 +114,7 @@ def stream_vocab_vectors(vec_path: str, vocab_size: int) -> tuple[dict[str, np.n
 
 
 def kontexto_game_number(today: date, start_date: date, total_games: int) -> int:
-    """Today's Kontexto game number — mirrors GameState.get_game_number."""
+    """Today's Kontexto game number, mirrors GameState.get_game_number."""
     days = (today - start_date).days + 1
     return ((days - 1) % total_games) + 1
 
@@ -208,7 +208,7 @@ def main() -> int:
 
     merged_targets = list(prod_targets)
     k_replacements = []  # (game_number, old, new, why)
-    past_flagged = []    # (game_number, word, why) — preserved, reported only
+    past_flagged = []    # (game_number, word, why), preserved, reported only
     for idx in range(total_games):
         game = idx + 1
         why = is_bad_target(prod_targets[idx])
@@ -241,7 +241,7 @@ def main() -> int:
     w_spare_iter = iter(wordle_spares)
     merged_wordle = list(prod_wordle)
     w_replacements = []      # (index, old, new)
-    w_past_flagged = []      # (index, word) — preserved
+    w_past_flagged = []      # (index, word), preserved
     for i, w in enumerate(prod_wordle):
         if filt.reject_reason(w) != "offensive":
             continue

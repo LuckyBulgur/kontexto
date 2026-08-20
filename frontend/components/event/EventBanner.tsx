@@ -45,13 +45,13 @@ export default function EventBanner() {
       transition={{ duration: 0.4, ease: "easeOut" }}
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-3 z-40 mx-auto flex w-[min(92%,30rem)] items-center gap-3 rounded-xl border bg-card/95 px-4 py-3 shadow-lg backdrop-blur"
+      className="fixed inset-x-0 bottom-3 z-40 mx-auto flex w-[min(92%,30rem)] items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg"
       style={{ borderColor: "var(--event-gold)" }}
     >
       <span
         aria-hidden="true"
         className="font-event grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sm font-normal tracking-wide text-white"
-        style={{ background: "linear-gradient(135deg, var(--event-green), var(--event-green-deep))" }}
+        style={{ backgroundColor: "var(--event-green)" }}
       >
         26
       </span>
