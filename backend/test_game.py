@@ -187,11 +187,63 @@ class TestLoadGame:
     def test_load_caches(self, data_dir):
         state = GameState(data_dir)
         state.load_game(1)
-        rankings, rank_to_word = state._get_game(1)
-        assert len(rankings) == 5
+        ranks, rank_to_index = state._get_game(1)
+        assert len(ranks) == 5
+        assert len(rank_to_index) == 6
 
     def test_load_same_game_skips(self, gs):
-        rankings_before, _ = gs._get_game(1)
+        ranks_before, _ = gs._get_game(1)
         gs.load_game(1)
-        rankings_after, _ = gs._get_game(1)
-        assert rankings_after is rankings_before
+        ranks_after, _ = gs._get_game(1)
+        assert ranks_after is ranks_before
+
+    def test_rank_to_index_is_inverse_permutation(self, data_dir):
+        state = GameState(data_dir)
+        ranks, rank_to_index = state._get_game(1)
+        for index, rank in enumerate(ranks):
+            assert rank_to_index[rank] == index
+
+
+def _write_game(data_dir: str, number: int, ranks: list[int]) -> None:
+    path = os.path.join(data_dir, "games", f"{number:04d}.npz")
+    np.savez_compressed(path, ranks=np.array(ranks, dtype=np.uint16))
+
+
+class TestGameCacheLru:
+    def test_evicts_oldest_beyond_capacity(self, data_dir, monkeypatch):
+        import game as game_module
+        monkeypatch.setattr(game_module, "GAME_CACHE_SIZE", 2)
+        _write_game(data_dir, 2, [2, 1, 3, 4, 5])
+        _write_game(data_dir, 3, [3, 2, 1, 4, 5])
+        state = GameState(data_dir)
+        state.load_game(1)
+        state.load_game(2)
+        state.load_game(3)
+        assert set(state._game_cache) == {2, 3}
+
+    def test_hit_refreshes_recency(self, data_dir, monkeypatch):
+        import game as game_module
+        monkeypatch.setattr(game_module, "GAME_CACHE_SIZE", 2)
+        _write_game(data_dir, 2, [2, 1, 3, 4, 5])
+        _write_game(data_dir, 3, [3, 2, 1, 4, 5])
+        state = GameState(data_dir)
+        state.load_game(1)
+        state.load_game(2)
+        # A lookup on game 1 must mark it most recently used, so loading
+        # game 3 evicts game 2 instead.
+        assert state.guess("apfel", 1)["rank"] == 1
+        state.load_game(3)
+        assert set(state._game_cache) == {1, 3}
+
+    def test_reloads_evicted_game_transparently(self, data_dir, monkeypatch):
+        import game as game_module
+        monkeypatch.setattr(game_module, "GAME_CACHE_SIZE", 1)
+        _write_game(data_dir, 2, [2, 1, 3, 4, 5])
+        state = GameState(data_dir)
+        state.load_game(1)
+        state.load_game(2)
+        assert set(state._game_cache) == {2}
+        # Game 1 was evicted; a guess against it must reload from disk.
+        result = state.guess("birne", 1)
+        assert result == {"word": "birne", "rank": 2, "total": 5}
+        assert set(state._game_cache) == {1}

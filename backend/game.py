@@ -8,11 +8,17 @@ import json
 import os
 import pickle
 import random
+from collections import OrderedDict
 from datetime import date
 
 import numpy as np
 
 from prepare import GERMAN_STOPWORDS
+
+# Upper bound for per-process game data. Each cached game holds two uint32
+# arrays over the ~80k vocabulary (~640 KB), so 64 games stay near 40 MB per
+# worker. Unbounded caching exhausted the 4 GB prod host (OOM worker kills).
+GAME_CACHE_SIZE = 64
 
 
 class GameState:
@@ -41,29 +47,35 @@ class GameState:
 
         self.start_date = date.fromisoformat(self.metadata["start_date"])
 
-        self._game_cache: dict[int, tuple[dict[str, int], list[str]]] = {}
+        self._game_cache: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
 
     def load_game(self, game_number: int) -> None:
-        """Load rankings for a specific game into cache."""
-        if game_number in self._game_cache:
-            return
+        """Warm the cache for a game (lookups load on demand anyway)."""
+        self._get_game(game_number)
+
+    def _get_game(self, game_number: int) -> tuple[np.ndarray, np.ndarray]:
+        """Return (ranks, rank_to_index) for a game, loading it on a cache miss.
+
+        ranks maps vocabulary index to rank (1-based permutation from
+        prepare.py); rank_to_index is the inverse, with slot 0 unused.
+        Entries are kept in an LRU bounded by GAME_CACHE_SIZE.
+        """
+        cached = self._game_cache.get(game_number)
+        if cached is not None:
+            self._game_cache.move_to_end(game_number)
+            return cached
 
         path = os.path.join(self.data_dir, "games", f"{game_number:04d}.npz")
-        data = np.load(path)
-        ranks = data["ranks"]
+        with np.load(path) as data:
+            ranks = data["ranks"].astype(np.uint32, copy=False)
 
-        rankings = {
-            self.index_to_word[i]: int(ranks[i])
-            for i in range(len(ranks))
-        }
-        rank_to_word = [""] * (len(ranks) + 1)
-        for word, rank in rankings.items():
-            rank_to_word[rank] = word
-        self._game_cache[game_number] = (rankings, rank_to_word)
+        rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
+        rank_to_index[ranks] = np.arange(len(ranks), dtype=np.uint32)
 
-    def _get_game(self, game_number: int) -> tuple[dict[str, int], list[str]]:
-        """Get rankings and rank_to_word for a game (must be loaded first)."""
-        return self._game_cache[game_number]
+        self._game_cache[game_number] = (ranks, rank_to_index)
+        while len(self._game_cache) > GAME_CACHE_SIZE:
+            self._game_cache.popitem(last=False)
+        return ranks, rank_to_index
 
     def get_game_number(self, today: date | None = None) -> int:
         """Calculate today's game number from the start date.
@@ -104,15 +116,15 @@ class GameState:
         if normalized is None:
             return None
 
-        rankings, _ = self._get_game(game_number)
-        rank = rankings.get(normalized)
-        if rank is None:
+        index = self.vocabulary.get(normalized)
+        if index is None:
             return None
 
+        ranks, _ = self._get_game(game_number)
         return {
             "word": normalized,
-            "rank": rank,
-            "total": len(rankings),
+            "rank": int(ranks[index]),
+            "total": len(ranks),
         }
 
     def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
@@ -121,7 +133,7 @@ class GameState:
         Never returns rank 1 (the answer). If the computed rank was already
         guessed, searches upward for the next unguessed rank.
         """
-        rankings, rank_to_word = self._get_game(game_number)
+        ranks, rank_to_index = self._get_game(game_number)
 
         if guessed_ranks is None:
             guessed_ranks = []
@@ -134,7 +146,7 @@ class GameState:
         else:  # hard
             target_rank = random.randint(2, max(2, best_rank - 1))
 
-        max_rank = len(rank_to_word) - 1
+        max_rank = len(ranks)
         target_rank = min(target_rank, max_rank)
 
         # Search both directions for an unguessed rank
@@ -152,7 +164,7 @@ class GameState:
                 return None
 
         return {
-            "word": rank_to_word[target_rank],
+            "word": self.index_to_word[int(rank_to_index[target_rank])],
             "rank": target_rank,
         }
 
@@ -177,10 +189,8 @@ class GameState:
 
     def get_closest_words(self, game_number: int) -> list[dict]:
         """Return the 500 closest words for the given game."""
-        _, rank_to_word = self._get_game(game_number)
-        result = []
-        for rank in range(1, min(501, len(rank_to_word))):
-            word = rank_to_word[rank]
-            if word:
-                result.append({"word": word, "rank": rank})
-        return result
+        ranks, rank_to_index = self._get_game(game_number)
+        return [
+            {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
+            for rank in range(1, min(501, len(ranks) + 1))
+        ]
