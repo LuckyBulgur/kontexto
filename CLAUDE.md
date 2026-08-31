@@ -30,6 +30,16 @@ pnpm verify:dashes       # em dash (U+2014/U+2015 always, U+2013 only as a dash)
 ```
 **Before reporting anything done:** `pnpm build && pnpm test && pnpm seo:check && pnpm verify:slop --all && pnpm verify:dashes`, plus `pytest` from `backend/` if you touched Python. The type-check alone is not enough; the export build finds more.
 
+**And `pnpm test:e2e`, whenever `app/layout.tsx`, the game clients or anything that changes page loading is touched.** CI runs it (`.github/workflows/deploy.yml`), and it catches what the list above cannot: the suite drives the real static export against a real backend. It was left out of this list once, and a change to the AdSense loader in `<head>` went green on every check here and red in CI.
+
+```bash
+python scripts/create-test-data.py --output data-e2e     # once, mock dataset
+NEXT_PUBLIC_API_URL=/api pnpm build                      # from frontend/
+pnpm test:e2e                                            # boots backend + proxy itself
+```
+
+**On Windows in Git Bash**, prefix the build with `MSYS_NO_PATHCONV=1`. Without it MSYS rewrites the value `/api` into `C:/Program Files/Git/api`, the export inlines that as the API base, and the app then fetches `file://` URLs. Every game page fails to load and the symptom looks exactly like a broken backend.
+
 **Do not use `pnpm lint`.** ESLint 10 is incompatible with eslint-plugin-react 7.x and it crashes project‑wide (`contextOrFilename.getFilename is not a function`) on the first file, regardless of your changes. Use **`pnpm build` + `pnpm test` + `pnpm seo:check`** as the real gates until the versions are reconciled.
 
 ### Backend (`cd backend`): Python 3.12, pytest

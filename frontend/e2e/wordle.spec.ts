@@ -5,9 +5,21 @@ import { test, expect } from "@playwright/test";
 // Tageslösung ist damit deterministisch.
 test.describe("Wördle Einzelspieler", () => {
   test("löst das Tagesrätsel mit der bekannten Lösung", async ({ page }) => {
+    // Die Antwort wird VOR der Navigation scharfgestellt. page.goto wartet auf
+    // das load-Ereignis, und dazu zaehlt der AdSense-Loader: Er steht seit
+    // August 2026 als echtes <script async> im <head>, weil Googles Anleitung
+    // den Anzeigencode dort verlangt und er vorher (next/script mit
+    // afterInteractive) ueberhaupt nicht im ausgelieferten HTML stand. Sein
+    // externer Abruf verzoegert load so weit, dass die Spielabfrage laengst
+    // durch ist, bevor goto zurueckkehrt. Ein waitForResponse danach wartet auf
+    // ein Ereignis der Vergangenheit und laeuft in den Timeout.
+    const gameLoaded = page.waitForResponse(
+      (r) => r.url().includes("/api/wordle/game") && r.ok(),
+    );
     await page.goto("/wordle/");
-    // Warten, bis das Spiel geladen ist (Skeleton -> Board).
-    await page.waitForResponse((r) => r.url().includes("/api/wordle/game") && r.ok());
+    await gameLoaded;
+    // Skeleton -> Board: die Bildschirmtastatur steht erst nach dem Rendern.
+    await expect(page.getByRole("button", { name: "Enter", exact: true })).toBeVisible();
 
     // Mit Delay tippen, damit React jeden Buchstaben committet. Anschließend NICHT
     // sofort die physische Enter-Taste drücken (Race: submitGuess würde über ein
