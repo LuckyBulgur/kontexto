@@ -25,7 +25,7 @@ export default function DuelHeader({ players, currentNickname }: DuelHeaderProps
             {p.nickname === currentNickname && " (du)"}
           </span>
           <span className="text-muted-foreground">{p.guesses_used}x</span>
-          {p.solved && <span className="text-green-600">&#10003;</span>}
+          {p.solved && <span className="text-green-700">&#10003;</span>}
         </div>
       ))}
     </div>

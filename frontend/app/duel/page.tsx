@@ -15,7 +15,9 @@ export default function DuelPage() {
   return (
     <>
       <StructuredData data={faqSchema(duelFaqs)} />
-      <DuelPageClient />
+      <main>
+        <DuelPageClient />
+      </main>
       <DuelSeo />
     </>
   );

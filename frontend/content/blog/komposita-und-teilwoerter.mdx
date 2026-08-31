@@ -94,6 +94,50 @@ für `Garten`, `Pflanze` und `Beet` zusammen sagt sehr viel.
 Wenn eines feststeckt, springt oft ein anderes deutlich nach vorne. Dieselbe Technik in
 systematischer Form beschreibt [Semantische Wortfelder](/blog/semantische-wortfelder-strategie/).
 
+## Warum das Deutsche hier grundsätzlich schwerer ist
+
+Es lohnt sich, den Unterschied zum Englischen einmal in Zahlen zu fassen, weil er das ganze Problem
+erklärt.
+
+Englisch bildet zusammengesetzte Begriffe überwiegend aus mehreren Wörtern: `kitchen table`,
+`table tennis`, `water bottle`. Für ein Modell, das einzelne Wörter einbettet, sind das jeweils
+zwei bekannte Einträge. Deutsch schreibt zusammen: `Küchentisch`, `Tischtennis`, `Wasserflasche`.
+Jede dieser Zusammensetzungen ist ein eigenes Wort, das das Modell einzeln lernen müsste.
+
+Und die Menge ist praktisch unbegrenzt. Deutsch erlaubt es, aus zwei beliebigen Substantiven ein
+drittes zu bilden, und Sprecher tun das ständig, ohne dass diese Wörter je in einem Wörterbuch
+landen. `Kaffeetassenrand` ist völlig verständlich und kommt in keinem Trainingstext oft genug vor,
+um einen brauchbaren Vektor zu bekommen.
+
+Genau für diese Lage ist die Zerlegung in Zeichenabschnitte gebaut. Sie ist im Deutschen kein
+Zusatzfeature, sondern die Voraussetzung dafür, dass ein Bedeutungsspiel überhaupt funktioniert.
+Ohne sie wäre ein erheblicher Teil aller Eingaben schlicht unbekannt.
+
+## Wie sich das auf die Lösungswörter auswirkt
+
+Aus demselben Grund sind Zusammensetzungen als Tageslösung problematisch, und zwar nicht wegen der
+Zerlegung, sondern wegen der Suche.
+
+Ein zusammengesetztes Zielwort hat zwei Anker. Wer bei `Küchentisch` das Feld Küche findet, kommt
+gut voran und landet doch nie ganz vorn, weil die Tisch-Hälfte fehlt. Wer das Feld Möbel findet,
+hat dasselbe Problem in der anderen Richtung. Beide Suchen enden in einem Plateau, das sich wie ein
+falsches Feld anfühlt, obwohl es das halbe richtige ist.
+
+Für Spielende heißt das umgekehrt: Wenn zwei völlig verschiedene Felder beide ordentlich liegen,
+sagen wir Küche bei 180 und Möbel bei 240, ohne dass eines davon weiter nach vorn will, ist das ein
+starker Hinweis auf eine Zusammensetzung aus genau diesen beiden Bereichen. Diese Konstellation ist
+selten, aber wenn sie auftritt, ist sie ziemlich eindeutig.
+
+## Die Gegenprobe in der Praxis
+
+Der Test, ob ein guter Rang von der Bedeutung oder von den Zeichen kommt, lohnt sich als feste
+Gewohnheit, weil er nur einen Zug kostet.
+
+Nimm dein gut liegendes Wort und suche ein Wort, das dasselbe bedeutet, aber möglichst wenig
+gemeinsame Zeichen hat. Zu `Fahrrad` etwa `Velo` oder `Drahtesel`, zu `Auto` etwa `Wagen`, zu
+`Arzt` etwa `Mediziner`. Liegt das zweite Wort ähnlich gut, war der Treffer inhaltlich. Fällt es
+deutlich ab, hing der erste Rang an der Schreibweise, und das Feld ist eine Sackgasse.
+
 ## Auch die Wortliste ist davon betroffen
 
 Die Komposita-Eigenschaft wirkt nicht nur auf die Ränge, sondern auch darauf, welche Wörter

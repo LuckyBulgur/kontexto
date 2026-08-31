@@ -84,6 +84,47 @@ Die tägliche Zuordnung ist danach reine Rechnung. Es gibt einen Stichtag, und d
 heutigen Rätsels ist die Zahl der Tage seit diesem Stichtag. Kein Zufall zur Laufzeit, keine
 Datenbankabfrage, kein Zustand, der auseinanderlaufen könnte.
 
+## Warum getrennte Listen die einzige brauchbare Lösung sind
+
+Man könnte auf die Idee kommen, mit einer einzigen Liste auszukommen: Was als Lösung taugt, taugt
+auch als Tipp. Diese Variante wurde verworfen, und der Grund ist ein Rechenexempel.
+
+Eine Liste, die streng genug für Lösungen ist, enthält keine gebeugten Formen, keine seltenen
+Wörter und keine Fremdwörter. Sie ist damit klein. Wer `HÄUSER` eintippen will, findet es nicht,
+weil es ein Plural ist. Wer `PIZZA` eintippt, findet es nicht, weil es ein Fremdwort ist. Beides
+sind völlig normale deutsche Wörter, und beides als „ungültig“ zurückzuweisen ist der sicherste Weg,
+Leute zu vergraulen.
+
+Umgekehrt: Eine Liste, die großzügig genug für Tipps ist, enthält Formen wie `LIEFE` oder `SÄHET`.
+Als Tageslösung wäre das kein Rätsel, sondern Pech. Niemand kommt in sechs Versuchen auf einen
+Konjunktiv, den er im Alltag nie schreibt.
+
+Die beiden Anforderungen widersprechen sich also direkt, und jede Einzelliste erfüllt eine davon
+schlecht. Zwei Listen kosten etwas mehr Pflege und lösen das Problem vollständig: großzügig prüfen,
+streng auswählen.
+
+## Was beim Bau übrig blieb und was nicht
+
+Ein paar Kategorien haben es nicht in die Lösungsliste geschafft, obwohl sie formal passen würden.
+Sie stehen hier, weil sie erklären, warum manche naheliegenden Wörter nie als Tageslösung
+auftauchen.
+
+**Wörter mit Umlaut.** Sie sind vollständig ausgeschlossen, in beiden Listen. Der Grund steht oben:
+Jede Umlautbehandlung erzeugt Sonderregeln bei der Farbrückmeldung, und Sonderregeln in einem Spiel,
+dessen ganzer Reiz auf drei eindeutigen Farben beruht, sind teurer als der Verzicht.
+
+**Eigennamen und Marken.** Sie sind als Lösung gesperrt, aus demselben Grund wie bei Kontexto: Wer
+den Namen nicht kennt, hat keine Möglichkeit, ihn zu erschließen. Als Tipp bleiben sie erlaubt,
+soweit sie im Wortschatz stehen.
+
+**Wörter mit doppelten Buchstaben an heiklen Stellen.** Sie sind nicht gesperrt, aber sie sind der
+Grund für die häufigste Beschwerde. Bei `KAMMER` färbt sich das erste M grün und das zweite M
+ebenfalls, bei `KAMEL` dagegen färbt sich ein eingegebenes zweites M grau, obwohl ein M vorkommt.
+Das ist korrektes Wördle-Verhalten und fühlt sich trotzdem falsch an.
+
+**Sehr seltene Wörter.** Ausgeschlossen über eine Häufigkeitsschwelle. Wo genau diese Schwelle
+liegt, war die schwierigste Einzelentscheidung beim Bau der Liste, und sie ist oben beschrieben.
+
 ## Was das für dein Spiel bedeutet
 
 Vier praktische Folgerungen:

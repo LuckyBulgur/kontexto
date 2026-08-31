@@ -65,11 +65,11 @@ export default function StrategiePage() {
         <ComparisonTable
           columns={["Wort", "Signal unter Rang 1500", "Begründung"]}
           rows={[
-            ["gehen", <span key="1" className="text-green-600 dark:text-green-400">13,2 %</span>, "Bestes Startwort im Test. Verben passen in Sätze zu fast jedem Thema."],
-            ["arbeit", <span key="2" className="text-green-600 dark:text-green-400">11,9 %</span>, "Bestes Substantiv im Test. Verbindet Tätigkeit, Technik, Wirtschaft und Alltag."],
-            ["sehen", <span key="3" className="text-green-600 dark:text-green-400">11,0 %</span>, "Zweites Verb aus einer anderen Handlungsrichtung."],
-            ["zeit", <span key="4" className="text-green-600 dark:text-green-400">10,3 %</span>, "Öffnet die abstrakt-zeitliche Richtung."],
-            ["mensch", <span key="5" className="text-yellow-600 dark:text-yellow-500">5,6 %</span>, "Wirkt breit, ist gemessen aber nur Mittelfeld."],
+            ["gehen", <span key="1" className="text-green-700 dark:text-green-400">13,2 %</span>, "Bestes Startwort im Test. Verben passen in Sätze zu fast jedem Thema."],
+            ["arbeit", <span key="2" className="text-green-700 dark:text-green-400">11,9 %</span>, "Bestes Substantiv im Test. Verbindet Tätigkeit, Technik, Wirtschaft und Alltag."],
+            ["sehen", <span key="3" className="text-green-700 dark:text-green-400">11,0 %</span>, "Zweites Verb aus einer anderen Handlungsrichtung."],
+            ["zeit", <span key="4" className="text-green-700 dark:text-green-400">10,3 %</span>, "Öffnet die abstrakt-zeitliche Richtung."],
+            ["mensch", <span key="5" className="text-yellow-700 dark:text-yellow-500">5,6 %</span>, "Wirkt breit, ist gemessen aber nur Mittelfeld."],
             ["wasser", <span key="6" className="text-red-600 dark:text-red-400">2,6 %</span>, "Fühlt sich breit an, meint aber fast immer buchstäblich Flüssigkeit."],
             ["thermodynamik", <span key="7" className="text-red-600 dark:text-red-400">2,2 %</span>, "Sehr enger Kontext, nützt nur bei Physik-Wörtern."],
           ]}

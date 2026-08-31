@@ -103,7 +103,14 @@ export default function ZahlenPage() {
           </p>
         </Prose>
 
-        <div className="overflow-x-auto">
+        {/* tabIndex + role: ohne das erreicht eine Tastaturnutzerin den
+            ueberstehenden Teil der Tabelle nicht (WCAG 2.1.1). */}
+        <div
+          className="overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label="Die 100 meistgeratenen Wörter"
+        >
           <table className="w-full min-w-[34rem] border-collapse text-sm">
             <caption className="caption-bottom pt-3 text-xs text-muted-foreground">
               {benchmark.results.length} Kandidaten über {nf.format(benchmark.games_evaluated)}{" "}

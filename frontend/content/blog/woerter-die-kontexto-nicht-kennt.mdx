@@ -114,6 +114,53 @@ Die praktische Zusammenfassung passt in vier Zeilen:
 Und ein Trost: Ein abgelehntes Wort zählt nicht als Versuch. Es kostet dich nur die Sekunde, die
 du zum Tippen gebraucht hast.
 
+## Warum ausgerechnet 80.000
+
+Die Zahl ist ein Kompromiss, und beide Richtungen haben spürbare Nachteile.
+
+Nach oben begrenzt die Qualität der Vektoren. Das Modell kennt rund zwei Millionen Zeichenketten,
+aber die Häufigkeit fällt steil ab. Wörter, die im Trainingstext nur ein paar Dutzend Mal vorkommen,
+haben Vektoren, die mehr Rauschen als Signal tragen. Nimmt man sie auf, bekommen sie trotzdem einen
+Rang, und dieser Rang ist dann schlicht falsch. Ein Wort, das grundlos auf Platz 40 landet, ist
+ärgerlicher als eines, das gar nicht erst angenommen wird.
+
+Nach unten begrenzt die Abdeckung. Bei 30.000 Wörtern würden regelmäßig Begriffe fehlen, die jeder
+kennt. Bei 80.000 sind praktisch alle geläufigen Substantive, Verben und Adjektive dabei, samt der
+gebräuchlichsten Zusammensetzungen.
+
+Dazu kommt ein Nebeneffekt auf die Rangskala selbst: Je mehr Wörter in der Liste stehen, desto
+größer werden die hinteren Rangzahlen, ohne dass sie mehr aussagen. Eine Liste mit 500.000
+Einträgen würde Ränge um 300.000 erzeugen, die für die Suche exakt so nützlich sind wie 8.000,
+nämlich „weit weg“.
+
+## Wie die Prüfung technisch abläuft
+
+Dass eine Zurückweisung sofort da ist und keinen Versuch kostet, hat einen konkreten Grund. Vor der
+eigentlichen Suche steht ein Bloom-Filter, eine kompakte Datenstruktur, die in konstanter Zeit
+beantwortet, ob ein Wort überhaupt bekannt sein könnte.
+
+Ihre Besonderheit ist, dass sie sich nur in eine Richtung irren kann: Ein „kenne ich nicht“ ist
+immer korrekt, ein „kenne ich“ gelegentlich falsch. Für den Zweck ist das genau richtig herum. Wer
+Unsinn eintippt, bekommt sofort eine Antwort, ohne dass der Server eine teurere Suche startet. In
+den seltenen Fällen, in denen der Filter fälschlich „kenne ich“ sagt, greift danach die echte
+Nachschlagetabelle und weist das Wort ab.
+
+Praktisch heißt das für dich: Eine Zurückweisung ist keine Strafe und zählt nicht als Versuch. Du
+kannst so viele Schreibweisen ausprobieren, wie du möchtest.
+
+## Wenn ein Wort fehlt, das fehlen sollte
+
+Der Vollständigkeit halber der umgekehrte Fall zur Fehlermeldung: Manchmal wird ein Wort
+angenommen, das man gar nicht erwartet hätte, etwa ein Fachbegriff oder eine seltene
+Zusammensetzung. Das liegt an der Zerlegung in Zeichenabschnitte, mit der fastText auch für
+unbekannte Wörter einen Vektor zusammensetzen kann.
+
+Solche Wörter bekommen einen Rang, aber er ist wenig verlässlich, weil er aus Zeichenähnlichkeit
+statt aus Kontextwissen entsteht. Wer bei einem seltenen Wort einen überraschend guten Rang sieht,
+sollte ihn deshalb mit einem gebräuchlichen Wort desselben Felds gegenprüfen, bevor er darauf
+aufbaut. Warum das so ist, steht in
+[Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
+
 ## Der umgekehrte Fall
 
 Es gibt eine Gruppe von Wörtern, die überraschenderweise **funktioniert**: Eigennamen. `berlin`,

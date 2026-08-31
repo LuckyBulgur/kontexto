@@ -123,11 +123,11 @@ export default function Header({
           </a>
         )}
         <div className="flex items-center gap-1 text-[20px] font-bold tracking-wider">
-          <Link href="/" className={pathname.startsWith("/wordle") ? "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" : ""}>
+          <Link href="/" className={pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
             KONTEXTO
           </Link>
           <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <Link href="/wordle" className={!pathname.startsWith("/wordle") ? "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" : ""}>
+          <Link href="/wordle" className={!pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
             WÖRDLE
           </Link>
         </div>

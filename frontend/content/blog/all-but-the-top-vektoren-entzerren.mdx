@@ -75,6 +75,45 @@ Das ist der Grund, warum die Strategie aus [Die besten Startwörter für Kontext
 überhaupt funktioniert. Ein breites Alltagswort als erster Zug liefert nur dann ein Signal, wenn
 sein Rang tatsächlich von der Bedeutung abhängt und nicht von seiner Häufigkeit.
 
+## Warum ausgerechnet drei Hauptkomponenten
+
+Die Zahl drei wirkt willkürlich, und sie ist es zur Hälfte auch. Sie stammt aus der ursprünglichen
+Arbeit zu diesem Verfahren, die eine einfache Faustregel vorschlägt: ungefähr die Dimension geteilt
+durch hundert. Bei 300 Dimensionen sind das drei.
+
+Interessanter als die Herkunft ist, was passiert, wenn man daneben liegt. Entfernt man zu wenig,
+etwa nur den Mittelwert, bleibt ein Teil des Häufigkeitseffekts stehen: Allerweltswörter liegen
+weiterhin bei jedem beliebigen Zielwort zu weit vorn, und ein guter Rang für `Zeit` sagt dann mehr
+über `Zeit` als über das Rätsel.
+
+Entfernt man zu viel, etwa zehn Komponenten, verschwindet irgendwann echte Bedeutung. Die vorderen
+Hauptkomponenten kodieren nicht ausschließlich Häufigkeit, sie tragen auch breite semantische
+Gegensätze wie konkret gegen abstrakt. Wer sie herausrechnet, macht Wörter ähnlich, die es nicht
+sind, und die Rangliste wird flau.
+
+Praktisch heißt das: Der Effekt ist zwischen zwei und vier Komponenten stabil und kippt danach.
+Drei ist eine gute Wahl, keine magische.
+
+## Was ohne die Entzerrung im Spiel passieren würde
+
+Der Unterschied lässt sich am besten als Gedankenexperiment beschreiben, weil er das ganze
+Spielprinzip betrifft.
+
+Ohne Entzerrung hätten die häufigsten deutschen Wörter zu jedem Zielwort einen überdurchschnittlich
+hohen Ähnlichkeitswert. Eine Rangliste sähe dann bei jedem Rätsel ungefähr gleich aus: vorne
+`Mensch`, `Zeit`, `Jahr`, `Arbeit`, `Leben`, egal ob das Ziel `Strand` oder `Rechnung` heißt.
+
+Das hätte zwei Folgen, und beide würden das Spiel zerstören. Erstens wäre die optimale Strategie
+trivial: Man spielt immer dieselben zwanzig häufigen Wörter und bekommt immer ähnlich gute Ränge,
+ohne etwas über das Zielwort zu lernen. Zweitens wären genau die Wörter unbrauchbar, die als Sonden
+am nützlichsten sind. Ein breites Alltagswort taugt als Startwort nur, wenn sein Rang tatsächlich
+schwankt, je nachdem wo das Ziel liegt.
+
+Genau diese Schwankungsbreite ist die Zielgröße im
+[Startwort-Benchmark](/blog/startwort-benchmark/), und sie existiert nur, weil der
+Häufigkeitsanteil vorher entfernt wurde. Die Entzerrung ist damit keine Optimierung am Rand,
+sondern die Voraussetzung dafür, dass Strategie im Spiel überhaupt möglich ist.
+
 ## Was die Entzerrung nicht repariert
 
 Sie behebt einen systematischen geometrischen Effekt. Sie macht das Modell nicht klüger.

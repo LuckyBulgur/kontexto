@@ -145,7 +145,10 @@ export default function DatenschutzPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-foreground">10. Werbung durch Google AdSense</h2>
             <p>
-              Zur Finanzierung dieses kostenlosen Angebots nutzen wir Google AdSense, einen Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House, Barrow Street, Dublin 4, Irland („Google“). Google AdSense verwendet Cookies und vergleichbare Technologien (z. B. Web Beacons), um Anzeigen auszuspielen und deren Auslieferung zu messen. Dabei können Informationen wie deine (gekürzte) IP-Adresse, Geräte- und Browserdaten sowie Interaktionen mit Anzeigen verarbeitet werden.
+              Zur Finanzierung dieses kostenlosen Angebots nutzen wir Google AdSense, einen Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House, Barrow Street, Dublin 4, Irland („Google“).
+            </p>
+            <p>
+              <strong className="text-foreground">Drittanbieter-Cookies:</strong> Drittanbieter, einschließlich Google, setzen und lesen im Zuge der Anzeigenauslieferung Cookies in deinem Browser oder verwenden Web Beacons und IP-Adressen, um Informationen zu erheben. Google verwendet Cookies, um Anzeigen auf Grundlage früherer Besuche auf dieser und anderen Websites auszuliefern und deren Auslieferung zu messen. Neben Google können weitere Anbieter und Werbenetzwerke beteiligt sein, die über die Einwilligungsverwaltung namentlich aufgeführt werden. Verarbeitet werden dabei unter anderem deine gekürzte IP-Adresse, Geräte- und Browserdaten sowie Interaktionen mit Anzeigen.
             </p>
             <p>
               <strong className="text-foreground">Einwilligung (Consent Management Platform):</strong> Bevor werbebezogene Cookies gesetzt oder personalisierte Anzeigen ausgeliefert werden, erhältst du über ein von Google bereitgestelltes, nach dem IAB Transparency &amp; Consent Framework (TCF, aktuell v2.3) zertifiziertes Einwilligungsbanner die Möglichkeit, der Verarbeitung zuzustimmen oder sie abzulehnen. Rechtsgrundlage ist deine Einwilligung gemäß <strong className="text-foreground">Art. 6 Abs. 1 lit. a DSGVO</strong> sowie § 25 Abs. 1 TDDDG.
@@ -154,8 +157,27 @@ export default function DatenschutzPage() {
               <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen von Google AdSense können Daten an Server von Google übermittelt werden, auch an Server in den USA. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
             </p>
             <p>
-              <strong className="text-foreground">Widerruf:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder anpassen, indem du deine Auswahl im Einwilligungsbanner änderst. Personalisierte Werbung kannst du zusätzlich in den{" "}
-              <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Google-Anzeigeneinstellungen</a>{" "}deaktivieren.
+              <strong className="text-foreground">Widerruf und Deaktivierung:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder anpassen, indem du deine Auswahl im Einwilligungsbanner änderst. Dafür genügt der Link „Cookie-Einstellungen“ in der Fußzeile jeder Seite. Unabhängig davon kannst du personalisierte Werbung dauerhaft abschalten:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                in den{" "}
+                <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Google-Anzeigeneinstellungen</a>{" "}
+                für die Anzeigen von Google,
+              </li>
+              <li>
+                gesammelt für viele Anbieter über{" "}
+                <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">www.aboutads.info/choices</a>{" "}
+                und{" "}
+                <a href="https://www.youronlinechoices.com/de/praferenzmanagement/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">youronlinechoices.com</a>{" "}
+                (europäische Fassung),
+              </li>
+              <li>
+                oder einzeln auf den Websites der jeweiligen Anbieter und Werbenetzwerke, die in der Einwilligungsverwaltung aufgeführt sind.
+              </li>
+            </ul>
+            <p>
+              Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt und es werden keine personalisierten Anzeigen ausgeliefert. Das Spiel bleibt in vollem Umfang nutzbar.
             </p>
             <p>
               Weitere Informationen findest du in der{" "}

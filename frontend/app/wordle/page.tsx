@@ -16,7 +16,9 @@ export default function WordlePage() {
   return (
     <>
       <StructuredData data={faqSchema(wordleFaqs)} />
-      <WordlePageClient />
+      <main>
+        <WordlePageClient />
+      </main>
       <WordleSeo />
     </>
   );

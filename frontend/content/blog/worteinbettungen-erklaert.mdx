@@ -95,6 +95,41 @@ Zielwort ähnlich, und ein Rang würde messen, wie gebräuchlich dein Wort ist s
 Kontexto entfernt diesen Drift deshalb, bevor irgendein Rang berechnet wird. Wie das geht, steht
 in [All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/).
 
+## Warum Ähnlichkeit als Winkel gemessen wird
+
+Wenn jedes Wort ein Punkt in einem Raum ist, liegt die naive Idee nahe, Ähnlichkeit als Abstand
+zwischen zwei Punkten zu messen. Genau das tut Kontexto nicht, und der Grund ist lehrreich.
+
+Die Länge eines Vektors, also sein Abstand vom Nullpunkt, hängt beim Training vor allem an der
+Häufigkeit des Worts. Häufige Wörter werden öfter angefasst und bekommen längere Vektoren. Würde
+man den geraden Abstand messen, wäre `und` von allem gleich weit entfernt, aber eben auf eine Art,
+die nichts über Bedeutung sagt.
+
+Deshalb zählt nur die Richtung. Zwei Wörter gelten als ähnlich, wenn ihre Vektoren in dieselbe
+Richtung zeigen, unabhängig davon, wie lang sie sind. Genau das misst die Kosinus-Ähnlichkeit: den
+Winkel zwischen zwei Pfeilen. Null Grad heißt identische Richtung, neunzig Grad heißt kein
+Zusammenhang. Ausführlich steht das in
+[Kosinus-Ähnlichkeit einfach erklärt](/blog/kosinus-aehnlichkeit-einfach-erklaert/).
+
+## Was man in 300 Dimensionen nicht mehr sieht
+
+Alle Bilder in diesem Text arbeiten mit zwei oder drei Dimensionen, weil man mehr nicht zeichnen
+kann. Der echte Raum hat 300, und dort gelten Regeln, die der Anschauung widersprechen.
+
+Die wichtigste: In hohen Dimensionen ist fast alles fast gleich weit von allem entfernt. Nimmt man
+zwei zufällige Richtungen in 300 Dimensionen, stehen sie mit hoher Wahrscheinlichkeit nahezu
+senkrecht aufeinander. Übertragen auf das Spiel heißt das, dass die überwältigende Mehrheit aller
+Wortpaare praktisch unähnlich ist und sich in einem sehr schmalen Band drängt.
+
+Das ist die eigentliche Erklärung dafür, warum das Spiel einen Rang anzeigt und keinen Prozentwert.
+Der rohe Ähnlichkeitswert zwischen zwei zufälligen deutschen Wörtern liegt fast immer in einem
+engen Bereich, in dem schon Hundertstel über „daneben“ und „unmittelbar davor“ entscheiden. Der
+Rang macht daraus eine Zahl, die man ohne Vorwissen lesen kann.
+
+Die zweite Folge betrifft die Suche im Spiel. Weil so viele Wörter ungefähr gleich weit weg sind,
+ist die Information in den hinteren Rängen dünn. Deshalb bringt ein Fortschritt von 9.000 auf 6.000
+so wenig und ein Fortschritt von 300 auf 90 so viel.
+
 ## Was das für dein Spiel bedeutet
 
 Wenn du beim Raten daran denkst, dass das Modell **Kontextnachbarschaft** misst und nicht

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, blockThirdParty } from "./fixtures";
 
 // Echtzeit-Duell über den WebSocket: der riskanteste, ungetestete Pfad. Prüft
 // zugleich, dass der Proxy den /ws-Upgrade korrekt durchreicht (same-origin,
@@ -18,6 +18,7 @@ test.describe("Kontexto-Duell (WebSocket-Echtzeit)", () => {
     // 2. Alices Browser: Token injizieren (wie nach einem eigenen Beitritt) und
     //    die Duell-Seite öffnen. Ihr WS verbindet sich daraufhin.
     const aliceCtx = await browser.newContext();
+    await blockThirdParty(aliceCtx);
     const alice = await aliceCtx.newPage();
     await alice.addInitScript(
       ([id, token]) => localStorage.setItem(`kontexto_duel_${id}`, token),
@@ -28,6 +29,7 @@ test.describe("Kontexto-Duell (WebSocket-Echtzeit)", () => {
 
     // 3. Bob tritt in einem zweiten Kontext über die echte UI bei.
     const bobCtx = await browser.newContext();
+    await blockThirdParty(bobCtx);
     const bob = await bobCtx.newPage();
     await bob.goto(`/duel/${duel_id}/`);
     await bob.getByPlaceholder("Dein Nickname...").fill("Bob");

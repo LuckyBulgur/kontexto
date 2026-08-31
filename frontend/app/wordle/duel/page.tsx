@@ -15,7 +15,9 @@ export default function WordleDuelPage() {
   return (
     <>
       <StructuredData data={faqSchema(wordleDuelFaqs)} />
-      <WordleDuelPageClient />
+      <main>
+        <WordleDuelPageClient />
+      </main>
       <WordleDuelSeo />
     </>
   );

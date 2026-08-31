@@ -125,6 +125,43 @@ zurückgesetzt.
 Dieselbe Qualitätsprüfung läuft übrigens auch für [Wördle](/wordle/), dessen Wortlisten aus
 demselben Vokabular gebaut werden.
 
+## Warum die Erkennung nie perfekt sein kann
+
+Ein Filter für Eigennamen im Deutschen stößt an eine Grenze, die in der Sprache selbst liegt: Die
+Großschreibung, die im Englischen ein zuverlässiges Signal ist, hilft hier nicht. Im Deutschen wird
+jedes Substantiv großgeschrieben, `Tisch` genauso wie `Berlin`.
+
+Damit fällt das einfachste Merkmal weg, und übrig bleiben Verfahren, die auf Bedeutung und
+Häufigkeit schauen. Die sind gut, aber nicht eindeutig, weil viele Wörter zugleich Gattungsname und
+Eigenname sind. `Kiefer` ist ein Baum und ein Knochen und ein Nachname. `Bremen` ist eine Stadt,
+`Brechen` ein Vorgang. `Golf` ist ein Sport, ein Meeresteil und ein Auto.
+
+Hinzu kommt die umgekehrte Fehlerrichtung. Ein zu strenger Filter wirft harmlose Wörter mit heraus,
+weil sie zufällig in denselben Zusammenhängen vorkommen wie Namen. Ein Wort wie `Kaiser` steht in
+Texten neben lauter Eigennamen und sieht statistisch aus wie einer, ist aber ein völlig normales
+Substantiv.
+
+Deshalb steht neben den automatischen Signalen eine von Hand gepflegte Sperrliste. Sie ist
+ausdrücklich dafür da, erweitert zu werden, und sie ist der Grund, warum Rückmeldungen von
+Spielenden hier so viel wert sind: Kein Filter findet den Einzelfall, den ein Mensch beim Spielen
+sofort bemerkt.
+
+## Was das für die Suche im Spiel bedeutet
+
+Aus der Regel folgt eine praktische Konsequenz, die vielen nicht bewusst ist: Wenn dein bester Rang
+sich hartnäckig nicht verbessert und du im Verdacht hast, die Lösung könnte ein Name sein, kannst
+du diesen Verdacht streichen. Die Lösung ist immer ein Gattungsname, ein Verb im Infinitiv oder ein
+unflektiertes Adjektiv.
+
+Das grenzt den Suchraum spürbar ein. Wer bei einem Feld aus `Fluss`, `Ufer`, `Brücke` überlegt, ob
+das Zielwort vielleicht ein Flussname ist, kann diese Richtung sofort verwerfen und stattdessen bei
+den Gattungsnamen und den zugehörigen Verben weitersuchen.
+
+Als Tipp bleiben Namen dagegen erlaubt und sind manchmal sogar nützlich. `Berlin` bekommt ganz
+normal einen Rang, und ein guter Rang für eine Stadt sagt dir, dass das Zielwort im Feld Stadt,
+Verwaltung oder Geografie liegt. Man darf nur nicht den Fehler machen, den Namen selbst für die
+Lösung zu halten.
+
 ## Danke
 
 Dieses Update gibt es vor allem wegen des Feedbacks aus der Community. Ein besonderer Dank geht an

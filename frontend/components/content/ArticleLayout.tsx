@@ -4,6 +4,8 @@ import StructuredData from "@/components/StructuredData";
 import { breadcrumb } from "@/lib/structured-data";
 import TableOfContents, { type TocItem } from "./TableOfContents";
 import SiteNav from "@/components/seo/SiteNav";
+import Breadcrumbs from "@/components/seo/Breadcrumbs";
+import { CONTENT_REVISIONS, revisionLabel } from "@/lib/content-revisions";
 
 /**
  * Wide, well-typeset layout for marketing/content pages (Anleitung, Strategie,
@@ -19,6 +21,7 @@ export default function ArticleLayout({
   breadcrumbName,
   path,
   toc,
+  breadcrumbItems,
   children,
 }: {
   title: string;
@@ -26,17 +29,18 @@ export default function ArticleLayout({
   breadcrumbName: string;
   path: string;
   toc?: TocItem[];
+  /** Ueberschreibt die zweistufige Voreinstellung Start > Seite. */
+  breadcrumbItems?: { name: string; path: string }[];
   children: ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <StructuredData
-        data={breadcrumb([
-          { name: "Start", path: "/" },
-          { name: breadcrumbName, path },
-        ])}
+        data={breadcrumb(breadcrumbItems ?? [{ name: "Start", path: "/" }, { name: breadcrumbName, path }])}
       />
-      <article className="mx-auto max-w-3xl px-4 py-10">
+      {/* main-Landmark: ohne ihn hat die Seite keinen Einstiegspunkt zum
+          Ueberspringen der Navigation (axe: landmark-one-main, region). */}
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <Link
           href="/"
           className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -44,12 +48,24 @@ export default function ArticleLayout({
           &larr; Zurück zum Spiel
         </Link>
         <SiteNav current={path} />
-        <header className="mt-6 mb-8">
+        <Breadcrumbs items={breadcrumbItems ?? [{ name: "Start", path: "/" }, { name: breadcrumbName, path }]} />
+        <header className="mt-4 mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {title}
           </h1>
           {lead && (
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{lead}</p>
+          )}
+          {/*
+            Ein sichtbares Ueberarbeitungsdatum unterscheidet eine gepflegte
+            Ratgeberseite von einer abgelegten. Als <time> ausgezeichnet, damit
+            es nicht nur Text ist.
+          */}
+          {CONTENT_REVISIONS[path] && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Zuletzt überarbeitet am{" "}
+              <time dateTime={CONTENT_REVISIONS[path]}>{revisionLabel(path)}</time>
+            </p>
           )}
         </header>
 
@@ -62,7 +78,7 @@ export default function ArticleLayout({
           text in <Prose> instead. This container only provides vertical rhythm.
         */}
         <div className="space-y-8">{children}</div>
-      </article>
+      </main>
     </div>
   );
 }

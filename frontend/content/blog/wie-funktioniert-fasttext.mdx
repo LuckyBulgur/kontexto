@@ -1,5 +1,7 @@
 # fastText: das Modell hinter den Rängen
 
+import PipelineDiagram from "@/components/content/PipelineDiagram";
+
 Kontexto könnte auf mehreren Verfahren laufen. Es läuft auf fastText, und diese Entscheidung ist
 nicht beliebig, sondern eine direkte Folge davon, dass hier Deutsch gespielt wird. Wäre Kontexto
 ein englisches Spiel, wäre die Wahl womöglich anders ausgefallen.
@@ -93,6 +95,62 @@ ohne Satz ein. Man müsste künstlich einen Satz drumherum bauen, und die Wahl d
 das Ergebnis mitbestimmen. Ein statisches Modell ist für diese Aufgabe nicht die schlechtere Wahl,
 sondern die passende.
 
+## Wie ein Vektor überhaupt entsteht
+
+Bis hierhin steht da: Jedes Wort bekommt 300 Zahlen. Die naheliegende Frage ist, woher diese Zahlen
+kommen, und die Antwort ist erstaunlich schlicht.
+
+Das Training läuft als Ratespiel über riesige Textmengen. Der Algorithmus schiebt ein Fenster über
+jeden Satz und stellt an jeder Stelle dieselbe Aufgabe: Gegeben das Wort in der Mitte, welche
+Wörter stehen wahrscheinlich daneben? Am Anfang sind alle Vektoren zufällig, die Vorhersagen also
+wertlos. Nach jeder Fehlvorhersage werden die beteiligten Zahlen ein winziges Stück in die Richtung
+verschoben, die den Fehler verkleinert hätte.
+
+Wiederholt man das milliardenfach, passiert etwas, das niemand explizit einprogrammiert hat: Wörter,
+die in ähnlichen Nachbarschaften vorkommen, brauchen ähnliche Vektoren, um dieselbe Vorhersage zu
+erlauben. `Hund` und `Katze` stehen beide vor `füttern`, `Tierarzt` und `streicheln`, also rücken
+ihre Vektoren zusammen. Bedeutung ist hier nichts, was das Modell versteht. Sie ist ein Nebenprodukt
+der Aufgabe, Nachbarschaft vorherzusagen.
+
+Das erklärt auch die bekannteste Eigenheit des Spiels. Gegensätze wie `heiß` und `kalt` stehen in
+praktisch identischen Sätzen, vor `Wasser`, `Wetter` und `Getränk`. Für die Trainingsaufgabe sind
+sie damit austauschbar, und ihre Vektoren landen nebeneinander. Ein sehr guter Rang heißt deshalb
+„im richtigen Bedeutungsfeld“ und nicht „inhaltlich zutreffend“.
+
+## Warum 300 Zahlen und nicht 50 oder 1.000
+
+Die Zahl 300 ist kein Zufall und keine reine Konvention. Sie ist ein Kompromiss zwischen zwei
+Fehlern, die in entgegengesetzte Richtungen wirken.
+
+Zu wenige Dimensionen, etwa 50, zwingen unterschiedliche Bedeutungen auf dieselben Achsen. Der Raum
+hat schlicht nicht genug Richtungen, um Tierart, Größe, Verwendungszweck und Stilebene gleichzeitig
+auseinanderzuhalten. Bedeutungen kleben dann aneinander, die nichts miteinander zu tun haben, und
+die Rangliste wird beliebig.
+
+Zu viele Dimensionen, etwa 1.000, brauchen entsprechend mehr Text, um verlässlich gefüllt zu
+werden. Für häufige Wörter ist das kein Problem, für seltene schon: Ihre Vektoren bleiben dann nah
+an ihrer zufälligen Ausgangslage und tragen mehr Rauschen als Signal. Für ein Spiel, in dem auch
+selten geratene Wörter einen sinnvollen Rang bekommen sollen, ist das der schlechtere Fehler.
+
+Dazu kommt der schlichte Speicherbedarf. 80.000 Wörter mal 300 Zahlen ergeben eine Matrix, die sich
+noch bequem verarbeiten lässt. Bei 1.000 Dimensionen wäre sie dreimal so groß, ohne dass die
+Rangliste dadurch für Spielende erkennbar besser würde.
+
+## Was der Trainingstext bestimmt
+
+Ein Punkt, der beim Spielen regelmäßig für Verwunderung sorgt: Das Modell bildet nicht die deutsche
+Sprache ab, sondern die deutschen Texte, auf denen es trainiert wurde. Das sind Common Crawl,
+also ein breiter Querschnitt des Webs, und die deutsche Wikipedia.
+
+Daraus folgen zwei sichtbare Eigenheiten. Erstens sind Begriffe aus Technik, Politik und
+Popkultur überdurchschnittlich gut vernetzt, weil im Web viel darüber geschrieben wird. Zweitens
+sind Alltagsdinge, über die man selten schreibt, weil sie zu selbstverständlich sind, schlechter
+aufgestellt als ihre Häufigkeit im Sprechen vermuten ließe.
+
+Auch der Zeitpunkt steckt im Modell. Es kennt den Sprachgebrauch bis zum Trainingsstand, nicht
+danach. Wörter, deren Bedeutung sich seither verschoben hat, tragen die ältere Nachbarschaft. Für
+ein Ratespiel ist das kein Schaden, aber es erklärt, warum manche Verbindungen altmodisch wirken.
+
 ## Von der Modelldatei zum Rang
 
 Der Weg vom Modell zu der Zahl, die du siehst, hat vier Schritte, und alle vier passieren offline,
@@ -106,6 +164,8 @@ lange bevor du spielst:
 3. **Sortieren.** Für jedes Rätsel wird die Kosinus-Ähnlichkeit aller 80.000 Wörter zum Zielwort
    berechnet und absteigend sortiert.
 4. **Speichern.** Die Positionen werden als Rangtabelle abgelegt, eine Datei pro Rätsel.
+
+<PipelineDiagram />
 
 Zur Laufzeit bleibt: Wort nachschlagen, Position lesen, Zahl ausgeben. Kein Modell im
 Arbeitsspeicher, keine Matrixmultiplikation, keine Wartezeit. Wie aus dem Kosinuswert eine

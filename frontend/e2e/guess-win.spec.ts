@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // Kontexto-Kernschleife: Wort eingeben -> Rang -> Treffer -> Ergebniskarte.
 test.describe("Kontexto Einzelspieler", () => {

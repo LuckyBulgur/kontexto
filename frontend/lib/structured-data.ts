@@ -1,18 +1,46 @@
 import { SITE_URL, DEFAULT_OG_IMAGE } from "./seo";
 import { faqs } from "./faqs";
-import { AUTHOR_NAME, AUTHOR_PROFILE_PATH } from "./author";
+import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_BIO, AUTHOR_ROLE, AUTHOR_SAME_AS } from "./author";
 
 // Named person (E-E-A-T), same source as the visible by-line on blog articles.
+// `sameAs` ties the name to profiles that exist independently of this site;
+// without it a by-line is just a string. `description` and `jobTitle` say what
+// the person is to this subject, which is the "expertise" half of E-E-A-T.
 const EDITORIAL_AUTHOR = {
   "@type": "Person",
   name: AUTHOR_NAME,
   url: `${SITE_URL}${AUTHOR_PROFILE_PATH}`,
+  jobTitle: AUTHOR_ROLE,
+  description: AUTHOR_BIO,
+  sameAs: AUTHOR_SAME_AS,
 };
+
 const PUBLISHER = {
   "@type": "Organization",
   name: "Kontexto",
   logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` },
 };
+
+/**
+ * AboutPage for /ueber/ with the author as its main entity.
+ *
+ * Says in machine-readable form what the page says in prose: who runs this
+ * site. Google reads AboutPage plus a Person with sameAs as one of the few
+ * unambiguous statements about who stands behind a website.
+ */
+export function aboutPageSchema(path: string, name: string, description: string) {
+  const url = `${SITE_URL}${path}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name,
+    description,
+    url,
+    inLanguage: "de",
+    mainEntity: { "@context": "https://schema.org", ...EDITORIAL_AUTHOR },
+    publisher: PUBLISHER,
+  };
+}
 
 export function gameSchema(rating?: { ratingValue: number; ratingCount: number }) {
   return {

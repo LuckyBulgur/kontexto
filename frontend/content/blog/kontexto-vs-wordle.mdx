@@ -1,5 +1,7 @@
 # Kontexto vs. Wordle: zwei Spiele, zwei völlig verschiedene Denkarten
 
+import RankBandDiagram from "@/components/content/RankBandDiagram";
+
 Beide sind kostenlos, beide erscheinen täglich, beide drehen sich um deutsche Wörter. Damit hören
 die Gemeinsamkeiten auf. Was in einem der beiden Spiele eine gute Gewohnheit ist, ist im anderen
 oft genau der Fehler, der dich Züge kostet.
@@ -47,6 +49,67 @@ steht in [Warum Kontexto unbegrenzte Versuche hat](/blog/spieldesign-unbegrenzte
 | Erfolgsfaktor | Ausschlusslogik | assoziatives Denken |
 | Dauer | meist unter 5 Minuten | 5 bis 30 Minuten |
 | Gefühl beim Verlieren | knapp verpasst | im falschen Feld gesucht |
+
+## Warum ein Rangsprung nicht überall dasselbe bedeutet
+
+Eine Eigenheit, die den Umstieg von Wördle erschwert: Der Kontexto-Rang ist keine Skala mit
+gleichmäßigen Abständen. Bei Wördle ist jeder Buchstabe gleich viel wert, drei grüne Felder sind
+immer drei grüne Felder. Bei Kontexto hängt der Wert eines Fortschritts davon ab, wo du gerade
+stehst.
+
+<RankBandDiagram />
+
+Der Grund liegt in der Bauart der Rangliste. Sie entsteht aus den Ähnlichkeiten aller rund 80.000
+Vokabelwörter zum Zielwort, und diese Ähnlichkeiten sind extrem ungleich verteilt. Ganz vorne
+liegen wenige Wörter mit spürbar unterschiedlicher Nähe, dahinter drängen sich Zehntausende in
+einem schmalen Band, in dem sich die Werte kaum noch unterscheiden.
+
+Praktisch heißt das: Der Sprung von Rang 9.000 auf Rang 5.000 ist fast nichts. Beide Wörter sind
+im Sinne des Modells gleich weit weg, der Unterschied ist Rauschen. Der Sprung von Rang 300 auf
+Rang 90 ist dagegen ein echter Schritt, weil dort jeder Platz durch einen messbaren
+Bedeutungsunterschied gedeckt ist.
+
+Daraus folgt eine Faustregel, die dem Wördle-Reflex widerspricht: **Im roten Bereich lohnt es
+nicht, kleine Verbesserungen zu verfolgen.** Wer von 9.000 auf 5.000 kommt und daraufhin in
+dieselbe Richtung weitersucht, verfolgt meist eine Zufallsschwankung. Erst unterhalb von etwa
+1.500 wird die Richtung eines Fortschritts verlässlich, und erst dort lohnt das feine Abarbeiten
+eines Bedeutungsfelds.
+
+## Zwei Partien nebeneinander
+
+Wie verschieden sich das anfühlt, zeigt ein Durchgang durch beide Spiele an einem Tag.
+
+**Wördle, Lösung `TISCH`.** Zug eins `RATEN`: das T ist gelb, alles andere grau. Bekannt ist jetzt,
+dass ein T vorkommt, aber nicht an Position eins, und dass R, A, E und N ausscheiden. Zug zwei
+`STOLZ`: S und T gelb, O, L, Z grau. Zwei Buchstaben stehen fest, ihre Positionen sind
+eingegrenzt. Zug drei `TISCH`: Treffer. Drei Züge, und jeder einzelne hat den Kandidatenraum
+nachweisbar verkleinert.
+
+**Kontexto, Lösung `Tisch`.** Zug eins `gehen`: Rang 6.842, also weit weg, aber das war zu
+erwarten. Zug zwei `Haus`: Rang 412, das Feld stimmt ungefähr. Zug drei `Zimmer`: Rang 88, deutlich
+näher. Zug vier `Sessel`: Rang 34. Zug fünf `Regal`: Rang 51, also wieder etwas schlechter, das
+Feld ist damit ausgereizt. Zug sechs `Tisch`: Treffer. Sechs Züge, aber die Information kam
+ungleich verteilt: Die ersten beiden Züge sagten fast nichts über die Richtung, erst der dritte
+machte aus zwei Zahlen ein Bild.
+
+Der Unterschied ist nicht die Zahl der Züge, sondern woher die Sicherheit kommt. Bei Wördle wächst
+sie stetig, bei Kontexto sprunghaft und erst spät.
+
+## Beides am selben Tag
+
+Wer beide spielt, tut sich mit einer Reihenfolge leichter: erst Wördle, dann Kontexto. Wördle hat
+einen klaren Schluss, gewonnen oder verloren nach höchstens sechs Zügen, und lässt sich deshalb
+sauber abhaken. Kontexto hat keinen, es endet, wenn du es beendest, und wer es zuerst spielt,
+schiebt Wördle oft auf.
+
+Zahlenmäßig passt das zusammen: Über alle bisher ausgewerteten Kontexto-Partien liegt der Schnitt
+bei rund 85 Rateversuchen je Lösung, 71 von 100 begonnenen Rätseln werden gelöst. Wördle ist meist
+nach drei bis fünf Zügen entschieden. Zusammen sind das zwanzig bis dreißig Minuten, verteilt über
+den Tag, denn beide Rätsel bleiben bis Mitternacht offen.
+
+Ein letzter praktischer Punkt: Weil beide Spiele denselben Spielstand-Mechanismus nutzen, also
+lokalen Browserspeicher ohne Konto, gilt für beide dasselbe. Der Wechsel vom Telefon an den
+Rechner beginnt die Partie neu.
 
 ## Was du im jeweils anderen Spiel verlernen musst
 

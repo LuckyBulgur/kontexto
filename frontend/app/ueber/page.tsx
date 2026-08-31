@@ -4,6 +4,8 @@ import Prose from "@/components/content/Prose";
 import VectorSpaceDiagram from "@/components/content/VectorSpaceDiagram";
 import Reveal from "@/components/motion/Reveal";
 import { RelatedLinks } from "@/components/seo/SeoPrimitives";
+import StructuredData from "@/components/StructuredData";
+import { aboutPageSchema } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
 import { AUTHOR_NAME } from "@/lib/author";
 
@@ -34,6 +36,13 @@ export default function UeberPage() {
       path="/ueber/"
       toc={toc}
     >
+      <StructuredData
+        data={aboutPageSchema(
+          "/ueber/",
+          "Über Kontexto",
+          "Wer Kontexto entwickelt, wie die Bedeutungsähnlichkeit berechnet wird und welche Entscheidungen hinter dem Spiel stehen.",
+        )}
+      />
       <Reveal as="section" className="space-y-4">
         <Prose>
           <h2 id="was-ist">Was ist Kontexto?</h2>
@@ -251,6 +260,7 @@ export default function UeberPage() {
           { href: "/glossar/", label: "Glossar der Begriffe" },
           { href: "/blog/", label: "Blog: Hintergründe und Strategien" },
           { href: "/changelog/", label: "Änderungen am Spiel" },
+          { href: "/redaktion/", label: "Redaktionelle Grundsätze" },
         ]}
       />
     </ArticleLayout>

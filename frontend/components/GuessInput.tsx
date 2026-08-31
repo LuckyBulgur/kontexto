@@ -41,7 +41,7 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="select-none pointer-events-none text-sm font-medium tracking-wide text-muted-foreground/60"
+            className="select-none pointer-events-none text-sm font-medium tracking-wide text-muted-foreground"
           >
             kontexto.de
           </span>

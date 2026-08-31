@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "a11y": "node scripts/a11y-audit.mjs",
     "seo:check": "node scripts/seo-check.mjs",
     "verify:slop": "node scripts/verify-slop.mjs",
     "verify:dashes": "node scripts/verify-dashes.mjs",

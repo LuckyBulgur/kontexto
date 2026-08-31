@@ -100,6 +100,49 @@ Allen gemeinsam ist das Grundprinzip. Unterschiedlich sind Sprache, Rückmeldung
 streng die Lösungswörter gefiltert werden. Gerade der letzte Punkt entscheidet darüber, ob sich ein
 Rätsel fair anfühlt, und er ist der Punkt, an dem hier die meiste Arbeit steckt.
 
+## Was eine deutsche Umsetzung technisch bedeutet
+
+„Auf Deutsch“ klingt nach einer Frage der Oberfläche, betrifft aber jede Ebene des Spiels. Vier
+Stellen mussten eigens gebaut werden, und an keiner davon hätte eine Übersetzung geholfen.
+
+**Das Modell.** Grundlage ist ein deutsches fastText-Modell mit 300 Zahlen je Wort, trainiert auf
+Common Crawl und der deutschen Wikipedia. Ein englisches Modell weiß, was neben `vacation` steht,
+nicht was neben `Urlaub` steht. Die Nachbarschaften sind kulturell und sprachlich verschieden, und
+genau diese Nachbarschaften sind das Spiel.
+
+**Die Entzerrung.** Rohe Wortvektoren tragen einen gemeinsamen Drift, der vor allem Häufigkeit
+kodiert. Ohne Korrektur lägen Allerweltswörter bei jedem Zielwort weit vorn, und der Rang würde
+messen, wie gebräuchlich ein Wort ist statt wie passend. Deshalb werden vorab der Mittelwert und
+die drei stärksten Hauptkomponenten entfernt, siehe
+[All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/).
+
+**Die Wortliste.** Aus rund zwei Millionen Zeichenketten bleiben etwa 80.000 echte deutsche Wörter
+übrig. Der Filter muss deutsche Eigenheiten kennen: Großschreibung, Umlaute, die Doppelformen mit ß
+und ss, und die praktisch unbegrenzte Wortzusammensetzung.
+
+**Die Lösungsauswahl.** Jede Tageslösung durchläuft automatische Filter und von Hand gepflegte
+Sperrlisten. Kein Eigenname, kein anstößiger Ausdruck, keine ß/ss-Doppelform. Der ganze Weg vom
+Modell zum fertigen Rätsel steht in
+[Wie das Lösungswort entsteht](/blog/wie-das-loesungswort-entsteht/).
+
+## Warum Bedeutungsnähe sprachspezifisch ist
+
+Der Punkt lohnt ein Beispiel, weil er weniger offensichtlich ist, als er klingt.
+
+`Schloss` bedeutet im Deutschen sowohl das Gebäude als auch die Vorrichtung an der Tür. Im Modell
+bekommt das Wort deshalb einen einzigen Vektor, der ein Kompromiss aus beiden Nachbarschaften ist:
+teils Burg, König und Park, teils Schlüssel, Tür und abschließen. Im Englischen sind das zwei
+verschiedene Wörter, `castle` und `lock`, mit zwei sauber getrennten Vektoren.
+
+Dasselbe gilt für `Bank`, `Zug`, `Ball`, `Kiefer`, `Steuer`. Ein aus dem Englischen übersetztes
+Modell hätte diese Mehrdeutigkeiten gar nicht, und das Spiel würde sich an genau den Stellen anders
+anfühlen, an denen es im Deutschen interessant wird. Wer im Spiel merkt, dass ein mehrdeutiges
+Wort ungewöhnlich gut liegt, hat deshalb einen brauchbaren Hinweis: Es lohnt sich, die andere
+Bedeutung gezielt anzusteuern.
+
+Umgekehrt fehlen dem Deutschen Unterscheidungen, die das Englische trifft. Wo Englisch zwischen
+`do` und `make` trennt, steht im Deutschen `machen`, und dessen Vektor deckt beide Bereiche ab.
+
 ## Für wen das Spiel ist
 
 Kontexto belohnt assoziatives Denken und ein Gefühl dafür, welche Wörter zusammengehören. Fachwissen

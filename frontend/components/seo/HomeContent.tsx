@@ -21,6 +21,7 @@ import {
 } from "@/components/seo/SeoPrimitives";
 import SeoFaq from "@/components/seo/SeoFaq";
 import { homeFaqs } from "@/lib/faqs";
+import { posts } from "@/lib/blog";
 import ComparisonTable from "@/components/content/ComparisonTable";
 
 export default function HomeContent() {
@@ -87,9 +88,9 @@ export default function HomeContent() {
         columns={["Dein Tipp", "Rang", "Bedeutung"]}
         rows={[
           ["Computer", "8420", <span key="c" className="text-red-600 dark:text-red-400">weit entfernt</span>],
-          ["Meer", "312", <span key="m" className="text-yellow-600 dark:text-yellow-500">auf dem Weg</span>],
-          ["Küste", "47", <span key="k" className="text-green-600 dark:text-green-400">sehr nah</span>],
-          ["Strand", "1", <span key="s" className="font-semibold text-green-600 dark:text-green-400">Treffer!</span>],
+          ["Meer", "312", <span key="m" className="text-yellow-700 dark:text-yellow-500">auf dem Weg</span>],
+          ["Küste", "47", <span key="k" className="text-green-700 dark:text-green-400">sehr nah</span>],
+          ["Strand", "1", <span key="s" className="font-semibold text-green-700 dark:text-green-400">Treffer!</span>],
         ]}
         caption="Beispielhafte Tipps für das Zielwort Strand"
       />
@@ -210,6 +211,39 @@ export default function HomeContent() {
         </Link>, alle veröffentlichten Kennzahlen samt Methodik unter{" "}
         <Link href="/zahlen/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
           Kontexto in Zahlen
+        </Link>.
+      </p>
+
+      {/*
+        Die Startseite verlinkte bisher nur Rubriken, keinen einzigen Beitrag.
+        Damit lag der gesamte Bestand von 22 Artikeln zwei Klicks tief, und ein
+        Erstbesucher wie ein Crawler sah von der eigentlichen Substanz nichts.
+        Die sechs juengsten Beitraege stehen jetzt mit ihrer eigenen
+        Beschreibung direkt hier.
+      */}
+      <SeoHeading>Aus dem Blog</SeoHeading>
+      <p className="mb-4 max-w-prose">
+        Wie das Spiel rechnet, was die Auswertung von 868.000 Rateversuchen ergeben hat und
+        welche Strategie messbar funktioniert, steht ausführlich im Blog. Die sechs jüngsten
+        Beiträge:
+      </p>
+      <ul className="mb-4 space-y-3">
+        {posts.slice(0, 6).map((post) => (
+          <li key={post.slug} className="border-l-2 border-border pl-4">
+            <Link
+              href={`/blog/${post.slug}/`}
+              className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+            >
+              {post.title}
+            </Link>
+            <p className="mt-1 text-sm">{post.description}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="max-w-prose">
+        Alle {posts.length} Beiträge nach Grundlagen, Strategie und Technik sortiert:{" "}
+        <Link href="/blog/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          zur Blogübersicht
         </Link>.
       </p>
 

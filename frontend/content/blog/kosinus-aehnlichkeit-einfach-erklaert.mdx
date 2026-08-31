@@ -1,5 +1,7 @@
 # Kosinus-Ähnlichkeit: wie aus zwei Wörtern eine Zahl wird
 
+import CosineAngleDiagram from "@/components/content/CosineAngleDiagram";
+
 Zwischen deiner Eingabe und dem Rang, den du siehst, steht genau eine Rechnung. Sie hat einen
 einschüchternden Namen und ist am Ende eine Winkelmessung, die man auf einem Bierdeckel erklären
 kann.
@@ -88,6 +90,53 @@ mittelmäßigen Rang bekommt, weißt du deshalb nicht, welche seiner Bedeutungen
 
 Warum daraus manchmal völlig unerwartete Ränge entstehen, steht in
 [Warum hat mein Wort einen schlechten Rang?](/blog/warum-schlechter-rang/).
+
+## Ein Rechenbeispiel in zwei Dimensionen
+
+Die Formel bleibt abstrakt, solange man sie nicht einmal an Zahlen sieht. In zwei Dimensionen geht
+das auf einem Blatt.
+
+Nimm drei Wörter mit erfundenen, aber plausiblen Koordinaten. Die erste Achse soll grob „belebt“
+messen, die zweite grob „im Haus“:
+
+| Wort | Achse 1 | Achse 2 |
+|---|---|---|
+| Hund | 8 | 6 |
+| Katze | 7 | 7 |
+| Tisch | 1 | 9 |
+
+Für `Hund` und `Katze` ist das Skalarprodukt 8 mal 7 plus 6 mal 7, also 98. Die Längen sind rund 10
+und rund 9,9. Der Kosinus ist damit 98 geteilt durch 99, also etwa 0,99. Nahezu identische
+Richtung.
+
+Für `Hund` und `Tisch` ist das Skalarprodukt 8 mal 1 plus 6 mal 9, also 62. Die Längen sind rund 10
+und rund 9,06. Der Kosinus ist 62 geteilt durch 90,6, also etwa 0,68. Deutlich weiter auseinander,
+obwohl beide Punkte auf dem Blatt nicht besonders weit voneinander entfernt liegen.
+
+<CosineAngleDiagram />
+
+Genau das ist der Punkt: Der reine Abstand zwischen `Hund` und `Tisch` wäre klein, ihre Richtungen
+sind trotzdem verschieden.
+
+## Warum negative Werte praktisch nie vorkommen
+
+Der Kosinus kann rechnerisch zwischen minus eins und eins liegen. Minus eins hieße: genau
+entgegengesetzte Richtung. In echten Worteinbettungen sieht man das so gut wie nie, und der Grund
+sagt einiges über das Modell.
+
+Ein Wert von minus eins würde bedeuten, dass zwei Wörter in systematisch gegensätzlichen
+Zusammenhängen vorkommen. Genau das tun Gegensätze aber nicht. `heiß` und `kalt` stehen in
+denselben Sätzen, vor `Wasser`, `Wetter` und `Getränk`, und liegen deshalb nah beieinander statt
+weit auseinander. Sprachliche Gegensätzlichkeit ist keine geometrische.
+
+Was man stattdessen sieht: Fast alle Wortpaare liegen in einem schmalen Band um null bis 0,6, weil
+die überwältigende Mehrheit aller Wörter schlicht nichts miteinander zu tun hat und ihre
+Richtungen nahezu senkrecht aufeinander stehen. In 300 Dimensionen ist das der Normalfall, denn
+zwei zufällig gewählte Richtungen sind dort mit hoher Wahrscheinlichkeit fast rechtwinklig.
+
+Praktisch heißt das für das Spiel: Der interessante Bereich ist winzig. Zwischen „völlig
+danebengegriffen“ und „unmittelbar davor“ liegen manchmal nur wenige Hundertstel im Kosinuswert.
+Deshalb zeigt Kontexto einen Rang und keine Prozentzahl.
 
 ## Selbst nachrechnen
 

@@ -71,8 +71,18 @@ export function AdUnit({
     : { display: "block", minHeight };
 
   return (
-    <div className={className} aria-hidden="true">
-      <span className="block text-center text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+    // Kein aria-hidden auf dem Container. Es war hier falsch, gleich doppelt:
+    // Eine Anzeige enthaelt fokussierbare Links, und aria-hidden ueber
+    // fokussierbarem Inhalt ist ein Verstoss gegen WCAG 4.1.2 (axe-Regel
+    // "aria-hidden-focus"). Ausserdem verschwand die Kennzeichnung "Anzeige"
+    // damit fuer Screenreader, und eine Werbekennzeichnung, die nur sehende
+    // Nutzer erreicht, ist keine. Stattdessen eine benannte Region: Wer sie
+    // ueberspringen will, kann das jetzt gezielt tun.
+    <aside className={className} aria-label={label}>
+      <span
+        className="block text-center text-[10px] uppercase tracking-wide text-muted-foreground mb-1"
+        aria-hidden="true"
+      >
         {label}
       </span>
       <ins
@@ -88,6 +98,6 @@ export function AdUnit({
               "data-full-width-responsive": fullWidthResponsive ? "true" : "false",
             })}
       />
-    </div>
+    </aside>
   );
 }

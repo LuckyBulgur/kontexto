@@ -83,7 +83,7 @@ export default function WordleSeo() {
         Anforderungen an beide sich widersprechen.
       </p>
       <ComparisonTable
-        columns={["", "Ratewörter", "Lösungswörter"]}
+        columns={["Merkmal", "Ratewörter", "Lösungswörter"]}
         rows={[
           ["Ziel", "möglichst großzügig", "möglichst streng"],
           ["Gebeugte Formen", "erlaubt", "nie"],

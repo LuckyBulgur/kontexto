@@ -35,7 +35,7 @@ export default function Callout({
 }) {
   const Icon = icons[variant];
   return (
-    <aside className={calloutVariants({ variant })}>
+    <div className={calloutVariants({ variant })}>
       <Icon className={cn("mt-0.5 size-5 shrink-0", iconColor[variant])} aria-hidden="true" />
       <div className="space-y-1">
         {title && <p className="font-semibold text-foreground">{title}</p>}
@@ -43,6 +43,6 @@ export default function Callout({
           {children}
         </div>
       </div>
-    </aside>
+    </div>
   );
 }

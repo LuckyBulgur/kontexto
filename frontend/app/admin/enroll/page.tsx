@@ -44,7 +44,7 @@ export default function AdminEnrollPage() {
           autoFocus
         />
         {message && (
-          <p className={`text-sm ${status === "ok" ? "text-green-600" : "text-red-500"}`}>{message}</p>
+          <p className={`text-sm ${status === "ok" ? "text-green-700" : "text-red-500"}`}>{message}</p>
         )}
         <Button onClick={register} className="w-full" disabled={busy || !token.trim()}>
           {busy ? "…" : "Passkey registrieren"}

@@ -58,7 +58,7 @@ export default function DuelCreatePageClient() {
           </a>
           <span className="text-[24px] font-bold tracking-wider">KONTEXTO</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Duell erstellen</p>
+        <h1 className="text-sm text-muted-foreground mt-1">Duell erstellen</h1>
       </header>
 
       <main className="flex-1 px-4 py-6 flex flex-col gap-5">

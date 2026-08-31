@@ -32,7 +32,7 @@ export default function OpponentBoard({ guesses, nickname, solved }: OpponentBoa
           ))}
         </div>
       ))}
-      {solved && <div className="text-xs text-green-600 font-semibold mt-1">Gelöst!</div>}
+      {solved && <div className="text-xs text-green-700 font-semibold mt-1">Gelöst!</div>}
     </div>
   );
 }

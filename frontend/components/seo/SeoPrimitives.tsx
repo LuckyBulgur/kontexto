@@ -17,12 +17,18 @@ import { cn } from "@/lib/utils";
 export function SeoSection({
   children,
   className,
+  label = "Über dieses Spiel",
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Zugänglicher Name der Region. Ohne ihn liegt der Inhalt in keiner Landmark. */
+  label?: string;
 }) {
   return (
-    <section className={cn("mt-12 border-t border-border bg-muted/30", className)}>
+    <section
+      aria-label={label}
+      className={cn("mt-12 border-t border-border bg-muted/30", className)}
+    >
       <div className="mx-auto max-w-3xl px-4 pb-16 pt-10 text-sm leading-relaxed text-muted-foreground sm:pt-12">
         {children}
       </div>

@@ -76,7 +76,7 @@ export default function WordleHeader({
           </a>
         )}
         <div className="flex items-center gap-1 text-[20px] font-bold tracking-wider">
-          <Link href="/" className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+          <Link href="/" className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
             KONTEXTO
           </Link>
           <span className="text-zinc-300 dark:text-zinc-600">|</span>

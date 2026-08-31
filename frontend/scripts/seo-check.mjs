@@ -99,6 +99,8 @@ const contentPages = [
   { file: "strategie/index.html", path: "/strategie/", minWords: 900 },
   { file: "faq/index.html", path: "/faq/", minWords: 700, schema: '"@type":"FAQPage"' },
   { file: "ueber/index.html", path: "/ueber/", minWords: 700 },
+  // Redaktionelle Grundsaetze: Vertrauensseite, gehoert zu About/Kontakt/Terms.
+  { file: "redaktion/index.html", path: "/redaktion/", minWords: 700 },
   { file: "vergleich/index.html", path: "/vergleich/", minWords: 800 },
   { file: "glossar/index.html", path: "/glossar/", minWords: 700, schema: '"@type":"DefinedTermSet"' },
   { file: "blog/index.html", path: "/blog/", minWords: 250 },
@@ -107,6 +109,7 @@ const contentPages = [
   // AdSense-Pruefung achtet (About, Kontakt, Datenschutz, Terms). Die Seite
   // darf deshalb nicht zur Formsache schrumpfen.
   { file: "nutzungsbedingungen/index.html", path: "/nutzungsbedingungen/", minWords: 500 },
+  { file: "cookies/index.html", path: "/cookies/", minWords: 600 },
   { file: "changelog/index.html", path: "/changelog/", minWords: 400 },
   { file: "zahlen/index.html", path: "/zahlen/", minWords: 800 },
   // Spielseiten. /wordle/ traegt Anzeigen und darf deshalb nie wieder duenn werden:
@@ -175,9 +178,15 @@ const blogSlugs = [
   ...new Set([...sm.matchAll(/\/blog\/([a-z0-9-]+)\//g)].map((m) => m[1])),
 ];
 // AdSense-Programmrichtlinie „Mindestanforderungen an den Content“: jeder Artikel
-// muss eigenständig tragen. 900 Wörter gerenderter Text ist die harte Untergrenze,
-// unterhalb derer Google von „thin content“ ausgeht.
-const MIN_BLOG_WORDS = 900;
+// muss eigenständig tragen. Die Untergrenze lag bis August 2026 bei 900 Wörtern,
+// und genau dort saßen dann auch die Haelfte der Beitraege. Berichte abgelehnter
+// Publisher nennen uebereinstimmend zwei Dinge: Es zaehlt die gesamte Site, nicht
+// der Durchschnitt, und ein paar schwache Beitraege reichen fuer eine erneute
+// Ablehnung. Deshalb wurden alle 22 Artikel auf mindestens 1.290 gerenderte
+// Woerter gebracht und die Schwelle auf 1.200 gezogen: hoch genug, dass kein
+// Artikel wieder zum schwaechsten Glied wird, niedrig genug, dass sie kein
+// Aufblaehen erzwingt.
+const MIN_BLOG_WORDS = 1200;
 const MIN_BLOG_POSTS = 18;
 ok(
   blogSlugs.length >= MIN_BLOG_POSTS,

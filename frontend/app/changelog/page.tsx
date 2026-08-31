@@ -13,9 +13,9 @@ export const metadata = buildMetadata({
 });
 
 const KIND_STYLES: Record<ChangeKind, string> = {
-  Neu: "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-500/20",
+  Neu: "bg-green-500/10 text-green-700 dark:text-green-400 ring-green-500/20",
   Verbessert: "bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20",
-  Behoben: "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20",
+  Behoben: "bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20",
 };
 
 const fmt = (iso: string) =>

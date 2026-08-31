@@ -15,7 +15,9 @@ export default function KoopPage() {
   return (
     <>
       <StructuredData data={faqSchema(koopFaqs)} />
-      <KoopPageClient />
+      <main>
+        <KoopPageClient />
+      </main>
       <KoopSeo />
     </>
   );

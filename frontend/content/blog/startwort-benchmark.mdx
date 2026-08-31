@@ -137,6 +137,45 @@ Ergebnis. Warum die Absagen oft mehr wert sind als die Treffer, steht in
 [Die besten Startwörter](/blog/beste-startwoerter/), und wie es nach der Eröffnung weitergeht in
 [Wenn du feststeckst](/blog/wenn-du-feststeckst/).
 
+## Warum die Messung nicht mit dem Bauchgefühl übereinstimmt
+
+Drei der vier Ergebnisse widersprechen dem, was vorher in der Strategie stand, und das lohnt eine
+Erklärung. Warum liegt die Intuition hier so verlässlich daneben?
+
+Der Grund ist eine Verwechslung von zwei Eigenschaften, die sich sehr ähnlich anfühlen:
+**thematische Breite** und **kontextuelle Breite**.
+
+`Wasser` hat thematische Breite. Es kommt in Texten über Natur, Haushalt, Sport, Chemie und Politik
+vor, und deshalb hält man es für ein gutes Startwort. Seine Satzumgebungen ähneln sich aber stark:
+Es geht fast immer buchstäblich um Flüssigkeit, und die Wörter drumherum sind dieselben, egal ob der
+Text von einem See oder von einer Wasserrechnung handelt.
+
+`gehen` hat kontextuelle Breite. Es kommt in Sätzen über praktisch jedes Thema vor, und zwar in
+jeweils anderer Nachbarschaft: `zur Schule gehen`, `es geht um`, `die Uhr geht falsch`, `das Geschäft
+geht gut`. Sein Vektor liegt deshalb nicht in einer Ecke, sondern zwischen vielen Feldern, und genau
+das macht seinen Rang aussagekräftig.
+
+Für die Messung zählt nur die zweite Eigenschaft, denn ein Startwort ist gut, wenn sein Rang je nach
+Zielwort schwankt. Ein Wort, das sich thematisch breit anfühlt, seine Satzumgebung aber kaum
+wechselt, liefert bei jedem Rätsel ungefähr dasselbe und damit keine Information.
+
+## Was die Messung nicht beantwortet
+
+Damit die Zahlen nicht überinterpretiert werden, gehört dazu, was sie nicht hergeben.
+
+Gemessen wurde die Trefferquote unter 1.500 je Einzelwort, nicht die Güte eines **Satzes** aus vier
+Wörtern. Vier Wörter mit je 11 Prozent decken zusammen nicht 44 Prozent ab, weil ihre Felder sich
+überschneiden. Die Auswahl der vier Empfohlenen berücksichtigt das qualitativ, indem sie
+verschiedene Richtungen abdeckt, sie ist aber nicht als Kombination durchgerechnet.
+
+Ebenfalls nicht gemessen: wie schnell eine Partie nach einem guten Startwort tatsächlich endet. Ein
+verwertbares Signal in Zug eins ist ein Vorteil, aber was daraus wird, hängt am Spielverhalten und
+nicht mehr am Startwort.
+
+Und schließlich gilt die Messung für den vorberechneten Bestand von 2.400 Rätseln mit der aktuellen
+Lösungsauswahl. Ändert sich diese Auswahl, etwa weil weitere Wörter gesperrt werden, verschieben
+sich die Quoten leicht. Die Größenordnung und die Rangfolge sind davon nicht betroffen.
+
 ## Methodik zum Nachrechnen
 
 Die Zahlen stammen aus `scripts/export-startword-benchmark.py` im Projektarchiv. Das Skript liest

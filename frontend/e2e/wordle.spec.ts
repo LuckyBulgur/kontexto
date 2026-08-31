@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // Wördle-Kernschleife über die physische Tastatur (WordleGame lauscht auf
 // document-keydown). Der Test-Datensatz hat genau eine Lösung ("feuer"), die

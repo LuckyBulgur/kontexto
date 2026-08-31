@@ -135,7 +135,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">6. Haftung</h2>
+        <h2 id="haftungsausschluss" className="scroll-mt-24 text-base font-semibold text-foreground">6. Haftung und Haftungsausschluss</h2>
         <p>
           Die Inhalte werden mit Sorgfalt erstellt, eine Gewähr für Richtigkeit und Vollständigkeit
           kann jedoch nicht übernommen werden. Für Schäden haften wir nur bei Vorsatz und grober

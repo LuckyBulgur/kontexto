@@ -37,7 +37,7 @@ function barWidth(rank: number) {
 
 function rankColor(rank: number) {
   if (rank <= 300) return { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" };
-  if (rank <= 1500) return { bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" };
+  if (rank <= 1500) return { bar: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" };
   return { bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" };
 }
 

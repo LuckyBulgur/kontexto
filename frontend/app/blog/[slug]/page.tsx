@@ -4,6 +4,8 @@ import Link from "next/link";
 import StructuredData from "@/components/StructuredData";
 import { breadcrumb, blogPostingSchema } from "@/lib/structured-data";
 import SiteNav from "@/components/seo/SiteNav";
+import Breadcrumbs from "@/components/seo/Breadcrumbs";
+import { readingTimeMinutes } from "@/lib/reading-time";
 import { buildMetadata } from "@/lib/seo";
 import { posts, getPost } from "@/lib/blog";
 import { AUTHOR_NAME, AUTHOR_BIO, AUTHOR_PROFILE_PATH } from "@/lib/author";
@@ -93,6 +95,7 @@ export default async function BlogPost({
   const load = loaders[slug];
   if (!load) notFound();
   const { default: Article } = await load();
+  const minutes = readingTimeMinutes(slug);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -104,7 +107,7 @@ export default async function BlogPost({
         ])}
       />
       <StructuredData data={blogPostingSchema(meta)} />
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <Link
           href="/blog/"
           className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -112,11 +115,19 @@ export default async function BlogPost({
           &larr; Alle Artikel
         </Link>
         <SiteNav current="/blog/" />
+        <Breadcrumbs
+          items={[
+            { name: "Start", path: "/" },
+            { name: "Blog", path: "/blog/" },
+            { name: meta.title, path: `/blog/${meta.slug}/` },
+          ]}
+        />
         <p className="mt-6 text-xs uppercase tracking-wide text-muted-foreground">
           {meta.category} · {fmt(meta.date)}
           {meta.updated && meta.updated !== meta.date
             ? ` · aktualisiert am ${fmt(meta.updated)}`
             : ""}
+          {minutes > 0 ? ` · ${minutes} Min. Lesezeit` : ""}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           von{" "}
@@ -136,7 +147,7 @@ export default async function BlogPost({
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{AUTHOR_BIO}</p>
         </aside>
 
-        <footer className="mt-10 border-t border-border pt-6 text-sm">
+        <div className="mt-10 border-t border-border pt-6 text-sm">
           <p className="font-semibold text-foreground">Weiterlesen</p>
           <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Inhalte">
             <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>
@@ -144,8 +155,8 @@ export default async function BlogPost({
             <Link href="/vergleich/" className="text-primary underline">Spiele im Vergleich</Link>
             <Link href="/blog/" className="text-primary underline">Alle Artikel</Link>
           </nav>
-        </footer>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

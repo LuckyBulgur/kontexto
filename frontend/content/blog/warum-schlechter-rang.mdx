@@ -87,6 +87,52 @@ völlig anderer Schreibweise. Landet das auch vorn, ist das Feld echt getroffen.
 war es Buchstabenähnlichkeit. Mehr dazu in
 [Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
 
+## Ursache 6: Wortart und Beugung
+
+Eine Ursache, die im Deutschen besonders oft zuschlägt und die man leicht übersieht: Das Modell
+kennt Wortformen, nicht Wörter. `laufen`, `läuft`, `lief` und `Lauf` sind für den Vektorraum vier
+verschiedene Einträge mit vier verschiedenen Nachbarschaften.
+
+Am größten ist der Unterschied zwischen Verb und dazugehörigem Substantiv. `arbeiten` steht in
+Sätzen über Tätigkeiten, `Arbeit` in Sätzen über Beschäftigung, Ökonomie und Zustände. Beide
+gehören für uns offensichtlich zusammen, ihre Ränge können trotzdem um Tausende auseinanderliegen.
+
+Praktisch heißt das: Wenn dir ein Wort inhaltlich richtig erscheint und trotzdem schlecht liegt,
+probiere die anderen Formen desselben Stamms, bevor du das Feld aufgibst. Bei Kontexto ist das
+Lösungswort immer eine Grundform, also der Infinitiv beim Verb und der Nominativ Singular beim
+Substantiv. Wer eine gebeugte Form eingibt, misst deshalb nie ganz die Stelle, die gesucht ist.
+
+## Ursache 7: Das Wort ist zu allgemein
+
+Der letzte häufige Fall ist der unangenehmste, weil er sich nicht wie ein Fehler anfühlt.
+Allerweltswörter wie `Ding`, `Sache`, `Art` oder `Teil` kommen in Texten über alles vor. Ihre
+Vektoren liegen deshalb ungefähr in der Mitte des Raums, in etwa gleich weit von allem entfernt.
+
+Vor der Entzerrung der Vektoren wäre das sogar noch schlimmer: Dann lägen häufige Wörter bei jedem
+beliebigen Zielwort weit vorn, und der Rang würde messen, wie gebräuchlich dein Wort ist statt wie
+passend. Genau deshalb wird der Häufigkeitsanteil vorab entfernt, siehe
+[All-but-the-Top](/blog/all-but-the-top-vektoren-entzerren/). Der Nebeneffekt ist, dass sehr
+allgemeine Wörter danach zuverlässig mittelmäßig abschneiden.
+
+Ein Rang um 3.000 für `Sache` ist deshalb keine Information über das Zielwort. Es ist eine
+Information über `Sache`.
+
+## Wie man die Ursachen auseinanderhält
+
+Sieben Ursachen sind viel, wenn man mitten in einer Partie steckt. In der Praxis reichen drei
+Prüffragen, um den häufigsten Fall zu erwischen:
+
+| Beobachtung | wahrscheinliche Ursache | nächster Zug |
+|---|---|---|
+| Wort ist mehrdeutig | Vektor ist ein Kompromiss | die andere Bedeutung gezielt ansteuern |
+| Wort ist selten oder fachsprachlich | ungenaue Einbettung | ein gebräuchlicheres Wort desselben Felds |
+| Wort ist sehr allgemein | Vektor liegt in der Mitte | ein spezifischeres Wort desselben Felds |
+| Gutes Wort, schlechter Rang, Feld sonst gut | falsche Wortform | Grundform oder andere Wortart probieren |
+| Nur ein Wort passt, alle Nachbarn nicht | Buchstabenähnlichkeit | Synonym mit anderer Schreibweise testen |
+
+Die letzte Zeile ist der Test, der am meisten Züge spart: Wenn `Fischer` gut liegt, `Kieme`,
+`Schuppe` und `Teich` aber nicht, kam der gute Rang von den Zeichen und nicht vom Inhalt.
+
 ## Was du aus einem schlechten Rang machst
 
 Ein hoher Rang ist kein verlorener Zug. Er ist meistens der informativere.
