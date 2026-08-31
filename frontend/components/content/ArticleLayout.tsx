@@ -3,6 +3,7 @@ import Link from "next/link";
 import StructuredData from "@/components/StructuredData";
 import { breadcrumb } from "@/lib/structured-data";
 import TableOfContents, { type TocItem } from "./TableOfContents";
+import SiteNav from "@/components/seo/SiteNav";
 
 /**
  * Wide, well-typeset layout for marketing/content pages (Anleitung, Strategie,
@@ -42,6 +43,7 @@ export default function ArticleLayout({
         >
           &larr; Zurück zum Spiel
         </Link>
+        <SiteNav current={path} />
         <header className="mt-6 mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {title}

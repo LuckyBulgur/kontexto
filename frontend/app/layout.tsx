@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Anton } from "next/font/google";
-import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
@@ -21,11 +20,11 @@ const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-event
 export const metadata: Metadata = {
   metadataBase: new URL("https://kontexto.de"),
   title: {
-    default: "Kontexto - Das deutsche Wort-Ratespiel | Contexto auf Deutsch",
+    default: "Kontexto - Das tägliche deutsche Wort-Ratespiel",
     template: "%s | Kontexto",
   },
   description:
-    "Kontexto ist die deutsche Version von Contexto! Finde das geheime Wort im täglichen Wort-Ratespiel. Errate das Zielwort anhand von Bedeutungsähnlichkeit, kostenlos und ohne Anmeldung.",
+    "Errate jeden Tag das geheime Wort. Kontexto misst, wie nah dein Tipp der Bedeutung des Zielworts kommt, und zeigt dir dafür einen Rang. Unbegrenzt viele Versuche, kostenlos und ohne Anmeldung.",
   applicationName: "Kontexto",
   authors: [{ name: "Kontexto" }],
   creator: "Kontexto",
@@ -48,6 +47,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+        {/*
+          Der AdSense-Loader steht als echtes Script-Tag im <head> und nicht als
+          next/script mit strategy="afterInteractive".
+
+          Grund: Bei afterInteractive rendert Next ins HTML nur ein
+          <link rel="preload">; das Script-Tag selbst haengt der Client-Runtime
+          erst nach der Hydration an. Im ausgelieferten HTML stand damit gar kein
+          Anzeigencode, und AdSense meldete in der Konsole "AdSense head tag
+          doesn't support data-nscript attribute". Googles eigene Anleitung
+          verlangt den Codeschnipsel im <head> jeder Seite; wer ihn dort ohne
+          JavaScript nicht findet, kann die Website nicht verifizieren.
+
+          Kein next/script hier, weil dessen beforeInteractive-Variante im
+          Static Export ihre eigenen Attribute anhaengt. Das async-Attribut
+          entspricht exakt dem Snippet, das AdSense ausgibt.
+        */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3545758989514084"
+          crossOrigin="anonymous"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("kontexto_theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
@@ -66,12 +86,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Analytics />
         <SideRailAds />
       </body>
-      <Script
-        id="google-adsense"
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3545758989514084"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
     </html>
   );
 }

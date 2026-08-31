@@ -27,6 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/changelog/", freq: "monthly", prio: 0.5 },
     { path: "/kontakt/", freq: "yearly", prio: 0.4 },
     { path: "/impressum/", freq: "yearly", prio: 0.2 },
+    { path: "/nutzungsbedingungen/", freq: "yearly", prio: 0.3 },
     { path: "/datenschutz/", freq: "yearly", prio: 0.2 },
   ];
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import StructuredData from "@/components/StructuredData";
 import { breadcrumb, blogPostingSchema } from "@/lib/structured-data";
+import SiteNav from "@/components/seo/SiteNav";
 import { buildMetadata } from "@/lib/seo";
 import { posts, getPost } from "@/lib/blog";
 import { AUTHOR_NAME, AUTHOR_BIO, AUTHOR_PROFILE_PATH } from "@/lib/author";
@@ -110,6 +111,7 @@ export default async function BlogPost({
         >
           &larr; Alle Artikel
         </Link>
+        <SiteNav current="/blog/" />
         <p className="mt-6 text-xs uppercase tracking-wide text-muted-foreground">
           {meta.category} · {fmt(meta.date)}
           {meta.updated && meta.updated !== meta.date

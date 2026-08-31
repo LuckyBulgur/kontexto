@@ -163,6 +163,7 @@ export default function KontaktPage() {
           { href: "/ueber/", label: "Über Kontexto" },
           { href: "/changelog/", label: "Änderungen am Spiel" },
           { href: "/faq/", label: "Häufige Fragen" },
+          { href: "/nutzungsbedingungen/", label: "Nutzungsbedingungen" },
           { href: "/impressum/", label: "Impressum" },
         ]}
       />

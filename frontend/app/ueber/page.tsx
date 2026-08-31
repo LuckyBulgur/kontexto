@@ -9,7 +9,7 @@ import { AUTHOR_NAME } from "@/lib/author";
 
 export const metadata = buildMetadata({
   path: "/ueber/",
-  title: "Über Kontexto: das deutsche Contexto",
+  title: "Über Kontexto: Technik, Entscheidungen und wer dahintersteht",
   description:
     "Was Kontexto ist, wie fastText-Worteinbettungen die Bedeutungsähnlichkeit berechnen, welche Entscheidungen hinter dem Spiel stehen und wer es entwickelt. Kostenlos und auf Deutsch.",
 });
@@ -21,6 +21,7 @@ const toc = [
   { id: "grenzen", label: "Wo das Spiel an Grenzen stößt" },
   { id: "mission", label: "Warum es das Spiel gibt" },
   { id: "wer", label: "Wer dahintersteht" },
+  { id: "finanzierung", label: "Wie das Spiel finanziert wird" },
   { id: "kontakt", label: "Datenschutz und Kontakt" },
 ];
 
@@ -28,7 +29,7 @@ export default function UeberPage() {
   return (
     <ArticleLayout
       title="Über Kontexto"
-      lead="Kontexto ist die deutsche Version des Wortspiels Contexto: ein tägliches Ratespiel, bei dem nicht Buchstaben zählen, sondern Bedeutung."
+      lead="Ein tägliches Wortratespiel, bei dem nicht Buchstaben zählen, sondern Bedeutung. Wie es rechnet, welche Entscheidungen dahinterstehen und wer es baut."
       breadcrumbName="Über"
       path="/ueber/"
       toc={toc}
@@ -180,6 +181,47 @@ export default function UeberPage() {
             alte Rechtschreibvarianten keine unfairen Rätsel mehr erzeugen: alle drei Änderungen
             entstanden, weil jemand geschrieben hat. Nachzulesen im{" "}
             <Link href="/changelog/">Changelog</Link>.
+          </p>
+          <p>
+            Das Projekt läuft seit März 2026 und wird seitdem laufend weiterentwickelt, nicht
+            einmal gebaut und dann liegen gelassen. Aus dem ursprünglichen Tagesrätsel sind über
+            die Monate der Unendlich-Modus, das Duell, der Koop-Modus und Wördle samt eigenem
+            Duell geworden; die Auswahl der Lösungswörter wurde einmal vollständig neu gebaut, die
+            Bedienung mit Tastatur und Screenreader nachgezogen. Der{" "}
+            <Link href="/changelog/">Changelog</Link> hält jede dieser Änderungen mit Datum fest,
+            auch die zurückgenommenen: Ein Archiv vergangener Lösungen und eine Sternebewertung
+            gab es kurzzeitig und wurden wieder entfernt, weil beide mehr Probleme schufen als
+            lösten.
+          </p>
+          <p>
+            Die Texte auf dieser Seite, im <Link href="/glossar/">Glossar</Link> und im{" "}
+            <Link href="/blog/">Blog</Link> stammen aus derselben Hand wie der Code, und die
+            Zahlen darin sind gemessen, nicht geschätzt. Wo eine Behauptung auf einer Auswertung
+            beruht, steht die Methode dabei, nachzulesen unter{" "}
+            <Link href="/zahlen/">Kontexto in Zahlen</Link>. Wer prüfen will, wer hier schreibt:
+            Die Profile bei GitHub und LinkedIn sind in der Fußzeile jeder Seite verlinkt, die
+            Anbieterangaben stehen im <Link href="/impressum/">Impressum</Link>.
+          </p>
+        </Prose>
+      </Reveal>
+
+      <Reveal as="section" className="space-y-4">
+        <Prose>
+          <h2 id="finanzierung">Wie das Spiel finanziert wird</h2>
+          <p>
+            Kontexto ist kostenlos und soll es bleiben. Es gibt keine Bezahlschranke, keinen
+            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Finanziert wird der
+            Betrieb über Werbung, und zwar ausschließlich auf den beiden Einzelspieler-Seiten.
+            Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei, weil eine
+            Anzeige dort neben zu wenig eigenem Inhalt stünde.
+          </p>
+          <p>
+            Werbe- und Trackingcookies werden erst nach deiner Einwilligung gesetzt. Sie lässt sich
+            über den Link „Cookie-Einstellungen“ in der Fußzeile jederzeit ändern oder vollständig
+            widerrufen, ohne dass das Spiel dadurch eingeschränkt wird. Verkauft werden weder
+            Daten noch Adressen, und es gibt keine Newsletter-Liste, in die man versehentlich
+            geraten könnte. Was genau erhoben wird, steht in der{" "}
+            <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
         </Prose>
       </Reveal>

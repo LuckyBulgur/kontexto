@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { Brain, Infinity as InfinityIcon, CalendarDays, Gift } from "lucide-react";
+import {
+  Brain,
+  Infinity as InfinityIcon,
+  CalendarDays,
+  Gift,
+  Cpu,
+  SlidersHorizontal,
+  ListFilter,
+  BarChart3,
+} from "lucide-react";
 import {
   SeoSection,
   SeoHeading,
@@ -11,6 +20,7 @@ import {
   RelatedLinks,
 } from "@/components/seo/SeoPrimitives";
 import SeoFaq from "@/components/seo/SeoFaq";
+import { homeFaqs } from "@/lib/faqs";
 import ComparisonTable from "@/components/content/ComparisonTable";
 
 export default function HomeContent() {
@@ -22,7 +32,7 @@ export default function HomeContent() {
         crawlable, content-first copy lives here below it.
       */}
       <h1 className="mb-3 text-2xl font-bold text-foreground">
-        Kontexto: die deutsche Version von Contexto
+        Kontexto: das tägliche deutsche Wort-Ratespiel
       </h1>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
@@ -91,6 +101,24 @@ export default function HomeContent() {
         siehst du diesen Ablauf als Animation Schritt für Schritt.
       </p>
 
+      <SeoHeading>Wie lange dauert eine Partie?</SeoHeading>
+      <p className="max-w-prose">
+        Vier Züge wie im Beispiel oben sind der Idealfall, der Normalfall sieht anders
+        aus. Über alle bisher gespielten Partien liegt der Schnitt bei rund 85
+        Rateversuchen je Lösung, und 71 von 100 begonnenen Rätseln werden am Ende
+        gelöst. Zeitlich sind das meist fünf bis dreißig Minuten, verteilt über den
+        Tag, denn ein Rätsel bleibt bis Mitternacht offen.
+      </p>
+      <p className="mt-3 max-w-prose">
+        Der größte Unterschied zwischen einer kurzen und einer langen Partie liegt
+        nicht im Wortschatz, sondern im Umgang mit schlechten Rängen. Wer ein Feld
+        nach drei erfolglosen Zügen verlässt, ist schneller fertig als jemand, der im
+        selben Feld nach immer feineren Synonymen sucht. Ein Wort auf Rang 8.000 ist
+        deshalb kein verlorener Zug: Es schließt eine ganze Richtung sicher aus.
+        Bleibst du trotzdem stecken, hilft die Tipp-Funktion in drei Stufen weiter,
+        und wer die Lösung sehen will, kann jederzeit auflösen.
+      </p>
+
       <SeoHeading>Kontexto vs. Wördle</SeoHeading>
       <p className="max-w-prose">
         Bei{" "}
@@ -105,8 +133,95 @@ export default function HomeContent() {
         semantisch näher. Beide Spiele gibt es hier täglich neu, auf Deutsch.
       </p>
 
-      <SeoHeading>Häufige Fragen</SeoHeading>
-      <SeoFaq />
+      {/*
+        Belegt die eigene Arbeit an der Stelle, an der sie gelesen wird. Vorher
+        stand all das nur im Blog, wo es weder ein Erstbesucher noch ein Pruefer
+        findet. Jede Aussage hier ist auf einer eigenen Seite ausgefuehrt und
+        dorthin verlinkt.
+      */}
+      <SeoHeading>Was an Kontexto selbst gebaut ist</SeoHeading>
+      <p className="mb-4 max-w-prose">
+        Kontexto ist kein Baukasten und kein übersetztes Fremdprodukt. Modell,
+        Vokabular, Lösungsauswahl und alle Spielmodi sind für dieses Spiel entstanden
+        und werden hier gepflegt. Jeder der folgenden Punkte ist an anderer Stelle
+        ausführlich belegt.
+      </p>
+      <FeatureGrid>
+        <FeatureCard icon={Cpu} title="Eigenes deutsches Sprachmodell">
+          Ein deutsches fastText-Modell mit 300 Zahlen je Wort, trainiert auf Common
+          Crawl und der deutschen Wikipedia. Kein übersetztes englisches Modell und
+          keine fremde Schnittstelle.
+        </FeatureCard>
+        <FeatureCard icon={SlidersHorizontal} title="Entzerrte Vektoren">
+          Vor der Berechnung werden der Mittelwert und die drei stärksten
+          Hauptkomponenten entfernt. Ohne diesen Schritt wären häufige Wörter zu
+          allem ähnlich und jeder Rang wertlos.
+        </FeatureCard>
+        <FeatureCard icon={ListFilter} title="Geprüfte Lösungswörter">
+          Jede Tageslösung durchläuft automatische Filter und Sperrlisten, die von
+          Hand gepflegt werden: kein Eigenname, kein anstößiger Ausdruck, keine
+          ß/ss-Doppelform.
+        </FeatureCard>
+        <FeatureCard icon={BarChart3} title="Offengelegte Zahlen">
+          868.000 Rateversuche, 10.200 gelöste Rätsel, im Schnitt 85 Versuche je
+          Lösung. Die Auswertung liegt offen, samt Skript und Methodik.
+        </FeatureCard>
+      </FeatureGrid>
+      <p className="mt-4 max-w-prose">
+        Beim Raten wird nichts live berechnet. Für jedes der 2.400 vorbereiteten
+        Rätsel liegt die vollständige Rangliste über rund 80.000 Wörter fertig vor,
+        eine Eingabe ist deshalb ein Nachschlagen und keine Modellabfrage. Das hält
+        die Antwort schnell und macht die Ränge über den ganzen Tag stabil: Zwei
+        Personen, die dasselbe Wort eingeben, sehen garantiert denselben Rang. Wie
+        diese Ranglisten entstehen, steht ausführlich in{" "}
+        <Link href="/blog/wie-das-loesungswort-entsteht/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Wie das Lösungswort entsteht
+        </Link>{" "}
+        und in{" "}
+        <Link href="/blog/all-but-the-top-vektoren-entzerren/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          All-but-the-Top
+        </Link>.
+      </p>
+      <p className="mt-4 max-w-prose">
+        Neben dem Tagesrätsel gibt es vier weitere Arten zu spielen, alle hier
+        entstanden: den{" "}
+        <Link href="/koop/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Koop-Modus
+        </Link>{" "}
+        mit geteilter Rateliste, das{" "}
+        <Link href="/duel/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Duell
+        </Link>{" "}
+        gegen Freunde, einen Unendlich-Modus für beliebig viele Partien am Stück und{" "}
+        <Link href="/wordle/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Wördle
+        </Link>{" "}
+        samt eigenem Duell. Mehrspieler läuft über einen geteilten Link, ohne Konto
+        und ohne Installation, die Stände werden live übertragen.
+      </p>
+      <p className="mt-4 max-w-prose">
+        Aus den gespielten Partien entsteht Auswertung, die es sonst nirgends gibt.
+        Für 46 Startwörter wurde über alle 2.400 Rätsel gemessen, wie oft sie
+        überhaupt ein verwertbares Signal liefern. „gehen“ führt das Feld mit
+        13,2&nbsp;Prozent an, „wasser“ landet entgegen der Erwartung auf Platz 39 von
+        45. Die vollständige Tabelle steht im{" "}
+        <Link href="/blog/startwort-benchmark/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Startwort-Benchmark
+        </Link>, alle veröffentlichten Kennzahlen samt Methodik unter{" "}
+        <Link href="/zahlen/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Kontexto in Zahlen
+        </Link>.
+      </p>
+
+      <SeoHeading>Kurz gefragt</SeoHeading>
+      <SeoFaq items={homeFaqs} />
+      <p className="mt-4 max-w-prose">
+        Ausführliche Antworten auf alle 23 Fragen, von der Wortauswahl über die
+        Technik bis zu Datenschutz und Werbung, stehen auf der Seite{" "}
+        <Link href="/faq/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+          Häufige Fragen
+        </Link>.
+      </p>
 
       <div className="mt-10">
         <RelatedLinks

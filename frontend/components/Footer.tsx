@@ -20,7 +20,11 @@ const socials = [
 const links = [
   { href: "/", label: "Kontexto" },
   { href: "/wordle/", label: "Wördle" },
-  { href: "/koop/create/", label: "Koop" },
+  // Zeigt auf die Inhaltsseite, nicht auf das Erstellen-Formular: Letzteres
+  // traegt noindex, und ein Footer-Link auf jeder Seite ist der staerkste
+  // interne Verweis, den die Site zu vergeben hat.
+  { href: "/koop/", label: "Koop" },
+  { href: "/duel/", label: "Duell" },
   { href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
   { href: "/vergleich/", label: "Vergleich" },
@@ -32,6 +36,7 @@ const links = [
   { href: "/ueber/", label: "Über" },
   { href: "/kontakt/", label: "Kontakt" },
   { href: "/impressum/", label: "Impressum" },
+  { href: "/nutzungsbedingungen/", label: "Nutzungsbedingungen" },
   { href: "/datenschutz/", label: "Datenschutz" },
 ];
 
@@ -40,7 +45,10 @@ export default function Footer() {
     <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
       <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2" aria-label="Footer">
         {links.map((l) => (
-          <Link key={l.href} href={l.href} className="hover:text-foreground">{l.label}</Link>
+          // prefetch={false} aus demselben Grund wie in SiteNav: 17 Links auf
+          // jeder Seite, deren RSC-Payloads beim Scrollen an das Seitenende
+          // vollstaendig geladen wuerden.
+          <Link key={l.href} href={l.href} prefetch={false} className="hover:text-foreground">{l.label}</Link>
         ))}
         <ConsentSettingsLink className="hover:text-foreground cursor-pointer" />
       </nav>
