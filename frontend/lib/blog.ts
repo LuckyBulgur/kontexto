@@ -18,6 +18,22 @@ export interface BlogMeta {
  */
 export const posts: BlogMeta[] = [
   {
+    slug: "meistgeratene-woerter-analyse",
+    title: "Was Spielende raten, und warum es fast nie die besten Wörter sind",
+    description:
+      "154.150 Eingaben gegen den Startwort-Benchmark gelegt: Die Beliebtheit eines Wortes sagt nichts über seine Eignung. Rangkorrelation minus 0,009, und „tier“ liegt auf Platz 39 von 45.",
+    date: "2026-08-31",
+    category: "Strategie",
+  },
+  {
+    slug: "31-tage-spielverhalten",
+    title: "31 Tage Spielverhalten: am Wochenende wird deutlich besser geraten",
+    description:
+      "391.300 Rateversuche und 4.700 Lösungen über 31 Tage ausgewertet. Am Wochenende wird 38 Prozent weniger gespielt und mit 74,4 statt 85,9 Versuchen gelöst.",
+    date: "2026-08-31",
+    category: "Grundlagen",
+  },
+  {
     slug: "startwort-benchmark",
     title: "Startwort-Benchmark: 2.400 Rätsel gemessen, drei eigene Empfehlungen widerlegt",
     description:

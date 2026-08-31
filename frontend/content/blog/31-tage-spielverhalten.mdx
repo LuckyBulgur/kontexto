@@ -1,0 +1,146 @@
+# 31 Tage Spielverhalten: am Wochenende wird deutlich besser geraten
+
+import WeekdayChart from "@/components/content/WeekdayChart";
+
+Für 31 aufeinanderfolgende Tage liegen zwei Zahlen je Tag vor: wie viele Wörter eingegeben wurden
+und wie viele Rätsel gelöst wurden. Beides serverseitig gezählt, beides offen einsehbar unter
+[Kontexto in Zahlen](/zahlen/).
+
+Aus diesen 62 Zahlen lässt sich etwas ablesen, das man beim Spielen nicht merkt: **Am Wochenende
+spielen deutlich weniger Leute, aber die, die spielen, brauchen erheblich weniger Versuche.**
+
+## Die Gesamtbilanz der 31 Tage
+
+In diesem Zeitraum wurden **391.300 Rateversuche** eingegeben und **4.700 Rätsel gelöst**. Das sind
+83,3 Versuche je Lösung, etwas besser als der Allzeitwert von 85,1.
+
+Die Tage streuen dabei erheblich: Der ruhigste kam auf 5.000 Rateversuche, der stärkste auf 20.900.
+Das ist mehr als das Vierfache, und die Verteilung ist nicht zufällig.
+
+<WeekdayChart />
+
+## Werktag gegen Wochenende
+
+Fasst man die 31 Tage nach Wochentagen zusammen, ergibt sich ein klares Bild:
+
+| | Rateversuche je Tag | Lösungen je 1.000 Versuche | Versuche je Lösung |
+|---|---|---|---|
+| Werktag | 14.168 | 11,6 | 85,9 |
+| Wochenende | 8.844 | 13,4 | 74,4 |
+
+Am Wochenende fällt die Aktivität um rund 38 Prozent. Gleichzeitig steigt die Ausbeute: Aus 1.000
+Rateversuchen werden am Wochenende 13,4 Lösungen statt 11,6, und die durchschnittliche Partie
+braucht **74,4 statt 85,9 Versuche**. Das sind gut 13 Prozent weniger.
+
+Auf Wochentagsebene wird der Unterschied noch deutlicher. Der Sonntag ist mit 15,4 Lösungen je
+1.000 Versuchen der mit Abstand effizienteste Tag, der Freitag mit 10,5 der schwächste:
+
+| Tag | Rateversuche | Lösungen je 1.000 |
+|---|---|---|
+| Montag | 11.600 | 12,9 |
+| Dienstag | 14.200 | 12,4 |
+| Mittwoch | 14.825 | 12,7 |
+| Donnerstag | 15.080 | 11,2 |
+| Freitag | 14.760 | 10,5 |
+| Samstag | 9.080 | 12,8 |
+| Sonntag | 8.550 | 15,4 |
+
+## Die Spannweite zwischen den Tagen
+
+Bevor die Wochentage ins Bild kommen, lohnt ein Blick auf die rohe Streuung, denn sie ist größer,
+als der Wochenrhythmus allein erklärt.
+
+Der stärkste Tag im Zeitraum war Mittwoch, der 12. August, mit **20.900 Rateversuchen**. Der
+schwächste war Sonntag, der 26. Juli, mit **5.000**. Das ist ein Verhältnis von 4,2 zu 1, bei einem
+Median von 13.300.
+
+Noch weiter auseinander liegt die Ausbeute: Die Lösungen je 1.000 Rateversuchen schwanken zwischen
+**7,1 und 20,5**, also fast um den Faktor drei. Der Wochentag erklärt davon nur einen Teil. Der
+größere Teil geht auf das Zielwort selbst zurück.
+
+Das ist die wichtigste Einschränkung dieser ganzen Auswertung und gehört an den Anfang, nicht in
+eine Fußnote: **Jeder Tag hat genau ein Rätsel für alle.** Ein leichtes Zielwort hebt die Quote des
+gesamten Tages, ein sperriges drückt sie. Bei 31 Tagen sind das 31 Stichproben von je einem Rätsel,
+und die Schwierigkeit dieser Rätsel ist nicht gleichverteilt, sondern zufällig gezogen.
+
+Der Wochenendeffekt hält dieser Einschränkung trotzdem stand, weil er nicht an einzelnen Tagen
+hängt: Samstag und Sonntag liegen beide über dem Werktagsschnitt, und der Abstand zwischen den
+Gruppen ist größer als die Streuung innerhalb der Werktage. Ein einzelnes leichtes Wochenendrätsel
+könnte das nicht erzeugen. Vier bis fünf Wochenenden könnten es allerdings gemeinsam, und genau
+deshalb steht unten der Abschnitt über die Grenzen.
+
+## Drei Erklärungen, und was für sie spricht
+
+Die Zahlen sagen, **dass** es so ist, nicht **warum**. Drei Erklärungen liegen nahe, und sie
+schließen sich nicht aus.
+
+**Die Aufmerksamkeit.** Kontexto ist kein Spiel, das nebenbei funktioniert. Wer während der Arbeit
+zwischendurch fünf Wörter eingibt und dann eine halbe Stunde nichts, verliert den Faden: Das Muster
+aus vier oder fünf Rängen, aus dem die Richtung entsteht, muss man im Kopf haben. Am Wochenende
+sitzt man eher am Stück davor. Dass der Donnerstag und der Freitag am schwächsten abschneiden, passt
+dazu, das sind erfahrungsgemäß die vollsten Arbeitstage.
+
+**Die Zusammensetzung der Spielenden.** An einem Werktag ist ein größerer Teil der Eingaben
+Gelegenheitsspiel: kurz reingeschaut, drei Wörter probiert, weitergezogen. Diese abgebrochenen
+Partien erzeugen Rateversuche ohne Lösung und drücken die Quote. Am Wochenende ist der Anteil derer
+höher, die sich bewusst hinsetzen.
+
+**Das Zielwort selbst.** Jedes Rätsel hat seine eigene Schwierigkeit, und über 31 Tage ist das nicht
+ausgemittelt. Ein einzelner besonders sperriger Freitag kann den Wochentagsschnitt spürbar ziehen.
+Das ist die Erklärung, die am ehesten für Zufall spricht, und sie lässt sich mit 31 Tagen nicht
+ausschließen.
+
+## Was das für dich praktisch heißt
+
+Der brauchbare Schluss ist nicht „spiel nur sonntags“. Er ist konkreter.
+
+**Spiel am Stück, nicht in Häppchen.** Der Unterschied zwischen 74 und 86 Versuchen entsteht
+vermutlich genau dort. Wer eine Partie über acht Stunden verteilt, fängt bei jedem Wiedereinstieg
+gedanklich neu an und probiert Felder, die er längst ausgeschlossen hatte.
+
+**Wenn du unterbrechen musst, notiere die Richtung.** Ein Satz reicht: „Feld Küche, bestes Wort
+Herd auf 140, Möbelrichtung ausgeschlossen.“ Damit kostet der Wiedereinstieg keine fünf Züge.
+
+**Nutze, dass das Rätsel bis Mitternacht offen bleibt.** Es gibt keinen Grund, eine Partie unter
+Zeitdruck zu Ende zu bringen. Wer merkt, dass er im falschen Feld steckt und gerade keinen Kopf
+dafür hat, verliert nichts, wenn er später mit klarem Blick zurückkommt.
+
+## Warum diese Zahlen überhaupt existieren dürfen
+
+Eine Auswertung nach Wochentagen klingt nach Nutzerverfolgung, und es lohnt sich zu zeigen, dass sie
+hier keine ist.
+
+Gezählt wird ausschließlich serverseitig, in den Handlern, die einen Rateversuch oder eine Lösung
+verarbeiten. Erhöht wird dabei ein Tageszähler, nichts weiter. Es entsteht kein Ereignis mit
+Zeitstempel je Person, keine Sitzung, keine Kennung. Aus den Daten, die dieser Auswertung
+zugrunde liegen, ließe sich keine einzelne Partie rekonstruieren, selbst wenn jemand es versuchte.
+
+Genau deshalb kann dieser Beitrag zwei Fragen nicht beantworten, die naheliegen. Erstens: Spielen am
+Wochenende dieselben Personen besser, oder spielen andere Personen? Zweitens: Wie lange dauert eine
+Partie in Minuten? Beides bräuchte eine Zuordnung über die Zeit, und die gibt es nicht.
+
+Was stattdessen möglich ist, sind Summen und deren Verhältnisse. Das reicht für die Aussage dieses
+Beitrags und ist die Grenze dessen, was ohne Nutzerprofile geht. Die Entscheidung dafür ist
+beschrieben in den [redaktionellen Grundsätzen](/redaktion/), die technische Umsetzung samt der
+Aufbewahrungsfrist von 35 Tagen für Rohdaten in der
+[Datenschutzerklärung](/datenschutz/).
+
+Ein Nebeneffekt dieser Bauweise ist übrigens, dass die veröffentlichten Zahlen stabil bleiben. Weil
+nichts nachträglich aus Einzelereignissen neu berechnet wird, sondern Tagessummen fortgeschrieben
+werden, ändert sich ein einmal veröffentlichter Wert nicht mehr. Wer diesen Beitrag in einem Jahr
+liest, findet dieselben 391.300 Rateversuche für denselben Zeitraum.
+
+## Grenzen dieser Auswertung
+
+31 Tage sind vier bis fünf Wochenenden. Das reicht für einen deutlichen Hinweis und nicht für einen
+Nachweis. Ein saisonaler Effekt, eine einzelne besonders leichte Woche oder ein Ausreißer bei den
+Zielwörtern können die Wochentagswerte spürbar bewegen.
+
+Ebenfalls nicht messbar mit diesen Daten: ob dieselben Personen am Wochenende besser spielen oder ob
+schlicht andere Personen spielen. Es gibt keine Nutzerkennung und keine Sitzungsverfolgung, die
+Zahlen sind reine Tagessummen. Warum das so gebaut ist, steht in der
+[Datenschutzerklärung](/datenschutz/), die Methodik der Zählung in den
+[redaktionellen Grundsätzen](/redaktion/).
+
+Wie die 85 Versuche je Lösung insgesamt zustande kommen und warum der Mittelwert dabei in die Irre
+führt, steht in [Wie viele Versuche sind normal?](/blog/wie-viele-versuche-sind-normal/).

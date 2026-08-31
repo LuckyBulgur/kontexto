@@ -1,0 +1,148 @@
+# Was Spielende raten, und warum es fast nie die besten Wörter sind
+
+import PopularityQualityChart from "@/components/content/PopularityQualityChart";
+
+Es gibt auf dieser Website zwei Datensätze, die bisher nebeneinanderstanden, ohne je verglichen zu
+werden. Der eine zählt, welche Wörter am häufigsten eingegeben werden, 154.150 Eingaben verteilt
+auf die 100 meistgeratenen Wörter. Der andere misst, welche Wörter tatsächlich etwas taugen,
+gerechnet über alle 2.400 vorbereiteten Rätsel.
+
+Legt man beide übereinander, kommt ein Ergebnis heraus, das unangenehm eindeutig ist: **Die
+Beliebtheit eines Wortes sagt praktisch nichts darüber, ob es hilft.**
+
+## Was verglichen wurde
+
+28 der 100 meistgeratenen Wörter sind auch im Startwort-Benchmark vertreten. Für diese 28 liegen
+zwei Zahlen nebeneinander:
+
+- **Wie oft es eingegeben wurde**, gezählt serverseitig über alle Partien.
+- **Wie oft es einen Rang unter 1500 liefert**, gemessen über alle 2.400 Rätsel. Das ist die
+  Kennzahl aus dem [Startwort-Benchmark](/blog/startwort-benchmark/): der Anteil der Rätsel, in
+  denen das Wort überhaupt ein verwertbares Signal gibt.
+
+Der Zusammenhang zwischen beiden liegt bei einer Rangkorrelation von **minus 0,009**. In Worten:
+kein Zusammenhang. Wer die Beliebtheitsliste von oben nach unten liest, erfährt über die Nützlichkeit
+der Wörter genau so viel wie beim Würfeln.
+
+<PopularityQualityChart />
+
+## Die Rangfolgen laufen auseinander
+
+Konkret wird es beim direkten Vergleich der Plätze. Links steht der Platz in der Beliebtheit,
+rechts der Platz unter den 45 gemessenen Kandidaten:
+
+| Wort | Platz Beliebtheit | Platz Güte | Signal unter 1500 |
+|---|---|---|---|
+| haus | 1 | 12 von 45 | 7,8 % |
+| mensch | 2 | 24 von 45 | 5,6 % |
+| tier | 3 | 39 von 45 | 2,5 % |
+| essen | 4 | 33 von 45 | 3,5 % |
+| wasser | 5 | 38 von 45 | 2,6 % |
+| arbeit | 9 | 3 von 45 | 11,9 % |
+| zeit | 22 | 7 von 45 | 10,3 % |
+| pflanze | 38 | 42 von 45 | 1,5 % |
+
+`tier` ist das drittbeliebteste Wort im ganzen Spiel und liegt in der Messung auf Platz 39 von 45.
+`pflanze` schafft es in die Top 40 der Beliebtheit und liefert in weniger als jedem 66. Rätsel ein
+verwertbares Signal.
+
+Umgekehrt ist es genauso schief. Von den vier gemessen besten Startwörtern taucht nur eines weit
+oben in der Beliebtheit auf:
+
+- **gehen**, gemessen das beste Wort überhaupt, steht auf Platz 42 der Beliebtheit.
+- **machen**, gemessen auf Platz zwei, steht auf Platz 94.
+- **sehen**, gemessen auf Platz vier, kommt in den 100 meistgeratenen Wörtern **gar nicht vor**.
+- **arbeit** ist die Ausnahme: Platz 9 in der Beliebtheit, Platz 3 in der Messung.
+
+## Warum das passiert
+
+Die Erklärung steht in der Liste selbst. Die zehn meistgeratenen Wörter sind `haus`, `mensch`,
+`tier`, `essen`, `wasser`, `auto`, `schule`, `sport`, `arbeit`, `geld`. Neun davon sind konkrete
+Substantive.
+
+Genau das ist der Reflex, den der Benchmark widerlegt hat. Ein Substantiv bringt sein Thema mit,
+und deshalb ist sein Rang bei den allermeisten Zielwörtern gleich schlecht. `tier` ist eine präzise
+Sonde für den Bereich Tiere und eine wertlose für alles andere. Weil aber nur ein Bruchteil der
+Rätsel im Tierbereich liegt, misst `tier` in der überwiegenden Mehrheit der Partien nichts.
+
+Ein Verb erscheint dagegen in Sätzen über praktisch jedes Thema, weil fast jeder Sachverhalt eine
+Handlung enthält. `gehen` steht in Texten über Schule, Verträge, Uhren, Beziehungen und
+Geschäftsentwicklung. Sein Rang schwankt deshalb je nach Zielwort erheblich, und genau diese
+Schwankung ist die Information.
+
+Die Beliebtheitsliste bildet also nicht ab, was funktioniert, sondern **wie Menschen assoziieren,
+wenn sie an nichts Bestimmtes denken**. Gefragt nach einem beliebigen deutschen Wort, antworten die
+meisten mit einem greifbaren Ding. Das ist psychologisch naheliegend und für dieses Spiel die
+falsche Reflexhandlung.
+
+## Die Liste verrät noch etwas: alle raten kurz
+
+Neben der Frage, welche Wörter geraten werden, steckt in denselben 100 Einträgen eine zweite
+Beobachtung, die niemand geplant hat. Sie sind auffällig kurz.
+
+| Wortlänge | Anzahl unter den Top 100 |
+|---|---|
+| 3 Buchstaben | 7 |
+| 4 Buchstaben | 29 |
+| 5 Buchstaben | 22 |
+| 6 Buchstaben | 23 |
+| 7 Buchstaben | 12 |
+| 8 und mehr | 7 |
+
+**74 der 100 meistgeratenen Wörter haben vier bis sechs Buchstaben.** Der Median liegt bei 5, der
+Mittelwert bei 5,3, und nach Eingaben gewichtet bei 5,2. Das längste Wort in der ganzen Liste ist
+`deutschland` mit elf Buchstaben, und es ist der einzige Eintrag über neun.
+
+Das ist bemerkenswert, weil Kontexto überhaupt keine Längenbeschränkung hat. Anders als bei
+[Wördle](/wordle/), wo fünf Buchstaben die Regel sind, darf hier jedes Wort aus dem Vokabular
+eingegeben werden, von `ei` bis zu langen Zusammensetzungen. Trotzdem greifen fast alle zu kurzen
+Wörtern.
+
+Zwei Gründe liegen nahe, und beide sind für die Suche relevant. Erstens sind kurze Wörter im
+Deutschen überwiegend Grundwörter, also genau die Sorte, die im Vokabular gut vertreten ist.
+Zweitens tippt es sich schneller, und wer in einer Partie sechzig Wörter eingibt, merkt den
+Unterschied.
+
+Die praktische Folge ist trotzdem eine Verengung. Zusammengesetzte Wörter kommen in der Liste
+praktisch nicht vor, obwohl das Deutsche daraus besteht und obwohl sie als Sonde sehr nützlich sein
+können: Ein Kompositum trifft zwei Bedeutungsfelder gleichzeitig. Wer bei einem Zielwort im Bereich
+Wohnen feststeckt, erfährt mit `wohnzimmer` mehr als mit `zimmer`. Warum das so ist und wo die
+Grenzen liegen, steht in [Komposita und Teilwörter](/blog/komposita-und-teilwoerter/).
+
+## Eine wichtige Einschränkung
+
+Die beiden Datensätze messen nicht exakt dasselbe, und das gehört dazu.
+
+Die Beliebtheitsliste zählt **alle** Eingaben, nicht nur Eröffnungszüge. Ein Wort kann also oft
+vorkommen, weil es ein beliebter Einstieg ist, oder weil es mitten in der Partie als Sonde dient,
+oder weil es in vielen Rätseln als Nachbar des Zielworts probiert wird. Der Benchmark misst
+dagegen ausschließlich die Eignung als Eröffnung.
+
+Für die drastischen Fälle ändert das wenig: `tier` und `pflanze` sind in keiner Rolle gute
+Messpunkte. Für die mittleren Plätze ist der Vergleich unschärfer, als die Tabelle wirken lässt.
+Wer die Zahlen selbst prüfen will, findet beide Datensätze offen unter
+[Kontexto in Zahlen](/zahlen/).
+
+Zweite Einschränkung: 28 gemeinsame Wörter sind eine kleine Stichprobe. Die Rangkorrelation von
+minus 0,009 ist deshalb ein deutlicher Hinweis auf „kein Zusammenhang“ und kein Beweis für einen
+negativen.
+
+## Was du daraus mitnimmst
+
+Der praktische Schluss ist unbequem, weil er gegen das Gefühl arbeitet.
+
+**Spiele nicht, was dir zuerst einfällt.** Was dir zuerst einfällt, fällt auch allen anderen zuerst
+ein, und die Messung zeigt, dass diese Wörter überwiegend im schlechteren Teil des Feldes liegen.
+
+**Nimm ein festes Repertoire aus vier Wörtern, und lass mindestens drei davon Verben sein.** Die
+gemessene Empfehlung lautet `gehen`, `arbeit`, `sehen`, `zeit`. Drei davon würdest du von allein
+kaum wählen, und genau das ist der Punkt.
+
+**Ein beliebtes Wort ist kein geprüftes Wort.** Dass `wasser` sich breit anfühlt, heißt nur, dass
+es in vielen Lebensbereichen vorkommt. Seine Satzumgebungen ähneln sich trotzdem stark, es geht
+fast immer buchstäblich um Flüssigkeit. Deshalb landet es auf Platz 38 von 45.
+
+Wie du aus den vier Startwörtern eine Richtung ableitest, steht in
+[Semantische Wortfelder](/blog/semantische-wortfelder-strategie/). Warum die Intuition hier so
+verlässlich danebenliegt, erklärt der [Startwort-Benchmark](/blog/startwort-benchmark/) im
+Abschnitt über thematische gegen kontextuelle Breite.

@@ -14,6 +14,9 @@ import { AUTHOR_NAME, AUTHOR_BIO, AUTHOR_PROFILE_PATH } from "@/lib/author";
 // are fragile under static export. Every module is statically known at
 // build time, enabling reliable tree-shaking and chunk splitting.
 const loaders: Record<string, () => Promise<{ default: ComponentType }>> = {
+  "meistgeratene-woerter-analyse": () =>
+    import("@/content/blog/meistgeratene-woerter-analyse.mdx"),
+  "31-tage-spielverhalten": () => import("@/content/blog/31-tage-spielverhalten.mdx"),
   "startwort-benchmark": () => import("@/content/blog/startwort-benchmark.mdx"),
   "wie-viele-versuche-sind-normal": () =>
     import("@/content/blog/wie-viele-versuche-sind-normal.mdx"),
