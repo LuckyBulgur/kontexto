@@ -362,16 +362,15 @@ export default function GameClient() {
   const gameOver = gameState.solved || !!gameState.givenUp;
   const isWin = gameState.solved && !gameState.givenUp;
 
-  // Both the loading skeleton and the game container share a compact reserve so
-  // the "Laden…" → game swap doesn't cause a Cumulative Layout Shift (CLS).
-  // The editorial introduction now precedes the game, so min-h-screen here
-  // would create a large empty block below the short initial game state.
+  // Both the loading skeleton and the game container share a viewport-height
+  // reserve so the "Laden…" → game swap doesn't cause a Cumulative Layout Shift
+  // (CLS), and the editorial content stays below the first game viewport.
   if (loading) {
     return <GameSkeleton />;
   }
 
   return (
-    <div className="max-w-lg mx-auto min-h-[30rem] flex flex-col">
+    <div className="max-w-lg mx-auto min-h-screen flex flex-col">
       <Header
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
