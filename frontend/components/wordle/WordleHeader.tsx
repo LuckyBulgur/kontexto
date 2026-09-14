@@ -9,6 +9,7 @@ import {
   Swords,
   BarChart3,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,8 @@ export default function WordleHeader({
   const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
     useFeatureDiscovery("wordle_duel_discovered");
   const showDuelHighlight = showDuelCreate && duelHighlight;
+  const { highlight: feedbackHighlight, dismiss: dismissFeedbackHighlight } =
+    useFeatureDiscovery("kontexto_feedback_discovered");
   const hasPrimaryItems =
     Boolean(onHelp) || Boolean(onRandom) || showDuelCreate || Boolean(onStats);
   const hasMenu = hasPrimaryItems || Boolean(onSettings);
@@ -86,13 +89,24 @@ export default function WordleHeader({
           <div className="absolute right-4 flex items-center gap-0.5">
             {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
             {hasMenu && (
-            <DropdownMenu onOpenChange={(open) => { if (!open && showDuelHighlight) dismissDuelHighlight(); }}>
+            <DropdownMenu onOpenChange={(open) => {
+              if (!open) {
+                if (showDuelHighlight) dismissDuelHighlight();
+                if (feedbackHighlight) dismissFeedbackHighlight();
+              }
+            }}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="relative h-10 w-10"
-                  aria-label={showDuelHighlight ? "Menü, neue Funktion: Duell" : "Menü"}
+                  aria-label={
+                    showDuelHighlight
+                      ? "Menü, neue Funktion: Duell"
+                      : feedbackHighlight
+                        ? "Menü, neue Funktion: Feedback und Wünsche"
+                        : "Menü"
+                  }
                 >
                   <EllipsisVertical className="h-6! w-6!" />
                   {showDuelHighlight && (
@@ -135,6 +149,17 @@ export default function WordleHeader({
                     Statistik
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild className={feedbackHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
+                  <Link href="/kontakt/">
+                    <MessageSquare className="h-4 w-4" />
+                    Feedback und Wünsche
+                    {feedbackHighlight && (
+                      <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                        NEU
+                      </span>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
                 {onSettings && hasPrimaryItems && <DropdownMenuSeparator />}
                 {onSettings && (
                   <DropdownMenuItem onClick={onSettings}>

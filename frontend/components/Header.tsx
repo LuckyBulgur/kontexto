@@ -15,6 +15,7 @@ import {
   BarChart3,
   Infinity,
   UsersRound,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -97,8 +98,10 @@ export default function Header({
   const { highlight: koopHighlight, dismiss: dismissKoopHighlight } =
     useFeatureDiscovery("kontexto_koop_discovered");
   const showKoopHighlight = !hideKoopCreate && koopHighlight;
-  // Ping am Kebab, falls Duell- oder Koop-Hinweis aktiv ist.
-  const showPing = showDuelHighlight || showKoopHighlight;
+  const { highlight: feedbackHighlight, dismiss: dismissFeedbackHighlight } =
+    useFeatureDiscovery("kontexto_feedback_discovered");
+  // Ping am Kebab, falls ein neuer Menüpunkt hervorgehoben werden soll.
+  const showPing = showDuelHighlight || showKoopHighlight || feedbackHighlight;
   // Der Unendlich-Button ist unter sm ausgeblendet, sein Hinweis wandert dort an den Kebab.
   const pingClass = showPing
     ? "flex"
@@ -158,6 +161,7 @@ export default function Header({
             if (showDuelHighlight) dismissDuelHighlight();
             if (showInfiniteHighlight) dismissInfiniteHighlight();
             if (showKoopHighlight) dismissKoopHighlight();
+            if (feedbackHighlight) dismissFeedbackHighlight();
           }
         }}>
           <DropdownMenuTrigger asChild>
@@ -172,7 +176,9 @@ export default function Header({
                     ? "Menü, neue Funktion: Koop"
                     : showInfiniteHighlight
                       ? "Menü, neue Funktion: Unendlich-Modus"
-                      : "Menü"
+                      : feedbackHighlight
+                        ? "Menü, neue Funktion: Feedback und Wünsche"
+                        : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
@@ -208,6 +214,17 @@ export default function Header({
             <DropdownMenuItem onClick={onFAQOpen}>
               <CircleHelp className="h-4 w-4" />
               FAQ
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className={feedbackHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
+              <Link href="/kontakt/">
+                <MessageSquare className="h-4 w-4" />
+                Feedback und Wünsche
+                {feedbackHighlight && (
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                    NEU
+                  </span>
+                )}
+              </Link>
             </DropdownMenuItem>
             {!hideDuelCreate && (
               <DropdownMenuItem asChild className={showDuelHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
