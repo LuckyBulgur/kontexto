@@ -80,7 +80,7 @@ export default function WordleHeader({
             KONTEXTO
           </Link>
           <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <Link href="/wordle">WÖRDLE</Link>
+          <Link href="/wordle/">WÖRDLE</Link>
         </div>
         {(onCopyLink || hasMenu) && (
           <div className="absolute right-4 flex items-center gap-0.5">
@@ -118,7 +118,7 @@ export default function WordleHeader({
                 )}
                 {showDuelCreate && (
                   <DropdownMenuItem asChild className={showDuelHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
-                    <Link href="/wordle/duel/create">
+                    <Link href="/wordle/duel/create/">
                       <Swords className="h-4 w-4" />
                       Duell erstellen
                       {showDuelHighlight && (

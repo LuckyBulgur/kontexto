@@ -21,25 +21,27 @@ export const posts: BlogMeta[] = [
     slug: "meistgeratene-woerter-analyse",
     title: "Was Spielende raten, und warum es fast nie die besten Wörter sind",
     description:
-      "154.150 Eingaben gegen den Startwort-Benchmark gelegt: Die Beliebtheit eines Wortes sagt nichts über seine Eignung. Rangkorrelation minus 0,009, und „tier“ liegt auf Platz 39 von 45.",
+      "Snapshot vom 15. August 2026: 154.150 Eingaben gegen den Startwort-Benchmark gelegt. Die Beliebtheit eines Wortes sagt nichts über seine Eignung; „tier“ liegt auf Platz 39 von 45.",
     date: "2026-08-31",
+    updated: "2026-09-14",
     category: "Strategie",
   },
   {
     slug: "31-tage-spielverhalten",
     title: "31 Tage Spielverhalten: am Wochenende wird deutlich besser geraten",
     description:
-      "391.300 Rateversuche und 4.700 Lösungen über 31 Tage ausgewertet. Am Wochenende wird 38 Prozent weniger gespielt und mit 74,4 statt 85,9 Versuchen gelöst.",
+      "Snapshot vom 15. August 2026: 391.300 Rateversuche und 4.700 Lösungen über 31 Tage ausgewertet. Am Wochenende wird 38 Prozent weniger gespielt und mit 74,4 statt 85,9 Versuchen gelöst.",
     date: "2026-08-31",
+    updated: "2026-09-14",
     category: "Grundlagen",
   },
   {
     slug: "startwort-benchmark",
     title: "Startwort-Benchmark: 2.400 Rätsel gemessen, drei eigene Empfehlungen widerlegt",
     description:
-      "Für jedes der 2.400 Rätsel ausgerechnet, welchen Rang 46 Kandidatenwörter bekommen hätten. Ergebnis: Verben schlagen Substantive, und „Wasser“ ist ein schlechtes Startwort.",
+      "Für jedes der 2.400 Rätsel ausgerechnet, welchen Rang 46 getestete Kandidatenwörter bekommen hätten; 45 waren messbar. Ergebnis: Verben schlagen Substantive, und „Wasser“ ist ein schlechtes Startwort.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-14",
     category: "Strategie",
   },
   {
@@ -48,7 +50,7 @@ export const posts: BlogMeta[] = [
     description:
       "85 Rateversuche je gelöstem Rätsel, 71 Prozent Lösungsquote, 4,5 Tipps pro Partie und die 100 meistgeratenen Wörter. Echte Zahlen aus der serverseitigen Zählung.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-14",
     category: "Grundlagen",
   },
   {

@@ -45,7 +45,7 @@ export default function WordleDuelCreatePageClient() {
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
       <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
         <div className="relative flex items-center justify-center w-full">
-          <a href="/wordle" className="absolute left-4">
+          <a href="/wordle/" className="absolute left-4">
             <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
               <ArrowLeft className="h-6! w-6!" />
             </Button>

@@ -127,7 +127,7 @@ export default function Header({
             KONTEXTO
           </Link>
           <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <Link href="/wordle" className={!pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
+          <Link href="/wordle/" className={!pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
             WÖRDLE
           </Link>
         </div>
@@ -268,7 +268,7 @@ export default function Header({
               Credits
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/datenschutz">
+              <Link href="/datenschutz/">
                 <Shield className="h-4 w-4" />
                 Datenschutz
               </Link>

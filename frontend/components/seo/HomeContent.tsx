@@ -23,6 +23,14 @@ import SeoFaq from "@/components/seo/SeoFaq";
 import { homeFaqs } from "@/lib/faqs";
 import { posts } from "@/lib/blog";
 import ComparisonTable from "@/components/content/ComparisonTable";
+import publicStats from "@/content/data/public-stats.json";
+
+const numberFormat = new Intl.NumberFormat("de-DE");
+const snapshotDate = new Date(`${publicStats.generated_on}T12:00:00Z`).toLocaleDateString("de-DE", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
 export default function HomeContent() {
   return (
@@ -164,8 +172,9 @@ export default function HomeContent() {
           ß/ss-Doppelform.
         </FeatureCard>
         <FeatureCard icon={BarChart3} title="Offengelegte Zahlen">
-          868.000 Rateversuche, 10.200 gelöste Rätsel, im Schnitt 85 Versuche je
-          Lösung. Die Auswertung liegt offen, samt Skript und Methodik.
+          {numberFormat.format(publicStats.totals.guesses)} Rateversuche, {numberFormat.format(publicStats.totals.solves)} gelöste
+          Rätsel, im Schnitt {numberFormat.format(publicStats.guesses_per_solve)} Versuche je Lösung. Die Auswertung liegt offen,
+          samt Skript und Methodik. Datenstand: {snapshotDate}.
         </FeatureCard>
       </FeatureGrid>
       <p className="mt-4 max-w-prose">
@@ -202,10 +211,10 @@ export default function HomeContent() {
       </p>
       <p className="mt-4 max-w-prose">
         Aus den gespielten Partien entsteht Auswertung, die es sonst nirgends gibt.
-        Für 46 Startwörter wurde über alle 2.400 Rätsel gemessen, wie oft sie
-        überhaupt ein verwertbares Signal liefern. „gehen“ führt das Feld mit
-        13,2&nbsp;Prozent an, „wasser“ landet entgegen der Erwartung auf Platz 39 von
-        45. Die vollständige Tabelle steht im{" "}
+        Für 46 Startwörter wurde über alle 2.400 Rätsel geprüft, wie oft sie
+        überhaupt ein verwertbares Signal liefern; 45 davon waren im Vokabular messbar.
+        „gehen“ führt das Feld mit 13,2&nbsp;Prozent an, „wasser“ landet entgegen der
+        Erwartung auf Platz 39 von 45. Die vollständige Tabelle steht im{" "}
         <Link href="/blog/startwort-benchmark/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
           Startwort-Benchmark
         </Link>, alle veröffentlichten Kennzahlen samt Methodik unter{" "}

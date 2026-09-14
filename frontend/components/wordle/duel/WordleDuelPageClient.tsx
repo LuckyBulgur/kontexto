@@ -346,7 +346,7 @@ export default function WordleDuelPageClient() {
   if (gameNumber === null) {
     return (
       <div className="max-w-4xl mx-auto min-h-screen flex flex-col" aria-busy="true" aria-label="Duell wird geladen">
-        <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
+        <WordleHeader backHref="/wordle/" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 px-4">
           <div className="w-full max-w-[21rem] lg:order-1">
             <WordleBoardGridSkeleton />
@@ -359,7 +359,7 @@ export default function WordleDuelPageClient() {
 
   return (
     <div className="max-w-4xl mx-auto min-h-screen flex flex-col">
-      <WordleHeader backHref="/wordle" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
+      <WordleHeader backHref="/wordle/" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
 
       {players.length > 0 && <DuelHeader players={players} currentNickname={nickname} />}
 
