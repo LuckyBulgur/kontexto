@@ -1,5 +1,4 @@
 import GameClient from "@/components/GameClient";
-import GameIntro from "@/components/seo/GameIntro";
 import HomeContent from "@/components/seo/HomeContent";
 import StructuredData from "@/components/StructuredData";
 import { buildMetadata } from "@/lib/seo";
@@ -19,7 +18,6 @@ export default function Home() {
       <StructuredData data={gameSchema()} />
       <StructuredData data={faqSchema(homeFaqs)} />
       <main>
-        <GameIntro mode="kontexto" />
         <div id="spielbereich" className="scroll-mt-4">
           <GameClient />
         </div>

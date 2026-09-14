@@ -15,9 +15,9 @@ import { koopFaqs } from "@/lib/faqs";
 export default function KoopSeo() {
   return (
     <SeoSection>
-      <h2 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-2xl font-bold text-foreground">
         So funktioniert der Kontexto-Koop
-      </h2>
+      </h1>
       <p className="max-w-prose">
         Im Koop-Modus sucht ihr gemeinsam dasselbe geheime Wort und teilt euch eine einzige
         Rateliste. Jedes Wort, das jemand eintippt, erscheint sofort bei allen anderen mit seinem

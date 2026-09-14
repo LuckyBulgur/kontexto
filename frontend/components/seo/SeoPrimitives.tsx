@@ -36,7 +36,7 @@ export function SeoSection({
   );
 }
 
-/** Section heading (h2). Each page's single h1 lives in its server-rendered intro. */
+/** Section heading (h2). Page-specific SEO components provide the page h1. */
 export function SeoHeading({
   children,
   className,

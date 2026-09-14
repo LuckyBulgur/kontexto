@@ -1,5 +1,4 @@
 import WordleDuelPageClient from "@/components/wordle/duel/WordleDuelPageClient";
-import GameIntro from "@/components/seo/GameIntro";
 import WordleDuelSeo from "@/components/seo/WordleDuelSeo";
 import StructuredData from "@/components/StructuredData";
 import { faqSchema } from "@/lib/structured-data";
@@ -17,7 +16,6 @@ export default function WordleDuelPage() {
     <>
       <StructuredData data={faqSchema(wordleDuelFaqs)} />
       <main>
-        <GameIntro mode="wordle-duel" />
         <div id="spielbereich" className="scroll-mt-4">
           <WordleDuelPageClient />
         </div>

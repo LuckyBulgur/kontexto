@@ -35,8 +35,7 @@ const snapshotDate = new Date(`${publicStats.generated_on}T12:00:00Z`).toLocaleD
 export default function HomeContent() {
   return (
     <SeoSection>
-      {/* The page h1 is the server-rendered introduction above the game. */}
-      <h2 className="mb-3 text-2xl font-bold text-foreground">Kontexto erklärt</h2>
+      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto erklärt</h1>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
         Errate das geheime Wort des Tages. Nach jedem Tipp zeigt dir Kontexto, wie

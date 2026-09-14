@@ -15,9 +15,9 @@ import { duelFaqs } from "@/lib/faqs";
 export default function DuelSeo() {
   return (
     <SeoSection>
-      <h2 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-2xl font-bold text-foreground">
         So funktioniert das Kontexto-Duell
-      </h2>
+      </h1>
       <p className="max-w-prose">
         Im Duell tretet ihr beim selben geheimen Wort gegeneinander an. Jeder rät für sich, aber
         ihr seht den Fortschritt des anderen live. Wer zuerst auf Rang 1 landet, gewinnt.{" "}

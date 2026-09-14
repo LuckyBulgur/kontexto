@@ -202,25 +202,29 @@ for (const p of contentPages) {
   ok(sm.includes(p.path), `sitemap: missing ${p.path}`);
 }
 
-// Die fünf Spiel-Landingpages müssen den statischen Publisher-Kontext vor dem
-// interaktiven Bereich ausliefern. Die Schwelle ist ein interner Regressionstest
-// für die Content-First-Einführung, keine Google-Mindestwortzahl.
-const contentFirstPages = [
+// Die Spiel-Landingpages haben bewusst keine vorgeschaltete Bannerkarte mehr.
+// Der redaktionelle Kontext bleibt statisch unterhalb des Spiels; so bleibt die
+// Seite für Crawler vollständig erklärbar, ohne den Spieleinstieg zu überbauen.
+const gameLandingPages = [
   "index.html",
   "wordle/index.html",
   "duel/index.html",
   "koop/index.html",
   "wordle/duel/index.html",
 ];
-for (const file of contentFirstPages) {
+for (const file of gameLandingPages) {
   const html = await read(file);
   const mainStart = html.indexOf("<main");
   const gameStart = html.indexOf('id="spielbereich"');
-  ok(mainStart >= 0 && gameStart > mainStart, `${file}: game area must follow the main content intro`);
+  ok(mainStart >= 0 && gameStart > mainStart, `${file}: game area must be inside main`);
   if (mainStart >= 0 && gameStart > mainStart) {
-    const intro = html.slice(mainStart, gameStart);
-    ok(visibleWords(intro) >= 120, `${file}: content-first intro regressed below 120 words`);
-    ok(intro.includes("<h1"), `${file}: content-first intro must contain the page H1`);
+    const beforeGame = html.slice(mainStart, gameStart);
+    ok(!beforeGame.includes("Bedeutung statt Buchstaben"), `${file}: old Kontexto intro banner is still present`);
+    ok(!beforeGame.includes("Buchstaben statt Bedeutung"), `${file}: old Wördle intro banner is still present`);
+  }
+  if (gameStart >= 0) {
+    const contentAfterGame = html.slice(gameStart);
+    ok(contentAfterGame.includes("<h1"), `${file}: static SEO content after game must contain the page H1`);
   }
 }
 
