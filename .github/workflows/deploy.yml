@@ -201,7 +201,7 @@ jobs:
               return 1
             }
             wait_for_status https://kontexto.de/ 200
-            wait_for_text https://kontexto.de/ 'Bedeutung statt Buchstaben'
+            wait_for_text https://kontexto.de/ 'Kontexto erklärt'
             wait_for_status https://kontexto.de/index.html 301
             wait_for_status https://kontexto.de/faq/index.html 301
             wait_for_status https://kontexto.de/404.html 404
