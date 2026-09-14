@@ -1,4 +1,5 @@
 import DuelPageClient from "@/components/duel/DuelPageClient";
+import GameIntro from "@/components/seo/GameIntro";
 import DuelSeo from "@/components/seo/DuelSeo";
 import StructuredData from "@/components/StructuredData";
 import { faqSchema } from "@/lib/structured-data";
@@ -16,9 +17,12 @@ export default function DuelPage() {
     <>
       <StructuredData data={faqSchema(duelFaqs)} />
       <main>
-        <DuelPageClient />
+        <GameIntro mode="duel" />
+        <div id="spielbereich" className="scroll-mt-4">
+          <DuelPageClient />
+        </div>
+        <DuelSeo />
       </main>
-      <DuelSeo />
     </>
   );
 }

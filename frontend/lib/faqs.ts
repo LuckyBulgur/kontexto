@@ -59,7 +59,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Finanziert wird es über Werbung, die ausschließlich auf den beiden Einzelspieler-Seiten läuft. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Tracking- und Werbe-Cookies werden erst gesetzt, wenn du eingewilligt hast, und die Einwilligung lässt sich über den Link in der Fußzeile jederzeit ändern oder widerrufen. Ohne Einwilligung läuft das Spiel unverändert weiter, die Anzeigen sind dann nicht personalisiert.`,
+    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Für die Finanzierung ist Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Nach einer Freischaltung sollen Anzeigen ausschließlich auf den beiden Einzelspieler-Seiten laufen. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Tracking- und Werbe-Cookies werden erst gesetzt, wenn du eingewilligt hast, und die Einwilligung lässt sich über den Link in der Fußzeile jederzeit ändern oder widerrufen. Ohne Einwilligung läuft das Spiel unverändert weiter.`,
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Wordle?`,
@@ -75,7 +75,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Welche Wörter eignen sich als Startwort?`,
-    a: `Gemessen über alle 2.400 vorberechneten Rätsel schneiden „gehen“, „arbeit“, „sehen“ und „zeit“ am besten ab. Drei davon sind Verben, weil ein Verb in Sätze zu fast jedem Thema passt, während ein Substantiv sein eigenes Thema mitbringt. Entscheidend ist nicht, ob ein Startwort grün wird, sondern wie oft es überhaupt einen Rang unter 1500 liefert. Selbst das beste Wort schafft das nur in gut jeder achten Partie. Überraschend schlecht liegt „wasser“ auf Platz 39 von 45: Es fühlt sich breit an, seine Satzumgebungen ähneln sich aber stark. Nützlicher als ein einzelnes gutes Wort ist ein fester Satz aus vier Wörtern aus vier verschiedenen Bereichen.`,
+    a: `Gemessen über alle 2.400 vorbereiteten Rätsel schneiden „gehen“, „arbeit“, „sehen“ und „zeit“ am besten ab. Drei davon sind Verben, weil ein Verb in Sätze zu fast jedem Thema passt, während ein Substantiv sein eigenes Thema mitbringt. Entscheidend ist nicht, ob ein Startwort grün wird, sondern wie oft es überhaupt einen Rang unter 1500 liefert. Selbst das beste Wort schafft das nur in gut jeder achten Partie. Überraschend schlecht liegt „wasser“ auf Platz 38 von 45: Es fühlt sich breit an, seine Satzumgebungen ähneln sich aber stark. Nützlicher als ein einzelnes gutes Wort ist ein fester Satz aus vier Wörtern aus vier verschiedenen Bereichen.`,
   },
   {
     q: `Wie werde ich besser bei Kontexto?`,
@@ -143,7 +143,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel kostet nichts. Anzeigen laufen nur auf den beiden Spielseiten, Werbe-Cookies erst nach deiner Zustimmung, die du jederzeit zurücknehmen kannst.`,
+    a: `Das Spiel kostet nichts. Werbung ist zur Finanzierung geplant, bleibt während der Prüfung aber vollständig abgeschaltet. Später sind Anzeigen nur in den beiden Einzelspieler-Partien vorgesehen. Werbe-Cookies entstehen erst nach deiner Zustimmung, die du jederzeit zurücknehmen kannst.`,
   },
 ];
 

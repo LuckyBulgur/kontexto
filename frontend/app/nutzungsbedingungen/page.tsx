@@ -121,9 +121,10 @@ export default function NutzungsbedingungenPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-foreground">5. Werbung</h2>
         <p>
-          Das Angebot finanziert sich über Werbung, die ausschließlich auf den beiden
-          Einzelspieler-Seiten läuft. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben
-          werbefrei. Werbe- und Trackingcookies werden nur nach deiner Einwilligung gesetzt, die
+          Das Angebot ist aktuell werbefrei. Für die Finanzierung ist Werbung vorgesehen, die nach
+          einer Freischaltung ausschließlich auf den beiden Einzelspieler-Seiten angezeigt wird.
+          Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Werbe- und
+          Trackingcookies werden nur nach deiner Einwilligung gesetzt, die
           sich über den Link „Cookie-Einstellungen“ in der Fußzeile jederzeit widerrufen lässt.
           Einzelheiten stehen in der{" "}
           <Link href="/datenschutz/" className="underline underline-offset-2 hover:no-underline">

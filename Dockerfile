@@ -8,6 +8,11 @@ COPY frontend/package.json frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml 
 RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
+# The static export inlines public environment variables at build time. Keep
+# the review-safe default in the image build, while allowing an intentional
+# post-approval opt-in through docker-compose's build arg.
+ARG NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
+ENV NEXT_PUBLIC_ADSENSE_REVIEW_MODE=${NEXT_PUBLIC_ADSENSE_REVIEW_MODE}
 # pnpm 11 re-verifies deps before running a script and, finding the just-copied
 # project, tries to reinstall, which aborts in a non-interactive build
 # (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). The frozen-lockfile install above

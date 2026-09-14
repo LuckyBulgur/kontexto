@@ -55,7 +55,10 @@ export function gameSchema(rating?: { ratingValue: number; ratingCount: number }
     inLanguage: "de",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
-    author: { "@type": "Organization", name: "Kontexto", url: SITE_URL },
+    // The visible site and the blog identify Ugur Aydogan as the developer.
+    // Keep the machine-readable game authorship aligned with that first-party
+    // identity instead of leaving the application attributed only to its brand.
+    author: EDITORIAL_AUTHOR,
     ...(rating && rating.ratingCount > 0
       ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.ratingValue.toFixed(1), ratingCount: rating.ratingCount } }
       : {}),
@@ -162,4 +165,3 @@ export function howToSchema(p: {
     })),
   };
 }
-

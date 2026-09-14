@@ -5,12 +5,13 @@ import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
 import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
-import { AUTHOR_SAME_AS } from "@/lib/author";
+import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
 import Footer from "@/components/Footer";
 import MotionProvider from "@/components/motion/MotionProvider";
 import EventBackdrop from "@/components/event/EventBackdrop";
 import EventBanner from "@/components/event/EventBanner";
 import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
+import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -19,7 +20,7 @@ const inter = Inter({ subsets: ["latin"] });
 const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-event", display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kontexto.de"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Kontexto - Das tägliche deutsche Wort-Ratespiel",
     template: "%s | Kontexto",
@@ -27,8 +28,8 @@ export const metadata: Metadata = {
   description:
     "Errate jeden Tag das geheime Wort. Kontexto misst, wie nah dein Tipp der Bedeutung des Zielworts kommt, und zeigt dir dafür einen Rang. Unbegrenzt viele Versuche, kostenlos und ohne Anmeldung.",
   applicationName: "Kontexto",
-  authors: [{ name: "Kontexto" }],
-  creator: "Kontexto",
+  authors: [{ name: AUTHOR_NAME, url: `${SITE_URL}${AUTHOR_PROFILE_PATH}` }],
+  creator: AUTHOR_NAME,
   alternates: { languages: { "de-DE": "/", "x-default": "/" } },
   openGraph: { type: "website", locale: "de_DE", siteName: "Kontexto", url: "https://kontexto.de" },
   twitter: { card: "summary_large_image" },

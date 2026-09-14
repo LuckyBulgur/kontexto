@@ -61,8 +61,9 @@ const INTROS: Record<string, React.ReactNode> = {
   ),
   daten: (
     <p>
-      Kontexto ist kostenlos und finanziert sich über Werbung. Was dabei gespeichert
-      wird und was nicht, steht hier in Kurzform und vollständig in der{" "}
+      Kontexto ist kostenlos. Für die Finanzierung ist Werbung vorgesehen; aktuell werden wegen
+      der ausstehenden Freigabe keine Anzeigenflächen ausgeliefert. Was dabei gespeichert wird und
+      was nicht, steht hier in Kurzform und vollständig in der{" "}
       <a href="/datenschutz/">Datenschutzerklärung</a>.
     </p>
   ),

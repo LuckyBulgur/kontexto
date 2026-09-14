@@ -99,15 +99,18 @@ export default function CookiesPage() {
         <Prose>
           <h2 id="werbung">Cookies durch Werbung</h2>
           <p>
-            Kontexto finanziert sich über Google AdSense. Erst dadurch kommen Cookies ins Spiel, und
-            zwar ausschließlich nach deiner Einwilligung über das Einwilligungsbanner.
+            Für die spätere Finanzierung des kostenlosen Angebots ist Google AdSense vorgesehen. Im
+            aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Erst wenn Anzeigen nach
+            einer Freischaltung tatsächlich erscheinen, kommen Werbe-Cookies ins Spiel, und zwar
+            ausschließlich nach deiner Einwilligung über das Einwilligungsbanner.
           </p>
           <p>
-            Gesetzt werden sie nicht von uns, sondern von Google und weiteren Anbietern, die an der
-            Anzeigenauslieferung beteiligt sind. Sie dienen der Auswahl und Messung von Anzeigen und
-            der Begrenzung, wie oft dieselbe Anzeige erscheint. Welche Anbieter das im Einzelnen
-            sind, listet das Einwilligungsbanner auf; die Rechtsgrundlagen und die Übermittlung in
-            die USA stehen in der <Link href="/datenschutz/">Datenschutzerklärung</Link>.
+            Wenn Anzeigen ausgeliefert werden, werden die Cookies nicht von uns, sondern von Google
+            und weiteren Anbietern gesetzt, die an der Anzeigenauslieferung beteiligt sind. Sie
+            dienen der Auswahl und Messung von Anzeigen und der Begrenzung, wie oft dieselbe Anzeige
+            erscheint. Welche Anbieter das im Einzelnen sind, listet das Einwilligungsbanner auf;
+            die Rechtsgrundlagen und die Übermittlung in die USA stehen in der{" "}
+            <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
           <p>
             Wichtig: Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt, und das Spiel

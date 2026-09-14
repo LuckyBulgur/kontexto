@@ -99,6 +99,19 @@ async function resolveFile(pathname) {
   return null;
 }
 
+function robotsHeader(pathname) {
+  if (
+    /^\/(?:duel|koop)\/[^/?]+(?:\/|$)/.test(pathname) ||
+    /^\/wordle\/duel\/[^/?]+(?:\/|$)/.test(pathname) ||
+    pathname.startsWith("/admin/") ||
+    /\/[^?]*index\.txt$/.test(pathname) ||
+    /\/[^?]*__next[^?]*\.txt$/.test(pathname)
+  ) {
+    return "noindex, nofollow";
+  }
+  return undefined;
+}
+
 const server = http.createServer(async (req, res) => {
   const pathname = (req.url || "/").split("?")[0];
 
@@ -107,9 +120,57 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // nginx canonicalizes the physical index.html filenames emitted by the
+  // static export. Keep the E2E proxy's URL graph identical to production so
+  // these duplicate URLs cannot silently reappear in local checks.
+  if (pathname === "/index.html") {
+    res.writeHead(301, { location: "/" });
+    res.end();
+    return;
+  }
+  const nestedIndex = pathname.match(/^\/(.+)\/index\.html$/);
+  if (nestedIndex) {
+    res.writeHead(301, { location: `/${nestedIndex[1]}/` });
+    res.end();
+    return;
+  }
+
+  // The 404 document is an internal nginx error target, never a public 200
+  // page. Mirror that distinction in the test proxy.
+  if (pathname === "/404.html") {
+    const notFound = path.join(ROOT, "404.html");
+    if (await isFile(notFound)) {
+      res.writeHead(404, { "content-type": "text/html; charset=utf-8" });
+      createReadStream(notFound).pipe(res);
+    } else {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("Not found");
+    }
+    return;
+  }
+
+  // Next's internal error-route directories are physical export artifacts,
+  // never public documents. Mirror nginx's internal location for them.
+  if (/^\/(?:_not-found|404)(?:\/|$)/.test(pathname)) {
+    const notFound = path.join(ROOT, "404.html");
+    if (await isFile(notFound)) {
+      res.writeHead(404, { "content-type": "text/html; charset=utf-8" });
+      createReadStream(notFound).pipe(res);
+    } else {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("Not found");
+    }
+    return;
+  }
+
   const file = await resolveFile(pathname);
   if (file) {
-    res.writeHead(200, { "content-type": contentType(file), "cache-control": "no-cache" });
+    const xRobots = robotsHeader(pathname);
+    res.writeHead(200, {
+      "content-type": contentType(file),
+      "cache-control": "no-cache",
+      ...(xRobots ? { "x-robots-tag": xRobots } : {}),
+    });
     createReadStream(file).pipe(res);
     return;
   }

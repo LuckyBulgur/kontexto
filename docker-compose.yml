@@ -13,7 +13,13 @@ services:
     restart: unless-stopped
 
   kontexto:
-    build: .
+    build:
+      context: .
+      args:
+        # Keep the static export free of ad slots during the AdSense review.
+        # Set this to false only after the site has been approved and ads are
+        # intentionally being enabled.
+        NEXT_PUBLIC_ADSENSE_REVIEW_MODE: ${NEXT_PUBLIC_ADSENSE_REVIEW_MODE:-true}
     expose:
       - "8080"
     volumes:

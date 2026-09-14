@@ -1,4 +1,5 @@
 import KoopPageClient from "@/components/koop/KoopPageClient";
+import GameIntro from "@/components/seo/GameIntro";
 import KoopSeo from "@/components/seo/KoopSeo";
 import StructuredData from "@/components/StructuredData";
 import { faqSchema } from "@/lib/structured-data";
@@ -16,9 +17,12 @@ export default function KoopPage() {
     <>
       <StructuredData data={faqSchema(koopFaqs)} />
       <main>
-        <KoopPageClient />
+        <GameIntro mode="koop" />
+        <div id="spielbereich" className="scroll-mt-4">
+          <KoopPageClient />
+        </div>
+        <KoopSeo />
       </main>
-      <KoopSeo />
     </>
   );
 }

@@ -13,7 +13,11 @@ interface GuessInputProps {
 export default function GuessInput({ onGuess, disabled, error, placeholder = "Wort eingeben..." }: GuessInputProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    // Keep keyboard users ready to type, but prevent mobile browsers from
+    // scrolling past the server-rendered introduction above the game.
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

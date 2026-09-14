@@ -4,7 +4,9 @@
 
 This document covers verifying `https://kontexto.de` in Google Search Console (GSC), submitting the sitemap, requesting indexing for key pages, and monitoring Coverage and Core Web Vitals. The same steps are summarised for Bing Webmaster Tools.
 
-The daily rebuild automatically regenerates `sitemap.xml` with fresh `lastmod` timestamps, so no manual sitemap updates are needed.
+The static export regenerates `sitemap.xml` during every frontend build. There is
+currently no automatic daily rebuild in this repository, so a new route or a
+substantial content change becomes public only with the next deployment.
 
 ---
 
@@ -36,7 +38,8 @@ After verification the property shows as **Owner** in GSC.
 
 1. In the left sidebar select **Sitemaps**.
 2. Enter `https://kontexto.de/sitemap.xml` and click **Submit**.
-3. GSC will crawl and parse the sitemap. The daily rebuild keeps it current, so no re-submission is needed after the first time.
+3. GSC will crawl and parse the sitemap. A new sitemap is generated with the
+   next frontend build; it normally does not need to be submitted again.
 
 ### 3. Request Indexing for Key Pages
 
@@ -49,7 +52,6 @@ After the sitemap is submitted, use the **URL Inspection** tool to request prior
 | `https://kontexto.de/faq/` | Medium, FAQ with structured data |
 | `https://kontexto.de/anleitung/` | Medium, rules page |
 | `https://kontexto.de/strategie/` | Medium, strategy guide |
-| `https://kontexto.de/archiv/` | Medium, archive index |
 | `https://kontexto.de/blog/` | Medium, blog index |
 | `https://kontexto.de/ueber/` | Low |
 
@@ -60,8 +62,34 @@ For each URL: paste it into URL Inspection, click **Test Live URL**, then **Requ
 In the **Pages** (formerly Coverage) report, watch for:
 
 - **Valid**: pages indexed. Check that the main game routes and content pages appear here.
-- **Excluded, Noindex**: the dynamic duel-ID pages (`/duel/<id>/`, `/wordle/duel/<id>/`) should appear here because client-side `noindex` meta tags are injected for those ephemeral URLs.
+- **Excluded, Noindex**: the dynamic duel- and Koop-ID pages (`/duel/<id>/`, `/koop/<id>/`, `/wordle/duel/<id>/`) should appear here because the production server marks these ephemeral fallback URLs with `X-Robots-Tag: noindex, nofollow`.
+- **Not found**: physical export artefacts such as `/404/`, `/_not-found/`, and `/404.html` should return 404 and must not become sitemap entries.
 - **Errors**: fix any `404`, `Redirect error`, or `Submitted URL not found` entries promptly.
+
+### 5.1 Interpret "No referring sitemap"
+
+In URL Inspection, **No referring sitemap** means that Google has not found a
+submitted sitemap containing the exact URL that was inspected. It is not by
+itself a quality or indexing error. Google can also discover a URL through a
+link, an old URL, a redirect variant, a query string, or another source. See
+the official explanation in the [URL Inspection documentation](https://support.google.com/webmasters/answer/9012289?hl=de).
+
+For Kontexto, use the URL Inspection tool with the exact canonical host
+`https://kontexto.de/` and distinguish these cases:
+
+- Public pages in `sitemap.xml` should have the matching self-canonical URL.
+- `/duel/create/`, `/koop/create/`, `/wordle/duel/create/`, dynamic room URLs,
+  `/admin/`, `/404.html`, `/404/`, `/_not-found/`, and physical `index.html`
+  variants are deliberately not sitemap entries.
+- For a public URL without a referring sitemap, compare **User-declared
+  canonical** with **Google-selected canonical** and check whether the URL is
+  an old host, a redirect, or a query variant.
+- In **Settings > Crawl stats**, review the hostnames Google actually crawls.
+  Remove or redirect forgotten proxy, staging, development, or preview hosts;
+  do not add them to the public sitemap.
+
+The exact sitemap URL is `https://kontexto.de/sitemap.xml`. The trailing-slash
+variant `https://kontexto.de/sitemap.xml/` is not the sitemap.
 
 ### 5. Monitor Core Web Vitals
 
@@ -75,13 +103,32 @@ In the **Core Web Vitals** report, ensure all URLs stay in the **Good** range:
 
 CLS for game pages is stabilised by the `min-h-screen` reservation on both the loading skeleton and the loaded game container in `GameClient.tsx`. If a metric degrades, run PageSpeed Insights against the affected URL for a detailed breakdown.
 
-### 6. Daily Rebuild and Sitemap Freshness
+### 6. Sitemap freshness after a deployment
 
-The `scripts/daily-rebuild.sh` cron job rebuilds the static export every day. This means:
+After a frontend deployment:
 
-- `sitemap.xml` is regenerated with the current date as `lastmod` for daily-changing routes (`/`, `/wordle/`, `/archiv/`).
-- Archive entries for the new day's puzzle are added automatically.
-- No manual sitemap re-submission is needed, GSC re-fetches the sitemap on its own schedule.
+- `sitemap.xml` is regenerated with the build date as `lastmod` for the routes
+  that are part of the export.
+- The sitemap currently contains the public static routes and all blog posts;
+  functional lobby forms and room IDs stay out of it.
+- The sitemap normally needs to be submitted only once. After a deployment,
+  Search Console fetches it again on its own schedule. Use URL Inspection for
+  the small number of pages where a quicker crawl is important.
+
+### 7. AdSense review handoff
+
+Before requesting another AdSense review:
+
+1. Deploy the current frontend with `NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true`.
+   This leaves Google's verification script in the document head but renders
+   no manual `adsbygoogle` slots.
+2. Verify that `ads.txt` is reachable at the domain root and that the Google
+   consent message is published in AdSense for European users.
+3. If the site entry itself appears stale, remove and re-add the site once in
+   AdSense. Do not create a second publisher account.
+4. Wait until the new HTML is visible in URL Inspection, then request one
+   review. Repeatedly changing the site while a review is pending makes the
+   result harder to interpret.
 
 ---
 

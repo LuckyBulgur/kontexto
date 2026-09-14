@@ -362,14 +362,16 @@ export default function GameClient() {
   const gameOver = gameState.solved || !!gameState.givenUp;
   const isWin = gameState.solved && !gameState.givenUp;
 
-  // Both the loading skeleton and the game container share min-h-screen so
+  // Both the loading skeleton and the game container share a compact reserve so
   // the "Laden…" → game swap doesn't cause a Cumulative Layout Shift (CLS).
+  // The editorial introduction now precedes the game, so min-h-screen here
+  // would create a large empty block below the short initial game state.
   if (loading) {
     return <GameSkeleton />;
   }
 
   return (
-    <div className="max-w-lg mx-auto min-h-screen flex flex-col">
+    <div className="max-w-lg mx-auto min-h-[30rem] flex flex-col">
       <Header
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
@@ -400,7 +402,7 @@ export default function GameClient() {
           Unendlich-Modus · {infiniteSolved} gelöst · Zurück zum heutigen Spiel
         </button>
       )}
-      <main className="flex-1 px-4 py-4 flex flex-col gap-4">
+      <div className="flex-1 px-4 py-4 flex flex-col gap-4">
         {gameOver && showResult ? (
           <>
             <GameResultCard
@@ -431,18 +433,18 @@ export default function GameClient() {
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
               <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
-                <h3 className="text-base font-semibold text-foreground">Spielanleitung</h3>
+                <h2 className="text-base font-semibold text-foreground">Spielanleitung</h2>
                 <p>
                   Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
                 </p>
                 <div className="space-y-1">
-                  <h4 className="font-medium text-foreground text-sm">Rang-System</h4>
+                  <h3 className="font-medium text-foreground text-sm">Rang-System</h3>
                   <p>
                     Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit. Je niedriger der Rang, desto näher bist du dran.
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-medium text-foreground text-sm">Farben</h4>
+                  <h3 className="font-medium text-foreground text-sm">Farben</h3>
                   <ul className="space-y-1 list-none">
                     <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
                     <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
@@ -450,7 +452,7 @@ export default function GameClient() {
                   </ul>
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-medium text-foreground text-sm">Tipps</h4>
+                  <h3 className="font-medium text-foreground text-sm">Tipps</h3>
                   <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
                 </div>
               </div>
@@ -458,7 +460,7 @@ export default function GameClient() {
           </>
         )}
         <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} sortMode={sortMode} />
-      </main>
+      </div>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
       <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />

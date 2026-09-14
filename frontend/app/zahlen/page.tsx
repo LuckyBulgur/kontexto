@@ -197,6 +197,28 @@ export default function ZahlenPage() {
             schreibgeschützt und lesen ausschließlich bereits aggregierte Tabellen.
           </p>
           <p>
+            Wer die Berechnung nachvollziehen möchte, kann die beiden{" "}
+            <a
+              href="https://github.com/LuckyBulgur/kontexto/blob/master/scripts/export-public-stats.py"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Exportskripte für die Spielzahlen
+            </a>{" "}
+            und den{" "}
+            <a
+              href="https://github.com/LuckyBulgur/kontexto/blob/master/scripts/export-startword-benchmark.py"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Startwort-Benchmark
+            </a>{" "}
+            im öffentlichen Projektarchiv öffnen. Die Rohdatenbank selbst bleibt aus
+            Datenschutzgründen auf dem Server.
+          </p>
+          <p>
             Was <strong>nicht</strong> in diese Zahlen einfließt: keine Rohereignisse, keine
             Besucher-Fingerabdrücke, keine Sitzungen, keine Zuordnung von Wörtern zu Personen oder
             Partien. Die Aktionszähler sind Tagessummen, die Wortliste ist eine Zuordnung von Wort
@@ -211,9 +233,10 @@ export default function ZahlenPage() {
             <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
           <p>
-            Der Datenstand wird nicht automatisch aktualisiert, sondern bei jedem Neuaufbau der
-            Spieldaten neu erzeugt und ins Projekt übernommen. Das Datum oben ist deshalb
-            verbindlich und nicht die Uhrzeit deines Besuchs.
+            Der Datenstand wird bei einer geplanten Aktualisierung aus den aggregierten Spieldaten
+            exportiert und mit der Website veröffentlicht. Er aktualisiert sich nicht bei jedem
+            Seitenaufruf. Das Datum oben ist deshalb verbindlich und nicht die Uhrzeit deines
+            Besuchs.
           </p>
         </Prose>
       </section>

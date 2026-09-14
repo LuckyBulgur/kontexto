@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ADSENSE_CLIENT_ID } from "@/lib/adsense";
+import { ADSENSE_CLIENT_ID, ADSENSE_REVIEW_MODE } from "@/lib/adsense";
 
 interface AdUnitProps {
   /** `data-ad-slot`-Wert aus dem AdSense-Dashboard. Ohne Slot rendert nichts. */
@@ -64,7 +64,7 @@ export function AdUnit({
     }
   }, [slot]);
 
-  if (!slot) return null;
+  if (ADSENSE_REVIEW_MODE || !slot) return null;
 
   const insStyle: React.CSSProperties = fixed
     ? { display: "inline-block", width: fixed.width, height: fixed.height }

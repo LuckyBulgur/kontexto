@@ -112,7 +112,7 @@ export const changelog: ChangelogEntry[] = [
     kind: "Neu",
     title: "Werbung mit Einwilligungsverwaltung",
     body:
-      "Kontexto finanziert sich über Werbung, damit das Spiel kostenlos bleiben kann. Werbe- und Trackingcookies werden nur nach ausdrücklicher Einwilligung gesetzt, die sich jederzeit widerrufen lässt. Anzeigen laufen ausschließlich auf den beiden Einzelspieler-Seiten, nicht auf Duell-, Koop- oder Inhaltsseiten.",
+      "Für die Finanzierung ist Werbung vorgesehen, damit das Spiel kostenlos bleiben kann. Im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Nach einer Freischaltung sollen Werbe- und Trackingcookies nur nach ausdrücklicher Einwilligung gesetzt werden; Anzeigen sind ausschließlich auf den beiden Einzelspieler-Seiten vorgesehen, nicht auf Duell-, Koop- oder Inhaltsseiten.",
   },
   {
     date: "2026-06-07",

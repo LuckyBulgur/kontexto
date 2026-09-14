@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { AdUnit } from "@/components/AdUnit";
-import { AD_SLOTS } from "@/lib/adsense";
+import { AD_SLOTS, ADSENSE_REVIEW_MODE } from "@/lib/adsense";
 
 /**
  * Vertikale Side-Rail-Anzeigen links und rechts neben dem (schmalen, `max-w-lg`)
@@ -27,7 +27,7 @@ function isAdEligibleRoute(pathname: string): boolean {
 export function SideRailAds() {
   const pathname = usePathname();
 
-  if (!pathname || !isAdEligibleRoute(pathname)) return null;
+  if (ADSENSE_REVIEW_MODE || !pathname || !isAdEligibleRoute(pathname)) return null;
   if (!AD_SLOTS.railLeft && !AD_SLOTS.railRight) return null;
 
   return (

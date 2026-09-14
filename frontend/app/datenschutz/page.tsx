@@ -7,7 +7,7 @@ export const metadata = buildMetadata({
   path: "/datenschutz/",
   title: "Datenschutz",
   description:
-    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies und Werbung über Google AdSense (mit Einwilligung).",
+    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies und vorgesehene Google-AdSense-Werbung mit Einwilligung vor der Auslieferung.",
 });
 
 export default function DatenschutzPage() {
@@ -20,7 +20,7 @@ export default function DatenschutzPage() {
               Der Schutz deiner Daten ist uns wichtig. Diese Datenschutzerklärung informiert dich darüber, welche Daten beim Besuch von Kontexto erhoben werden und wie sie verwendet werden.
             </p>
             <p>
-              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Zur Finanzierung schalten wir Google-AdSense-Werbung. Werbebezogene Cookies und eine Datenübermittlung an Google erfolgen jedoch <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner (siehe den Abschnitt zu Google AdSense).
+              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Für die spätere Finanzierung ist Google-AdSense-Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Falls Anzeigen freigeschaltet werden, werden werbebezogene Cookies und personalisierte Anzeigen <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner verarbeitet (siehe den Abschnitt zu Google AdSense).
             </p>
           </section>
 
@@ -138,23 +138,43 @@ export default function DatenschutzPage() {
               Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
             <p>
-              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Zur Finanzierung des kostenlosen Angebots binden wir jedoch <strong className="text-foreground">Google AdSense</strong> als Werbedienst ein. Einzelheiten dazu stehen im Abschnitt zu Google AdSense.
+              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Für die spätere Finanzierung des kostenlosen Angebots ist <strong className="text-foreground">Google AdSense</strong> als Werbedienst vorgesehen. Der Verifizierungscode ist bereits eingebunden, im aktuellen Prüfmodus werden jedoch keine Anzeigenslots ausgeliefert. Einzelheiten dazu stehen im Abschnitt zu Google AdSense.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">10. Werbung durch Google AdSense</h2>
+            <h2 className="text-base font-semibold text-foreground">10. Vorgesehene Werbung durch Google AdSense</h2>
             <p>
-              Zur Finanzierung dieses kostenlosen Angebots nutzen wir Google AdSense, einen Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House, Barrow Street, Dublin 4, Irland („Google“).
+              Für die geplante Finanzierung dieses kostenlosen Angebots ist Google AdSense vorgesehen,
+              ein Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House,
+              Barrow Street, Dublin 4, Irland („Google“). Im aktuellen Prüfmodus ist der
+              Verifizierungscode eingebunden, es werden jedoch keine Anzeigenslots ausgeliefert.
             </p>
             <p>
-              <strong className="text-foreground">Drittanbieter-Cookies:</strong> Drittanbieter, einschließlich Google, setzen und lesen im Zuge der Anzeigenauslieferung Cookies in deinem Browser oder verwenden Web Beacons und IP-Adressen, um Informationen zu erheben. Google verwendet Cookies, um Anzeigen auf Grundlage früherer Besuche auf dieser und anderen Websites auszuliefern und deren Auslieferung zu messen. Neben Google können weitere Anbieter und Werbenetzwerke beteiligt sein, die über die Einwilligungsverwaltung namentlich aufgeführt werden. Verarbeitet werden dabei unter anderem deine gekürzte IP-Adresse, Geräte- und Browserdaten sowie Interaktionen mit Anzeigen.
+              <strong className="text-foreground">Drittanbieter-Cookies:</strong> Falls Anzeigen
+              freigeschaltet und ausgeliefert werden, können Drittanbieter, einschließlich Google,
+              Cookies in deinem Browser setzen und lesen oder Web Beacons und IP-Adressen verwenden,
+              um Informationen zu erheben. Google kann Cookies verwenden, um Anzeigen auf Grundlage
+              früherer Besuche auf dieser und anderen Websites auszuliefern und deren Auslieferung zu
+              messen. Neben Google können weitere Anbieter und Werbenetzwerke beteiligt sein, die
+              über die Einwilligungsverwaltung namentlich aufgeführt werden. Verarbeitet werden dabei
+              unter anderem deine gekürzte IP-Adresse, Geräte- und Browserdaten sowie Interaktionen
+              mit Anzeigen.
             </p>
             <p>
-              <strong className="text-foreground">Einwilligung (Consent Management Platform):</strong> Bevor werbebezogene Cookies gesetzt oder personalisierte Anzeigen ausgeliefert werden, erhältst du über ein von Google bereitgestelltes, nach dem IAB Transparency &amp; Consent Framework (TCF, aktuell v2.3) zertifiziertes Einwilligungsbanner die Möglichkeit, der Verarbeitung zuzustimmen oder sie abzulehnen. Rechtsgrundlage ist deine Einwilligung gemäß <strong className="text-foreground">Art. 6 Abs. 1 lit. a DSGVO</strong> sowie § 25 Abs. 1 TDDDG.
+              <strong className="text-foreground">Einwilligung (Consent Management Platform):</strong> Vor
+              einer künftigen Anzeigenauslieferung erhältst du über ein von Google bereitgestelltes,
+              nach dem IAB Transparency &amp; Consent Framework (TCF, aktuell v2.3) zertifiziertes
+              Einwilligungsbanner die Möglichkeit, der Verarbeitung zuzustimmen oder sie abzulehnen.
+              Rechtsgrundlage ist deine Einwilligung gemäß <strong className="text-foreground">Art. 6 Abs. 1 lit. a DSGVO</strong>
+              sowie § 25 Abs. 1 TDDDG.
             </p>
             <p>
-              <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen von Google AdSense können Daten an Server von Google übermittelt werden, auch an Server in den USA. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
+              <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen einer
+              AdSense-Auslieferung können Daten an Server von Google übermittelt werden, auch an
+              Server in den USA. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein
+              Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner
+              Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
             </p>
             <p>
               <strong className="text-foreground">Widerruf und Deaktivierung:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder anpassen, indem du deine Auswahl im Einwilligungsbanner änderst. Dafür genügt der Link „Cookie-Einstellungen“ in der Fußzeile jeder Seite. Unabhängig davon kannst du personalisierte Werbung dauerhaft abschalten:
@@ -192,7 +212,7 @@ export default function DatenschutzPage() {
               Kontexto richtet sich an ein allgemeines Publikum und ist kein Angebot, das sich gezielt an Kinder wendet. Zum Spielen ist keine Anmeldung nötig. Wir fragen weder nach Name, Alter, E-Mail-Adresse noch Anschrift und erheben wissentlich keine personenbezogenen Daten von Kindern unter 16 Jahren.
             </p>
             <p>
-              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden. Werbung wird ohne erteilte Einwilligung nicht personalisiert ausgeliefert.
+              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden. Falls Werbung freigeschaltet wird, wird sie ohne erteilte Einwilligung nicht personalisiert ausgeliefert.
             </p>
             <p>
               Erziehungsberechtigte, die vermuten, dass ein Kind uns personenbezogene Daten übermittelt hat, erreichen uns über die{" "}
@@ -206,7 +226,7 @@ export default function DatenschutzPage() {
               Du hast gemäß DSGVO das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten, das Recht auf Datenübertragbarkeit, das Recht auf Widerruf erteilter Einwilligungen sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde. Gegen Verarbeitungen, die auf einem berechtigten Interesse beruhen (Art. 6 Abs. 1 lit. f DSGVO), steht dir zudem das Widerspruchsrecht nach Art. 21 DSGVO zu.
             </p>
             <p>
-              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) und die mit deiner Einwilligung über Google AdSense (Abschnitt „Werbung durch Google AdSense“) verarbeiteten Daten hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die im Rahmen von Google AdSense verarbeiteten Daten ist Google (mit-)verantwortlich; die entsprechenden Betroffenenrechte kannst du auch direkt bei Google geltend machen.
+              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) und die mit deiner Einwilligung über Google AdSense (Abschnitt „Vorgesehene Werbung durch Google AdSense“) verarbeiteten Daten hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die im Rahmen von Google AdSense verarbeiteten Daten ist Google (mit-)verantwortlich; die entsprechenden Betroffenenrechte kannst du auch direkt bei Google geltend machen.
             </p>
           </section>
 

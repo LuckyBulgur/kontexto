@@ -15,9 +15,9 @@ import { wordleDuelFaqs } from "@/lib/faqs";
 export default function WordleDuelSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
-        Wördle-Duell: Wordle gegen Freunde
-      </h1>
+      <h2 className="mb-3 text-2xl font-bold text-foreground">
+        So funktioniert das Wördle-Duell
+      </h2>
       <p className="max-w-prose">
         Gleiches Wort, dieselben sechs Versuche, Live-Fortschritt. Im Wördle-Duell seht ihr beide,
         wie weit der andere ist, ohne die Lösung zu verraten.{" "}

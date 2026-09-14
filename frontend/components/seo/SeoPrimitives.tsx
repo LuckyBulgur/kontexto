@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Shared, JS-free presentational building blocks for the SEO/info content that
- * renders below the game on every page. All pieces are React Server Components
+ * renders around the game on every page. All pieces are React Server Components
  * (no "use client", no hooks) so their full text lands in the static HTML export
  * and stays crawlable. Interactivity is CSS-only.
  */
@@ -36,7 +36,7 @@ export function SeoSection({
   );
 }
 
-/** Section heading (h2). The single page h1 lives in each Seo component's body. */
+/** Section heading (h2). Each page's single h1 lives in its server-rendered intro. */
 export function SeoHeading({
   children,
   className,

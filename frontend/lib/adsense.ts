@@ -17,9 +17,16 @@
  *   NEXT_PUBLIC_AD_SLOT_WORDLE_RESULT
  *   NEXT_PUBLIC_AD_SLOT_RAIL_LEFT
  *   NEXT_PUBLIC_AD_SLOT_RAIL_RIGHT
+ *
+ * Während des AdSense-Prüfzeitraums bleiben alle Anzeigenflächen zusätzlich
+ * durch `NEXT_PUBLIC_ADSENSE_REVIEW_MODE` gesperrt. Der Default ist bewusst
+ * „true“: Ein versehentlich gesetzter Slot darf die Prüfung nicht in eine
+ * Seite mit Anzeigen auf einem funktionalen Screen verwandeln. Erst der
+ * explizite Wert „false“ schaltet die manuellen Flächen frei.
  */
 
 export const ADSENSE_CLIENT_ID = "ca-pub-3545758989514084";
+export const ADSENSE_REVIEW_MODE = process.env.NEXT_PUBLIC_ADSENSE_REVIEW_MODE !== "false";
 
 export const AD_SLOTS = {
   kontextoResult: process.env.NEXT_PUBLIC_AD_SLOT_KONTEXTO_RESULT,

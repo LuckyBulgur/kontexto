@@ -77,6 +77,40 @@ ok(robotsTxt.includes("Disallow: /admin/"), "robots.txt: /admin/ not disallowed"
 const sm = await read("sitemap.xml");
 ok(sm.includes("/wordle/"), "sitemap: missing /wordle/");
 
+// The production container is served by the repository's nginx config, not
+// by Next.js. Keep the duplicate-file redirect in the same regression gate as
+// the exported sitemap, otherwise `/index.html` could silently return as a
+// second 200-page after a server-config edit.
+const nginxConfig = await readFile(resolve(process.cwd(), "..", "nginx.conf"), "utf8").catch(() => "");
+ok(nginxConfig.includes("location = /index.html"), "nginx: root index.html must redirect");
+ok(nginxConfig.includes("location ~ ^/(.+)/index\\.html$"), "nginx: nested index.html files must redirect");
+ok(nginxConfig.includes("location = /404.html") && nginxConfig.includes("internal;"), "nginx: 404.html must stay internal");
+ok(nginxConfig.includes("location ~ ^/(?:_not-found|404)(?:/|$)"), "nginx: internal error-route directories must stay private");
+
+// The export necessarily contains physical index.html files, but production
+// nginx must not expose them as separate crawlable 200-URLs. The redirect is
+// checked in the E2E proxy; this static check documents the complete set of
+// canonical public URLs that the server must preserve.
+for (const path of ["/", "/faq/", "/wordle/", "/blog/"]) {
+  ok(sm.includes(`<loc>https://kontexto.de${path}</loc>`), `sitemap: canonical route missing ${path}`);
+}
+
+// Die Sitemap ist eine bewusst gepflegte Liste der indexierbaren öffentlichen
+// Seiten. Ein Check, der nur einzelne Beispiele prüft, lässt einen versehentlich
+// entfernten Eintrag unbemerkt durch. Diese Liste spiegelt deshalb die
+// veröffentlichte Seiten-Inventur wider; funktionale Create-/Room-URLs gehören
+// nicht dazu, weil sie noindex sind.
+const expectedStaticSitemapPaths = [
+  "/", "/wordle/", "/duel/", "/koop/", "/wordle/duel/",
+  "/faq/", "/anleitung/", "/strategie/", "/vergleich/", "/glossar/",
+  "/ueber/", "/redaktion/", "/blog/", "/zahlen/", "/changelog/",
+  "/kontakt/", "/impressum/", "/nutzungsbedingungen/", "/cookies/",
+  "/datenschutz/",
+];
+for (const path of expectedStaticSitemapPaths) {
+  ok(sm.includes(`<loc>https://kontexto.de${path}</loc>`), `sitemap: missing static route ${path}`);
+}
+
 // --- Content/marketing pages: canonical, single H1, hreflang, depth, schema ---
 const visibleWords = (html) =>
   html
@@ -89,11 +123,10 @@ const visibleWords = (html) =>
     .filter(Boolean).length;
 
 const contentPages = [
-  // Die Startseite steht hier mit drin, weil sie eine der beiden Anzeigenseiten
-  // ist und deshalb nie duenn werden darf. Bis August 2026 fehlte ihr jede
-  // Wortuntergrenze: Sie bestand zu 72 Prozent aus der FAQ-Liste, die identisch
-  // auch auf /faq/ stand. Genau diese Redundanz ist der haeufigste Grund fuer
-  // die AdSense-Ablehnung "minderwertige Inhalte".
+  // Die Startseite steht hier mit drin, weil sie eine der beiden Seiten ist,
+  // die später manuelle Anzeigen tragen dürfen, und deshalb nie versehentlich
+  // zu einer reinen Widget-Seite werden darf. Diese Wortzahlen sind interne
+  // Regression-Schwellen, keine Google-Mindestanforderungen.
   { file: "index.html", path: "/", minWords: 1000, schema: '"@type":"FAQPage"' },
   { file: "anleitung/index.html", path: "/anleitung/", minWords: 800, schema: '"@type":"HowTo"' },
   { file: "strategie/index.html", path: "/strategie/", minWords: 900 },
@@ -129,6 +162,28 @@ for (const p of contentPages) {
   ok(w >= p.minWords, `${p.file}: thin content (${w} < ${p.minWords} words)`);
   if (p.schema) ok(html.includes(p.schema), `${p.file}: missing ${p.schema}`);
   ok(sm.includes(p.path), `sitemap: missing ${p.path}`);
+}
+
+// Die fünf Spiel-Landingpages müssen den statischen Publisher-Kontext vor dem
+// interaktiven Bereich ausliefern. Die Schwelle ist ein interner Regressionstest
+// für die Content-First-Einführung, keine Google-Mindestwortzahl.
+const contentFirstPages = [
+  "index.html",
+  "wordle/index.html",
+  "duel/index.html",
+  "koop/index.html",
+  "wordle/duel/index.html",
+];
+for (const file of contentFirstPages) {
+  const html = await read(file);
+  const mainStart = html.indexOf("<main");
+  const gameStart = html.indexOf('id="spielbereich"');
+  ok(mainStart >= 0 && gameStart > mainStart, `${file}: game area must follow the main content intro`);
+  if (mainStart >= 0 && gameStart > mainStart) {
+    const intro = html.slice(mainStart, gameStart);
+    ok(visibleWords(intro) >= 120, `${file}: content-first intro regressed below 120 words`);
+    ok(intro.includes("<h1"), `${file}: content-first intro must contain the page H1`);
+  }
 }
 
 // --- Duplikatswaechter: keine zwei indexierten Seiten mit demselben Text ---
@@ -177,15 +232,57 @@ for (let i = 0; i < dupeCandidates.length; i += 1) {
 const blogSlugs = [
   ...new Set([...sm.matchAll(/\/blog\/([a-z0-9-]+)\//g)].map((m) => m[1])),
 ];
-// AdSense-Programmrichtlinie „Mindestanforderungen an den Content“: jeder Artikel
-// muss eigenständig tragen. Die Untergrenze lag bis August 2026 bei 900 Wörtern,
-// und genau dort saßen dann auch die Haelfte der Beitraege. Berichte abgelehnter
-// Publisher nennen uebereinstimmend zwei Dinge: Es zaehlt die gesamte Site, nicht
-// der Durchschnitt, und ein paar schwache Beitraege reichen fuer eine erneute
-// Ablehnung. Deshalb wurden alle 22 Artikel auf mindestens 1.290 gerenderte
-// Woerter gebracht und die Schwelle auf 1.200 gezogen: hoch genug, dass kein
-// Artikel wieder zum schwaechsten Glied wird, niedrig genug, dass sie kein
-// Aufblaehen erzwingt.
+const blogSourceEntries = await readdir(resolve(process.cwd(), "content/blog"), { withFileTypes: true });
+const expectedBlogSlugs = blogSourceEntries
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".mdx"))
+  .map((entry) => entry.name.slice(0, -4))
+  .sort();
+const sortedSitemapBlogSlugs = [...blogSlugs].sort();
+ok(
+  sortedSitemapBlogSlugs.length === expectedBlogSlugs.length,
+  `sitemap: expected ${expectedBlogSlugs.length} blog posts, found ${sortedSitemapBlogSlugs.length}`,
+);
+for (const slug of expectedBlogSlugs) {
+  ok(blogSlugs.includes(slug), `sitemap: missing blog post /blog/${slug}/`);
+}
+for (const slug of blogSlugs) {
+  ok(expectedBlogSlugs.includes(slug), `sitemap: blog URL has no source file /blog/${slug}/`);
+}
+
+// Die Sitemap ist nicht nur auf fehlende Einträge, sondern auch auf unerwartete
+// URLs geprüft. Damit kann ein später hinzugefügter funktionaler Pfad nicht
+// stillschweigend als indexierbarer Inhalt veröffentlicht werden.
+const sitemapLocs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+const expectedSitemapLocs = new Set([
+  ...expectedStaticSitemapPaths.map((path) => `https://kontexto.de${path}`),
+  ...expectedBlogSlugs.map((slug) => `https://kontexto.de/blog/${slug}/`),
+]);
+ok(
+  sitemapLocs.length === expectedSitemapLocs.size,
+  `sitemap: expected exactly ${expectedSitemapLocs.size} URLs, found ${sitemapLocs.length}`,
+);
+for (const loc of sitemapLocs) {
+  ok(expectedSitemapLocs.has(loc), `sitemap: unexpected URL ${loc}`);
+}
+
+// Funktionale Lobby-Formulare bleiben explizit außerhalb der Sitemap und
+// noindex. Das wird getrennt geprüft, weil sie beim Build trotzdem als
+// statische HTML-Seiten entstehen.
+const functionalPages = [
+  ["duel/create/index.html", "/duel/create/"],
+  ["koop/create/index.html", "/koop/create/"],
+  ["wordle/duel/create/index.html", "/wordle/duel/create/"],
+];
+for (const [file, path] of functionalPages) {
+  const html = await read(file);
+  ok(html.toLowerCase().includes("noindex"), `${file}: functional page must be noindex`);
+  ok(!sm.includes(path), `sitemap: functional URL must stay omitted ${path}`);
+  ok(!html.includes('class="adsbygoogle"'), `${file}: functional page must not contain an ad slot`);
+}
+
+// Google veröffentlicht keine belastbare Mindestwortzahl. Diese Schwelle ist
+// deshalb nur ein interner Schutz gegen versehentlich stark gekürzte Artikel;
+// sie ersetzt keine redaktionelle Prüfung auf Eigenständigkeit und Nutzen.
 const MIN_BLOG_WORDS = 1200;
 const MIN_BLOG_POSTS = 18;
 ok(
@@ -238,6 +335,17 @@ for (const file of await htmlFiles(OUT)) {
   const close = (text.match(/“/g) || []).length;
   ok(open === close, `${rel}: unbalanced German quotes (${open}x „ vs ${close}x “)`);
   ok(!text.includes('"'), `${rel}: straight double quote in visible text (use „…“)`);
+}
+
+// Im Prüfmodus bleibt das AdSense-Verifizierungs-Script erhalten, aber es darf
+// keine manuelle Anzeigenfläche im statischen Export auftauchen. Der Modus wird
+// erst durch den expliziten Build-Wert `false` verlassen.
+if (process.env.NEXT_PUBLIC_ADSENSE_REVIEW_MODE !== "false") {
+  for (const file of await htmlFiles(OUT)) {
+    const rel = relative(OUT, file).replace(/\\/g, "/");
+    const html = await readFile(file, "utf8");
+    ok(!html.includes('class="adsbygoogle"'), `${rel}: review mode must not render manual ad slots`);
+  }
 }
 
 if (process.env.KONTEXTO_REQUIRE_IMPRESSUM === "1") {

@@ -35,14 +35,8 @@ const snapshotDate = new Date(`${publicStats.generated_on}T12:00:00Z`).toLocaleD
 export default function HomeContent() {
   return (
     <SeoSection>
-      {/*
-        This heading is the homepage's single <h1> (seo:check enforces exactly
-        one <h1> per page). The game board above stays widget-only; the
-        crawlable, content-first copy lives here below it.
-      */}
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
-        Kontexto: das tägliche deutsche Wort-Ratespiel
-      </h1>
+      {/* The page h1 is the server-rendered introduction above the game. */}
+      <h2 className="mb-3 text-2xl font-bold text-foreground">Kontexto erklärt</h2>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
         Errate das geheime Wort des Tages. Nach jedem Tipp zeigt dir Kontexto, wie
@@ -214,7 +208,7 @@ export default function HomeContent() {
         Für 46 Startwörter wurde über alle 2.400 Rätsel geprüft, wie oft sie
         überhaupt ein verwertbares Signal liefern; 45 davon waren im Vokabular messbar.
         „gehen“ führt das Feld mit 13,2&nbsp;Prozent an, „wasser“ landet entgegen der
-        Erwartung auf Platz 39 von 45. Die vollständige Tabelle steht im{" "}
+        Erwartung auf Platz 38 von 45. Die vollständige Tabelle steht im{" "}
         <Link href="/blog/startwort-benchmark/" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
           Startwort-Benchmark
         </Link>, alle veröffentlichten Kennzahlen samt Methodik unter{" "}
@@ -225,7 +219,7 @@ export default function HomeContent() {
 
       {/*
         Die Startseite verlinkte bisher nur Rubriken, keinen einzigen Beitrag.
-        Damit lag der gesamte Bestand von 22 Artikeln zwei Klicks tief, und ein
+        Damit lag der gesamte Artikelbestand zwei Klicks tief, und ein
         Erstbesucher wie ein Crawler sah von der eigentlichen Substanz nichts.
         Die sechs juengsten Beitraege stehen jetzt mit ihrer eigenen
         Beschreibung direkt hier.

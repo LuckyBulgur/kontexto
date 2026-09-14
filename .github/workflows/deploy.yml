@@ -79,6 +79,7 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_API_URL: /api
+          NEXT_PUBLIC_ADSENSE_REVIEW_MODE: "true"
 
       - name: SEO checks
         working-directory: frontend
@@ -150,7 +151,10 @@ jobs:
             git reset --hard origin/master
             # --force-recreate ensures the running container restarts with the
             # freshly built image (plain `up --build` can leave the old container).
-            docker compose up -d --build --force-recreate
+            # Keep the production image review-safe even if an old server .env
+            # still contains NEXT_PUBLIC_ADSENSE_REVIEW_MODE=false. This must be
+            # changed deliberately after Google has approved the site.
+            NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true docker compose up -d --build --force-recreate
             docker image prune -f
             # Cap the BuildKit build cache so it cannot grow unbounded across
             # deploys (every --build adds layers; it had ballooned to ~19 GB).
@@ -161,4 +165,64 @@ jobs:
             # Health checks fail the deploy loudly (set -e) if old code is still live.
             curl -fsS http://localhost/api/game > /dev/null
             curl -fsS http://localhost/api/collect/token > /dev/null
+            # Public review invariants: the container must serve the new
+            # review-safe export, not merely a healthy API behind an old proxy.
+            wait_for_status() {
+              url="$1"
+              expected="$2"
+              for attempt in $(seq 1 12); do
+                status=$(curl -sS -o /dev/null -w '%{http_code}' --max-redirs 0 "$url" || true)
+                if [ "$status" = "$expected" ]; then return 0; fi
+                sleep 5
+              done
+              echo "Expected HTTP $expected from $url, got $status" >&2
+              return 1
+            }
+            wait_for_header() {
+              url="$1"
+              header="$2"
+              for attempt in $(seq 1 12); do
+                headers=$(curl -sS -D - -o /dev/null "$url" || true)
+                if echo "$headers" | grep -Fqi "$header"; then return 0; fi
+                sleep 5
+              done
+              echo "Expected header '$header' from $url" >&2
+              return 1
+            }
+            wait_for_text() {
+              url="$1"
+              text="$2"
+              for attempt in $(seq 1 12); do
+                html=$(curl -fsSL "$url" || true)
+                if echo "$html" | grep -Fq "$text"; then return 0; fi
+                sleep 5
+              done
+              echo "Expected new review HTML marker '$text' in $url" >&2
+              return 1
+            }
+            wait_for_status https://kontexto.de/ 200
+            wait_for_text https://kontexto.de/ 'Bedeutung statt Buchstaben'
+            wait_for_status https://kontexto.de/index.html 301
+            wait_for_status https://kontexto.de/faq/index.html 301
+            wait_for_status https://kontexto.de/404.html 404
+            wait_for_status https://kontexto.de/404/ 404
+            wait_for_status https://kontexto.de/_not-found/ 404
+            wait_for_header https://kontexto.de/duel/adsense-review-check 'X-Robots-Tag: noindex, nofollow'
+            wait_for_status https://kontexto.de/ads.txt 200
+            ads_txt=$(curl -fsSL https://kontexto.de/ads.txt)
+            if ! echo "$ads_txt" | grep -Fq 'google.com, pub-3545758989514084, DIRECT'; then
+              echo 'ads.txt does not declare the Kontexto publisher' >&2
+              exit 1
+            fi
+            sitemap=$(curl -fsSL https://kontexto.de/sitemap.xml)
+            sitemap_count=$(echo "$sitemap" | grep -c '<loc>')
+            if [ "$sitemap_count" -ne 44 ] || echo "$sitemap" | grep -Fq '/duel/create/'; then
+              echo "Unexpected public sitemap: ${sitemap_count} URLs or a functional create URL" >&2
+              exit 1
+            fi
+            home_html=$(curl -fsSL https://kontexto.de/)
+            if echo "$home_html" | grep -Fq 'class="adsbygoogle"'; then
+              echo 'Review build unexpectedly contains a manual AdSense slot' >&2
+              exit 1
+            fi
             echo "Deploy successful!"
