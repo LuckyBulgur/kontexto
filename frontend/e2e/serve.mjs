@@ -128,12 +128,6 @@ const server = http.createServer(async (req, res) => {
     res.end();
     return;
   }
-  const nestedIndex = pathname.match(/^\/(.+)\/index\.html$/);
-  if (nestedIndex) {
-    res.writeHead(301, { location: `/${nestedIndex[1]}/` });
-    res.end();
-    return;
-  }
 
   // The 404 document is an internal nginx error target, never a public 200
   // page. Mirror that distinction in the test proxy.
@@ -160,6 +154,16 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("Not found");
     }
+    return;
+  }
+
+  // The error-route check above must precede this generic nested index
+  // redirect: `/404/index.html` is an internal export artifact, not a
+  // canonical public page that may redirect to `/404/`.
+  const nestedIndex = pathname.match(/^\/(.+)\/index\.html$/);
+  if (nestedIndex) {
+    res.writeHead(301, { location: `/${nestedIndex[1]}/` });
+    res.end();
     return;
   }
 

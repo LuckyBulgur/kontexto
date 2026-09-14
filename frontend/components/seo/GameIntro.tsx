@@ -1,4 +1,13 @@
 import Link from "next/link";
+import publicStats from "@/content/data/public-stats.json";
+import benchmark from "@/content/data/startword-benchmark.json";
+
+const numberFormat = new Intl.NumberFormat("de-DE");
+const snapshotDate = new Date(`${publicStats.generated_on}T12:00:00Z`).toLocaleDateString("de-DE", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
 type GameIntroMode = "kontexto" | "wordle" | "duel" | "koop" | "wordle-duel";
 
@@ -29,7 +38,7 @@ const introCopy: Record<GameIntroMode, IntroCopy> = {
       paragraphs: [
         "Kontexto ist kein Buchstabenrätsel und keine Suche nach einem bestimmten Wortstamm. Ein Tipp kann völlig anders aussehen als die Lösung und trotzdem nah liegen, wenn beide Begriffe in ähnlichen Zusammenhängen verwendet werden. Genau diese semantische Nähe macht aus jedem Rang einen Hinweis für den nächsten Zug.",
         "Im Hintergrund vergleicht ein deutsches fastText-Modell die Worteinbettungen von Tipp und Zielwort. Die Vektoren werden vor der Rangberechnung entzerrt, anschließend wird die Kosinus-Ähnlichkeit über den vorbereiteten Wortschatz sortiert. Die Methode, ihre Grenzen und die Auswertung echter Spielzahlen sind öffentlich dokumentiert, damit du nachvollziehen kannst, was die Zahl auf dem Bildschirm bedeutet.",
-        "Der veröffentlichte Snapshot vom 15. August 2026 umfasst 868.000 Rateversuche, 10.200 gelöste Rätsel und einen Benchmark über 2.400 vorbereitete Rätsel. Diese Werte sind keine Hochrechnung und keine persönliche Statistik, sondern aggregierte Projektdaten mit offengelegter Methodik.",
+        `Der veröffentlichte Snapshot vom ${snapshotDate} umfasst ${numberFormat.format(publicStats.totals.guesses)} Rateversuche, ${numberFormat.format(publicStats.totals.solves)} gelöste Rätsel und einen Benchmark über ${numberFormat.format(benchmark.games_evaluated)} vorbereitete Rätsel. Diese Werte sind keine Hochrechnung und keine persönliche Statistik, sondern aggregierte Projektdaten mit offengelegter Methodik.`,
         "Beim Spielen liest du einen Rang deshalb als Richtung und nicht als Schulnote. Nach einem guten Treffer lohnt sich die Suche in demselben Bedeutungsfeld, nach einem schlechten Treffer ein bewusster Wechsel zu einer anderen Kategorie. Die Spielanleitung erklärt diesen Suchprozess an Beispielen; die Daten- und Technikseiten zeigen, warum ein intuitiv naheliegendes Wort trotzdem weit entfernt liegen kann.",
       ],
     },

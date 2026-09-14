@@ -20,6 +20,44 @@ ok(await exists("robots.txt"), "robots.txt missing");
 ok(await exists("sitemap.xml"), "sitemap.xml missing");
 ok(await exists("404.html"), "404.html missing");
 
+// Die sichtbare Statistik auf der Startseite stammt aus denselben Snapshots wie
+// die Daten-Seite. Dieser Check verhindert, dass ein späterer Export die
+// redaktionell eingebetteten Zahlen unbemerkt von der Startseite entkoppelt.
+const readSourceJson = async (rel) => {
+  try {
+    return JSON.parse(await readFile(resolve(process.cwd(), rel), "utf8"));
+  } catch {
+    failures.push(`source data missing or invalid: ${rel}`);
+    return null;
+  }
+};
+const publicStatsData = await readSourceJson("content/data/public-stats.json");
+const benchmarkData = await readSourceJson("content/data/startword-benchmark.json");
+if (publicStatsData && benchmarkData) {
+  const snapshotDate = new Date(`${publicStatsData.generated_on}T12:00:00Z`).toLocaleDateString("de-DE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  for (const fragment of [
+    snapshotDate,
+    new Intl.NumberFormat("de-DE").format(publicStatsData.totals.guesses),
+    new Intl.NumberFormat("de-DE").format(publicStatsData.totals.solves),
+    new Intl.NumberFormat("de-DE").format(benchmarkData.games_evaluated),
+  ]) {
+    ok(home.includes(fragment), `home: published data fragment missing ${fragment}`);
+  }
+
+  const benchmarkRank = [...benchmarkData.results]
+    .sort((a, b) => b.share_under_1500 - a.share_under_1500)
+    .findIndex((result) => result.word === "wasser") + 1;
+  ok(benchmarkRank > 0, "benchmark: wasser is missing from the published results");
+  ok(
+    home.includes(`Platz ${benchmarkRank} von ${benchmarkData.results.length}`),
+    `home: wasser rank is not aligned with the benchmark snapshot (expected ${benchmarkRank})`,
+  );
+}
+
 // Extended per-phase (canonical/H1/content/schema) checks are appended below in later tasks.
 export const checks = { home }; // exported for reuse
 
