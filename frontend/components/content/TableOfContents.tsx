@@ -1,4 +1,5 @@
 import { List } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface TocItem {
   id: string;
@@ -6,23 +7,29 @@ export interface TocItem {
 }
 
 /** Anchor navigation for long content pages. Server-rendered, fully crawlable. */
-export default function TableOfContents({ items }: { items: TocItem[] }) {
+export default function TableOfContents({
+  items,
+  className,
+}: {
+  items: TocItem[];
+  className?: string;
+}) {
   if (items.length === 0) return null;
   return (
     <nav
       aria-label="Inhalt dieser Seite"
-      className="mb-10 rounded-lg border border-border bg-muted/30 p-4 text-sm"
+      className={cn("rounded-xl border border-border bg-muted/30 p-4 text-sm", className)}
     >
       <p className="mb-2 flex items-center gap-2 font-semibold text-foreground">
         <List className="size-4 text-muted-foreground" aria-hidden="true" />
         Auf dieser Seite
       </p>
-      <ol className="space-y-1.5">
+      <ol className="space-y-1">
         {items.map((it) => (
           <li key={it.id}>
             <a
               href={`#${it.id}`}
-              className="text-muted-foreground transition-colors hover:text-primary hover:underline"
+              className="block rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               {it.label}
             </a>

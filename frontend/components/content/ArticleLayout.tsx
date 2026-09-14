@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import StructuredData from "@/components/StructuredData";
 import { breadcrumb } from "@/lib/structured-data";
 import TableOfContents, { type TocItem } from "./TableOfContents";
@@ -12,8 +11,8 @@ import { CONTENT_REVISIONS, revisionLabel } from "@/lib/content-revisions";
  * Vergleich, Glossar, …). Renders a self-referencing BreadcrumbList, a lead
  * paragraph, an optional table of contents and a prose container with
  * consistent typography. All content is server-rendered for full crawlability.
- *
- * `LegalLayout` remains for the narrow legal pages (Impressum/Datenschutz).
+ * Legal pages use the same shell through `LegalLayout`, with a more compact
+ * legal-text treatment.
  */
 export default function ArticleLayout({
   title,
@@ -40,17 +39,11 @@ export default function ArticleLayout({
       />
       {/* main-Landmark: ohne ihn hat die Seite keinen Einstiegspunkt zum
           Ueberspringen der Navigation (axe: landmark-one-main, region). */}
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          &larr; Zurück zum Spiel
-        </Link>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <SiteNav current={path} />
         <Breadcrumbs items={breadcrumbItems ?? [{ name: "Start", path: "/" }, { name: breadcrumbName, path }]} />
-        <header className="mt-4 mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        <header className="mb-6 mt-5 max-w-4xl sm:mb-7">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl sm:leading-tight">
             {title}
           </h1>
           {lead && (
@@ -69,15 +62,29 @@ export default function ArticleLayout({
           )}
         </header>
 
-        {toc && <TableOfContents items={toc} />}
-
-        {/*
-          No element-level typography here on purpose: the structured blocks
-          (Step cards, ColorLegend, ComparisonTable, …) bring their own styles
-          and must not be clobbered by descendant selectors. Wrap runs of plain
-          text in <Prose> instead. This container only provides vertical rhythm.
-        */}
-        <div className="space-y-8">{children}</div>
+        <div
+          className={
+            toc
+              ? "grid items-start gap-8 lg:grid-cols-[minmax(0,48rem)_14rem] lg:gap-12"
+              : "max-w-4xl"
+          }
+        >
+          {/*
+            No element-level typography here on purpose: the structured blocks
+            (Step cards, ColorLegend, ComparisonTable, …) bring their own styles
+            and must not be clobbered by descendant selectors. Wrap runs of plain
+            text in <Prose> instead. This container only provides vertical rhythm.
+          */}
+          <div className="min-w-0 space-y-6">{children}</div>
+          {toc && (
+            <aside className="order-first lg:order-none lg:sticky lg:top-6">
+              <TableOfContents
+                items={toc}
+                className="lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto"
+              />
+            </aside>
+          )}
+        </div>
       </main>
     </div>
   );

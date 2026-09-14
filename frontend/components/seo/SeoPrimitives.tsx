@@ -141,8 +141,8 @@ export type RelatedLink = { href: string; label: string };
 
 /**
  * "Discover more" card: an intentional, card-styled internal-link list. Visually
- * distinct from the global Footer (which is a small centered pill row) so it does
- * not read as accidental duplication. Uses a unique aria-label per usage.
+ * distinct from the grouped global Footer so it does not read as accidental
+ * duplication. Uses a unique aria-label per usage.
  */
 export function RelatedLinks({
   heading,

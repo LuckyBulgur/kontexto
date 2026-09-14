@@ -110,13 +110,7 @@ export default async function BlogPost({
         ])}
       />
       <StructuredData data={blogPostingSchema(meta)} />
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <Link
-          href="/blog/"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          &larr; Alle Artikel
-        </Link>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <SiteNav current="/blog/" />
         <Breadcrumbs
           items={[
@@ -125,39 +119,61 @@ export default async function BlogPost({
             { name: meta.title, path: `/blog/${meta.slug}/` },
           ]}
         />
-        <p className="mt-6 text-xs uppercase tracking-wide text-muted-foreground">
-          {meta.category} · {fmt(meta.date)}
-          {meta.updated && meta.updated !== meta.date
-            ? ` · aktualisiert am ${fmt(meta.updated)}`
-            : ""}
-          {minutes > 0 ? ` · ${minutes} Min. Lesezeit` : ""}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          von{" "}
-          <Link
-            href={AUTHOR_PROFILE_PATH}
-            className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
-          >
-            {AUTHOR_NAME}
-          </Link>
-        </p>
-        <article className="mt-4 text-base leading-7 text-muted-foreground [&_h1]:mt-2">
-          <Article />
-        </article>
+        <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,48rem)_14rem] lg:gap-12">
+          <div className="min-w-0">
+            <div className="mb-6 border-b border-border pb-5">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                {meta.category} · {fmt(meta.date)}
+                {meta.updated && meta.updated !== meta.date
+                  ? ` · aktualisiert am ${fmt(meta.updated)}`
+                  : ""}
+                {minutes > 0 ? ` · ${minutes} Min. Lesezeit` : ""}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                von{" "}
+                <Link
+                  href={AUTHOR_PROFILE_PATH}
+                  className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+                >
+                  {AUTHOR_NAME}
+                </Link>
+              </p>
+            </div>
+            <article className="text-base leading-7 text-muted-foreground [&_h1]:mt-0">
+              <Article />
+            </article>
 
-        <aside className="mt-12 rounded-lg border border-border bg-muted/30 p-5">
-          <p className="text-sm font-semibold text-foreground">Über den Autor</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{AUTHOR_BIO}</p>
-        </aside>
+            <div className="mt-10 border-t border-border pt-6 text-sm">
+              <p className="font-semibold text-foreground">Weiterlesen</p>
+              <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Inhalte">
+                <Link href="/strategie/" className="text-primary underline underline-offset-2">Strategie &amp; Tipps</Link>
+                <Link href="/glossar/" className="text-primary underline underline-offset-2">Glossar</Link>
+                <Link href="/vergleich/" className="text-primary underline underline-offset-2">Spiele im Vergleich</Link>
+                <Link href="/blog/" className="text-primary underline underline-offset-2">Alle Artikel</Link>
+              </nav>
+            </div>
+          </div>
 
-        <div className="mt-10 border-t border-border pt-6 text-sm">
-          <p className="font-semibold text-foreground">Weiterlesen</p>
-          <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2" aria-label="Weitere Inhalte">
-            <Link href="/strategie/" className="text-primary underline">Strategie &amp; Tipps</Link>
-            <Link href="/glossar/" className="text-primary underline">Glossar</Link>
-            <Link href="/vergleich/" className="text-primary underline">Spiele im Vergleich</Link>
-            <Link href="/blog/" className="text-primary underline">Alle Artikel</Link>
-          </nav>
+          <aside className="order-last lg:order-none lg:sticky lg:top-6">
+            <div className="rounded-xl border border-border bg-muted/30 p-4">
+              <p className="text-sm font-semibold text-foreground">Über den Autor</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{AUTHOR_BIO}</p>
+              <Link
+                href={AUTHOR_PROFILE_PATH}
+                className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2 hover:no-underline"
+              >
+                Redaktion ansehen
+              </Link>
+            </div>
+            <nav aria-label="Blogbereiche" className="mt-4 border-t border-border pt-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">Blogbereiche</p>
+              <ul className="mt-3 space-y-2">
+                <li><Link href="/blog/" className="text-muted-foreground transition-colors hover:text-foreground">Alle Beiträge</Link></li>
+                <li><Link href="/strategie/" className="text-muted-foreground transition-colors hover:text-foreground">Strategie und Tipps</Link></li>
+                <li><Link href="/zahlen/" className="text-muted-foreground transition-colors hover:text-foreground">Zahlen und Methodik</Link></li>
+              </ul>
+            </nav>
+          </aside>
         </div>
       </main>
     </div>

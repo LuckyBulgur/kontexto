@@ -30,6 +30,12 @@ const config = (phase: string): NextConfig => {
   };
 };
 
-const withMDX = createMDX({});
+const withMDX = createMDX({
+  options: {
+    // Turbopack serialisiert die Loader-Optionen. Eine Plugin-Referenz als
+    // Paketname wird erst im MDX-Loader aufgelöst und bleibt damit kompatibel.
+    remarkPlugins: ["remark-gfm"],
+  },
+});
 
 export default (phase: string) => withMDX(config(phase));

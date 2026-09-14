@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 /**
  * Seitenweite Hauptnavigation fuer alle Inhalts- und Blogseiten.
@@ -11,9 +12,8 @@ import Link from "next/link";
  * eine Website navigierbar ist, und "minderwertige Inhalte" deckt genau diesen
  * Fall mit ab.
  *
- * Die Liste bleibt kurz: Spielmodi und die tragenden Inhaltsseiten. Rechts- und
- * Lobby-Seiten stehen weiterhin nur in der Fusszeile, sie gehoeren nicht in
- * jeden Seitenkopf.
+ * Die Liste bleibt bei den tragenden Spiel- und Inhaltsseiten. Rechtliche
+ * Seiten stehen weiterhin im Footer, damit der Kopf nicht zur Linkliste wird.
  */
 const items = [
   { href: "/", label: "Spiel" },
@@ -30,33 +30,46 @@ const items = [
 
 export default function SiteNav({ current }: { current?: string }) {
   return (
-    <nav
-      aria-label="Hauptnavigation"
-      className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-b border-border pb-3 text-sm"
-    >
-      {items.map((i) => {
-        const active = current === i.href;
-        return (
-          <Link
-            key={i.href}
-            href={i.href}
-            // Kein Prefetch: Next holt sonst beim Sichtbarwerden der Leiste die
-            // RSC-Payload jedes Ziels, gemessen rund 350 kB je Seitenaufruf fuer
-            // zehn Links, von denen hoechstens einer geklickt wird. Bei einer
-            // Leiste, die auf jeder Seite steht, ist das reine Last, vor allem
-            // mobil.
-            prefetch={false}
-            aria-current={active ? "page" : undefined}
-            className={
-              active
-                ? "font-medium text-foreground"
-                : "text-muted-foreground transition-colors hover:text-foreground"
-            }
-          >
-            {i.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="mt-3 border-b border-border pb-3 sm:mt-4">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/"
+          className="shrink-0 text-sm font-bold tracking-[0.16em] text-foreground"
+        >
+          KONTEXTO
+        </Link>
+        <Link
+          href="/"
+          prefetch={false}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-foreground"
+        >
+          Zum Spiel
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </div>
+      <nav aria-label="Hauptnavigation" className="mt-3 flex flex-wrap gap-1 text-sm">
+        {items.map((i) => {
+          const active = current === i.href;
+          return (
+            <Link
+              key={i.href}
+              href={i.href}
+              // Kein Prefetch: Next holt sonst beim Sichtbarwerden der Leiste die
+              // RSC-Payload jedes Ziels, obwohl hoechstens einer der Links geklickt
+              // wird. Bei einer Leiste auf jeder Inhaltsseite ist das mobile Last.
+              prefetch={false}
+              aria-current={active ? "page" : undefined}
+              className={
+                active
+                  ? "rounded-md bg-foreground px-2.5 py-1.5 font-medium text-background"
+                  : "rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              }
+            >
+              {i.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
