@@ -22,9 +22,9 @@ denen extrem viel Varianz steckt und die von fast allen Wörtern geteilt werden.
 
 Diese dominanten Richtungen kodieren keine Bedeutung. Sie kodieren im Wesentlichen, **wie häufig**
 ein Wort im Trainingskorpus vorkommt. Mu und Viswanath haben das 2018 in der Arbeit
-*All-but-the-Top: Simple and Effective Postprocessing for Word Representations* systematisch
-beschrieben und gezeigt, dass das Entfernen dieser Richtungen die Qualität von
-Ähnlichkeitsmessungen messbar verbessert.
+[*All-but-the-Top: Simple and Effective Postprocessing for Word Representations*](https://arxiv.org/abs/1702.01417)
+systematisch beschrieben und gezeigt, dass das Entfernen dieser Richtungen die Qualität von
+Ähnlichkeitsmessungen messbar verbessern kann.
 
 Für Kontexto ist der Effekt handfest. Die Kosinus-Ähnlichkeit misst den Winkel zwischen zwei
 Vektoren. Wenn alle Vektoren eine gemeinsame Komponente haben, dann ist der Winkel zwischen
@@ -52,11 +52,12 @@ Varianz jede erklärt. Von jedem Wortvektor wird anschließend seine Projektion 
 stärksten dieser Richtungen abgezogen.
 
 Anschaulich: Wenn du eine Punktwolke hast, die insgesamt schräg im Raum liegt, entfernst du damit
-genau die Schräglage, ohne die Feinstruktur innerhalb der Wolke anzutasten. Die Bedeutungsstruktur
-bleibt vollständig erhalten, der gemeinsame Drift verschwindet.
+die gemeinsame Schräglage, ohne die Feinstruktur vollständig zu verwerfen. Die
+Bedeutungsstruktur soll dabei weitgehend erhalten bleiben, während der gemeinsame Drift kleiner
+wird.
 
-Warum ausgerechnet drei? Das ist der Wert aus der ursprünglichen Arbeit und die Größenordnung, die
-sich in der Praxis bewährt hat. Entfernt man zu wenige Komponenten, bleibt der Häufigkeitseffekt
+Warum ausgerechnet drei? Das ist die für Kontexto gewählte Größenordnung, angelehnt an die
+ursprüngliche Arbeit. Entfernt man zu wenige Komponenten, bleibt der Häufigkeitseffekt
 sichtbar. Entfernt man zu viele, greift man in echte Bedeutungsachsen ein und die Nachbarschaften
 werden willkürlich.
 
@@ -68,7 +69,7 @@ Wörtern, die eindeutig danebenliegen.
 Nach der Entzerrung bekommt ein häufiges, aber thematisch unpassendes Wort einen ehrlich
 schlechten Rang. Genau das macht die Information verwertbar. Wenn du `Zeit` eingibst und Rang
 4.100 siehst, dann ist das eine echte Aussage über das Zielwort, nämlich dass es nichts mit
-zeitlichen Konzepten zu tun hat. Ohne Entzerrung hätte `Zeit` fast immer einen mittelmäßig guten
+zeitlichen Konzepten zu tun hat. Ohne Entzerrung hätte `Zeit` häufig einen mittelmäßig guten
 Rang bekommen, egal worum es geht, und die Eingabe wäre wertlos gewesen.
 
 Das ist der Grund, warum die Strategie aus [Die besten Startwörter für Kontexto](/blog/beste-startwoerter/)
@@ -91,8 +92,9 @@ Hauptkomponenten kodieren nicht ausschließlich Häufigkeit, sie tragen auch bre
 Gegensätze wie konkret gegen abstrakt. Wer sie herausrechnet, macht Wörter ähnlich, die es nicht
 sind, und die Rangliste wird flau.
 
-Praktisch heißt das: Der Effekt ist zwischen zwei und vier Komponenten stabil und kippt danach.
-Drei ist eine gute Wahl, keine magische.
+Für Kontexto sind deshalb drei Komponenten als Arbeitsentscheidung festgelegt. Ob zwei, drei
+oder vier Komponenten in einem anderen Modell besser funktionieren, müsste eine eigene
+Vergleichsauswertung messen. Die Zahl drei ist hier eine begründete Wahl, keine magische Konstante.
 
 ## Was ohne die Entzerrung im Spiel passieren würde
 

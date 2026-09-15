@@ -11,8 +11,8 @@ steht in [Worteinbettungen erklärt](/blog/worteinbettungen-erklaert/).
 
 ## Welches Modell genau
 
-Verwendet wird `cc.de.300.bin`, eines der von Meta AI Research veröffentlichten fastText-Modelle
-für 157 Sprachen. Drei Angaben stecken in dem Namen:
+Verwendet wird `cc.de.300.bin`, eines der von Meta AI Research veröffentlichten [fastText-Crawl-Modelle
+für 157 Sprachen](https://fasttext.cc/docs/en/crawl-vectors). Drei Angaben stecken in dem Namen:
 
 - **cc** steht für Common Crawl, ein öffentliches Archiv gecrawlter Webseiten, ergänzt um die
   deutsche Wikipedia.
@@ -33,8 +33,8 @@ pro Wortform, und Wörter, die nicht im Training vorkamen, existieren für sie s
 
 fastText zerlegt jedes Wort zusätzlich in **Zeichen-n-Gramme**, also in Abschnitte von n
 aufeinanderfolgenden Zeichen. Für `Strandkorb` entstehen unter anderem `str`, `tra`, `ran`, `and`,
-`ndk`, `dko`, `kor`, `orb` und längere Varianten. Der endgültige Wortvektor ist die Summe aus dem
-Vektor der ganzen Wortform und den Vektoren aller dieser Abschnitte.
+`ndk`, `dko`, `kor`, `orb` und längere Varianten. Bei der Berechnung wird die gelernte
+Repräsentation der vollständigen Wortform mit den Repräsentationen dieser Teilstrings kombiniert.
 
 Zwei Konsequenzen folgen daraus, und beide sind für Deutsch wichtig.
 

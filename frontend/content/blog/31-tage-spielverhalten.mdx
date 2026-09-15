@@ -1,4 +1,4 @@
-# 31 Tage Spielverhalten: am Wochenende wird deutlich besser geraten
+# 31 Tage Spielverhalten: Was die Wochenendwerte zeigen
 
 import WeekdayChart from "@/components/content/WeekdayChart";
 
@@ -7,7 +7,9 @@ Zahlen je Tag: wie viele Wörter eingegeben wurden und wie viele Rätsel gelöst
 serverseitig gezählt, beides offen einsehbar unter [Kontexto in Zahlen](/zahlen/).
 
 Aus diesen 62 Zahlen lässt sich etwas ablesen, das man beim Spielen nicht merkt: **Am Wochenende
-spielen deutlich weniger Leute, aber die, die spielen, brauchen erheblich weniger Versuche.**
+fallen die Rateversuche pro Tag deutlich niedriger aus, während das Verhältnis von Lösungen zu
+Versuchen höher liegt.** Das bedeutet nicht, dass dieselben Personen am Wochenende besser spielen,
+denn der Snapshot enthält keine Sitzungs- oder Personen-Zuordnung.
 
 ## Die Gesamtbilanz der 31 Tage
 
@@ -15,7 +17,8 @@ In diesem Zeitraum wurden **391.300 Rateversuche** eingegeben und **4.700 Rätse
 83,3 Versuche je Lösung, etwas besser als der Allzeitwert von 85,1.
 
 Die Tage streuen dabei erheblich: Der ruhigste kam auf 5.000 Rateversuche, der stärkste auf 20.900.
-Das ist mehr als das Vierfache, und die Verteilung ist nicht zufällig.
+Das ist mehr als das Vierfache. Aus 31 Tagen lässt sich daraus allein aber kein Zufalls- oder
+Ursachenmodell ableiten.
 
 <WeekdayChart />
 
@@ -29,8 +32,9 @@ Fasst man die 31 Tage nach Wochentagen zusammen, ergibt sich ein klares Bild:
 | Wochenende | 8.844 | 13,4 | 74,4 |
 
 Am Wochenende fällt die Aktivität um rund 38 Prozent. Gleichzeitig steigt die Ausbeute: Aus 1.000
-Rateversuchen werden am Wochenende 13,4 Lösungen statt 11,6, und die durchschnittliche Partie
-braucht **74,4 statt 85,9 Versuche**. Das sind gut 13 Prozent weniger.
+Rateversuchen werden am Wochenende 13,4 Lösungen statt 11,6. Der Quotient aus Rateversuchen und
+Lösungen liegt bei **74,4 statt 85,9 Versuchen je Lösung**. Das sind gut 13 Prozent weniger, aber
+keine Messung einzelner Partien.
 
 Auf Wochentagsebene wird der Unterschied noch deutlicher. Der Sonntag ist mit 15,4 Lösungen je
 1.000 Versuchen der mit Abstand effizienteste Tag, der Freitag mit 10,5 der schwächste:
@@ -44,6 +48,10 @@ Auf Wochentagsebene wird der Unterschied noch deutlicher. Der Sonntag ist mit 15
 | Freitag | 14.760 | 10,5 |
 | Samstag | 9.080 | 12,8 |
 | Sonntag | 8.550 | 15,4 |
+
+Die Lösungen je 1.000 in dieser Tagesübersicht sind jeweils der arithmetische Mittelwert der
+einzelnen Tagesquoten eines Wochentags. Die Werktag-Wochenende-Tabelle darüber verwendet dagegen
+die jeweiligen Gesamtsummen und ist deshalb nach der Zahl der Rateversuche gewichtet.
 
 ## Die Spannweite zwischen den Tagen
 
@@ -63,11 +71,11 @@ eine Fußnote: **Jeder Tag hat genau ein Rätsel für alle.** Ein leichtes Zielw
 gesamten Tages, ein sperriges drückt sie. Bei 31 Tagen sind das 31 Stichproben von je einem Rätsel,
 und die Schwierigkeit dieser Rätsel ist nicht gleichverteilt, sondern zufällig gezogen.
 
-Der Wochenendeffekt hält dieser Einschränkung trotzdem stand, weil er nicht an einzelnen Tagen
-hängt: Samstag und Sonntag liegen beide über dem Werktagsschnitt, und der Abstand zwischen den
-Gruppen ist größer als die Streuung innerhalb der Werktage. Ein einzelnes leichtes Wochenendrätsel
-könnte das nicht erzeugen. Vier bis fünf Wochenenden könnten es allerdings gemeinsam, und genau
-deshalb steht unten der Abschnitt über die Grenzen.
+Der Unterschied bleibt in diesem Snapshot sichtbar, weil er nicht an einem einzelnen Tag hängt:
+Samstag und Sonntag liegen beide über dem Werktagsschnitt. Das ist eine Beschreibung der
+aggregierten Werte, kein Beweis für einen individuellen Verhaltenseffekt. Vier bis fünf
+Wochenenden sind dafür außerdem nur eine kleine Beobachtungsreihe, deshalb steht unten der Abschnitt
+über die Grenzen.
 
 ## Drei Erklärungen, und was für sie spricht
 
@@ -80,10 +88,9 @@ aus vier oder fünf Rängen, aus dem die Richtung entsteht, muss man im Kopf hab
 sitzt man eher am Stück davor. Dass der Donnerstag und der Freitag am schwächsten abschneiden, passt
 dazu, das sind erfahrungsgemäß die vollsten Arbeitstage.
 
-**Die Zusammensetzung der Spielenden.** An einem Werktag ist ein größerer Teil der Eingaben
-Gelegenheitsspiel: kurz reingeschaut, drei Wörter probiert, weitergezogen. Diese abgebrochenen
-Partien erzeugen Rateversuche ohne Lösung und drücken die Quote. Am Wochenende ist der Anteil derer
-höher, die sich bewusst hinsetzen.
+**Die Zusammensetzung der Nutzung.** Eine mögliche Erklärung wäre, dass werktags mehr kurze Besuche
+stattfinden und am Wochenende mehr Menschen eine Partie am Stück spielen. Der Datensatz kann diese
+Vermutung nicht prüfen, weil er keine Partien und keine Personen miteinander verknüpft.
 
 **Das Zielwort selbst.** Jedes Rätsel hat seine eigene Schwierigkeit, und über 31 Tage ist das nicht
 ausgemittelt. Ein einzelner besonders sperriger Freitag kann den Wochentagsschnitt spürbar ziehen.
@@ -94,8 +101,8 @@ ausschließen.
 
 Der brauchbare Schluss ist nicht „spiel nur sonntags“. Er ist konkreter.
 
-**Spiel am Stück, nicht in Häppchen.** Der Unterschied zwischen 74 und 86 Versuchen entsteht
-vermutlich genau dort. Wer eine Partie über acht Stunden verteilt, fängt bei jedem Wiedereinstieg
+**Spiel am Stück, nicht in Häppchen.** Der Unterschied zwischen 74 und 86 Versuchen könnte teilweise
+dort entstehen. Wer eine Partie über acht Stunden verteilt, fängt bei jedem Wiedereinstieg
 gedanklich neu an und probiert Felder, die er längst ausgeschlossen hatte.
 
 **Wenn du unterbrechen musst, notiere die Richtung.** Ein Satz reicht: „Feld Küche, bestes Wort

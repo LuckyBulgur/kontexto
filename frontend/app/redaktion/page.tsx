@@ -71,7 +71,7 @@ export default function RedaktionPage() {
           <h2 id="zahlen">Woher die Zahlen stammen</h2>
           <p>
             Auf dieser Website stehen an mehreren Stellen konkrete Zahlen: 868.000 Rateversuche,
-            eine Lösungsquote von 71 Prozent, im Schnitt 85 Versuche je Lösung, ein
+            ein Anteil von 71 Prozent gelöster Partien unter den beendeten Partien, im Schnitt 85 Versuche je Lösung, ein
             Startwort-Benchmark über 2.400 Rätsel. Für diese Angaben gilt eine einfache Regel:
             <strong> Es wird nichts geschätzt und nichts gerundet, ohne die Rundung zu benennen.</strong>
           </p>

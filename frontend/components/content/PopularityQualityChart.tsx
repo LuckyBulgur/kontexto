@@ -22,6 +22,29 @@ const points = words
     typeof p.quality === "number",
   );
 
+function pearsonCorrelation(a: number[], b: number[]) {
+  const meanA = a.reduce((sum, value) => sum + value, 0) / a.length;
+  const meanB = b.reduce((sum, value) => sum + value, 0) / b.length;
+  let numerator = 0;
+  let sumA = 0;
+  let sumB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    const deltaA = a[i] - meanA;
+    const deltaB = b[i] - meanB;
+    numerator += deltaA * deltaB;
+    sumA += deltaA * deltaA;
+    sumB += deltaB * deltaB;
+  }
+
+  return numerator / Math.sqrt(sumA * sumB);
+}
+
+const correlation = pearsonCorrelation(
+  points.map((point) => point.count),
+  points.map((point) => point.quality),
+).toLocaleString("de-DE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
 const W = 400;
 const H = 250;
 const PAD = { l: 44, r: 12, t: 16, b: 38 };
@@ -49,8 +72,8 @@ export default function PopularityQualityChart() {
           ein Wort eingegeben wurde, auf der senkrechten, in wie viel Prozent der Rätsel es einen
           Rang unter 1500 liefert. Die Punkte zeigen kein Muster: Häufig eingegebene Wörter wie
           „tier“ und „wasser“ liegen unten, also bei geringer Eignung, während das gemessen beste
-          Wort „gehen“ weit links liegt, also selten eingegeben wird. Die Rangkorrelation beträgt
-          minus 0,009.
+          Wort „gehen“ weit links liegt, also selten eingegeben wird. Die Pearson-Korrelation
+          zwischen Eingabezahl und Trefferquote beträgt {correlation}.
         </desc>
 
         <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} className="stroke-border" strokeWidth={1} />
@@ -94,8 +117,8 @@ export default function PopularityQualityChart() {
       </svg>
       <figcaption className="mt-2 text-center text-xs text-muted-foreground">
         {points.length} Wörter, die in beiden Datensätzen vorkommen. Gäbe es einen Zusammenhang,
-        lägen die Punkte auf einer Diagonalen. Sie tun es nicht: Die Rangkorrelation zwischen
-        Beliebtheit und gemessener Eignung liegt bei minus 0,009.
+        lägen die Punkte auf einer Diagonalen. Sie tun es nicht: Die Pearson-Korrelation zwischen
+        Eingabezahl und gemessener Eignung liegt bei {correlation}.
       </figcaption>
     </figure>
   );

@@ -31,15 +31,15 @@ export const faqs: Faq[] = [
   },
   {
     q: `Was bedeuten die Farben?`,
-    a: `Die Farbe fasst zusammen, in welchem Bereich dein Rang liegt. Grün steht für Rang 1 bis 300 und heißt: Du bist im richtigen Bedeutungsfeld. Gelb steht für Rang 301 bis 1500 und heißt: Die Richtung stimmt, das Feld ist aber noch zu weit gefasst. Rot ab Rang 1501 heißt: Dieses Feld führt nicht zum Ziel. Die Farbe ersetzt die Zahl nicht, sie macht die Liste nur schneller lesbar. Aussagekräftiger als eine einzelne Farbe ist der Abstand zwischen deinen Rängen. Ein Sprung von 4000 auf 900 sagt mehr über die Richtung als ein einzelner grüner Treffer.`,
+    a: `Die Farbe fasst zusammen, in welchem Bereich dein Rang liegt. Grün steht für Rang 1 bis 300 und kann auf ein nahes Bedeutungsfeld hinweisen. Gelb steht für Rang 301 bis 1500 und zeigt eine mögliche Richtung, das Feld ist aber noch weit. Rot ab Rang 1501 heißt: Diese einzelne Eingabe ist im Modell weit vom Ziel entfernt, also lohnt sich oft eine andere Richtung. Die Farbe ersetzt die Zahl nicht, sie macht die Liste nur schneller lesbar. Aussagekräftiger als eine einzelne Farbe ist der Abstand zwischen deinen Rängen. Ein Sprung von 4000 auf 900 sagt mehr über die Richtung als ein einzelner grüner Treffer.`,
   },
   {
     q: `Wie viele Versuche habe ich?`,
-    a: `Unbegrenzt viele. Kontexto ist kein Spiel gegen die Uhr und keines mit Fehlversuchsbudget, sondern eines, bei dem jeder Zug eine Messung ist. Ein Wort auf Rang 8000 ist deshalb kein verlorener Versuch, es schließt ein ganzes Bedeutungsfeld sicher aus. Über alle bisher ausgewerteten Partien liegt der Schnitt bei rund 85 Rateversuchen je Lösung, und 71 Prozent der begonnenen Rätsel werden gelöst. Wer deutlich darunter liegt, spielt gut. Wer darüber liegt, hat meist zu lange im selben Feld weitergesucht, statt das Feld zu wechseln.`,
+    a: `Unbegrenzt viele. Kontexto ist kein Spiel gegen die Uhr und keines mit Fehlversuchsbudget, sondern eines, bei dem jeder Zug eine Messung ist. Ein Wort auf Rang 8000 ist deshalb kein verlorener Versuch: Im aktuellen Rangmodell spricht es deutlich gegen die geprüfte Richtung, ohne jedes Wort dieses Feldes sicher auszuschließen. Über die veröffentlichten Zähler entfallen rund 85 Rateversuche auf ein gelöstes Rätsel. Unter den beendeten Partien sind 71 Prozent gelöst und 29 Prozent aufgelöst. Wer über dem Durchschnitt liegt, kann zuerst prüfen, ob er zu lange im selben Feld weitergesucht hat.`,
   },
   {
     q: `Mein Wort wird nicht akzeptiert, warum?`,
-    a: `Erkannt wird nur, was im deutschen Vokabular des Modells steht, rund 80.000 Einträge. Fehlt dein Wort, liegt das fast immer an einem von vier Gründen: ein Tippfehler, eine seltene Beugungsform, ein sehr spezieller Fachbegriff oder ein Eigenname. Probiere zuerst die Grundform, also den Infinitiv beim Verb und den Nominativ Singular beim Substantiv, danach ein gebräuchlicheres Synonym. Zusammengesetzte Wörter sind oft nur in der geläufigen Schreibweise enthalten. Die Prüfung läuft über einen Bloom-Filter und ist deshalb sofort da, ohne dass ein Versuch verbraucht wird.`,
+    a: `Erkannt wird nur, was im deutschen Vokabular des Modells steht, rund 80.000 Einträge. Fehlt dein Wort, liegt das häufig an einem von vier Gründen: ein Tippfehler, eine seltene Beugungsform, ein sehr spezieller Fachbegriff oder ein Eigenname. Probiere zuerst die Grundform, also den Infinitiv beim Verb und den Nominativ Singular beim Substantiv, danach ein gebräuchlicheres Synonym. Zusammengesetzte Wörter sind oft nur in der geläufigen Schreibweise enthalten. Die Prüfung läuft über einen Bloom-Filter und ist deshalb sofort da, ohne dass ein Versuch verbraucht wird.`,
   },
   {
     q: `Kann ich auf mehreren Geräten spielen?`,
@@ -63,11 +63,11 @@ export const faqs: Faq[] = [
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Wordle?`,
-    a: `Die beiden messen Verschiedenes. Bei Wordle, hier Wördle, suchst du ein Wort aus fünf Buchstaben in sechs Versuchen, und die Rückmeldung betrifft einzelne Buchstaben und ihre Position. Gefragt ist Ausschlusslogik, jeder Zug schneidet Kandidaten weg. Bei Kontexto ist die Schreibweise vollkommen egal. Du bekommst zu jedem Wort einen Bedeutungsrang, hast unbegrenzt viele Versuche und arbeitest dich über Assoziationen heran, jeder Zug misst eine Entfernung. Wördle ist meist in wenigen Minuten erledigt, eine Kontexto-Partie dauert typischerweise fünf bis dreißig Minuten. Beide gibt es hier täglich neu auf Deutsch.`,
+    a: `Die beiden messen Verschiedenes. Bei Wordle, hier Wördle, suchst du ein Wort aus fünf Buchstaben in sechs Versuchen, und die Rückmeldung betrifft einzelne Buchstaben und ihre Position. Gefragt ist Ausschlusslogik, jeder Zug schneidet Kandidaten weg. Bei Kontexto ist die Schreibweise vollkommen egal. Du bekommst zu jedem Wort einen Bedeutungsrang, hast unbegrenzt viele Versuche und arbeitest dich über Assoziationen heran, jeder Zug misst eine Entfernung. Wördle hat höchstens sechs Züge; Kontexto bleibt offen, bis du das Wort löst oder die Partie auflöst. Beide gibt es hier täglich neu auf Deutsch.`,
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Contexto?`,
-    a: `Contexto ist das englischsprachige Spiel, das das Prinzip „Bedeutung statt Buchstaben“ bekannt gemacht hat. Kontexto ist eine eigenständige deutsche Umsetzung dieses Prinzips mit eigenem Modell, eigener Vokabelliste und eigener Lösungsauswahl. Der Unterschied ist größer als eine Übersetzung, weil Bedeutungsnähe sprachspezifisch ist: „Schloss“ für Gebäude und Türschloss oder „Bank“ für Geldinstitut und Sitzgelegenheit verhalten sich im deutschen Vektorraum anders als ihre englischen Entsprechungen. Dazu kommen Modi, die es dort nicht gibt: Unendlich, Duell und Koop.`,
+    a: `Contexto ist das englischsprachige Spiel, das das Prinzip „Bedeutung statt Buchstaben“ bekannt gemacht hat. Kontexto ist eine eigenständige deutsche Umsetzung dieses Prinzips auf einem deutschen fastText-Modell, mit eigenem Vokabular und eigener Lösungsauswahl. Der Unterschied ist größer als eine Übersetzung, weil Bedeutungsnähe sprachspezifisch ist: „Schloss“ für Gebäude und Türschloss oder „Bank“ für Geldinstitut und Sitzgelegenheit verhalten sich im deutschen Vektorraum anders als ihre englischen Entsprechungen. Dazu kommen Modi, die es dort nicht gibt: Unendlich, Duell und Koop.`,
   },
   {
     q: `Worin unterscheidet sich Kontexto von Semantle?`,
@@ -75,11 +75,11 @@ export const faqs: Faq[] = [
   },
   {
     q: `Welche Wörter eignen sich als Startwort?`,
-    a: `Gemessen über alle 2.400 vorbereiteten Rätsel schneiden „gehen“, „arbeit“, „sehen“ und „zeit“ am besten ab. Drei davon sind Verben, weil ein Verb in Sätze zu fast jedem Thema passt, während ein Substantiv sein eigenes Thema mitbringt. Entscheidend ist nicht, ob ein Startwort grün wird, sondern wie oft es überhaupt einen Rang unter 1500 liefert. Selbst das beste Wort schafft das nur in gut jeder achten Partie. Überraschend schlecht liegt „wasser“ auf Platz 38 von 45: Es fühlt sich breit an, seine Satzumgebungen ähneln sich aber stark. Nützlicher als ein einzelnes gutes Wort ist ein fester Satz aus vier Wörtern aus vier verschiedenen Bereichen.`,
+    a: `Gemessen über alle 2.400 vorbereiteten Rätsel sind „gehen“, „machen“, „arbeit“, „sehen“ und „bauen“ die fünf stärksten Einzelwörter nach dem Anteil unter Rang 1500; vier davon sind Verben. Das beschreibt nur die Einzelmessung, nicht den Erfolg einer Kombination. Entscheidend ist nicht, ob ein Startwort grün wird, sondern wie oft es überhaupt ein verwertbares Signal liefert. Selbst „gehen“ schafft das nur in etwa jeder achten Partie. Überraschend schlecht liegt „wasser“ auf Platz 38 von 45: Es fühlt sich breit an, seine Satzumgebungen ähneln sich aber stark. Für eine praktische Routine kannst du vier Wörter aus unterschiedlichen Bereichen festlegen.`,
   },
   {
     q: `Wie werde ich besser bei Kontexto?`,
-    a: `Beginne mit vier breiten Startwörtern aus vier verschiedenen Bereichen und spiele sie jeden Tag gleich ab, dann kostet der Einstieg keine Denkzeit. Werte danach zuerst die schlechten Ränge aus, denn ein Wort auf Rang 8000 schließt ein ganzes Feld sicher aus, während ein guter Rang nur eine Richtung andeutet. Miss anschließend Richtungen statt Synonyme, zwei Wörter aus demselben Feld liefern kaum neue Information. Wenn sich dein bester Rang nach fünf gezielten Zügen im selben Feld nicht verbessert, wechsle das Feld, statt weiter zu verfeinern.`,
+    a: `Beginne mit vier breiten Startwörtern aus verschiedenen Bereichen und spiele sie jeden Tag gleich ab, dann kostet der Einstieg keine Denkzeit. Werte danach zuerst die schlechten Ränge aus: Ein Wort auf Rang 8000 spricht deutlich gegen die geprüfte Richtung, schließt aber nicht automatisch jedes Wort dieses Feldes aus. Miss anschließend Richtungen statt Synonyme, denn zwei Wörter aus demselben Feld können wenig neue Information liefern. Wenn sich dein bester Rang nach mehreren gezielten Zügen im selben Feld nicht verbessert, ist ein Feldwechsel eine sinnvolle Arbeitsregel.`,
   },
   {
     q: `Kann das Lösungswort ein Verb oder Adjektiv sein?`,
@@ -91,7 +91,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Wie funktioniert der Tipp und was bedeuten die Schwierigkeitsgrade?`,
-    a: `Alle drei Stufen rechnen mit deinem bisher besten Rang. „Leicht“ halbiert ihn, du bekommst also ein Wort ungefähr auf halbem Weg. „Mittel“ liefert das Wort direkt vor deinem besten und bringt dich damit nur einen Schritt weiter. „Schwer“ zieht eine Zufallszahl zwischen 2 und deinem besten Rang, das Ergebnis kann also nah oder weit sein. Die Lösung selbst wird nie als Tipp ausgegeben, und bereits geratene Wörter werden übersprungen. Solange du noch gar nichts geraten hast, greift der Tipp weit hinten und ist entsprechend wenig wert.`,
+    a: `Alle drei Stufen rechnen mit deinem bisher besten Rang. „Leicht“ halbiert ihn, du bekommst also ein Wort ungefähr auf halbem Weg. „Mittel“ liefert das Wort direkt vor deinem besten und bringt dich damit nur einen Schritt weiter. „Schwer“ zieht eine Zufallszahl zwischen 2 und knapp unter deinem besten Rang, das Ergebnis kann also nah oder weit sein. Die Lösung selbst wird nie als Tipp ausgegeben, und bereits geratene Wörter werden übersprungen. Solange du noch gar nichts geraten hast, greift der Tipp weit hinten und ist entsprechend wenig wert.`,
   },
   {
     q: `Warum liegt ein Gegenteil manchmal ganz vorne?`,
@@ -131,7 +131,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Wie viele Versuche habe ich?`,
-    a: `So viele du möchtest. Es gibt kein Limit und keine Uhr. Auch ein schlechter Platz hilft weiter, weil er ein ganzes Themenfeld ausschließt.`,
+    a: `So viele du möchtest. Es gibt kein Limit und keine Uhr. Auch ein schlechter Platz hilft weiter, weil er eine geprüfte Richtung zurückstellen kann.`,
   },
   {
     q: `Wann gibt es ein neues Wort?`,

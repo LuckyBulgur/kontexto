@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { AdUnit } from "@/components/AdUnit";
-import { AD_SLOTS, ADSENSE_REVIEW_MODE } from "@/lib/adsense";
+import { AD_SLOTS, ADSENSE_REVIEW_MODE, isAdEligiblePath } from "@/lib/adsense";
 
 /**
  * Vertikale Side-Rail-Anzeigen links und rechts neben dem (schmalen, `max-w-lg`)
@@ -20,14 +20,10 @@ import { AD_SLOTS, ADSENSE_REVIEW_MODE } from "@/lib/adsense";
  * Wird einmal im Root-Layout gemountet; `key={pathname}` erzwingt pro Route eine
  * frische Anzeige.
  */
-function isAdEligibleRoute(pathname: string): boolean {
-  return pathname === "/" || pathname === "/wordle/";
-}
-
 export function SideRailAds() {
   const pathname = usePathname();
 
-  if (ADSENSE_REVIEW_MODE || !pathname || !isAdEligibleRoute(pathname)) return null;
+  if (ADSENSE_REVIEW_MODE || !isAdEligiblePath(pathname)) return null;
   if (!AD_SLOTS.railLeft && !AD_SLOTS.railRight) return null;
 
   return (

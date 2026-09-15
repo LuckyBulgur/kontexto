@@ -30,7 +30,7 @@ Bist du bei Rang 900, bekommst du das Wort auf Rang 450. Bist du bei 450, bekomm
 Das ist eine geometrische Reihe, und sie hat eine angenehme Eigenschaft: Jeder Tipp bringt dich
 ungefähr gleich weit, gemessen in Größenordnungen. Von 900 auf 450 fühlt sich an wie von 56 auf
 28, weil es derselbe Sprung ist. Vom Startwert 10.000 aus sind es rund zwölf Tipps auf „leicht“
-bis in die unmittelbare Nähe der Lösung, von Rang 900 aus noch sieben bis acht.
+bis zu Rang 2, von Rang 900 aus noch etwa neun bis Rang 2.
 
 Der Nachteil ist die Menge. Wer sich so durchhangelt, hat am Ende viele Tipps verbraucht, und die
 zählen in deiner Statistik mit.
@@ -42,17 +42,19 @@ Der Zielrang ist dein bester Rang minus eins.
 Liegst du auf Rang 900, bekommst du das Wort auf Rang 899. Das klingt nach fast nichts, und
 genau das ist der Punkt: Auf „mittel“ bekommst du nicht Nähe, sondern **Richtung**.
 
-Rang 899 und Rang 900 sind Nachbarn im Bedeutungsraum. Wenn dein Wort auf 900 `Werkzeug` war und
-der Tipp `Schraube` lautet, dann weißt du, dass du im richtigen Feld bist und in welche Ecke davon
-es geht. Wenn der Tipp dagegen ein Wort aus einem völlig anderen Bereich ist, dann weißt du, dass
-dein Rang 900 gar nicht durch inhaltliche Nähe zustande kam, sondern durch die Zufälligkeit des
-weiten Mittelfelds.
+Rang 899 und Rang 900 stehen in der Rangliste direkt nebeneinander. Das macht den Tipp zu einer
+lokalen Sonde, garantiert aber nicht, dass beide Wörter inhaltlich gut zusammenpassen. Wenn dein
+Wort auf 900 `Werkzeug` war und der Tipp `Schraube` lautet, kann das deine Werkzeug-Hypothese
+stützen und eine engere Ecke vorschlagen. Wenn der Tipp dagegen aus einem völlig anderen Bereich
+kommt, solltest du den Rang 900 vorsichtiger interpretieren und nicht sofort als stabiles
+Bedeutungssignal behandeln.
 
 Diese zweite Lesart ist der eigentliche Wert. Ein Tipp auf „mittel“ beantwortet die Frage: Ist
 mein bestes Wort ein echtes Signal oder Rauschen?
 
-Wenn du weit hinten stehst, ist der Modus fast nutzlos, weil in der Gegend um Rang 5.000 kaum
-noch Bedeutungsstruktur steckt. Sobald du unter etwa 500 bist, wird er stark.
+Wenn du weit hinten stehst, ist der Modus oft wenig ergiebig, weil ein einzelner Nachbar in der
+Gegend um Rang 5.000 schwer einzuordnen ist. Unter etwa 500 kann die lokale Information hilfreicher
+werden, sofern dein bisheriger Treffer tatsächlich in der Nähe des Zielworts liegt.
 
 ## Schwer: eine Zufallszahl zwischen 2 und deinem besten Rang
 
@@ -69,25 +71,26 @@ bringt.
 
 ## Wann welcher Modus
 
-Aus den drei Formeln folgt eine ziemlich klare Empfehlung.
+Aus den drei Formeln folgt keine gemessene optimale Spielweise. Als praktische Heuristik kannst du
+die Modi so einsetzen:
 
-**Du steckst bei Rang 3.000 oder schlechter fest und hast keine Idee mehr.** Nimm „leicht“. Du
-brauchst erst einmal irgendeinen Halt im Bedeutungsraum, und die Halbierung liefert den
-zuverlässig. „Mittel“ wäre hier verschwendet, weil ein Nachbar von Rang 3.000 keine verwertbare
-Richtung angibt.
+**Du steckst bei Rang 3.000 oder schlechter fest und hast keine Idee mehr.** „Leicht“ kann hier
+sinnvoll sein. Du bekommst einen berechenbaren Sprung und damit einen neuen Anhaltspunkt.
+„Mittel“ ist in diesem Bereich oft weniger leicht zu lesen, weil ein einzelner Nachbar von Rang
+3.000 keine klare Richtung garantieren muss.
 
-**Du liegst zwischen 100 und 500 und drehst dich im Kreis.** Nimm „mittel“. Genau hier ist die
-Nachbarschaft dicht genug, dass das Nachbarwort dir verrät, in welche Richtung des Feldes du
-gehen musst. Das ist der Modus mit dem besten Verhältnis von Information zu verbrauchtem Tipp.
+**Du liegst zwischen 100 und 500 und drehst dich im Kreis.** „Mittel“ kann hier eine gute
+Kontrollfrage sein. Das Nachbarwort liegt lokal in deiner Rangliste und kann zeigen, ob du deine
+bisherige Richtung weiterverfolgen solltest.
 
 **Du willst die Partie nicht auflösen, sondern nur einen Anstoß.** Nimm „schwer“ und akzeptiere,
 dass du eventuell nichts Brauchbares bekommst. Der Modus ist für Leute gedacht, denen ein
 berechenbarer Tipp den Reiz nimmt.
 
-**Du bist unter Rang 20 und kommst nicht drauf.** Nimm keinen Tipp. Auf „leicht“ bekämst du Rang
-10, auf „mittel“ Rang 19, und beides sind Wörter, die du dir mit etwas Nachdenken selbst herleiten
-kannst. Lies stattdessen deine bisherigen Treffer noch einmal durch und frage dich, welches
-Konzept sie gemeinsam umkreisen.
+**Du bist unter Rang 20 und kommst nicht drauf.** Ein weiterer Tipp ist hier oft weniger
+lehrreich als ein Blick auf deine bisherigen Treffer. Auf „leicht“ bekämst du ungefähr Rang 10,
+auf „mittel“ ungefähr Rang 19. Lies stattdessen noch einmal, welches Konzept die Wörter gemeinsam
+umkreisen. Das ist eine persönliche Spielentscheidung, keine harte Regel.
 
 ## Was ein Tipp kostet, wenn man ihn zu früh zieht
 
@@ -95,17 +98,18 @@ Alle drei Stufen rechnen mit dem bisher besten Rang, und daraus folgt eine Eigen
 leicht übersieht: Der Wert eines Tipps hängt vollständig davon ab, wie gut man schon steht.
 
 Steht der beste Rang bei 9.000, halbiert „leicht“ ihn auf ungefähr 4.500. Das gelieferte Wort liegt
-damit immer noch tief im roten Bereich, also in dem Band, in dem Zehntausende Wörter fast
-ununterscheidbar sind. Man bekommt ein Wort, das man nicht einordnen kann, und hat einen Tipp
-ausgegeben.
+damit immer noch im roten Bereich, in dem viele Wörter in einem engen Ähnlichkeitsband liegen.
+Ein einzelner Tipp lässt sich dort oft schwer einordnen, kostet aber trotzdem einen Eintrag in der
+Tippstatistik.
 
-Steht der beste Rang bei 200, halbiert „leicht“ ihn auf ungefähr 100. Dieses Wort liegt im engen
-Feld um die Lösung, es ist erkennbar verwandt, und es zeigt oft die Richtung, die man selbst nicht
-gesehen hat.
+Steht der beste Rang bei 200, halbiert „leicht“ ihn auf ungefähr 100. Ein Wort in diesem Bereich
+kann näher an der Zielwort-Nachbarschaft liegen und eine Richtung zeigen, die du selbst noch nicht
+gesehen hast.
 
-Derselbe Tipp, derselbe Mechanismus, völlig unterschiedlicher Nutzen. Das ist der Grund, warum die
-Empfehlung nicht „spare Tipps“ lautet, sondern „ziehe sie spät“. Als Faustregel: Ein Tipp lohnt,
-wenn dein bester Rang unter 300 liegt und fünf gezielte Züge ihn nicht verbessert haben.
+Derselbe Tipp, derselbe Mechanismus, aber je nach Ausgangsrang ein anderer praktischer Nutzen.
+Deshalb ist „ziehe sie spät“ eine plausible Spielheuristik. Ein Tipp kann sich anbieten, wenn dein
+bester Rang unter 300 liegt und mehrere gezielte Züge ihn nicht verbessert haben. Das ist keine
+Auswertung der optimalen Tippstrategie, sondern eine einfache Regel für die eigene Partie.
 
 ## Tipps im Duell
 

@@ -1,13 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { posts } from "@/lib/blog";
+import { CONTENT_REVISIONS } from "@/lib/content-revisions";
 
 export const dynamic = "force-static";
 
 const BUILD_DATE = process.env.KONTEXTO_BUILD_DATE || new Date().toISOString().slice(0, 10);
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date(BUILD_DATE);
   const staticRoutes: { path: string; freq: MetadataRoute.Sitemap[number]["changeFrequency"]; prio: number }[] = [
     { path: "/", freq: "daily", prio: 1.0 },
     { path: "/wordle/", freq: "daily", prio: 0.9 },
@@ -34,7 +34,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const staticOut = staticRoutes.map((r) => ({
-    url: `${SITE_URL}${r.path}`, lastModified: now, changeFrequency: r.freq, priority: r.prio,
+    url: `${SITE_URL}${r.path}`,
+    // Editorial pages have their actual content revision here. For functional
+    // routes without a separate revision date, keep the build date as a
+    // conservative fallback instead of inventing a historical date.
+    lastModified: new Date(CONTENT_REVISIONS[r.path] ?? BUILD_DATE),
+    changeFrequency: r.freq,
+    priority: r.prio,
   }));
 
   const blogRoutes = posts.map((p) => ({

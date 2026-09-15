@@ -4,8 +4,8 @@
 willkürlich wirkt. Du hast ein völlig normales deutsches Wort eingetippt, und das Spiel zuckt mit
 den Schultern.
 
-Willkürlich ist es nicht. Es gibt genau vier Gründe, warum ein Wort abgelehnt wird, und wenn du
-sie kennst, kannst du in fast jedem Fall in Sekunden eine Formulierung finden, die durchgeht.
+Willkürlich ist es nicht. In der Praxis gibt es vier typische Gründe, warum ein Wort abgelehnt wird.
+Wenn du sie kennst, findest du oft schnell eine Formulierung, die durchgeht.
 
 ## Grund 1: Es steht nicht in den 80.000
 
@@ -34,16 +34,18 @@ ohnehin die stabileren Vektoren, siehe [Komposita und Teilwörter](/blog/komposi
 
 ## Grund 2: Es ist eine Beugungsform ohne Zuordnung
 
-Kontexto führt eine Lemma-Tabelle, die gebeugte Formen auf ihre Grundform zieht. Tippst du
-`Häuser`, wird daraus `Haus`, und du bekommst den Rang von `Haus`.
+Kontexto führt eine Lemma-Tabelle als Rückfall für Formen, die nicht selbst im Vokabular stehen.
+Tippst du beispielsweise `Häuser` und die Form ist nicht als eigener Eintrag vorhanden, wird sie
+zu `Haus` aufgelöst und bekommt den Rang von `Haus`. Steht eine Form dagegen selbst im Vokabular,
+wird dieser direkte Eintrag zuerst verwendet.
 
 Die Tabelle ist gut, aber nicht vollständig. Sie entsteht maschinell, und bei unregelmäßigen
 Formen, seltenen Konjugationen oder Partizipien greift sie nicht immer.
 
 **Was hilft:** Gib die Grundform ein. Substantive im Nominativ Singular, Verben im Infinitiv,
-Adjektive unflektiert. `ging` wird vielleicht abgelehnt, `gehen` geht durch. Das kostet dich
-nichts, denn eine erfolgreich zugeordnete Beugungsform bekommt sowieso exakt den Rang ihrer
-Grundform. Es gibt im Spiel keinen Vorteil darin, gebeugt zu raten.
+Adjektive unflektiert. `ging` wird vielleicht abgelehnt, `gehen` geht durch. Mit der Grundform
+vermeidest du außerdem, dass ein direkter Eintrag mit eigener Nachbarschaft statt der gewünschten
+Lemma-Zuordnung bewertet wird.
 
 ## Grund 3: Es ist ein Stoppwort
 

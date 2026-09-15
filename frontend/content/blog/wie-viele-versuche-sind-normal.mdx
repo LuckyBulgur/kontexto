@@ -12,10 +12,10 @@ Personen und keine Sitzungen, sondern nur Tagessummen pro Aktion. Die Absolutwer
 **85 Rateversuche pro gelöstem Rätsel.** Das ist der Durchschnitt über 868.000 Rateversuche und
 10.200 gelöste Partien.
 
-Wenn du also nach 60 Wörtern das Gefühl hast, es dauert zu lange, liegst du unter dem Schnitt. Nach
-120 liegst du darüber, aber immer noch in einem völlig gewöhnlichen Bereich, denn ein Durchschnitt
-von 85 entsteht aus einer sehr schiefen Verteilung: viele Partien im zweistelligen Bereich, einige
-wenige mit mehreren hundert Zügen, die den Schnitt nach oben ziehen.
+Wenn du also 60 Wörter eingegeben hast, liegst du unter dem veröffentlichten Mittelwert; bei 120
+liegst du darüber. Ob das für eine einzelne Partie gewöhnlich ist, lässt sich daraus nicht ableiten,
+denn ein Durchschnitt von 85 kann aus sehr unterschiedlichen Verläufen entstehen. Die Verteilung
+selbst wird nicht gespeichert.
 
 Den Median können wir nicht ausweisen, und zwar aus einem strukturellen Grund: Gezählt werden
 Tagessummen pro Aktion, nicht einzelne Partien. Bei einer rechtsschiefen Verteilung liegt der
@@ -34,10 +34,9 @@ Verteilungen und keine Messung.
 
 Daraus folgen drei Verhältnisse, die mehr über das Spiel sagen als die Einzelzahlen.
 
-**Die Lösungsquote liegt bei 71 Prozent.** Auf zehn beendete Partien kommen sieben Lösungen und
-drei Aufgaben. Für ein Spiel ohne Versuchslimit ist das erstaunlich niedrig, und es bestätigt
-etwas, das viele vermuten: Wer aufgibt, tut das nicht wegen eines Limits, sondern weil er im
-falschen Feld feststeckt und es merkt.
+**Unter den beendeten Partien sind 71 Prozent gelöst.** Auf zehn beendete Partien kommen sieben
+Lösungen und drei ausdrückliche Auflösungen. In dieser Zahl stecken nur diese beiden Abschlussarten:
+Begonnene, aber offen gelassene Partien werden vom veröffentlichten Datensatz nicht erfasst.
 
 **Auf jede gelöste Partie kommen 4,5 Tipps.** Das war die größte Überraschung in den Daten. Die
 Tipp-Funktion ist nicht die Notbremse für Ausnahmefälle, für die sie gebaut wurde, sondern ein
@@ -46,7 +45,7 @@ Schwierigkeitsgrade rechnen, denn ein Tipp auf „leicht“ halbiert deinen best
 auf „mittel“ dir die Richtung verrät. Die Formeln stehen in
 [Die Tipp-Funktion](/blog/tipp-funktion-richtig-nutzen/).
 
-**Auf 27 gelöste Einzelpartien kommt eine Mehrspieler-Runde.** Duell und Koop sind eine
+**Auf rund 28 gelöste Einzelpartien kommt eine Mehrspieler-Runde.** Duell und Koop sind eine
 Minderheitenveranstaltung, was angesichts der Hürde „man braucht jemanden zum Mitspielen“ nicht
 überrascht.
 
@@ -72,9 +71,10 @@ Auf den Plätzen dahinter geht es in derselben Richtung weiter: `natur`, `baum`,
 `liebe`, `urlaub`, `sonne`, `familie`, `beruf`, `kind`. Erst weiter unten tauchen die ersten
 Verben auf: `laufen`, `lernen`, `trinken`, `gehen`, `fahren`.
 
-Die Liste ist ein Abbild kollektiver Assoziation, und sie zeigt ein klares Muster: **Menschen
-tippen konkrete Substantive.** Dinge, die man anfassen kann, Orte, Lebensbereiche. Verben und
-Adjektive kommen selten und spät.
+Die Liste zeigt ein klares Muster: In dieser Top-100-Auswertung dominieren kurze, konkrete
+Nomen-Wörter, also Dinge, Orte und Lebensbereiche. Verben und Adjektive tauchen seltener und weiter
+hinten auf. Aus Tagessummen lässt sich dabei nicht ablesen, welche Gedanken einzelne Spielende beim
+Raten hatten.
 
 ## Warum das ein Problem ist
 
@@ -107,47 +107,40 @@ Wochenende gespielt wird. Gemessen über 31 Tage ist es genau umgekehrt.
 Sonntag erreicht knapp 57 Prozent des Donnerstagswerts. Der Einbruch beginnt am Samstag und hält
 bis Montagmittag an, danach steigt die Kurve über die Woche wieder an.
 
-Das passt nicht zu einem Spiel, für das man sich Zeit nimmt, sondern zu einem, das in eine Pause
-passt: Kaffee, Bahnfahrt, Mittagspause. Wer am Wochenende frei hat, spielt offenbar nicht mehr,
-sondern weniger. Für die Gestaltung heißt das, dass die tägliche Verfügbarkeit um Mitternacht
-wichtiger ist als jedes Wochenendthema.
+Eine mögliche Lesart ist, dass das Spiel eher in kurze Alltagspausen passt, etwa Kaffee, Bahnfahrt
+oder Mittagspause. Der Snapshot belegt diese Nutzungssituation aber nicht. Für die Gestaltung
+spricht er trotzdem dafür, die tägliche Verfügbarkeit um Mitternacht wichtiger zu nehmen als ein
+spezielles Wochenendthema.
 
 ## Warum der Mittelwert in die Irre führt
 
 85 Rateversuche je Lösung ist die Zahl, die am häufigsten zitiert wird, und sie ist die am
 wenigsten aussagekräftige der ganzen Auswertung. Der Grund ist die Form der Verteilung.
 
-Partien zerfallen in zwei Gruppen. In der einen trifft jemand das richtige Bedeutungsfeld früh,
-oft schon mit einem der vier Startwörter, und arbeitet es dann in zwanzig bis vierzig Zügen ab. In
-der anderen liegt das Feld daneben, es folgt ein Wechsel, manchmal zwei, und jede dieser Korrekturen
-kostet zwanzig bis dreißig Züge, bevor sie überhaupt als notwendig erkannt wird.
+Als Spielbilder sind zwei Verläufe plausibel: Wer das richtige Bedeutungsfeld früh trifft, kann
+mit wenigen Richtungswechseln auskommen. Wer zunächst danebenliegt, braucht zusätzliche Prüfungen.
+Die Tagessummen zeigen aber weder, wie viele Partien zu diesen Verläufen gehören, noch wie viele
+Züge ein einzelner Feldwechsel kostet.
 
-Ein Mittelwert über zwei so unterschiedliche Verläufe beschreibt keinen von beiden. Er liegt
-zwischen den Gruppen, also dort, wo vergleichsweise wenige Partien tatsächlich enden. Wer sich mit
-den 85 vergleicht und bei 40 landet, ist nicht doppelt so gut wie der Schnitt, sondern schlicht in
-der ersten Gruppe.
+Ein Mittelwert über unterschiedliche Verläufe beschreibt keinen einzelnen Spielverlauf. Wer sich
+mit den 85 vergleicht und deutlich darunter oder darüber liegt, kann daraus allein deshalb noch
+nicht auf eine bestimmte Spielweise schließen.
 
-Die praktisch nützlichere Kennzahl ist deshalb nicht die Gesamtzahl der Züge, sondern der Zug, bei
-dem der beste Rang zum ersten Mal unter 1.500 fällt. Bis dahin tastet man Fläche ab, danach arbeitet
-man gerichtet. Diese Zahl schwankt viel weniger, und sie lässt sich durch Technik verbessern, während
-die Gesamtzahl stark am Zielwort hängt.
+Für eine persönliche Auswertung wäre deshalb nicht nur die Gesamtzahl der Züge interessant, sondern
+auch der Zug, bei dem der beste Rang zum ersten Mal unter 1.500 fällt. Bis dahin tastet man Fläche
+ab, danach arbeitet man gerichtet. Diese Kennzahl wird aktuell nicht serverseitig erfasst; die
+Gesamtzahl hängt außerdem stark am Zielwort.
 
-## Was die Lösungsquote von 71 Prozent bedeutet
+## Was der gelöste Anteil von 71 Prozent bedeutet
 
-Die zweite oft zitierte Zahl braucht ebenfalls eine Einordnung: 71 von 100 begonnenen Rätseln werden
-gelöst. Das klingt nach einer Fehlerquote von 29 Prozent, ist aber etwas anderes.
+Die zweite oft zitierte Zahl braucht eine genaue Bezeichnung: 71 von 100 **beendeten** Partien sind
+gelöst. Das klingt nach einer Fehlerquote von 29 Prozent, beschreibt aber nur die Verteilung der
+beiden gezählten Abschlussarten.
 
-Eine Partie zählt als begonnen, sobald ein einziges Wort eingegeben wurde. Darin stecken also auch
-alle, die kurz reinschauen und weiterziehen, alle, die auf dem Telefon anfangen und am Rechner neu
-beginnen, und alle, die ein Rätsel bewusst offen lassen und am nächsten Tag nicht zurückkehren. Ein
-nicht gelöstes Rätsel ist damit häufiger ein abgebrochenes als ein gescheitertes.
-
-Dazu kommt der Auflöse-Weg: Rund 4.100 Rätsel wurden per Auflösen beendet. Wer aufgibt, hat die
-Partie ausdrücklich abgeschlossen, sie zählt aber nicht als gelöst. Auch das drückt die Quote,
-ohne dass jemand gescheitert wäre.
-
-Wer die Zahl als Schwierigkeitsmaß lesen will, braucht deshalb den Zusatz: Von den Partien, in denen
-jemand ernsthaft weitergespielt hat, endet der weitaus größte Teil mit Rang 1.
+Der Datensatz enthält keinen Zähler für gestartete Partien, Abbrüche, Gerätewechsel oder offene
+Rätsel. Deshalb lässt sich daraus weder eine Start-zu-Lösung-Quote noch ein Abbruchgrund ableiten.
+Die Zahl ist trotzdem nützlich: Sie macht transparent, wie sich die serverseitig gezählten
+Abschlüsse im veröffentlichten Snapshot verteilen.
 
 ## Wie diese Zahlen entstehen
 

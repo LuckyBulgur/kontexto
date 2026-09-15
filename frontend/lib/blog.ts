@@ -19,47 +19,47 @@ export interface BlogMeta {
 export const posts: BlogMeta[] = [
   {
     slug: "meistgeratene-woerter-analyse",
-    title: "Was Spielende raten, und warum es fast nie die besten Wörter sind",
+    title: "Was Spielende raten, und warum es selten die besten Wörter sind",
     description:
-      "Snapshot vom 15. August 2026: 154.150 Eingaben gegen den Startwort-Benchmark gelegt. Die Beliebtheit eines Wortes sagt nichts über seine Eignung; „tier“ liegt auf Platz 39 von 45.",
+      "Snapshot vom 15. August 2026: 154.150 Eingaben gegen den Startwort-Benchmark gelegt. Die Beliebtheit eines Wortes sagt in diesem Snapshot wenig über seine Eignung; „tier“ liegt auf Platz 39 von 45.",
     date: "2026-08-31",
-    updated: "2026-09-14",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
     slug: "31-tage-spielverhalten",
-    title: "31 Tage Spielverhalten: am Wochenende wird deutlich besser geraten",
+    title: "31 Tage Spielverhalten: Was die Wochenendwerte zeigen",
     description:
-      "Snapshot vom 15. August 2026: 391.300 Rateversuche und 4.700 Lösungen über 31 Tage ausgewertet. Am Wochenende wird 38 Prozent weniger gespielt und mit 74,4 statt 85,9 Versuchen gelöst.",
+      "Snapshot vom 15. August 2026: 391.300 Rateversuche und 4.700 Lösungen über 31 Tage ausgewertet. Am Wochenende fallen die Tageswerte niedriger aus, während der Quotient bei 74,4 statt 85,9 Versuchen je Lösung liegt.",
     date: "2026-08-31",
-    updated: "2026-09-14",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
     slug: "startwort-benchmark",
-    title: "Startwort-Benchmark: 2.400 Rätsel gemessen, drei eigene Empfehlungen widerlegt",
+    title: "Startwort-Benchmark: 2.400 Rätsel gemessen, zwei alte Empfehlungen verworfen",
     description:
-      "Für jedes der 2.400 Rätsel ausgerechnet, welchen Rang 46 getestete Kandidatenwörter bekommen hätten; 45 waren messbar. Ergebnis: Verben schlagen Substantive, und „Wasser“ ist ein schlechtes Startwort.",
+      "Für jedes der 2.400 Rätsel ausgerechnet, welchen Rang 46 getestete Kandidatenwörter bekommen hätten; 45 waren messbar. Im Kandidatenfeld liegen vier Verben unter den fünf stärksten Einzelwörtern; „Wasser“ ist ein schwaches Startwort.",
     date: "2026-08-15",
-    updated: "2026-09-14",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
     slug: "wie-viele-versuche-sind-normal",
     title: "Wie viele Versuche sind normal? 868.000 Rateversuche ausgewertet",
     description:
-      "85 Rateversuche je gelöstem Rätsel, 71 Prozent Lösungsquote, 4,5 Tipps pro Partie und die 100 meistgeratenen Wörter. Echte Zahlen aus der serverseitigen Zählung.",
+      "85 Rateversuche je gelöstem Rätsel, 71 Prozent gelöster Anteil unter den beendeten Partien, 4,5 Tipps je gelöstem Rätsel und die 100 meistgeratenen Wörter. Echte Zahlen aus der serverseitigen Zählung.",
     date: "2026-08-15",
-    updated: "2026-09-14",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
     slug: "wie-das-loesungswort-entsteht",
     title: "Wie das Lösungswort entsteht: von 2 Millionen Wörtern auf 2.400 Rätsel",
     description:
-      "Die komplette Auswahlkette hinter dem Wort des Tages: Vokabularfilter, Häufigkeitsschwelle, vier semantische Signale gegen Eigennamen und der Fall „anlässlich“.",
+      "Die komplette Auswahlkette hinter dem Wort des Tages: Vokabularfilter, Häufigkeitsschwelle, mehrere Prüfungen gegen Eigennamen und der Fall „anlässlich“.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
@@ -68,7 +68,7 @@ export const posts: BlogMeta[] = [
     description:
       "Leicht halbiert deinen besten Rang, mittel gibt den direkten Nachbarn, schwer würfelt. Die genauen Formeln und wann welcher Modus sich lohnt.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
@@ -77,7 +77,7 @@ export const posts: BlogMeta[] = [
     description:
       "Ein Versuchslimit würde bei einem Bedeutungsspiel Glück messen statt Können. Über drei Designentscheidungen und ihren Preis.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
@@ -86,7 +86,7 @@ export const posts: BlogMeta[] = [
     description:
       "Rohe Worteinbettungen haben einen gemeinsamen Drift, der Häufigkeit statt Bedeutung kodiert. Zwei Rechenschritte beheben das, und ohne sie wäre das Spiel kaputt.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
@@ -95,7 +95,7 @@ export const posts: BlogMeta[] = [
     description:
       "Ein Verfahren gegen den Rang-340-Moment: schlechte Ränge lesen, Richtungen statt Wörter messen, und die Abbruchbedingung für einen Feldwechsel.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
@@ -104,7 +104,7 @@ export const posts: BlogMeta[] = [
     description:
       "Gegeneinander ist Information eine Ressource, die du hütest. Miteinander ist sie die Ressource, die ihr vermehrt. Taktik für beide Modi.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
@@ -113,16 +113,16 @@ export const posts: BlogMeta[] = [
     description:
       "Warum es keine Umlaute gibt, warum Ratewörter großzügig und Lösungswörter streng gefiltert sind und an welcher Stelle der Schwellenwert gesenkt werden musste.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
     slug: "woerter-die-kontexto-nicht-kennt",
     title: "Wörter, die Kontexto nicht kennt",
     description:
-      "Vier Gründe, warum ein völlig normales deutsches Wort abgelehnt wird, und was du in jedem einzelnen Fall stattdessen eingibst.",
+      "Vier typische Gründe, warum ein völlig normales deutsches Wort abgelehnt wird, und was du in den häufigsten Fällen stattdessen eingibst.",
     date: "2026-08-15",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
@@ -138,9 +138,9 @@ export const posts: BlogMeta[] = [
     slug: "warum-keine-namen-mehr-als-loesungswoerter",
     title: "Neustart: warum keine Namen mehr als Lösungswörter auftauchen",
     description:
-      "Warum Lösungen wie „Emma“ oder „Berlin“ überhaupt entstanden, welche vier Filter das jetzt verhindern und was die Fälle „Arsch“ und „anlässlich“ nachträglich gelehrt haben.",
+      "Warum Lösungen wie „Emma“ oder „Berlin“ überhaupt entstanden, welche Prüfungen das jetzt verhindern und was die Fälle „Arsch“ und „anlässlich“ nachträglich gelehrt haben.",
     date: "2026-06-08",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
@@ -149,16 +149,16 @@ export const posts: BlogMeta[] = [
     description:
       "Zwölf Techniken nach Spielphase sortiert, von der Eröffnung über das Messen von Richtungen bis zur Abbruchbedingung, plus der Test für einen guten Zug.",
     date: "2026-06-07",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
     slug: "haeufige-fehler-bei-kontexto",
-    title: "7 häufige Fehler bei Kontexto, und wie du sie vermeidest",
+    title: "10 häufige Fehler bei Kontexto, und wie du sie vermeidest",
     description:
-      "Zu lange im falschen Feld, nur Substantive, rote Ränge als Misserfolg lesen: sieben Gewohnheiten, die Züge kosten, und die Korrektur zu jeder.",
+      "Zu lange im falschen Feld, nur Substantive, rote Ränge als Misserfolg lesen: zehn Gewohnheiten, die Züge kosten, und die Korrektur zu jeder.",
     date: "2026-06-07",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
@@ -167,16 +167,16 @@ export const posts: BlogMeta[] = [
     description:
       "Warum Wörter in Feldern zusammenliegen, wie du Achsen statt Synonyme abtastest und warum ein gemeinsamer Wortstamm kein Feld ist.",
     date: "2026-06-07",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
     slug: "warum-schlechter-rang",
     title: "Warum hat mein Wort einen schlechten Rang?",
     description:
-      "Fünf Ursachen für überraschende Ränge: Kontextnähe statt Verwandtschaft, Mehrdeutigkeit, nahe Gegenteile, seltene Wörter und die Buchstabenfalle.",
+      "Sieben Ursachen für überraschende Ränge: Kontextnähe statt Verwandtschaft, Mehrdeutigkeit, nahe Gegenteile, seltene Wörter, Wortarten und die Buchstabenfalle.",
     date: "2026-06-07",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
@@ -185,7 +185,7 @@ export const posts: BlogMeta[] = [
     description:
       "Wie aus reinem Text Bedeutung wird, warum man mit Wortvektoren rechnen kann und welche vier Eigenheiten beim Spielen regelmäßig für Verwirrung sorgen.",
     date: "2026-06-07",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
@@ -203,7 +203,7 @@ export const posts: BlogMeta[] = [
     description:
       "Ein Wördle-Zug schneidet Kandidaten weg, ein Kontexto-Zug misst eine Entfernung. Was daraus folgt, samt Vergleichstabelle und der Frage, welches Spiel zu dir passt.",
     date: "2026-06-06",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
   {
@@ -212,7 +212,7 @@ export const posts: BlogMeta[] = [
     description:
       "Welches Modell Kontexto genau verwendet, warum Zeichen-n-Gramme für Deutsch entscheidend sind, was sie kosten und warum kein größeres Sprachmodell zum Einsatz kommt.",
     date: "2026-06-06",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Technik",
   },
   {
@@ -221,7 +221,7 @@ export const posts: BlogMeta[] = [
     description:
       "Ein gutes Startwort liefert nicht den besten Rang, sondern den aussagekräftigsten. Ein Repertoire aus vier Wörtern und der Test für dein eigenes.",
     date: "2026-06-06",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Strategie",
   },
   {
@@ -230,7 +230,7 @@ export const posts: BlogMeta[] = [
     description:
       "Warum eine Übersetzung nicht gereicht hätte, welche zwei Eigenschaften des Deutschen das Spiel prägen und was Kontexto über die englische Vorlage hinaus bietet.",
     date: "2026-06-06",
-    updated: "2026-08-31",
+    updated: "2026-09-15",
     category: "Grundlagen",
   },
 ];

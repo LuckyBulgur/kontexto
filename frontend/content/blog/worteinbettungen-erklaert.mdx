@@ -26,7 +26,8 @@ bedeuten nur, dass mehr unabhängige Bedeutungsaspekte gleichzeitig unterschiede
 Niemand sagt dem Modell, was ein Hund ist. Es gibt kein Lexikon im Training, keine Kategorien,
 keine Regeln. Es gibt nur Text.
 
-Zugrunde liegt eine Beobachtung aus der Sprachwissenschaft, die John Rupert Firth 1957 auf die
+Zugrunde liegt eine Beobachtung aus der Sprachwissenschaft, die John Rupert Firth 1957 in
+[*A Synopsis of Linguistic Theory*](https://languagelog.ldc.upenn.edu/myl/Firth1957.pdf) auf die
 Formel brachte: Man erkennt ein Wort an der Gesellschaft, die es hält.
 
 Wörter mit ähnlicher Bedeutung kommen in ähnlicher Nachbarschaft vor. `Hund` und `Katze` stehen
@@ -34,7 +35,7 @@ beide neben `füttern`, `Tierarzt`, `streicheln`, `Fell`, `Napf`. Das Modell lie
 Sätzen und beobachtet nichts anderes als diese Nachbarschaften. Wörter mit ähnlicher Nachbarschaft
 bekommen ähnliche Zahlenreihen.
 
-Für Deutsch wird dabei ein Korpus aus Common Crawl und der deutschen Wikipedia verwendet, also
+Für Deutsch wird dabei ein Korpus aus [Common Crawl und der deutschen Wikipedia](https://fasttext.cc/docs/en/crawl-vectors) verwendet, also
 aus dem, was Menschen tatsächlich ins Netz geschrieben haben. Das ist wichtig für das Verständnis
 der Ergebnisse: Das Modell bildet ab, wie über Dinge geschrieben wird, nicht wie sie sind.
 
@@ -122,7 +123,7 @@ senkrecht aufeinander. Übertragen auf das Spiel heißt das, dass die überwält
 Wortpaare praktisch unähnlich ist und sich in einem sehr schmalen Band drängt.
 
 Das ist die eigentliche Erklärung dafür, warum das Spiel einen Rang anzeigt und keinen Prozentwert.
-Der rohe Ähnlichkeitswert zwischen zwei zufälligen deutschen Wörtern liegt fast immer in einem
+Der rohe Ähnlichkeitswert zwischen zwei zufälligen deutschen Wörtern liegt typischerweise in einem
 engen Bereich, in dem schon Hundertstel über „daneben“ und „unmittelbar davor“ entscheiden. Der
 Rang macht daraus eine Zahl, die man ohne Vorwissen lesen kann.
 

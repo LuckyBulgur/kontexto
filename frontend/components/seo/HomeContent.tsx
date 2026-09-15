@@ -82,8 +82,8 @@ export default function HomeContent() {
       <SeoHeading>Ein Beispiel</SeoHeading>
       <p className="mb-2 max-w-prose">
         Gesucht ist das Wort <strong className="font-medium text-foreground">Strand</strong>.
-        So könnte sich eine Partie Schritt für Schritt entwickeln, jeder Tipp rückt
-        näher an die Bedeutung:
+        So könnte sich eine Partie Schritt für Schritt entwickeln; in diesem Beispiel
+        rücken die Ränge mit jedem Tipp näher an die Bedeutung:
       </p>
       <ComparisonTable
         columns={["Dein Tipp", "Rang", "Bedeutung"]}
@@ -106,17 +106,18 @@ export default function HomeContent() {
       <SeoHeading>Wie lange dauert eine Partie?</SeoHeading>
       <p className="max-w-prose">
         Vier Züge wie im Beispiel oben sind der Idealfall, der Normalfall sieht anders
-        aus. Über alle bisher gespielten Partien liegt der Schnitt bei rund 85
-        Rateversuchen je Lösung, und 71 von 100 begonnenen Rätseln werden am Ende
-        gelöst. Zeitlich sind das meist fünf bis dreißig Minuten, verteilt über den
-        Tag, denn ein Rätsel bleibt bis Mitternacht offen.
+        aus. Über die veröffentlichten Zähler entfallen rund 85 Rateversuche auf ein
+        gelöstes Rätsel. Unter den beendeten Partien sind 71 von 100 gelöst und 29
+        aufgelöst. Wie lange eine einzelne Partie dauert, wird nicht erfasst; das
+        Rätsel bleibt bis Mitternacht offen.
       </p>
       <p className="mt-3 max-w-prose">
         Der größte Unterschied zwischen einer kurzen und einer langen Partie liegt
         nicht im Wortschatz, sondern im Umgang mit schlechten Rängen. Wer ein Feld
         nach drei erfolglosen Zügen verlässt, ist schneller fertig als jemand, der im
         selben Feld nach immer feineren Synonymen sucht. Ein Wort auf Rang 8.000 ist
-        deshalb kein verlorener Zug: Es schließt eine ganze Richtung sicher aus.
+        deshalb kein verlorener Zug: Im aktuellen Rangmodell spricht es deutlich
+        gegen die geprüfte Richtung, ohne jedes Wort dieses Feldes auszuschließen.
         Bleibst du trotzdem stecken, hilft die Tipp-Funktion in drei Stufen weiter,
         und wer die Lösung sehen will, kann jederzeit auflösen.
       </p>
@@ -131,8 +132,8 @@ export default function HomeContent() {
           Wördle
         </Link>{" "}
         errätst du ein Wort Buchstabe für Buchstabe. Bei Kontexto geht es um Bedeutung:
-        Es gibt unbegrenzt viele Versuche, und jeder Tipp bringt dich der Lösung
-        semantisch näher. Beide Spiele gibt es hier täglich neu, auf Deutsch.
+        Es gibt unbegrenzt viele Versuche, und jeder Tipp liefert dir eine weitere
+        semantische Messung. Beide Spiele gibt es hier täglich neu, auf Deutsch.
       </p>
 
       {/*
@@ -141,23 +142,24 @@ export default function HomeContent() {
         findet. Jede Aussage hier ist auf einer eigenen Seite ausgefuehrt und
         dorthin verlinkt.
       */}
-      <SeoHeading>Was an Kontexto selbst gebaut ist</SeoHeading>
+      <SeoHeading>Was hinter Kontexto steckt</SeoHeading>
       <p className="mb-4 max-w-prose">
-        Kontexto ist kein Baukasten und kein übersetztes Fremdprodukt. Modell,
-        Vokabular, Lösungsauswahl und alle Spielmodi sind für dieses Spiel entstanden
-        und werden hier gepflegt. Jeder der folgenden Punkte ist an anderer Stelle
-        ausführlich belegt.
+        Kontexto ist kein Baukasten und kein übersetztes Fremdprodukt. Die deutsche
+        Aufbereitung, das Vokabular, die Lösungsauswahl und alle Spielmodi sind für
+        dieses Spiel entstanden und werden hier gepflegt. Jeder der folgenden Punkte
+        ist an anderer Stelle ausführlich belegt.
       </p>
       <FeatureGrid>
-        <FeatureCard icon={Cpu} title="Eigenes deutsches Sprachmodell">
-          Ein deutsches fastText-Modell mit 300 Zahlen je Wort, trainiert auf Common
-          Crawl und der deutschen Wikipedia. Kein übersetztes englisches Modell und
-          keine fremde Schnittstelle.
+        <FeatureCard icon={Cpu} title="Deutsches fastText-Modell">
+          Kontexto nutzt das von Meta AI Research veröffentlichte deutsche fastText-Modell
+          mit 300 Zahlen je Wort, trainiert auf Common Crawl und der deutschen Wikipedia.
+          Die Ranglisten und die Spielauswertung entstehen daraus hier selbst, ohne eine
+          fremde Schnittstelle abzufragen.
         </FeatureCard>
         <FeatureCard icon={SlidersHorizontal} title="Entzerrte Vektoren">
           Vor der Berechnung werden der Mittelwert und die drei stärksten
           Hauptkomponenten entfernt. Ohne diesen Schritt wären häufige Wörter zu
-          allem ähnlich und jeder Rang wertlos.
+          vielem ähnlich und viele Ränge durch Worthäufigkeit verzerrt.
         </FeatureCard>
         <FeatureCard icon={ListFilter} title="Geprüfte Lösungswörter">
           Jede Tageslösung durchläuft automatische Filter und Sperrlisten, die von
@@ -203,7 +205,8 @@ export default function HomeContent() {
         und ohne Installation, die Stände werden live übertragen.
       </p>
       <p className="mt-4 max-w-prose">
-        Aus den gespielten Partien entsteht Auswertung, die es sonst nirgends gibt.
+        Aus den gespielten Partien entsteht eine eigene Auswertung, die wir hier
+        mit ihrer Methodik veröffentlichen.
         Für 46 Startwörter wurde über alle 2.400 Rätsel geprüft, wie oft sie
         überhaupt ein verwertbares Signal liefern; 45 davon waren im Vokabular messbar.
         „gehen“ führt das Feld mit 13,2&nbsp;Prozent an, „wasser“ landet entgegen der

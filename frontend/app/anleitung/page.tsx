@@ -89,7 +89,8 @@ export default function AnleitungPage() {
           <h2 id="beispiel">Ein Beispiel-Durchlauf</h2>
           <p>
             Angenommen, das Zielwort ist <strong>Strand</strong>. Eine typische Partie könnte
-            sich so entwickeln, wobei jeder Tipp dich der Bedeutung näher bringt:
+            sich so entwickeln, wobei die Ränge dich Schritt für Schritt in das Bedeutungsfeld
+            führen. Nicht jeder einzelne Tipp muss dabei näher liegen:
           </p>
         </Prose>
         <ComparisonTable
@@ -111,10 +112,10 @@ export default function AnleitungPage() {
           </p>
           <p>
             Wichtig ist dabei die Lesart des ersten Rangs. „Computer“ auf Rang 8420 ist kein
-            verschwendeter Zug, sondern die Auskunft, dass das Zielwort nichts mit Technik zu tun
-            hat. Ein sehr schlechter Rang schließt ein ganzes Bedeutungsfeld aus, und Ausschluss
-            bringt dich bei diesem Spiel oft schneller voran als Annäherung. Wer nur auf sein bestes
-            Wort schaut, verschenkt die Hälfte der Information, die auf dem Bildschirm steht.
+            verschwendeter Zug, sondern ein deutlicher Hinweis gegen die Technik-Richtung. Ein sehr
+            schlechter Rang kann dir helfen, eine Richtung zurückzustellen, beweist aber nicht, dass
+            jedes Wort dieses Bedeutungsfeldes ausgeschlossen ist. Wer nur auf sein bestes Wort
+            schaut, verschenkt einen Teil der Information, die auf dem Bildschirm steht.
           </p>
         </Prose>
       </Reveal>
@@ -126,7 +127,7 @@ export default function AnleitungPage() {
             Drei Dinge helfen Anfängerinnen und Anfängern sofort weiter:
           </p>
           <ul>
-            <li><strong>Mit einem Verb starten:</strong> Gemessen über alle 2.400 Rätsel schneiden „gehen“, „arbeit“, „sehen“ und „zeit“ am besten ab. Verben passen in Sätze zu fast jedem Thema.</li>
+            <li><strong>Breit starten:</strong> Im Benchmark liefern einzelne Wörter wie „gehen“, „machen“, „arbeit“, „sehen“ und „bauen“ am häufigsten ein Signal unter Rang 1500. Zwei der vier Wörter unserer praktischen Routine sind Verben; die gemeinsame Trefferquote der Routine wurde nicht separat gemessen.</li>
             <li><strong>Der Spur folgen:</strong> Hast du einen grünen oder gelben Treffer, probiere verwandte Begriffe aus verschiedenen Richtungen des Themenfelds, nicht nur Synonyme.</li>
             <li><strong>Wortart wechseln:</strong> Steckst du fest, teste statt eines Nomens das passende Verb oder Adjektiv.</li>
           </ul>
@@ -144,14 +145,15 @@ export default function AnleitungPage() {
           <p>
             Kontexto kennt rund 80.000 deutsche Wörter. Groß- und Kleinschreibung ist egal, alles
             andere zählt: Es gibt keine Rechtschreibkorrektur und keine Ähnlichkeitssuche. Vier
-            Regeln decken fast alle Ablehnungen ab.
+            Regeln erklären die häufigsten Ablehnungen.
           </p>
           <ul>
             <li>
-              <strong>Grundform statt Beugung.</strong> Gebeugte Formen werden meist automatisch
-              zugeordnet, aber nicht immer. „gehen“ geht zuverlässiger durch als „ging“. Ein Nachteil
-              entsteht dir dadurch nicht, denn eine erkannte Beugungsform bekommt exakt den Rang
-              ihrer Grundform.
+              <strong>Grundform statt Beugung.</strong> Die Normalisierung prüft zuerst, ob die
+              eingegebene Form selbst im Vokabular steht. Nur wenn das nicht der Fall ist, wird die
+              Lemma-Zuordnung als Rückfall verwendet. „gehen“ ist deshalb für die Suche
+              verlässlicher als „ging“: Beide Formen können unterschiedliche Vokabulareinträge sein,
+              während eine nicht direkt vorhandene Form auf ihre Grundform zurückfallen kann.
             </li>
             <li>
               <strong>Kurz statt lang.</strong> Sehr lange Zusammensetzungen wie

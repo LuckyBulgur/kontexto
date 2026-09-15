@@ -16,17 +16,18 @@
  * Eine reine Umformatierung nicht.
  */
 export const CONTENT_REVISIONS: Record<string, string> = {
-  "/anleitung/": "2026-08-15",
-  "/strategie/": "2026-08-15",
-  "/vergleich/": "2026-08-15",
-  "/glossar/": "2026-08-15",
-  "/zahlen/": "2026-08-15",
-  "/changelog/": "2026-08-15",
-  "/blog/": "2026-08-15",
-  "/faq/": "2026-08-31",
-  "/ueber/": "2026-08-31",
+  "/": "2026-09-15",
+  "/anleitung/": "2026-09-15",
+  "/strategie/": "2026-09-15",
+  "/vergleich/": "2026-09-15",
+  "/glossar/": "2026-09-15",
+  "/zahlen/": "2026-09-15",
+  "/changelog/": "2026-09-15",
+  "/blog/": "2026-09-15",
+  "/faq/": "2026-09-15",
+  "/ueber/": "2026-09-15",
   "/kontakt/": "2026-08-31",
-  "/redaktion/": "2026-08-31",
+  "/redaktion/": "2026-09-15",
   "/cookies/": "2026-08-31",
 };
 

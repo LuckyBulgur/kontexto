@@ -28,6 +28,17 @@
 export const ADSENSE_CLIENT_ID = "ca-pub-3545758989514084";
 export const ADSENSE_REVIEW_MODE = process.env.NEXT_PUBLIC_ADSENSE_REVIEW_MODE !== "false";
 
+/**
+ * Manuelle Anzeigen bleiben auf den beiden Einzelspieler-Landingpages. Die
+ * Allowlist sitzt hier zentral, damit eine neue `<AdUnit>` nicht versehentlich
+ * auf einem funktionalen oder redaktionellen Screen Inventar erzeugt.
+ */
+export const AD_ELIGIBLE_PATHS = ["/", "/wordle/"] as const;
+
+export function isAdEligiblePath(pathname: string | null | undefined): boolean {
+  return pathname !== null && pathname !== undefined && AD_ELIGIBLE_PATHS.some((path) => path === pathname);
+}
+
 export const AD_SLOTS = {
   kontextoResult: process.env.NEXT_PUBLIC_AD_SLOT_KONTEXTO_RESULT,
   wordleResult: process.env.NEXT_PUBLIC_AD_SLOT_WORDLE_RESULT,

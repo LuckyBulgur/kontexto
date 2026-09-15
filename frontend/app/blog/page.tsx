@@ -70,6 +70,13 @@ export default function BlogIndex() {
         , dem Entwickler von Kontexto. Die redaktionellen Grundsätze, Datenquellen und
         Korrekturregeln stehen auf der Seite <Link href="/redaktion/" className="text-primary underline underline-offset-2">Redaktion</Link>.
       </p>
+      <p className="-mt-2 text-sm leading-relaxed text-muted-foreground">
+        Für gemeinsame Runden gibt es außerdem das{" "}
+        <Link href="/wordle/duel/" className="text-primary underline underline-offset-2 hover:no-underline">
+          Wördle-Duell
+        </Link>
+        : dasselbe Wort, sechs Versuche und ein Live-Fortschritt zwischen Freunden.
+      </p>
       {categoryOrder.map((cat) => (
         <Reveal as="section" key={cat} className="space-y-4">
           <div>

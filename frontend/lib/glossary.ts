@@ -115,6 +115,6 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Zipf-Häufigkeit",
     slug: "zipf-haeufigkeit",
-    definition: `Eine logarithmische Skala für die Häufigkeit eines Wortes in einer Sprache. Der Wert 4,0 entspricht etwa zehn Vorkommen pro Million Wörter. Kontexto verlangt von Lösungswörtern mindestens 4,0, damit praktisch jede erwachsene Person das gesuchte Wort kennt.`,
+    definition: `Eine logarithmische Skala für die Häufigkeit eines Wortes in einer Sprache. Der Wert 4,0 entspricht etwa zehn Vorkommen pro Million Wörter. Kontexto nutzt mindestens 4,0 als technische Grenze für häufige Lösungskandidaten; sie garantiert nicht, dass jede erwachsene Person das gesuchte Wort kennt.`,
   },
 ];

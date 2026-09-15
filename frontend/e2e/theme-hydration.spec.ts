@@ -50,6 +50,19 @@ test.describe("Theme & Hydration (Static Export)", () => {
     }
   });
 
+  test("öffentliche Routen ohne Slash werden kanonisiert", async ({ request }) => {
+    for (const [source, target] of [
+      ["/faq", "/faq/"],
+      ["/blog", "/blog/"],
+      ["/blog/startwort-benchmark", "/blog/startwort-benchmark/"],
+      ["/wordle", "/wordle/"],
+    ] as const) {
+      const response = await request.get(source, { maxRedirects: 0 });
+      expect(response.status(), source).toBe(301);
+      expect(response.headers().location, source).toBe(target);
+    }
+  });
+
   test("ephemere Room-URLs werden auch ohne Slash als noindex markiert", async ({ request }) => {
     for (const path of [
       "/duel/does-not-exist",

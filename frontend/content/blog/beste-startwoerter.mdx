@@ -12,12 +12,13 @@ als die meisten vermuten.
 Ein Startwort ist gut, wenn sein Rang **aussagekräftig** ist, egal wo das Zielwort liegt. Das ist
 etwas anderes als „liefert einen guten Rang“.
 
-Der Unterschied ist entscheidend. Ein Wort, das bei fast jedem Zielwort auf Rang 6.000 landet,
+Der Unterschied ist entscheidend. Ein Wort, das bei sehr vielen Zielwörtern auf Rang 6.000 landet,
 liefert dir keine Information, weil du das Ergebnis schon vorher kanntest. Ein Wort, dessen Rang
-je nach Zielwort zwischen 200 und 8.000 schwankt, liefert bei jedem Rätsel etwas Neues.
+je nach Zielwort stark schwankt, kann mehr unterschiedliche Signale liefern. Das ist eine plausible
+Eigenschaft eines Startworts, aber nicht die Kennzahl, nach der unser Benchmark sortiert ist.
 
-Diese Schwankungsbreite ist die eigentliche Zielgröße, und sie hängt daran, mit wie vielen
-Bedeutungsfeldern ein Wort verbunden ist.
+Diese Schwankungsbreite ist eine plausible qualitative Eigenschaft eines guten Startworts. Für
+die vorliegende Auswertung brauchen wir zusätzlich eine einheitliche, messbare Kennzahl.
 
 ## Warum breite Alltagswörter funktionieren
 
@@ -30,8 +31,8 @@ in der Nähe eines dieser Themen, schlägt `Zeit` aus. Liegt es weit weg von all
 deutlich nicht aus. Beides ist verwertbar.
 
 `Thermodynamik` hat sehr wenige Berührungspunkte. Es landet bei praktisch jedem Zielwort weit
-hinten, außer das Zielwort stammt zufällig aus der Physik. In 99 von 100 Rätseln erfährst du damit
-nichts.
+hinten, außer das Zielwort stammt zufällig aus der Physik. Im Benchmark liegt das Wort in knapp 98
+von 100 Rätseln über Rang 1500. Für eine Eröffnung liefert es damit selten ein verwertbares Signal.
 
 Ein zweiter Punkt kommt dazu, und er ist weniger offensichtlich. Damit ein häufiges Wort
 überhaupt einen aussagekräftigen Rang bekommen kann, muss der Häufigkeitseinfluss aus den Vektoren
@@ -42,27 +43,27 @@ gesamte Startwortstrategie nicht funktionieren.
 
 ## Ein Repertoire, das den Raum aufspannt
 
-Nicht die Einzelqualität eines Startworts zählt, sondern wie gut ein **Satz** von vier Wörtern den
-Bedeutungsraum aufspannt. Vier gute Wörter aus demselben Bereich sind schlechter als vier
+Für eine komplette Eröffnung kommt es zusätzlich darauf an, wie gut ein **Satz** von vier Wörtern den
+Bedeutungsraum aufspannt. Vier gute Wörter aus demselben Bereich können weniger abdecken als vier
 mittelmäßige aus vier verschiedenen.
 
-Welche Wörter das leisten, ist inzwischen gemessen und nicht mehr geraten. Über alle 2.400
+Welche einzelnen Wörter ein Signal liefern, ist inzwischen gemessen und nicht mehr geraten. Über alle 2.400
 vorberechneten Rätsel hinweg wurde für 46 Kandidaten ausgerechnet, wie oft sie einen Rang unter
-1500 liefern. Die vier besten:
+1500 liefern. Nach diesem Kriterium führen:
 
 - **gehen** liefert in 13,2 Prozent der Rätsel ein verwertbares Signal, der Spitzenwert im Feld.
-- **arbeit** kommt auf 11,9 Prozent und ist damit das beste Substantiv.
-- **sehen** liegt bei 11,0 Prozent und deckt eine andere Handlungsrichtung ab als `gehen`.
-- **zeit** erreicht 10,3 Prozent und öffnet die abstrakt-zeitliche Richtung.
+- **machen** kommt auf 12,8 Prozent und gehört damit ebenfalls zu den stärksten Einzelwörtern.
+- **arbeit** erreicht 11,9 Prozent und ist das beste Substantiv im Test.
+- **sehen** und **bauen** liegen jeweils bei 11,0 Prozent und decken unterschiedliche Handlungsrichtungen ab.
 
-Drei der vier sind Verben, und das ist kein Zufall: Ein Verb erscheint in Sätzen über praktisch
-jedes Thema, weil fast jeder Sachverhalt eine Handlung enthält. Ein Substantiv bringt dagegen sein
-eigenes Thema schon mit.
+Vier der fünf sind Verben. Das zeigt einen Unterschied in diesem Kandidatenfeld, beweist aber nicht,
+dass Verben grundsätzlich bessere Startwörter sind. Ein Verb kann in Sätzen über viele Themen
+erscheinen, während ein Substantiv sein eigenes Thema stärker mitbringt.
 
 Bemerkenswert ist, was **nicht** funktioniert. `Wasser` galt hier lange als Musterbeispiel für ein
 breites Startwort und liegt gemessen auf Platz 38 von 45, mit 2,6 Prozent schlechter als
 `Thermodynamik`, das als Gegenbeispiel gedacht war. Es fühlt sich breit an, weil es in vielen
-Lebensbereichen vorkommt, aber seine Satzumgebungen ähneln sich stark: Es geht fast immer
+Lebensbereichen vorkommt, aber seine Satzumgebungen ähneln sich stark: Es geht häufig
 buchstäblich um Flüssigkeit. Die vollständige Auswertung steht in
 [Startwort-Benchmark](/blog/startwort-benchmark/).
 
@@ -76,9 +77,10 @@ hast.
 Nach vier Zügen hast du vier Zahlen. Der übliche Reflex ist, auf die beste zu schauen. Nützlicher
 ist es, mit den schlechtesten anzufangen.
 
-Ein Wort auf Rang 8.000 schließt sein komplettes Feld aus, und zwar sicher: Bei diesem Rang gibt
-es kaum eine Möglichkeit, dass das Zielwort doch dort liegt. Drei solche Absagen sind deshalb
-verlässlicher als ein einzelner mittlerer Treffer.
+Ein Wort auf Rang 8.000 ist im aktuellen Rangmodell ein deutliches Gegenargument gegen die eine
+Richtung, die du mit diesem Wort geprüft hast. Es beweist aber nicht, dass jedes Wort dieses Feldes
+ausgeschlossen ist. Drei voneinander unabhängige Absagen sind als Arbeitsgrundlage oft nützlicher
+als ein einzelner mittlerer Treffer.
 
 Ein Treffer auf Rang 400 ist dagegen unsicher. Bei 80.000 Wörtern ist Rang 400 das obere halbe
 Prozent, und darin liegen mehrere komplette Themenfelder nebeneinander. Er sagt dir, dass du in
@@ -90,7 +92,7 @@ Sobald ein Startwort ausschlägt, ändert sich die Aufgabe. Jetzt geht es nicht 
 sondern um **Richtung**.
 
 Der häufigste Fehler an dieser Stelle ist, Synonyme des besten Startworts zu probieren. Liegt
-`Wasser` auf 380, kommen `Flüssigkeit`, `nass`, `feucht`. Das bringt fast nie etwas, weil Synonyme
+`Wasser` auf 380, kommen `Flüssigkeit`, `nass`, `feucht`. Das bringt oft wenig, weil Synonyme
 in derselben Ecke liegen und dieselbe Information ein zweites Mal liefern.
 
 Nützlich ist stattdessen, die Achsen abzugehen, die von deinem besten Wort wegführen. Bei `Wasser`
@@ -110,7 +112,8 @@ tasten den Raum dadurch anders ab.
 
 ## Warum vier und nicht zwei oder acht
 
-Die Empfehlung lautet vier Startwörter, und diese Zahl ist nicht beliebig gewählt.
+Die praktische Empfehlung lautet vier Startwörter. Diese Zahl ist eine Arbeitsregel aus den
+unterschiedlichen Richtungen, keine separat getestete optimale Anzahl.
 
 Zwei sind zu wenig. Selbst das beste Startwort liefert nur in gut jeder achten Partie einen Rang
 unter 1.500. Bei zwei Wörtern endet die Eröffnung deshalb häufig damit, dass beide weit hinten
@@ -121,10 +124,10 @@ Acht sind zu viele. Ab dem fünften oder sechsten breiten Wort überschneiden si
 stark, dass jedes weitere kaum noch neue Fläche abdeckt. Man zahlt volle Züge für abnehmenden
 Ertrag, und in dieser Zeit hätte man das erste vielversprechende Feld schon abarbeiten können.
 
-Vier ist der Punkt, an dem die vier Grundrichtungen einmal abgedeckt sind und die Wahrscheinlichkeit
-ordentlich steht, dass mindestens eines der Wörter im gelben Bereich landet. Wichtiger als die
-genaue Zahl ist die Streuung: Vier Wörter aus vier verschiedenen Bereichen schlagen sechs Wörter aus
-zwei Bereichen deutlich.
+Vier deckt unsere vier Grundrichtungen einmal ab und hält die Eröffnung überschaubar. Ob diese
+Anzahl einer anderen Anzahl messbar überlegen ist, wurde nicht untersucht. Wichtiger als die genaue
+Zahl ist als Arbeitsregel die Streuung: Wörter aus verschiedenen Bereichen können mehr neue
+Information liefern als mehrere Wörter aus derselben Ecke.
 
 ## Was ein Startwort im roten Bereich noch verrät
 
@@ -149,9 +152,10 @@ alle 2.400 Rätsel gemessen worden, sie sind nicht an diesem einen Tag schlecht.
 Wenn du dir eigene Startwörter zusammenstellen willst, gibt es eine einfache Prüfung: Spiele deinen
 Satz zwei Wochen lang unverändert und notiere die Ränge.
 
-Ein Wort, dessen Rang über zwei Wochen kaum schwankt, ist wertlos, egal wie hoch oder niedrig er
-liegt. Tausch es aus. Ein Wort, dessen Rang stark schwankt, arbeitet für dich.
+Ein Wort, dessen Rang über zwei Wochen kaum schwankt, liefert in deiner kleinen Stichprobe wenig
+unterschiedliche Signale, egal wie hoch oder niedrig er liegt. Tausch es versuchsweise aus. Ein
+Wort, dessen Rang stärker schwankt, kann für deine Eröffnung nützlicher sein.
 
 Mehr Techniken für die Phase danach stehen in
 [12 Strategien](/blog/kontexto-tipps-schneller-gewinnen/), und die Gewohnheiten, die dagegen
-arbeiten, in [7 häufige Fehler](/blog/haeufige-fehler-bei-kontexto/).
+arbeiten, in [10 häufige Fehler](/blog/haeufige-fehler-bei-kontexto/).

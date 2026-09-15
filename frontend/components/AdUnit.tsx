@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ADSENSE_CLIENT_ID, ADSENSE_REVIEW_MODE } from "@/lib/adsense";
+import { usePathname } from "next/navigation";
+import { ADSENSE_CLIENT_ID, ADSENSE_REVIEW_MODE, isAdEligiblePath } from "@/lib/adsense";
 
 interface AdUnitProps {
   /** `data-ad-slot`-Wert aus dem AdSense-Dashboard. Ohne Slot rendert nichts. */
@@ -45,11 +46,12 @@ export function AdUnit({
   className,
   label = "Anzeige",
 }: AdUnitProps) {
+  const pathname = usePathname();
   const insRef = useRef<HTMLModElement>(null);
   const pushedRef = useRef(false);
 
   useEffect(() => {
-    if (!slot || pushedRef.current) return;
+    if (!slot || !isAdEligiblePath(pathname) || pushedRef.current) return;
     const ins = insRef.current;
     if (!ins) return;
     if (ins.getAttribute("data-adsbygoogle-status")) {
@@ -62,9 +64,9 @@ export function AdUnit({
     } catch {
       /* geblockt / Consent verweigert / nicht geladen: UI nie brechen */
     }
-  }, [slot]);
+  }, [pathname, slot]);
 
-  if (ADSENSE_REVIEW_MODE || !slot) return null;
+  if (ADSENSE_REVIEW_MODE || !slot || !isAdEligiblePath(pathname)) return null;
 
   const insStyle: React.CSSProperties = fixed
     ? { display: "inline-block", width: fixed.width, height: fixed.height }

@@ -1,4 +1,4 @@
-# Was Spielende raten, und warum es fast nie die besten Wörter sind
+# Was Spielende raten, und warum es selten die besten Wörter sind
 
 import PopularityQualityChart from "@/components/content/PopularityQualityChart";
 
@@ -7,8 +7,8 @@ werden. Der veröffentlichte Snapshot vom 15. August 2026 zählt, welche Wörter
 eingegeben werden: 154.150 Eingaben verteilt auf die 100 meistgeratenen Wörter. Der andere misst,
 welche Wörter tatsächlich etwas taugen, gerechnet über alle 2.400 vorbereiteten Rätsel.
 
-Legt man beide übereinander, kommt ein Ergebnis heraus, das unangenehm eindeutig ist: **Die
-Beliebtheit eines Wortes sagt praktisch nichts darüber, ob es hilft.**
+Legt man beide übereinander, ergibt sich ein deutlicher Abstand: **Die Beliebtheit eines Wortes sagt
+in diesem Snapshot nur wenig darüber, ob es als Startwort hilft.**
 
 ## Was verglichen wurde
 
@@ -20,9 +20,10 @@ zwei Zahlen nebeneinander:
   Kennzahl aus dem [Startwort-Benchmark](/blog/startwort-benchmark/): der Anteil der Rätsel, in
   denen das Wort überhaupt ein verwertbares Signal gibt.
 
-Der Zusammenhang zwischen beiden liegt bei einer Rangkorrelation von **minus 0,009**. In Worten:
-kein Zusammenhang. Wer die Beliebtheitsliste von oben nach unten liest, erfährt über die Nützlichkeit
-der Wörter genau so viel wie beim Würfeln.
+Der lineare Zusammenhang zwischen beiden liegt bei einer Pearson-Korrelation von **minus 0,121**.
+Das ist in dieser kleinen Vergleichsmenge ein schwacher negativer Zusammenhang, aber kein
+belastbarer Vorhersagewert. Wer die Beliebtheitsliste von oben nach unten liest, bekommt daraus
+keine verlässliche Reihenfolge für gute Startwörter.
 
 <PopularityQualityChart />
 
@@ -57,18 +58,18 @@ oben in der Beliebtheit auf:
 ## Warum das passiert
 
 Die Erklärung steht in der Liste selbst. Die zehn meistgeratenen Wörter sind `haus`, `mensch`,
-`tier`, `essen`, `wasser`, `auto`, `schule`, `sport`, `arbeit`, `geld`. Neun davon sind konkrete
-Substantive.
+`tier`, `essen`, `wasser`, `auto`, `schule`, `sport`, `arbeit`, `geld`. Neun davon sind im Deutschen
+vor allem konkrete Nomen-Wörter; `essen` ist dabei je nach Verwendung auch ein Verb.
 
 Genau das ist der Reflex, den der Benchmark widerlegt hat. Ein Substantiv bringt sein Thema mit,
 und deshalb ist sein Rang bei den allermeisten Zielwörtern gleich schlecht. `tier` ist eine präzise
 Sonde für den Bereich Tiere und eine wertlose für alles andere. Weil aber nur ein Bruchteil der
 Rätsel im Tierbereich liegt, misst `tier` in der überwiegenden Mehrheit der Partien nichts.
 
-Ein Verb erscheint dagegen in Sätzen über praktisch jedes Thema, weil fast jeder Sachverhalt eine
-Handlung enthält. `gehen` steht in Texten über Schule, Verträge, Uhren, Beziehungen und
-Geschäftsentwicklung. Sein Rang schwankt deshalb je nach Zielwort erheblich, und genau diese
-Schwankung ist die Information.
+Bei einem Verb können dagegen sehr verschiedene Verwendungen zusammenkommen. `gehen` steht etwa
+für den Weg zur Schule, einen Vertrag, eine Uhr, eine Beziehung oder eine
+Geschäftsentwicklung. Seine Rangwerte schwanken deshalb über die Zielwörter stärker als bei einer
+engen thematischen Sonde; genau diese Schwankung ist für einen Startversuch nützlich.
 
 Die Beliebtheitsliste bildet also nicht ab, was funktioniert, sondern **wie Menschen assoziieren,
 wenn sie an nichts Bestimmtes denken**. Gefragt nach einem beliebigen deutschen Wort, antworten die
@@ -123,9 +124,10 @@ Messpunkte. Für die mittleren Plätze ist der Vergleich unschärfer, als die Ta
 Wer die Zahlen selbst prüfen will, findet beide Datensätze offen unter
 [Kontexto in Zahlen](/zahlen/).
 
-Zweite Einschränkung: 28 gemeinsame Wörter sind eine kleine Stichprobe. Die Rangkorrelation von
-minus 0,009 ist deshalb ein deutlicher Hinweis auf „kein Zusammenhang“ und kein Beweis für einen
-negativen.
+Zweite Einschränkung: 28 gemeinsame Wörter sind eine kleine Stichprobe. Die genannte Pearson-
+Korrelation wurde aus der Eingabezahl und dem Anteil unter Rang 1500 für genau diese gemeinsamen
+Wörter berechnet. Sie ist deshalb eine explorative Beschreibung dieses Snapshots und kein Beweis
+für einen allgemeinen Zusammenhang.
 
 ## Was du daraus mitnimmst
 
@@ -134,13 +136,14 @@ Der praktische Schluss ist unbequem, weil er gegen das Gefühl arbeitet.
 **Spiele nicht, was dir zuerst einfällt.** Was dir zuerst einfällt, fällt auch allen anderen zuerst
 ein, und die Messung zeigt, dass diese Wörter überwiegend im schlechteren Teil des Feldes liegen.
 
-**Nimm ein festes Repertoire aus vier Wörtern, und lass mindestens drei davon Verben sein.** Die
-gemessene Empfehlung lautet `gehen`, `arbeit`, `sehen`, `zeit`. Drei davon würdest du von allein
-kaum wählen, und genau das ist der Punkt.
+**Nimm ein festes Repertoire aus vier Wörtern, darunter mindestens zwei Verben.** Die Messung macht
+`gehen`, `arbeit`, `sehen` und `zeit` als Einzelwörter interessant. Sie bewertet aber nicht die
+gemeinsame Trefferquote dieser vier Wörter. Zwei davon sind Verben, und genau diese Unterscheidung
+ist bei der Interpretation wichtig.
 
 **Ein beliebtes Wort ist kein geprüftes Wort.** Dass `wasser` sich breit anfühlt, heißt nur, dass
 es in vielen Lebensbereichen vorkommt. Seine Satzumgebungen ähneln sich trotzdem stark, es geht
-fast immer buchstäblich um Flüssigkeit. Deshalb landet es auf Platz 38 von 45.
+häufig buchstäblich um Flüssigkeit. Deshalb landet es auf Platz 38 von 45.
 
 Wie du aus den vier Startwörtern eine Richtung ableitest, steht in
 [Semantische Wortfelder](/blog/semantische-wortfelder-strategie/). Warum die Intuition hier so

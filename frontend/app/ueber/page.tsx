@@ -89,8 +89,8 @@ export default function UeberPage() {
             „Hundert“, obwohl „Hundert“ dieselben Anfangsbuchstaben hat.
           </p>
           <p>
-            Ein Zwischenschritt ist dabei entscheidend und in kaum einem vergleichbaren Spiel
-            dokumentiert: Rohe Wortvektoren tragen einen gemeinsamen Drift, der vor allem
+            Ein Zwischenschritt ist dabei entscheidend: Rohe Wortvektoren tragen einen gemeinsamen
+            Drift, der vor allem
             Worthäufigkeit kodiert. Ohne Korrektur lägen häufige Allerweltswörter bei jedem
             beliebigen Zielwort weit vorne, und der Rang würde messen, wie gebräuchlich dein Wort
             ist statt wie passend. Kontexto entfernt diesen Anteil vorab, siehe{" "}
@@ -123,8 +123,8 @@ export default function UeberPage() {
             Lösungen gibt.
           </p>
           <p>
-            <strong>Kein Konto.</strong> Für ein Spiel, das fünf Minuten dauert, wäre jede
-            Registrierung teurer als das Spiel selbst. Dafür hängen Streak und Statistik an dem
+            <strong>Kein Konto.</strong> Für ein Spiel, das sofort ohne Registrierung beginnen soll,
+            wäre eine zusätzliche Anmeldung eine unnötige Hürde. Dafür hängen Streak und Statistik an dem
             Browser, in dem du spielst. Alle drei Punkte samt ihrer Nachteile stehen ausführlich in{" "}
             <Link href="/blog/spieldesign-unbegrenzte-versuche/">
               Warum Kontexto unbegrenzte Versuche hat
@@ -219,10 +219,10 @@ export default function UeberPage() {
           <h2 id="finanzierung">Wie das Spiel finanziert wird</h2>
           <p>
             Kontexto ist kostenlos und soll es bleiben. Es gibt keine Bezahlschranke, keinen
-            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Finanziert wird der
-            Der Betrieb soll nach einer Freischaltung über Werbung finanziert werden, und zwar
-            ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die
-            Mehrspieler-Räume bleiben werbefrei, weil eine
+            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Der Betrieb soll nach
+            einer Freischaltung über Werbung finanziert werden, und zwar ausschließlich auf den
+            beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume
+            bleiben werbefrei, weil eine
             Anzeige dort neben zu wenig eigenem Inhalt stünde.
           </p>
           <p>

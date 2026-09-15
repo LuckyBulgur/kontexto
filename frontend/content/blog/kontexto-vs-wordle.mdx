@@ -19,7 +19,7 @@ verkleinert sich mit jedem Zug berechenbar.
 
 Deshalb funktioniert dort Optimierung. Man kann ausrechnen, welches Startwort im Durchschnitt am
 meisten Unsicherheit beseitigt, und gute Spieler tun genau das. Sechs Versuche sind knapp genug,
-um Schludrigkeit zu bestrafen, und weit genug, dass saubere Logik zuverlässig gewinnt.
+um Schludrigkeit zu bestrafen, und lassen bei sauberer Logik eine begründete Lösung zu.
 
 ## Kontexto: ein Suchraum, der nur vermessen wird
 
@@ -47,7 +47,7 @@ steht in [Warum Kontexto unbegrenzte Versuche hat](/blog/spieldesign-unbegrenzte
 | Rückmeldung | drei Farben pro Buchstabe | eine Rangzahl |
 | Was der Zug bewirkt | schneidet Kandidaten weg | misst eine Entfernung |
 | Erfolgsfaktor | Ausschlusslogik | assoziatives Denken |
-| Dauer | meist unter 5 Minuten | 5 bis 30 Minuten |
+| Rundenstruktur | höchstens sechs Züge | offen bis zur Lösung |
 | Gefühl beim Verlieren | knapp verpasst | im falschen Feld gesucht |
 
 ## Warum ein Rangsprung nicht überall dasselbe bedeutet
@@ -64,28 +64,30 @@ Vokabelwörter zum Zielwort, und diese Ähnlichkeiten sind extrem ungleich verte
 liegen wenige Wörter mit spürbar unterschiedlicher Nähe, dahinter drängen sich Zehntausende in
 einem schmalen Band, in dem sich die Werte kaum noch unterscheiden.
 
-Praktisch heißt das: Der Sprung von Rang 9.000 auf Rang 5.000 ist fast nichts. Beide Wörter sind
-im Sinne des Modells gleich weit weg, der Unterschied ist Rauschen. Der Sprung von Rang 300 auf
-Rang 90 ist dagegen ein echter Schritt, weil dort jeder Platz durch einen messbaren
-Bedeutungsunterschied gedeckt ist.
+Praktisch heißt das: Ein Sprung von Rang 9.000 auf Rang 5.000 ist oft schwerer zu
+interpretieren als ein Sprung von Rang 300 auf Rang 90. Im hinteren Bereich liegen viele Wörter
+in einem engen Ähnlichkeitsband. Ob eine einzelne Verbesserung dort eine echte Richtungsänderung
+oder nur eine kleine Modellabweichung ist, lässt sich aus dem Rang allein nicht sicher ablesen.
 
 Daraus folgt eine Faustregel, die dem Wördle-Reflex widerspricht: **Im roten Bereich lohnt es
 nicht, kleine Verbesserungen zu verfolgen.** Wer von 9.000 auf 5.000 kommt und daraufhin in
-dieselbe Richtung weitersucht, verfolgt meist eine Zufallsschwankung. Erst unterhalb von etwa
-1.500 wird die Richtung eines Fortschritts verlässlich, und erst dort lohnt das feine Abarbeiten
-eines Bedeutungsfelds.
+dieselbe Richtung weitersucht, kann einer zufälligen Schwankung hinterherlaufen. Unterhalb von
+etwa 1.500 lässt sich ein Treffer im Spiel meist leichter als Arbeitsrichtung einordnen. 1.500
+ist dabei die gelbe Farbgrenze der Spieloberfläche, kein separat gemessener
+Zuverlässigkeitsschwellenwert.
 
 ## Zwei Partien nebeneinander
 
-Wie verschieden sich das anfühlt, zeigt ein Durchgang durch beide Spiele an einem Tag.
+Wie verschieden sich das anfühlt, zeigt ein bewusst konstruiertes Beispiel durch beide Spiele an
+einem Tag. Die Zahlen in diesem Durchgang sind Beispielwerte, keine gespeicherte Spielerpartie.
 
-**Wördle, Lösung `TISCH`.** Zug eins `RATEN`: das T ist gelb, alles andere grau. Bekannt ist jetzt,
+**Wördle, Beispiel mit der Lösung `TISCH`.** Zug eins `RATEN`: das T ist gelb, alles andere grau. Bekannt ist jetzt,
 dass ein T vorkommt, aber nicht an Position eins, und dass R, A, E und N ausscheiden. Zug zwei
 `STOLZ`: S und T gelb, O, L, Z grau. Zwei Buchstaben stehen fest, ihre Positionen sind
 eingegrenzt. Zug drei `TISCH`: Treffer. Drei Züge, und jeder einzelne hat den Kandidatenraum
 nachweisbar verkleinert.
 
-**Kontexto, Lösung `Tisch`.** Zug eins `gehen`: Rang 6.842, also weit weg, aber das war zu
+**Kontexto, simuliertes Beispiel mit der Lösung `Tisch`.** Zug eins `gehen`: Rang 6.842, also weit weg, aber das war zu
 erwarten. Zug zwei `Haus`: Rang 412, das Feld stimmt ungefähr. Zug drei `Zimmer`: Rang 88, deutlich
 näher. Zug vier `Sessel`: Rang 34. Zug fünf `Regal`: Rang 51, also wieder etwas schlechter, das
 Feld ist damit ausgereizt. Zug sechs `Tisch`: Treffer. Sechs Züge, aber die Information kam
@@ -102,10 +104,10 @@ einen klaren Schluss, gewonnen oder verloren nach höchstens sechs Zügen, und l
 sauber abhaken. Kontexto hat keinen, es endet, wenn du es beendest, und wer es zuerst spielt,
 schiebt Wördle oft auf.
 
-Zahlenmäßig passt das zusammen: Über alle bisher ausgewerteten Kontexto-Partien liegt der Schnitt
-bei rund 85 Rateversuchen je Lösung, 71 von 100 begonnenen Rätseln werden gelöst. Wördle ist meist
-nach drei bis fünf Zügen entschieden. Zusammen sind das zwanzig bis dreißig Minuten, verteilt über
-den Tag, denn beide Rätsel bleiben bis Mitternacht offen.
+Zahlenmäßig lässt sich Kontexto so einordnen: Über die veröffentlichten Zähler entfallen rund 85
+Rateversuche auf ein gelöstes Rätsel. Unter den beendeten Partien sind 71 von 100 gelöst und 29
+aufgelöst. Eine belastbare durchschnittliche Spieldauer gibt es nicht, weil keine Sitzungen erfasst
+werden. Beide Tagesrätsel bleiben bis Mitternacht offen.
 
 Ein letzter praktischer Punkt: Weil beide Spiele denselben Spielstand-Mechanismus nutzen, also
 lokalen Browserspeicher ohne Konto, gilt für beide dasselbe. Der Wechsel vom Telefon an den
@@ -147,14 +149,14 @@ Die ehrliche Antwort hängt weniger vom Wortspielgeschmack ab als davon, welche 
 du erträgst.
 
 Bei Wördle verlierst du **knapp**. Man sieht am Ende genau, welcher Zug der falsche war, und das
-nagt. Dafür ist die Runde in fünf Minuten vorbei und hat einen klaren Schnitt.
+nagt. Dafür endet die Runde nach spätestens sechs Zügen und hat einen klaren Schnitt.
 
 Bei Kontexto verlierst du **orientierungslos**. Man stand vierzig Züge im falschen Feld und merkt
 es erst bei der Auflösung. Dafür gibt es diesen Moment, in dem drei Ränge plötzlich ein Muster
 ergeben und das Wort aus dem Nichts auftaucht. Den hat Wördle nicht.
 
 Du musst dich ohnehin nicht entscheiden. Beide laufen auf derselben Seite, beide erscheinen
-täglich neu, und zusammen dauern sie selten mehr als zwanzig Minuten. Wenn du auch Contexto und
-Semantle einordnen willst, stellt der [große Spielvergleich](/vergleich/) alle vier gegenüber. Und
+täglich neu und lassen sich direkt nacheinander spielen. Wenn du auch Contexto und Semantle
+einordnen willst, stellt der [große Spielvergleich](/vergleich/) alle vier gegenüber. Und
 wenn du eines der beiden gegen Freunde spielen willst, beschreibt
 [Duell und Koop](/blog/duell-und-koop-taktik/) die Mehrspielermodi.

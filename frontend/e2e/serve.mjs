@@ -99,6 +99,14 @@ async function resolveFile(pathname) {
   return null;
 }
 
+async function hasCanonicalDirectory(pathname) {
+  if (pathname === "/" || pathname.endsWith("/")) return false;
+  const decoded = decodeURIComponent(pathname);
+  const safe = path.posix.normalize(decoded).replace(/^(\.\.\/)+/, "/");
+  const indexFile = path.join(ROOT, safe, "index.html");
+  return indexFile.startsWith(ROOT) && (await isFile(indexFile));
+}
+
 function robotsHeader(pathname) {
   if (
     /^\/(?:duel|koop)\/[^/?]+(?:\/|$)/.test(pathname) ||
@@ -154,6 +162,17 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("Not found");
     }
+    return;
+  }
+
+  // nginx redirects a real exported route without its trailing slash before
+  // serving the directory index. Mirror that behavior so the E2E URL graph
+  // catches duplicate canonical candidates that could otherwise appear in
+  // Search Console as URLs without a referring sitemap. Internal 404
+  // directories are handled above and must remain real 404 responses.
+  if (await hasCanonicalDirectory(pathname)) {
+    res.writeHead(301, { location: `${pathname}/` });
+    res.end();
     return;
   }
 

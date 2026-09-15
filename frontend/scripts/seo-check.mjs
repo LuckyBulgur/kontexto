@@ -56,7 +56,47 @@ if (publicStatsData && benchmarkData) {
     home.includes(`Platz ${benchmarkRank} von ${benchmarkData.results.length}`),
     `home: wasser rank is not aligned with the benchmark snapshot (expected ${benchmarkRank})`,
   );
+
+  const totals = publicStatsData.totals;
+  ok(publicStatsData.top_words.length === 100, "stats: expected exactly 100 top words");
+  ok(
+    totals.solves + totals.reveals > 0,
+    "stats: solved and revealed totals must contain finished games",
+  );
+  ok(
+    publicStatsData.guesses_per_solve ===
+      Number((totals.guesses / totals.solves).toFixed(1)),
+    "stats: guesses_per_solve is not aligned with rounded totals",
+  );
+
+  const dailySeries = [
+    ...publicStatsData.last_30_days.guesses,
+    ...publicStatsData.last_30_days.solves,
+  ];
+  ok(
+    dailySeries.length > 0 && dailySeries.every((row) => row.value >= 0 && row.date <= publicStatsData.generated_on),
+    "stats: daily values must be non-negative and not future-dated",
+  );
+
+  const benchmarkWords = benchmarkData.results.map((result) => result.word);
+  ok(
+    new Set(benchmarkWords).size === benchmarkWords.length,
+    "benchmark: candidate words must be unique",
+  );
+  ok(
+    benchmarkData.results.every(
+      (result) =>
+        result.games === benchmarkData.games_evaluated &&
+        result.share_under_300 >= 0 &&
+        result.share_under_300 <= 1 &&
+        result.share_under_1500 >= 0 &&
+        result.share_under_1500 <= 1,
+    ),
+    "benchmark: result rows are not aligned with the evaluated game count",
+  );
 }
+ok(!home.includes("Eigenes deutsches Sprachmodell"), "home: external fastText model must not be claimed as own");
+ok(home.includes("Meta AI Research"), "home: external fastText model attribution missing");
 
 // Extended per-phase (canonical/H1/content/schema) checks are appended below in later tasks.
 export const checks = { home }; // exported for reuse
@@ -353,6 +393,34 @@ async function htmlFiles(dir) {
     else if (entry.name.endsWith(".html")) out.push(full);
   }
   return out;
+}
+
+// Eine URL in der Sitemap sollte nicht nur formal existieren, sondern auch
+// über mindestens einen dauerhaften internen Link erreichbar sein. Das ist ein
+// lokaler Orphan-Schutz; die Search Console kann damit nicht ersetzt werden,
+// weil Google seine eigene Crawl- und Sitemap-Zuordnung führt.
+const normalizeRoute = (value) => {
+  if (value === "/") return "/";
+  return `/${value.replace(/^\/+|\/+$/g, "")}/`;
+};
+const sitemapIncoming = new Map(
+  sitemapLocs.map((loc) => [new URL(loc).pathname, 0]),
+);
+for (const file of await htmlFiles(OUT)) {
+  const rel = relative(OUT, file).replace(/\\/g, "/");
+  const source = rel === "index.html"
+    ? "/"
+    : normalizeRoute(rel.replace(/\/index\.html$/, ""));
+  const html = await readFile(file, "utf8");
+  for (const match of html.matchAll(/href="(\/[^"]*)"/g)) {
+    const target = normalizeRoute(match[1].split(/[?#]/, 1)[0]);
+    if (target !== source && sitemapIncoming.has(target)) {
+      sitemapIncoming.set(target, sitemapIncoming.get(target) + 1);
+    }
+  }
+}
+for (const [route, incoming] of sitemapIncoming) {
+  ok(route === "/" || incoming > 0, `sitemap: ${route} has no incoming internal link`);
 }
 
 const visibleText = (html) =>

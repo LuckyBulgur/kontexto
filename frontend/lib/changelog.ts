@@ -24,6 +24,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-15",
+    kind: "Behoben",
+    title: "Benchmark und Spielstatistik präzisiert",
+    body:
+      "Die Startwort-Auswertung nennt jetzt die tatsächlich stärksten Einzelwörter und trennt ihre Messung klar von einer nicht getesteten Vierer-Kombination. Die 71-Prozent-Kennzahl ist ausdrücklich als Anteil gelöster Partien unter den beendeten Partien beschrieben. Die Wochentagsgrafik verwendet dieselbe Tagesquoten-Definition wie die zugehörige Tabelle. Simulierte Beispiele und externe Grundlagen sind ebenfalls gekennzeichnet beziehungsweise direkt verlinkt.",
+    href: "/zahlen/",
+    hrefLabel: "Zu den Zahlen",
+  },
+  {
     date: "2026-08-15",
     kind: "Verbessert",
     title: "Spielseiten erklären das Spiel jetzt auch",
@@ -37,7 +46,7 @@ export const changelog: ChangelogEntry[] = [
     kind: "Neu",
     title: "Kontexto in Zahlen: gemessene Daten statt Behauptungen",
     body:
-      "Eine neue Seite zeigt die serverseitig gezählten Kennzahlen, die 100 meistgeratenen Wörter und einen Startwort-Benchmark über alle 2.400 vorberechneten Rätsel. Die Auswertung hat drei eigene Empfehlungen widerlegt: „Wasser“ ist gemessen ein schlechtes Startwort, und Verben schlagen Substantive deutlich. Die Strategie-Seite, die Spielanleitung und die FAQ wurden entsprechend korrigiert.",
+      "Eine neue Seite zeigt die serverseitig gezählten Kennzahlen, die 100 meistgeratenen Wörter und einen Startwort-Benchmark über alle 2.400 vorbereiteten Rätsel. Die Auswertung machte sichtbar, dass „Wasser“ im gewählten Kriterium schwach ist und im getesteten Kandidatenfeld vier Verben unter den fünf stärksten Einzelwörtern liegen.",
     href: "/zahlen/",
     hrefLabel: "Zu den Zahlen",
   },
@@ -96,7 +105,7 @@ export const changelog: ChangelogEntry[] = [
     kind: "Behoben",
     title: "Lösungswort-Auswahl komplett neu gebaut, Neustart bei Tag 1",
     body:
-      "Der häufigste Kritikpunkt war, dass zu oft Eigennamen wie „Emma“ oder „Berlin“ die Lösung waren. Die Auswahl prüft jetzt jedes Kandidatenwort mit vier unabhängigen Verfahren und lässt nur allgemein bekannte deutsche Inhaltswörter durch. Weil sich damit die Zuordnung von Tag zu Wort geändert hat, beginnt die Rätselreihe neu bei Tag 1. Die persönliche Statistik blieb erhalten.",
+      "Der häufigste Kritikpunkt war, dass zu oft Eigennamen wie „Emma“ oder „Berlin“ die Lösung waren. Die Auswahl prüft jetzt jedes Kandidatenwort mit mehreren Verfahren und lässt nur häufige deutsche Inhaltswörter durch. Weil sich damit die Zuordnung von Tag zu Wort geändert hat, beginnt die Rätselreihe neu bei Tag 1. Die persönliche Statistik blieb erhalten.",
     href: "/blog/warum-keine-namen-mehr-als-loesungswoerter/",
     hrefLabel: "Was genau geändert wurde",
   },

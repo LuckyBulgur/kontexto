@@ -52,7 +52,7 @@ export default function VergleichPage() {
             ["Neues Rätsel", "täglich", "täglich", "täglich", "täglich"],
             ["Was ein Zug bewirkt", "misst eine Entfernung", "schneidet Kandidaten weg", "misst eine Entfernung", "misst eine Entfernung"],
             ["Gefragt ist", "assoziatives Denken", "Ausschlusslogik", "assoziatives Denken", "assoziatives Denken"],
-            ["Typische Dauer", "5 bis 30 Minuten", "unter 5 Minuten", "5 bis 30 Minuten", "10 bis 40 Minuten"],
+            ["Rundenstruktur", "offen bis zur Lösung", "höchstens sechs Züge", "offen bis zur Lösung", "offen bis zur Lösung"],
             ["Mehrspieler", "Duell und Koop", "Duell", "nein", "nein"],
             ["Konto nötig", "nein", "nein", "nein", "nein"],
             ["Kostenlos", "ja", "ja", "ja", "ja"],
@@ -80,9 +80,9 @@ export default function VergleichPage() {
           <p>
             Kontexto dreht das um: Hier ist die Schreibweise egal, es zählt allein die{" "}
             <strong>Bedeutung</strong>. Du hast unbegrenzt viele Versuche, und jeder Tipp bekommt
-            einen Rang, der zeigt, wie nah du der Bedeutung des Zielworts kommst. Wordle ist in
-            wenigen Minuten gelöst; Kontexto ist eher ein Marathon des Assoziierens. Viele spielen
-            beides täglich, hier stehen sie nebeneinander.
+            einen Rang, der zeigt, wie nah du der Bedeutung des Zielworts kommst. Wördle ist nach
+            spätestens sechs Zügen entschieden; Kontexto bleibt offen, bis du das Wort löst oder
+            die Partie auflöst. Viele spielen beides täglich, hier stehen sie nebeneinander.
           </p>
         </Prose>
       </Reveal>
@@ -164,8 +164,8 @@ export default function VergleichPage() {
             <strong>Großschreibung.</strong> Sie ist im Deutschen das wichtigste Signal, um einen
             Eigennamen von einem normalen Wort zu unterscheiden. Bei der Verarbeitung wird alles
             kleingeschrieben, wodurch dieses Signal verlorengeht und Namen in die Lösungsauswahl
-            rutschen. Das ist tatsächlich passiert und musste mit vier unabhängigen Filtern behoben
-            werden, nachzulesen in{" "}
+            rutschen. Das ist tatsächlich passiert und musste mit mehreren Prüfungen behoben werden,
+            nachzulesen in{" "}
             <Link href="/blog/warum-keine-namen-mehr-als-loesungswoerter/">
               Warum keine Namen mehr als Lösungswörter auftauchen
             </Link>
@@ -178,7 +178,7 @@ export default function VergleichPage() {
         <Prose>
           <h2 id="welches">Welches Spiel passt zu dir?</h2>
           <ul>
-            <li><strong>Du magst kurze, knackige Rätsel:</strong> Wördle, in ein paar Minuten gelöst.</li>
+            <li><strong>Du magst kurze, klar begrenzte Rätsel:</strong> Wördle mit höchstens sechs Zügen.</li>
             <li><strong>Du tüftelst gern und liebst Sprache:</strong> Kontexto, unbegrenztes semantisches Knobeln auf Deutsch.</li>
             <li><strong>Du willst auf Englisch spielen:</strong> Contexto oder Semantle.</li>
             <li><strong>Du willst beides:</strong> Spiel hier täglich Kontexto und Wördle direkt nacheinander.</li>

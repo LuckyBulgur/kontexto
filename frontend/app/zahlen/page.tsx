@@ -28,7 +28,7 @@ const df = (iso: string) =>
 
 const T = stats.totals as Record<string, number>;
 const LABELS = stats.labels as Record<string, string>;
-const solveRate = T.solves / (T.solves + T.reveals);
+const finishedSolveShare = T.solves / (T.solves + T.reveals);
 
 export default function ZahlenPage() {
   return (
@@ -69,16 +69,20 @@ export default function ZahlenPage() {
             </dd>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Lösungsquote</dt>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+              Anteil gelöster beendeter Partien
+            </dt>
             <dd className="mt-1 text-2xl font-bold tabular-nums text-foreground">
-              {new Intl.NumberFormat("de-DE", { style: "percent" }).format(solveRate)}
+              {new Intl.NumberFormat("de-DE", { style: "percent" }).format(finishedSolveShare)}
             </dd>
           </div>
         </dl>
 
         <Prose>
           <p>
-            Was diese Verhältnisse über das Spiel aussagen, steht in{" "}
+            Der Anteil bezieht sich nur auf beendete Partien: gelöst oder ausdrücklich aufgelöst.
+            Begonnene und offen gelassene Partien werden hier nicht gezählt. Was diese Verhältnisse
+            über das Spiel aussagen, steht in{" "}
             <Link href="/blog/wie-viele-versuche-sind-normal/">
               Wie viele Versuche sind normal?
             </Link>
@@ -92,8 +96,8 @@ export default function ZahlenPage() {
           <p>
             Für jedes der {nf.format(benchmark.games_evaluated)} vorberechneten Rätsel liegt eine
             vollständige Rangliste über alle {nf.format(benchmark.vocabulary_size)} Vokabelwörter
-            vor. Damit lässt sich exakt ausrechnen, welchen Rang ein Kandidatenwort in jedem
-            einzelnen Rätsel bekommen hätte.
+            vor. Für die {benchmark.results.length} messbaren Kandidaten lässt sich damit exakt
+            ausrechnen, welchen Rang ein Wort in jedem einzelnen Rätsel bekommen hätte.
           </p>
           <p>
             Sortiert ist nach <strong>Anteil unter Rang 1500</strong>, also danach, wie oft ein Wort
@@ -109,7 +113,7 @@ export default function ZahlenPage() {
           className="overflow-x-auto"
           tabIndex={0}
           role="region"
-          aria-label="Die 100 meistgeratenen Wörter"
+          aria-label="Startwort-Benchmark mit Kandidaten"
         >
           <table className="w-full min-w-[34rem] border-collapse text-sm">
             <caption className="caption-bottom pt-3 text-xs text-muted-foreground">
