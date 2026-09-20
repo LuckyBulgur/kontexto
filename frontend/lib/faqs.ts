@@ -55,7 +55,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Kann ich frühere Wörter nachspielen?`,
-    a: `Ein durchsuchbares Archiv aller vergangenen Tageslösungen gibt es bewusst nicht, weil es die Lösung des laufenden Tages zu leicht auffindbar machen würde. Über die Rätselnummer lässt sich ein früheres Rätsel aber gezielt aufrufen. Wer einfach mehr spielen möchte, nimmt den Unendlich-Modus: Er zieht ein zufälliges Rätsel aus dem vorberechneten Bestand von 2.400 Partien, unabhängig vom Datum, und merkt sich, welche du schon gespielt hast. So kannst du üben, so oft du willst, ohne dass die Tageslösung dabei irgendwo nachschlagbar wird.`,
+    a: `Ein durchsuchbares Archiv aller vergangenen Tageslösungen gibt es bewusst nicht, weil es die Lösung des laufenden Tages zu leicht auffindbar machen würde. Über die Rätselnummer lässt sich ein früheres Rätsel aber gezielt aufrufen. Wer einfach mehr spielen möchte, nimmt den Unendlich-Modus: Er zieht ein zufälliges Rätsel aus dem vorberechneten Bestand von 9.541 Partien, unabhängig vom Datum, und merkt sich, welche du schon gespielt hast. So kannst du üben, so oft du willst, ohne dass die Tageslösung dabei irgendwo nachschlagbar wird.`,
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,

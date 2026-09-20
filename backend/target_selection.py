@@ -64,8 +64,12 @@ NAME_BLOCKLIST: frozenset[str] = frozenset({
     # place / country names that slip past HanTa's NE tag
     "hamm", "homburg", "erlangen", "bremen", "münster", "china", "polen",
     "schweden", "jersey", "boston", "manchester",
+    # surnames and brands found in the 2026-09-20 pool extension: none of them
+    # has an everyday common-noun sense, unlike the many surnames that do
+    # (bergmann, hahn, fuhrmann, koch) and that the filter rightly rescues.
+    "hübner", "riedel", "orion",
     # brands / platforms
-    "benz", "bmw", "xbox", "audi", "opel", "adidas", "nike", "google",
+    "jeep", "benz", "bmw", "xbox", "audi", "opel", "adidas", "nike", "google",
     "iphone", "android", "windows", "facebook", "youtube", "twitter",
     "instagram", "tiktok", "whatsapp", "amazon", "paypal", "netflix",
     "spotify", "samsung", "microsoft", "apple", "ebay", "telekom",

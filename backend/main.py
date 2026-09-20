@@ -1432,7 +1432,11 @@ async def wordle_create_duel(req: WordleCreateDuelRequest) -> WordleCreateDuelRe
         result = await create_wordle_duel(
             db, nickname=req.nickname, game_number=req.game_number
         )
-    await analytics.record_action(_db_path, "duels_created", "wordle")
+    # "wordle_duel", not "wordle": the plain Wordle and the duel are separate
+    # modes everywhere else now (the queue, the mode catalogue, the dashboard),
+    # and counting them together made the duel invisible. Rows written before
+    # this stay under their old dimension; the split starts here.
+    await analytics.record_action(_db_path, "duels_created", "wordle_duel")
     return WordleCreateDuelResponse(**result)
 
 
@@ -1475,9 +1479,11 @@ async def wordle_duel_guess(
             word=word,
             result=result,
         )
-    await analytics.record_action(_db_path, "guesses", "duel")
+    # See the note on duels_created above: this used to land under "duel" and
+    # was therefore counted as Kontexto-Duell.
+    await analytics.record_action(_db_path, "guesses", "wordle_duel")
     if word == solution:
-        await analytics.record_action(_db_path, "solves", "duel")
+        await analytics.record_action(_db_path, "solves", "wordle_duel")
     return WordleGuessResponse(valid=True, result=result)
 
 
