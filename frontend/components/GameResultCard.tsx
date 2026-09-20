@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import { Guess, getRankColor } from "@/lib/types";
 import { loadStreakData } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,9 @@ interface GameResultCardProps {
   isWin: boolean;
   onOpenPastGames: () => void;
   onOpenClosestWords: () => void;
+  /** Attribution survey, rendered below the share button. The page decides
+   * whether it may ask at all (`useSourceSurvey`), the card only places it. */
+  survey?: ReactNode;
   /** Endless-mode props. When `infinite` is set the card swaps the daily-streak
    * block + "Vorherige Spiele" button for a session counter and a prominent
    * "Nächstes Spiel" action. */
@@ -33,7 +37,7 @@ function getEmojiBreakdown(guesses: Guess[]) {
   return rows;
 }
 
-export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
+export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
   const streak = loadStreakData();
 
   const givenUp = !isWin;
@@ -73,6 +77,8 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
       <div className="flex justify-center">
         <ShareButton gameNumber={gameNumber} guesses={guesses} tipCount={tipCount} givenUp={givenUp} infinite={infinite} />
       </div>
+
+      {survey}
 
       {infinite ? (
         <div className="rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">

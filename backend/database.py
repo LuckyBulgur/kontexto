@@ -202,6 +202,34 @@ CREATE TABLE IF NOT EXISTS analytics_completion_seen (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_completion_seen_ts ON analytics_completion_seen(ts);
 
+-- Analytics: dedup ledger for the attribution survey ("Woher kennst du Kontexto?").
+-- One accepted answer per (fingerprint, survey version); detail_done caps the
+-- optional free text at one per answer. Retention is longer than the raw-event
+-- window (SURVEY_SEEN_RETENTION_DAYS) because the survey runs for months and the
+-- ledger is the only thing preventing a repeat answer from the same visitor.
+CREATE TABLE IF NOT EXISTS analytics_survey_seen (
+    fp_hash TEXT NOT NULL,
+    survey TEXT NOT NULL,
+    detail_done INTEGER NOT NULL DEFAULT 0,
+    ts TIMESTAMP NOT NULL,
+    PRIMARY KEY (fp_hash, survey)
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_survey_seen_ts ON analytics_survey_seen(ts);
+
+-- Analytics: the optional free text of a survey answer, deliberately stored
+-- without fp_hash so a comment can never be linked back to a visitor. The
+-- countable answer itself lives in analytics_counters (metric survey_source_v1),
+-- so this table is purely qualitative. Permanent, never pruned.
+CREATE TABLE IF NOT EXISTS analytics_survey_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    survey TEXT NOT NULL,
+    source TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    date TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_survey_details_ts ON analytics_survey_details(ts);
+
 -- Analytics: live-presence heartbeats (one row per active visitor fingerprint).
 -- Each open page upserts its fp_hash + last_seen on a short interval; the live
 -- "currently online" count is COUNT(*) of rows whose last_seen is within the

@@ -24,6 +24,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-20",
+    kind: "Neu",
+    title: "Eine einzige Frage: Woher kennst du Kontexto?",
+    body:
+      "Nach dem ersten beendeten Spiel erscheint einmalig ein kleiner Dialog mit einer Frage, beantwortet mit einem Klick auf eine der neun Antworten oder mit „Überspringen“. Wer mag, ergänzt danach freiwillig ein Stichwort, etwa den Kanal oder das Subreddit. Der Dialog kommt nie ein zweites Mal, und gespeichert wird nur der gewählte Kanal, ohne Bezug zu deiner Person.",
+    href: "/datenschutz/",
+    hrefLabel: "Was dabei gespeichert wird",
+  },
+  {
     date: "2026-09-15",
     kind: "Behoben",
     title: "Benchmark und Spielstatistik präzisiert",

@@ -19,7 +19,8 @@ import auth
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
-    RegisterOptionsRequest, RegisterVerifyRequest, WebAuthnVerifyRequest,
+    RegisterOptionsRequest, RegisterVerifyRequest, SurveyAnswerRequest,
+    WebAuthnVerifyRequest,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -1056,6 +1057,32 @@ async def stats_complete(req: CompletionRequest, request: Request):
             tips=req.tips,
             duration_seconds=req.duration_seconds,
             best_rank=req.best_rank,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.post("/api/survey/answer", response_model=BeaconResponse)
+async def survey_answer(req: SurveyAnswerRequest, request: Request):
+    """Record one answer to the attribution survey.
+
+    Token-gated, bot-filtered and deduplicated per fingerprint, exactly like the
+    completion beacon. A rejected answer (duplicate, bad token) returns ok=false
+    rather than an error: the client shows the thank-you state either way, because
+    there is nothing the visitor could do about it.
+    """
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_survey_answer(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            token=req.token,
+            source=req.source,
+            detail=req.detail,
+            survey=req.survey,
             now=_now(),
         )
         return {"ok": accepted}

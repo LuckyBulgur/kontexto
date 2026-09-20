@@ -56,3 +56,11 @@ Thumbs.db
 # Local model cache and prep venv (large, not for git)
 .model-cache/
 .venv-prep/
+
+# Generated launch-video output (/brag)
+brag-output/
+
+# TikTok shorts: renders, voiceover and the pipeline that makes them. Local
+# only, like brag-output/ above. The skill that documents the method lives in
+# .claude/, which is ignored too, so the two stay consistent.
+brag-output-tiktok/

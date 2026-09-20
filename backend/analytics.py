@@ -51,6 +51,21 @@ EVENT_RETENTION_DAYS = 35
 # Hard ceiling of accepted pageviews per fingerprint per day (flood protection).
 MAX_EVENTS_PER_FP_PER_DAY = 300
 
+# Attribution survey ("Woher kennst du Kontexto?"). The version lives in the key
+# so a future question is a new survey and not a migration of this one.
+SURVEY_SOURCE_VERSION = "source_v1"
+SURVEY_SOURCE_METRIC = "survey_source_v1"
+SURVEY_SOURCES = (
+    "search", "friends", "tiktok", "instagram", "youtube",
+    "reddit", "other_game", "random", "other",
+)
+# The dedup ledger has to outlive the raw-event window: a visitor who answered in
+# March must not be asked again in May. 180 days is the point where the monthly
+# fingerprint salt has rotated so often that the row cannot match anyone anyway.
+SURVEY_SEEN_RETENTION_DAYS = 180
+# Hard cap for the optional free text (also enforced by the request model).
+SURVEY_DETAIL_MAX_LEN = 80
+
 # Number of trusted reverse-proxy hops in front of the app. Production chain is
 # Caddy -> nginx (each appends one X-Forwarded-For entry), so the real client IP
 # is the entry at position -HOPS. Configurable in case the topology changes.
@@ -752,6 +767,152 @@ async def record_completion(
     return (True, "ok") if accepted else (False, "write_failed")
 
 
+# --- Attribution survey ------------------------------------------------------
+
+def sanitize_survey_detail(detail: str | None) -> str | None:
+    """Normalise the optional free text, or return None if nothing is left.
+
+    Control characters are dropped, whitespace collapsed and the result capped at
+    SURVEY_DETAIL_MAX_LEN. The text is otherwise stored verbatim (a creator handle
+    or a link is exactly the useful part) and only ever rendered by React, which
+    escapes it.
+    """
+    if detail is None:
+        return None
+    cleaned = re.sub(r"[\x00-\x1f\x7f]", " ", detail)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return cleaned[:SURVEY_DETAIL_MAX_LEN]
+
+
+async def record_survey_answer(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    token: str,
+    source: str,
+    detail: str | None = None,
+    survey: str = SURVEY_SOURCE_VERSION,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Record one answer to the attribution survey. Returns (accepted, reason).
+
+    Hardened exactly like the completion beacon: a valid, fingerprint-bound token
+    is required, bots are rejected and the source must be a known enum member.
+
+    The call comes in two shapes and the same function serves both:
+
+    - Without `detail`: the first answer. The ledger insert is the dedup gate (its
+      primary key raises IntegrityError on a repeat), and only a successful insert
+      bumps the permanent counter.
+    - With `detail`: the optional enrichment sent after the chip tap. A single
+      conditional UPDATE flips detail_done, so exactly one free text per answer
+      survives even if several workers process the call at once.
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+    if source not in SURVEY_SOURCES or survey != SURVEY_SOURCE_VERSION:
+        return False, "bad_payload"
+
+    date_str = now.strftime("%Y-%m-%d")
+    clean_detail = sanitize_survey_detail(detail)
+
+    if clean_detail is None:
+        async def _write_answer(conn: aiosqlite.Connection) -> None:
+            # The primary key enforces dedup atomically; a duplicate raises
+            # IntegrityError before the counter is touched.
+            await conn.execute(
+                "INSERT INTO analytics_survey_seen (fp_hash, survey, ts) VALUES (?, ?, ?)",
+                (fp_hash, survey, now.isoformat()),
+            )
+            await _bump(conn, "analytics_counters", date_str,
+                        SURVEY_SOURCE_METRIC, source, 1)
+
+        try:
+            accepted = await _commit_with_retry(
+                db, _write_answer, description="record_survey_answer")
+        except sqlite3.IntegrityError:
+            await db.rollback()
+            return False, "duplicate"
+        return (True, "ok") if accepted else (False, "write_failed")
+
+    stored = False
+
+    async def _write_detail(conn: aiosqlite.Connection) -> None:
+        nonlocal stored
+        cur = await conn.execute(
+            "UPDATE analytics_survey_seen SET detail_done = 1 "
+            "WHERE fp_hash = ? AND survey = ? AND detail_done = 0",
+            (fp_hash, survey),
+        )
+        if cur.rowcount != 1:
+            stored = False
+            return
+        await conn.execute(
+            "INSERT INTO analytics_survey_details (survey, source, detail, date, ts) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (survey, source, clean_detail, date_str, now.isoformat()),
+        )
+        stored = True
+
+    accepted = await _commit_with_retry(
+        db, _write_detail, description="record_survey_detail")
+    if not accepted:
+        return False, "write_failed"
+    return (True, "ok") if stored else (False, "duplicate")
+
+
+async def get_survey_stats(db: aiosqlite.Connection, detail_limit: int = 100) -> dict:
+    """Attribution-survey payload for the admin dashboard.
+
+    `sources` is the all-time split, `sources_monthly` the same split per calendar
+    month (both from the permanent counter rollups), `recent_details` the newest
+    free texts. None of it can be traced to a visitor.
+    """
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric = ? GROUP BY dimension",
+        (SURVEY_SOURCE_METRIC,),
+    )
+    sources = {dim: value for dim, value in await cur.fetchall()}
+
+    cur = await db.execute(
+        "SELECT substr(date, 1, 7) AS m, dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric = ? GROUP BY m, dimension",
+        (SURVEY_SOURCE_METRIC,),
+    )
+    monthly_map: dict[str, dict[str, int]] = {}
+    for month, dim, value in await cur.fetchall():
+        monthly_map.setdefault(month, {})[dim] = value
+    sources_monthly = [
+        {"month": month, "sources": monthly_map[month]} for month in sorted(monthly_map)
+    ]
+
+    cur = await db.execute(
+        "SELECT source, detail, date FROM analytics_survey_details "
+        "ORDER BY id DESC LIMIT ?",
+        (detail_limit,),
+    )
+    recent_details = [
+        {"source": source, "detail": detail, "date": date}
+        for source, detail, date in await cur.fetchall()
+    ]
+
+    return {
+        "sources": sources,
+        "sources_monthly": sources_monthly,
+        "recent_details": recent_details,
+        "total": sum(sources.values()),
+    }
+
+
 # --- Admin login brute-force backstop ----------------------------------------
 
 async def login_failures(db: aiosqlite.Connection, now: datetime | None = None,
@@ -824,12 +985,16 @@ async def prune_old_events(db: aiosqlite.Connection, now: datetime | None = None
 
     Also prunes the completion-beacon dedup ledger on the same schedule -- those
     rows only exist to block same-day duplicates and need not outlive the raw
-    events.
+    events. The survey ledger has its own, longer window (see
+    SURVEY_SEEN_RETENTION_DAYS); its aggregated answers live in the permanent
+    counter rollups and are untouched by either sweep.
     """
     now = now or datetime.now(timezone.utc)
     cutoff = (now - timedelta(days=EVENT_RETENTION_DAYS)).isoformat()
+    survey_cutoff = (now - timedelta(days=SURVEY_SEEN_RETENTION_DAYS)).isoformat()
     cur = await db.execute("DELETE FROM analytics_events WHERE ts < ?", (cutoff,))
     await db.execute("DELETE FROM analytics_completion_seen WHERE ts < ?", (cutoff,))
+    await db.execute("DELETE FROM analytics_survey_seen WHERE ts < ?", (survey_cutoff,))
     await db.commit()
     return cur.rowcount
 
@@ -1191,6 +1356,10 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     # dashboard show a value immediately before its own live poll kicks in.
     live = await get_live_visitors(db, now)
 
+    # Self-reported attribution ("Woher kennst du Kontexto?"), the one channel
+    # signal that dark social and offline word of mouth ever produce.
+    survey = await get_survey_stats(db)
+
     return {
         "generated_at": now.isoformat(),
         "live": live,
@@ -1224,6 +1393,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "active_users": active_users,
         "monthly": monthly,
         "mode_monthly": mode_monthly,
+        "survey": survey,
         "bots_filtered": bots_filtered,
         "note": (
             "Unique-User cookieless via monatlich rotierendem Hash (IP+Browser, kein PII). "
@@ -1233,6 +1403,8 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
             "Guess-, Lösungs-, Hint- und Reveal-Zahlen sind server-seitig erhoben und nicht "
             "durch Beacons fälschbar. Verteilungen (Versuche, Zeit bis Lösung, Aufgabe-Rang) "
             "werden clientseitig gemeldet, sind token-gesichert, entdupliziert und gedeckelt. "
+            "Die Herkunftsumfrage ist freiwillig, eine Antwort je Besucher, token-gesichert; "
+            "der optionale Freitext wird ohne Besucherkennung gespeichert. "
             "Geräte-, Browser-, Betriebssystem- und Aktive-Nutzer-Zahlen beziehen sich auf die "
             "letzten 35 Tage (Rohdaten-Fenster). Zeitangaben in lokaler Zeit (Europe/Berlin)."
         ),

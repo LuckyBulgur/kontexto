@@ -60,6 +60,7 @@ export async function sendHeartbeat(page: string): Promise<void> {
 }
 
 import type { CompletionPayload } from "./types";
+import type { SurveySource } from "./survey";
 
 // Reports a finished game (solved or given up) to feed the server-side
 // distribution histograms (attempts, time-to-solve, give-up rank). Only
@@ -73,6 +74,32 @@ export async function reportCompletion(payload: CompletionPayload): Promise<void
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...payload, token: t }),
+      keepalive: true,
+    });
+  } catch {
+    // Analytics must never disrupt the user experience.
+  }
+}
+
+// Sends one answer of the attribution survey. Called twice at most: once on the
+// chip tap, once more if the optional free text is filled in afterwards. The
+// server dedups per fingerprint, so the enrichment can never inflate the count.
+export async function submitSurveyAnswer(
+  source: SurveySource,
+  detail?: string,
+): Promise<void> {
+  try {
+    const t = await ensureToken();
+    if (!t) return;
+    await fetch(`${API_BASE}/survey/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: t,
+        survey: "source_v1",
+        source,
+        detail: detail?.trim() ? detail.trim().slice(0, 80) : null,
+      }),
       keepalive: true,
     });
   } catch {

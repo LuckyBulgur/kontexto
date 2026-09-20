@@ -117,6 +117,22 @@ export interface LiveData {
   generated_at: string;
 }
 
+export interface SurveyDetailEntry {
+  source: string;
+  detail: string;
+  date: string;
+}
+
+export interface SurveyStats {
+  /** All-time answers per source id. */
+  sources: Record<string, number>;
+  /** The same split per calendar month, oldest first. */
+  sources_monthly: { month: string; sources: Record<string, number> }[];
+  /** Newest optional free texts; never linked to a visitor. */
+  recent_details: SurveyDetailEntry[];
+  total: number;
+}
+
 export interface StatsData {
   generated_at: string;
   /** Snapshot of currently-online visitors at the time the stats were generated. */
@@ -172,6 +188,8 @@ export interface StatsData {
   active_users: { dau: number; wau: number; mau: number };
   /** Per-calendar-month series (oldest first). unique_visitors is an HLL estimate. */
   monthly: MonthlyPoint[];
+  /** Self-reported attribution ("Woher kennst du Kontexto?"). */
+  survey: SurveyStats;
   /** Finished games per month split by mode (popularity trend). */
   mode_monthly: { month: string; kontexto: number; duel: number; wordle: number; infinite: number; koop: number }[];
   bots_filtered: number;

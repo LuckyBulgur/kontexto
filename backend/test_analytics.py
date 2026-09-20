@@ -1080,3 +1080,204 @@ class TestSinceBeginningStats:
                 await db.close()
         os_break = run(go())["os"]
         assert os_break.get("Windows") == 2 and os_break.get("macOS") == 1
+
+
+class TestSurveyAnswer:
+    UA = "Mozilla/5.0 Chrome/120"
+
+    def _token(self, ip="1.2.3.4", now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        return analytics.make_beacon_token(fp, now)
+
+    def _answer(self, db, *, token, source="tiktok", detail=None, ip="1.2.3.4", now=JAN):
+        return analytics.record_survey_answer(
+            db, ip=ip, user_agent=self.UA, token=token, source=source,
+            detail=detail, now=now)
+
+    def test_invalid_token_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                return await self._answer(db, token="garbage")
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "invalid_token"
+
+    def test_bot_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                bot_ua = "python-requests/2.31"
+                fp = analytics.compute_fingerprint("1.2.3.4", bot_ua, JAN)
+                token = analytics.make_beacon_token(fp, JAN)
+                return await analytics.record_survey_answer(
+                    db, ip="1.2.3.4", user_agent=bot_ua, token=token,
+                    source="tiktok", now=JAN)
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "bot"
+
+    def test_unknown_source_rejected(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                return await self._answer(db, token=token, source="carrier_pigeon")
+            finally:
+                await db.close()
+        ok, reason = run(go())
+        assert not ok and reason == "bad_payload"
+
+    def test_answer_bumps_permanent_counter(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                result = await self._answer(db, token=token, source="reddit")
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return result, [tuple(r) for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        result, rows = run(go())
+        assert result == (True, "ok")
+        assert rows == [("reddit", 1)]
+
+    def test_second_answer_deduplicated(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                first = await self._answer(db, token=token, source="reddit")
+                second = await self._answer(db, token=token, source="tiktok")
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return first, second, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        first, second, total = run(go())
+        assert first == (True, "ok")
+        assert second == (False, "duplicate")
+        assert total == 1
+
+    def test_detail_stored_once_without_fingerprint(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._answer(db, token=token, source="tiktok")
+                first = await self._answer(
+                    db, token=token, source="tiktok", detail="  Kanal\tXY  ")
+                second = await self._answer(
+                    db, token=token, source="tiktok", detail="noch ein Versuch")
+                cur = await db.execute(
+                    "SELECT survey, source, detail FROM analytics_survey_details")
+                rows = [tuple(r) for r in await cur.fetchall()]
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return first, second, rows, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        first, second, rows, total = run(go())
+        assert first == (True, "ok")
+        assert second == (False, "duplicate")
+        assert rows == [("source_v1", "tiktok", "Kanal XY")]
+        # The enrichment must never inflate the countable answer.
+        assert total == 1
+
+    def test_detail_without_answer_rejected(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                result = await self._answer(
+                    db, token=token, source="tiktok", detail="nur der Freitext")
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_survey_details")
+                return result, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        result, count = run(go())
+        assert result == (False, "duplicate")
+        assert count == 0
+
+    def test_detail_capped_and_normalized(self):
+        assert analytics.sanitize_survey_detail(None) is None
+        assert analytics.sanitize_survey_detail("   ") is None
+        assert analytics.sanitize_survey_detail("a\nb\x00c") == "a b c"
+        long_detail = analytics.sanitize_survey_detail("x" * 200)
+        assert len(long_detail) == analytics.SURVEY_DETAIL_MAX_LEN
+
+    def test_blank_detail_is_treated_as_plain_answer(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                result = await self._answer(db, token=token, source="friends", detail="   ")
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return result, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        result, total = run(go())
+        assert result == (True, "ok")
+        assert total == 1
+
+    def test_seen_ledger_pruned_after_retention(self, db_path):
+        token = self._token()
+        later = JAN + timedelta(days=analytics.SURVEY_SEEN_RETENTION_DAYS + 1)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._answer(db, token=token, source="search")
+                await analytics.prune_old_events(db, later)
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_survey_seen")
+                seen = (await cur.fetchone())[0]
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return seen, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        seen, total = run(go())
+        assert seen == 0
+        # The answer itself is a permanent rollup and survives the sweep.
+        assert total == 1
+
+    def test_stats_payload(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                for ip, source in (("1.1.1.1", "tiktok"), ("2.2.2.2", "tiktok"),
+                                   ("3.3.3.3", "friends")):
+                    fp = analytics.compute_fingerprint(ip, self.UA, JAN)
+                    token = analytics.make_beacon_token(fp, JAN)
+                    await analytics.record_survey_answer(
+                        db, ip=ip, user_agent=self.UA, token=token,
+                        source=source, now=JAN)
+                    await analytics.record_survey_answer(
+                        db, ip=ip, user_agent=self.UA, token=token,
+                        source=source, detail=f"von {ip}", now=JAN)
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        survey = run(go())["survey"]
+        assert survey["sources"] == {"tiktok": 2, "friends": 1}
+        assert survey["total"] == 3
+        assert survey["sources_monthly"] == [
+            {"month": "2026-01", "sources": {"friends": 1, "tiktok": 2}}
+        ]
+        assert len(survey["recent_details"]) == 3
+        assert survey["recent_details"][0]["detail"] == "von 3.3.3.3"

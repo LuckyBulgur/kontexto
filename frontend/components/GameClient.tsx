@@ -15,11 +15,14 @@ import PastGamesDialog from "@/components/PastGamesDialog";
 import GameResultCard from "@/components/GameResultCard";
 import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import StatsDialog from "@/components/StatsDialog";
+import SourceSurvey from "@/components/SourceSurvey";
+import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
 import { reportCompletion } from "@/lib/analytics";
+import { useSourceSurvey } from "@/lib/survey";
 import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 
@@ -362,6 +365,11 @@ export default function GameClient() {
   const gameOver = gameState.solved || !!gameState.givenUp;
   const isWin = gameState.solved && !gameState.givenUp;
 
+  // Attribution survey. Asked only on a finished game of the current day or the
+  // endless mode, never while replaying an old one. The hook decides whether the
+  // one-time modal or the quiet inline fallback may ask; this is just the trigger.
+  const survey = useSourceSurvey(gameOver && showResult && pastGame === null);
+
   // Both the loading skeleton and the game container share a viewport-height
   // reserve so the "Laden…" → game swap doesn't cause a Cumulative Layout Shift
   // (CLS), and the editorial content stays below the first game viewport.
@@ -411,6 +419,9 @@ export default function GameClient() {
               isWin={isWin}
               onOpenPastGames={() => setShowPastGames(true)}
               onOpenClosestWords={() => setShowClosestWords(true)}
+              survey={survey.showInline ? (
+                <SourceSurvey onAnswered={survey.onAnswered} onSkipped={survey.onSkipped} />
+              ) : undefined}
               infinite={infinite}
               onNextInfinite={handleNextInfinite}
               infiniteSolvedCount={infiniteSolved}
@@ -468,6 +479,12 @@ export default function GameClient() {
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
       <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} game={infinite ? gameNumber : pastGame} infinite={infinite} />
       <StatsDialog open={showStats} onClose={() => setShowStats(false)} />
+      <SourceSurveyDialog
+        open={survey.showDialog}
+        onAnswered={survey.onAnswered}
+        onSkipped={survey.onDialogSkipped}
+        onClose={survey.onDialogClosed}
+      />
     </div>
   );
 }

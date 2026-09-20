@@ -60,6 +60,7 @@ export default function DatenschutzPage() {
               <li>Design-Einstellung (Hell/Dunkel)</li>
               <li>Schwierigkeitsgrad</li>
               <li>Sortierungspräferenz</li>
+              <li>Hinweis, dass die freiwillige Kurzumfrage („Woher kennst du Kontexto?“) bereits gestellt oder beantwortet wurde</li>
             </ul>
             <p>
               Diese Daten werden <strong className="text-foreground">nicht</strong> an unseren Server übertragen und verbleiben vollständig in deinem Browser. Du kannst sie jederzeit löschen, indem du die Browserdaten löschst.
@@ -119,6 +120,12 @@ export default function DatenschutzPage() {
             </p>
             <p>
               Erfasst werden nur aggregierte Kennzahlen wie Seitenaufrufe, ungefähre Besucherzahlen, grobe Geräte-/Browser-Kategorie und Spiel-Statistiken (z. B. Anzahl der Rateversuche). Die zugrundeliegenden Einzeldaten werden nach spätestens 35 Tagen automatisch gelöscht; danach verbleiben ausschließlich anonyme Summenwerte. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer datenschutzfreundlichen Reichweitenmessung).
+            </p>
+            <p>
+              <strong className="text-foreground">Freiwillige Kurzumfrage:</strong> Nach einem beendeten Spiel fragen wir dich einmalig in einem Dialogfenster, woher du Kontexto kennst. Die Antwort ist freiwillig, der Dialog lässt sich jederzeit überspringen. Gespeichert wird nur der gewählte Kanal als Zähler (etwa „TikTok“), ohne Bezug zu deiner Person.
+            </p>
+            <p>
+              Das anschließende Textfeld ist ebenfalls freiwillig, auf 80 Zeichen begrenzt und wird <strong className="text-foreground">getrennt von jeder Besucherkennung</strong> gespeichert. Bitte gib dort keine personenbezogenen Daten an. Damit dieselbe Person nicht mehrfach gefragt wird, hält der Server denselben anonymen Hash-Wert wie oben für längstens 180 Tage vor; im Browser merkt sich ein lokaler Eintrag, dass die Frage bereits gestellt wurde. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse daran zu erfahren, worüber das Angebot gefunden wird).
             </p>
           </section>
 

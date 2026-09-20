@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb,
-  PartyPopper, Repeat, Sparkles, Target, TrendingUp,
+  MessageCircleQuestion, PartyPopper, Repeat, Sparkles, Target, TrendingUp,
   Trophy, Type, Users, Wrench, type LucideIcon,
 } from "lucide-react";
 import {
@@ -36,6 +36,11 @@ const MODE_LABELS: Record<string, string> = {
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "Leicht", medium: "Mittel", hard: "Schwer",
+};
+const SURVEY_LABELS: Record<string, string> = {
+  search: "Google/Suche", friends: "Freunde", tiktok: "TikTok", instagram: "Instagram",
+  youtube: "YouTube", reddit: "Reddit", other_game: "Anderes Spiel",
+  random: "Zufall", other: "Anderes",
 };
 const DEVICE_LABELS: Record<string, string> = {
   desktop: "Desktop", mobile: "Mobil", tablet: "Tablet", unknown: "Unbekannt",
@@ -351,6 +356,66 @@ function ReachSection({ stats, range }: SectionProps) {
   );
 }
 
+/** Self-reported attribution: where players say they heard about Kontexto.
+ * Complements the referrer data, which is blind to word of mouth, messenger
+ * links and any mention in a video. */
+function SurveySection({ stats }: SectionProps) {
+  const survey = stats.survey;
+  const answered = survey.total;
+
+  if (answered === 0) {
+    return (
+      <Panel title="Woher kennen sie Kontexto?">
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          Noch keine Antworten. Die Frage erscheint auf der Ergebniskarte eines beendeten Spiels.
+        </p>
+      </Panel>
+    );
+  }
+
+  const latestMonth = survey.sources_monthly.length
+    ? survey.sources_monthly[survey.sources_monthly.length - 1]
+    : null;
+  const leader = Object.entries(survey.sources).sort((a, b) => b[1] - a[1])[0];
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 sm:grid-cols-3">
+        <KpiCard icon={MessageCircleQuestion} accent={0} label="Antworten" value={formatNumber(answered)} />
+        <KpiCard icon={Award} accent={2} label="Stärkster Kanal"
+          value={SURVEY_LABELS[leader[0]] ?? leader[0]}
+          sub={`${formatNumber(leader[1])} von ${formatNumber(answered)}`} />
+        <KpiCard icon={Type} accent={3} label="Freitexte" value={formatNumber(survey.recent_details.length)}
+          sub="neueste, ohne Besucherbezug" />
+      </div>
+      <Panel title="Antworten nach Kanal" hint="gesamt" className="lg:col-span-2">
+        <BarRanking data={survey.sources} accent={0} labelMap={SURVEY_LABELS} />
+      </Panel>
+      {latestMonth && (
+        <Panel title="Aktueller Monat" hint={shortMonth(latestMonth.month)}>
+          <BarRanking data={latestMonth.sources} accent={2} labelMap={SURVEY_LABELS} />
+        </Panel>
+      )}
+      <Panel title="Freitexte" hint="neueste zuerst">
+        {survey.recent_details.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Noch keine Freitexte</p>
+        ) : (
+          <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
+            {survey.recent_details.map((entry, index) => (
+              <li key={`${entry.date}-${index}`} className="border-b pb-2 last:border-0 last:pb-0">
+                <p className="text-sm">{entry.detail}</p>
+                <p className="text-xs text-muted-foreground">
+                  {SURVEY_LABELS[entry.source] ?? entry.source} · {fullDate(entry.date)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
 /** Gameplay: guess/solve trends, mode popularity, and outcome distributions. */
 function GameplaySection({ stats, range }: SectionProps) {
   const dist = stats.distributions ?? {};
@@ -497,6 +562,12 @@ const SECTIONS: SectionDef[] = [
     id: "growth", group: "REICHWEITE", label: "Wachstum", icon: TrendingUp,
     description: "Dieser Monat im Vergleich zum letzten",
     available: (s) => s.monthly.length > 0, Component: GrowthSection,
+  },
+  {
+    id: "survey", group: "REICHWEITE", label: "Herkunft", icon: MessageCircleQuestion,
+    title: "Woher kennen sie Kontexto?",
+    description: "Selbst genannte Herkunft, freiwillig und ohne Besucherbezug",
+    Component: SurveySection,
   },
   {
     id: "totals", group: "REICHWEITE", label: "Gesamtzahlen", icon: Award,

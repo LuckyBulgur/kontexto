@@ -53,6 +53,23 @@ class CompletionRequest(BaseModel):
     best_rank: int = Field(default=1, ge=1, le=100_000_000)
 
 
+class SurveyAnswerRequest(BaseModel):
+    """One answer to the attribution survey ("Woher kennst du Kontexto?").
+
+    Sent twice at most: once on the chip tap (no detail), once more if the user
+    fills the optional free-text field afterwards. The server dedups both halves
+    per fingerprint, so a replay adds nothing.
+    """
+
+    token: str = Field(..., max_length=64)
+    survey: Literal["source_v1"] = "source_v1"
+    source: Literal[
+        "search", "friends", "tiktok", "instagram", "youtube",
+        "reddit", "other_game", "random", "other",
+    ]
+    detail: str | None = Field(default=None, max_length=80)
+
+
 class AdminSessionResponse(BaseModel):
     token: str
 
