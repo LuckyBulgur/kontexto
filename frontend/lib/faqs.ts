@@ -247,7 +247,38 @@ export const koopFaqs: Faq[] = [
   },
 ];
 
-/** Fragen zum Wördle-Duell für /wordle/duel/. */
+/**
+ * Questions for the mode overview /modi/. They answer what the other lists do
+ * not cover: choosing between the modes, and playing with strangers.
+ */
+export const modesFaqs: Faq[] = [
+  {
+    q: `Welchen Kontexto-Modus soll ich zuerst ausprobieren?`,
+    a: `Das tägliche Spiel, weil es die einzige Runde ohne Zeitdruck und ohne Begrenzung ist. Wer das Rangsystem einmal im Gefühl hat, findet in den anderen Modi schneller hinein. Danach lohnt sich Limitierte Versuche, weil es dieselbe Runde ist, nur mit einem Budget, und deshalb am wenigsten Neues verlangt.`,
+  },
+  {
+    q: `Brauche ich für die Mehrspielermodi ein Konto?`,
+    a: `Nein. Du gibst einen Namen ein oder lässt dir einen zuteilen, und das war es. Es gibt keine Anmeldung, kein Passwort und keine E-Mail-Adresse. Die Zuordnung läuft über einen zufälligen Schlüssel, der nur in deinem Browser liegt und mit der Runde verfällt.`,
+  },
+  {
+    q: `Kann ich ohne Freunde gegen andere spielen?`,
+    a: `Ja. Die Mitspielersuche stellt dich mit Fremden zusammen, für jeden Mehrspielermodus. Du wählst den Modus, wartest ein paar Sekunden und landest in einer Runde. Einen Einladungslink brauchst du nur, wenn du gezielt mit bestimmten Leuten spielen willst.`,
+  },
+  {
+    q: `Warum wird mein Wunschname manchmal ersetzt?`,
+    a: `In einer Runde mit Fremden lesen alle deinen Namen, und ein Name ist damit eine Nachricht an Unbekannte. Beleidigende Namen werden deshalb abgelehnt und durch einen neutralen ersetzt. In einer Runde über Einladungslink gilt das nicht, dort kennt ihr euch.`,
+  },
+  {
+    q: `Was passiert, wenn meine Verbindung mitten in einer Runde abbricht?`,
+    a: `Die Runde läuft weiter, denn die Uhr gehört dem Server und nicht deinem Gerät. Kommst du rechtzeitig zurück, spielst du weiter, wo du warst. Bei Battle Royale und der Zeitbonus-Jagd kann dich eine lange Unterbrechung die Runde kosten, weil dein Rückstand währenddessen wächst.`,
+  },
+  {
+    q: `Verderben mir die Mehrspielermodi das tägliche Rätsel?`,
+    a: `Nein. Jede Mehrspielerrunde zieht ein zufälliges Wort aus dem Vorrat und niemals das Wort des heutigen Tages. Das gilt auch für den Unendlich-Modus und für die Solo-Modi. Du kannst also beliebig viel spielen, bevor du das Tagesrätsel angehst.`,
+  },
+];
+
+/** Questions about the Woerdle duel, for /wordle/duel/. */
 export const wordleDuelFaqs: Faq[] = [
   {
     q: `Wie funktioniert das Wördle-Duell?`,

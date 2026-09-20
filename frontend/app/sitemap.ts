@@ -14,8 +14,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/duel/", freq: "weekly", prio: 0.6 },
     { path: "/koop/", freq: "weekly", prio: 0.6 },
     { path: "/wordle/duel/", freq: "weekly", prio: 0.6 },
-    // /duel/create/, /koop/create/ and /wordle/duel/create/ are intentionally
-    // omitted: thin functional lobby-creation forms marked noindex.
+    { path: "/modi/", freq: "monthly", prio: 0.8 },
+    { path: "/arena/", freq: "weekly", prio: 0.6 },
+    { path: "/solo/leiter/", freq: "weekly", prio: 0.5 },
+    { path: "/solo/limit/", freq: "weekly", prio: 0.5 },
+    { path: "/solo/doppelziel/", freq: "weekly", prio: 0.5 },
+    { path: "/solo/sudden-death/", freq: "weekly", prio: 0.5 },
+    // /duel/create/, /koop/create/, /wordle/duel/create/, /arena/create/ and
+    // /suche/ are intentionally omitted: thin functional forms marked noindex.
     { path: "/faq/", freq: "monthly", prio: 0.7 },
     { path: "/anleitung/", freq: "monthly", prio: 0.8 },
     { path: "/strategie/", freq: "monthly", prio: 0.8 },
