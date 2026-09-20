@@ -1,4 +1,5 @@
 import { GameState, InfiniteSession, StreakData } from "./types";
+import { SoloModeId, SoloState } from "./solo-modes";
 
 const STORAGE_KEY = "kontexto_state";
 const STREAK_KEY = "kontexto_streak";
@@ -51,6 +52,47 @@ export function saveInfiniteSession(session: InfiniteSession): void {
 export function clearInfiniteSession(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(INFINITE_KEY);
+}
+
+/**
+ * Solo mode sessions. Each mode gets its own key, so a Leiter round in progress
+ * survives a detour into Sudden Death, and a broken payload from an older
+ * version drops that one mode rather than all of them.
+ */
+const SOLO_KEYS: Record<SoloModeId, string> = {
+  leiter: "kontexto_leiter",
+  limit: "kontexto_limit",
+  doppel: "kontexto_doppel",
+  suddendeath: "kontexto_suddendeath",
+};
+
+export function loadSoloState<T extends SoloState>(mode: SoloModeId): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SOLO_KEYS[mode]);
+    if (!raw) return null;
+    const state = JSON.parse(raw) as T;
+    // Defensive: a payload written by an older version, or by another mode, is
+    // discarded instead of rendered into a half-broken board.
+    if (!state || state.mode !== mode) return null;
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSoloState(state: SoloState): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SOLO_KEYS[state.mode], JSON.stringify(state));
+  } catch {
+    /* a full or blocked storage must never break the running game */
+  }
+}
+
+export function clearSoloState(mode: SoloModeId): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SOLO_KEYS[mode]);
 }
 
 export function loadTheme(): "light" | "dark" {

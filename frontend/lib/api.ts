@@ -1,12 +1,17 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData, WordAtRankResult, DualNextResponse, DualGuessResult, SuddenDeathRound } from "./types";
+import { SoloModeId } from "./solo-modes";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-/** Build the `?game=…&infinite=true` query shared by all game-scoped endpoints. */
-function gameQuery(game?: number | null, infinite?: boolean): string {
+/** Build the `?game=…&infinite=true&mode=…` query shared by all game-scoped
+ *  endpoints. `mode` only changes how the request is counted; the backend
+ *  validates it against its own allow-list and falls back when it does not
+ *  recognise the value. */
+function gameQuery(game?: number | null, infinite?: boolean, mode?: SoloModeId): string {
   const params = new URLSearchParams();
   if (game) params.set("game", String(game));
   if (infinite) params.set("infinite", "true");
+  if (mode) params.set("mode", mode);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -14,8 +19,8 @@ function gameQuery(game?: number | null, infinite?: boolean): string {
 /** `first` marks the opening guess of a game so the server can count a started
  * game, which is what makes an abandoned one visible. It is a hint: the server
  * deduplicates the count per visitor and game anyway. */
-export async function submitGuess(word: string, game?: number | null, infinite?: boolean, first?: boolean): Promise<GuessResult> {
-  const res = await fetch(`${API_BASE}/guess${gameQuery(game, infinite)}`, {
+export async function submitGuess(word: string, game?: number | null, infinite?: boolean, first?: boolean, mode?: SoloModeId): Promise<GuessResult> {
+  const res = await fetch(`${API_BASE}/guess${gameQuery(game, infinite, mode)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word, first: first ?? false }),
@@ -26,10 +31,11 @@ export async function submitGuess(word: string, game?: number | null, infinite?:
   return res.json();
 }
 
-export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null, guessedRanks?: number[], infinite?: boolean): Promise<TipResult> {
+export async function getTip(difficulty: Difficulty, bestRank: number, game?: number | null, guessedRanks?: number[], infinite?: boolean, mode?: SoloModeId): Promise<TipResult> {
   const params = new URLSearchParams({ difficulty, best_rank: String(bestRank) });
   if (game) params.set("game", String(game));
   if (infinite) params.set("infinite", "true");
+  if (mode) params.set("mode", mode);
   if (guessedRanks && guessedRanks.length > 0) params.set("guessed_ranks", guessedRanks.join(","));
   const res = await fetch(`${API_BASE}/tip?${params.toString()}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -42,8 +48,8 @@ export async function getGameInfo(): Promise<GameInfo> {
   return res.json();
 }
 
-export async function revealAnswer(game?: number | null, infinite?: boolean): Promise<RevealResult> {
-  const res = await fetch(`${API_BASE}/reveal${gameQuery(game, infinite)}`);
+export async function revealAnswer(game?: number | null, infinite?: boolean, mode?: SoloModeId): Promise<RevealResult> {
+  const res = await fetch(`${API_BASE}/reveal${gameQuery(game, infinite, mode)}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -72,6 +78,50 @@ export async function getInfiniteGame(played: number[], current?: number | null)
   if (current) params.set("current", String(current));
   const qs = params.toString();
   const res = await fetch(`${API_BASE}/infinite/next${qs ? `?${qs}` : ""}`);
+  if (res.status === 404) throw new Error("no_games");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+// --- Solo modes (Leiter, Doppelziel, Sudden Death) ---
+
+/**
+ * The word at one exact rank, which is how the Leiter mode gets its opening
+ * word. The backend refuses rank 1, so this can never return the solution.
+ */
+export async function getWordAtRank(rank: number, game: number): Promise<WordAtRankResult> {
+  const res = await fetch(`${API_BASE}/word-at-rank?rank=${rank}&game=${game}&infinite=true`);
+  if (res.status === 404) throw new Error("rank_out_of_range");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** The two independent targets of a Doppelziel round. */
+export async function getDualNext(played: number[]): Promise<DualNextResponse> {
+  const qs = played.length > 0 ? `?exclude=${played.join(",")}` : "";
+  const res = await fetch(`${API_BASE}/dual/next${qs}`);
+  if (res.status === 404) throw new Error("no_games");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** Rank one word against both Doppelziel targets in a single request. */
+export async function submitDualGuess(word: string, games: number[], first?: boolean): Promise<DualGuessResult> {
+  const res = await fetch(`${API_BASE}/dual/guess?games=${games.join(",")}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ word, first: first ?? false }),
+  });
+  if (res.status === 404) throw new Error("unknown_word");
+  if (res.status === 422) throw new Error("stopword");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** A Sudden Death round: a game plus the words on ranks 2 to 6. */
+export async function getSuddenDeath(played: number[]): Promise<SuddenDeathRound> {
+  const qs = played.length > 0 ? `?exclude=${played.join(",")}` : "";
+  const res = await fetch(`${API_BASE}/sudden-death${qs}`);
   if (res.status === 404) throw new Error("no_games");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
