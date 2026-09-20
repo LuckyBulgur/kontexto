@@ -29,6 +29,7 @@ import aiosqlite
 import counter_batcher
 from database import configure_connection
 from server_secret import server_secret as _server_secret
+from wordlists import contains_profanity
 
 logger = logging.getLogger(__name__)
 
@@ -910,9 +911,10 @@ def sanitize_survey_detail(detail: str | None) -> str | None:
     """Normalise the optional free text, or return None if nothing is left.
 
     Control characters are dropped, whitespace collapsed and the result capped at
-    SURVEY_DETAIL_MAX_LEN. The text is otherwise stored verbatim (a creator handle
+    SURVEY_DETAIL_MAX_LEN. The text is otherwise kept verbatim (a creator handle
     or a link is exactly the useful part) and only ever rendered by React, which
-    escapes it.
+    escapes it. Whether it is worth storing at all is decided separately, in
+    record_survey_answer, because that is where the ledger lives.
     """
     if detail is None:
         return None
@@ -946,7 +948,9 @@ async def record_survey_answer(
       bumps the permanent counter.
     - With `detail`: the optional enrichment sent after the chip tap. A single
       conditional UPDATE flips detail_done, so exactly one free text per answer
-      survives even if several workers process the call at once.
+      survives even if several workers process the call at once. Free text goes
+      to a dashboard nobody asked to be insulted from, so it passes the same
+      profanity blocklist as a matchmaking nickname.
     """
     now = now or datetime.now(timezone.utc)
     fp_hash = compute_fingerprint(ip, user_agent, now)
@@ -980,6 +984,12 @@ async def record_survey_answer(
             return False, "duplicate"
         return (True, "ok") if accepted else (False, "write_failed")
 
+    # An insult is dropped, not rejected. The ledger still burns this visitor's
+    # one comment, so the text cannot be resent in a milder spelling until it
+    # lands, and the caller still gets "ok", so nobody can probe the filter by
+    # watching the response. The countable answer was already recorded by the
+    # first call and stays untouched either way.
+    keep_detail = not contains_profanity(clean_detail)
     stored = False
 
     async def _write_detail(conn: aiosqlite.Connection) -> None:
@@ -992,11 +1002,12 @@ async def record_survey_answer(
         if cur.rowcount != 1:
             stored = False
             return
-        await conn.execute(
-            "INSERT INTO analytics_survey_details (survey, source, detail, date, ts) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (survey, source, clean_detail, date_str, now.isoformat()),
-        )
+        if keep_detail:
+            await conn.execute(
+                "INSERT INTO analytics_survey_details (survey, source, detail, date, ts) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (survey, source, clean_detail, date_str, now.isoformat()),
+            )
         stored = True
 
     accepted = await _commit_with_retry(

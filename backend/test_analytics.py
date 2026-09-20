@@ -1227,6 +1227,50 @@ class TestSurveyAnswer:
         # The enrichment must never inflate the countable answer.
         assert total == 1
 
+    def test_profane_detail_is_dropped_but_burns_the_slot(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._answer(db, token=token, source="tiktok")
+                insult = await self._answer(
+                    db, token=token, source="tiktok", detail="ihr seid alle Wichser")
+                retry = await self._answer(
+                    db, token=token, source="tiktok", detail="zweiter Versuch")
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_survey_details")
+                rows = (await cur.fetchone())[0]
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric=?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return insult, retry, rows, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        insult, retry, rows, total = run(go())
+        # The sender learns nothing: the answer looks accepted either way.
+        assert insult == (True, "ok")
+        # The slot is used up, so a second attempt cannot slip past the filter.
+        assert retry == (False, "duplicate")
+        assert rows == 0
+        # The countable answer is unaffected by the moderation.
+        assert total == 1
+
+    def test_harmless_detail_across_word_boundaries_is_kept(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._answer(db, token=token, source="friends")
+                await self._answer(
+                    db, token=token, source="friends", detail="aus der Star Schule")
+                cur = await db.execute("SELECT detail FROM analytics_survey_details")
+                return [r[0] for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        # Joining the words would invent "arsch" out of "Star Schule".
+        assert run(go()) == ["aus der Star Schule"]
+
     def test_detail_without_answer_rejected(self, db_path):
         token = self._token()
 

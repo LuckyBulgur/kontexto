@@ -39,3 +39,46 @@ PROFANITY_BLOCKLIST: frozenset[str] = frozenset({
     "vergewaltigung", "vergewaltigen", "vergewaltiger",
 })
 
+
+def normalize_for_profanity_check(text: str) -> str:
+    """Fold a string into the shape the blocklist is matched against.
+
+    Lowercased, umlauts transliterated (``ä`` -> ``ae``, ``ß`` -> ``ss``) and
+    every non-alphanumeric character reduced to a space, so punctuation and
+    decoration cannot hide a word.
+    """
+    lowered = text.lower()
+    for source, target in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        lowered = lowered.replace(source, target)
+    return "".join(ch if ch.isalnum() else " " for ch in lowered)
+
+
+PROFANITY_NORMALIZED: frozenset[str] = frozenset(
+    normalize_for_profanity_check(word).replace(" ", "") for word in PROFANITY_BLOCKLIST
+)
+
+
+def contains_profanity(text: str, *, collapse_words: bool = False) -> bool:
+    """Whether the text carries a blocklisted word.
+
+    Matching is by substring, not by whole word, because that is the shape a
+    word list is evaded with: ``arschgeige1`` and ``xxfotzexx`` both have to be
+    caught.
+
+    ``collapse_words`` decides what a haystack is, and the two callers need
+    different answers:
+
+    - False (free text): every token is its own haystack. Joining the whole
+      text would invent words across the gaps, and "Star Schule" would read as
+      profane. The cost is that a word spelled with spaces between its letters
+      gets through, which is the right trade for a comment nobody has to read.
+    - True (a single nickname): the whole string is joined first, because a
+      nickname is one token and the spaces in it are decoration.
+    """
+    normalized = normalize_for_profanity_check(text)
+    haystacks = [normalized.replace(" ", "")] if collapse_words else normalized.split()
+    return any(
+        bad_word in haystack
+        for haystack in haystacks
+        for bad_word in PROFANITY_NORMALIZED
+    )

@@ -27,7 +27,7 @@ from datetime import datetime, timedelta, timezone
 import aiosqlite
 
 from arena import iso_timestamp, parse_iso
-from wordlists import PROFANITY_BLOCKLIST
+from wordlists import contains_profanity
 
 # Modes the queue serves. Kontexto duel and koop, Wordle duel, and the three
 # arena modes; the arena ones cost nothing extra because a room is a room.
@@ -85,19 +85,11 @@ def generate_nickname() -> str:
     return f"{random.choice(_ADJECTIVES)} {random.choice(_NOUNS)} {random.randint(2, 99)}"
 
 
-def _normalize_for_check(name: str) -> str:
-    lowered = name.lower()
-    for source, target in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
-        lowered = lowered.replace(source, target)
-    return "".join(ch if ch.isalnum() else " " for ch in lowered)
-
-
 def is_nickname_acceptable(name: str) -> bool:
     """Whether a typed nickname may be shown to strangers.
 
-    Substring matching, not word matching: "arschgeige1" and "xxfotzexx" are the
-    shapes a word list is evaded with. The transliteration closes the other easy
-    door, writing the same word without its umlaut.
+    A nickname is one token, so the whole string is joined before matching:
+    "arschgeige1" and "xxfotzexx" are the shapes a word list is evaded with.
     """
     stripped = name.strip()
     if not 1 <= len(stripped) <= MAX_NICKNAME_LENGTH:
@@ -105,11 +97,7 @@ def is_nickname_acceptable(name: str) -> bool:
     if any(ord(ch) < 32 for ch in stripped):
         return False
 
-    haystack = _normalize_for_check(stripped).replace(" ", "")
-    return not any(bad_word in haystack for bad_word in _PROFANITY_NORMALIZED)
-
-
-_PROFANITY_NORMALIZED = frozenset(_normalize_for_check(w).replace(" ", "") for w in PROFANITY_BLOCKLIST)
+    return not contains_profanity(stripped, collapse_words=True)
 
 
 def resolve_nickname(requested: str | None) -> str:
