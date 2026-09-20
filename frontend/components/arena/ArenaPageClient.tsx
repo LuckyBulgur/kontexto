@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
-import GuessList from "@/components/GuessList";
+import GuessList, { type PodestError } from "@/components/GuessList";
 import CreditsDialog from "@/components/CreditsDialog";
 import FAQDialog from "@/components/FAQDialog";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
@@ -27,6 +27,7 @@ import { ArenaState, ArenaWsMessage } from "@/lib/arena-types";
 import { useArenaWebSocket } from "@/lib/use-arena-websocket";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { revealAnswer } from "@/lib/api";
+import { UnknownWordError } from "@/lib/guess-error";
 import { MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
 import { formatCountdown, useClockOffset, useCountdown } from "@/lib/use-server-countdown";
 import { loadDifficulty, loadSortMode, loadTheme, saveDifficulty, saveSortMode, saveTheme } from "@/lib/storage";
@@ -70,7 +71,7 @@ export default function ArenaPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
-  const [podestError, setPodestError] = useState<{ word: string; message: string } | undefined>();
+  const [podestError, setPodestError] = useState<PodestError | undefined>();
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
@@ -269,14 +270,23 @@ export default function ArenaPageClient() {
         setGuesses((prev) =>
           prev.some((g) => g.word === result.word)
             ? prev
-            : [...prev, { word: result.word, rank: result.rank, isTip: false }]
+            : [...prev, {
+                word: result.word,
+                rank: result.rank,
+                isTip: false,
+                correctedFrom: result.corrected_from ?? undefined,
+              }]
         );
         void refresh(arenaId);
       } catch (e: unknown) {
         const code = e instanceof Error ? e.message : "";
         const message = REFUSAL_MESSAGES[code];
         if (message) {
-          setPodestError({ word, message });
+          setPodestError({
+            word,
+            message,
+            suggestions: e instanceof UnknownWordError ? e.suggestions : undefined,
+          });
           // A refusal that ends the player's round is also a state change.
           if (code === "time_up" || code === "eliminated" || code === "not_running") {
             void refresh(arenaId);
@@ -428,6 +438,7 @@ export default function ArenaPageClient() {
               latestWord={latestWord}
               pendingWord={pendingWord}
               podestError={podestError}
+              onSuggestion={handleGuess}
               sortMode={sortMode}
             />
           )}

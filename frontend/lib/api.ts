@@ -1,5 +1,6 @@
 import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData, WordAtRankResult, DualNextResponse, DualGuessResult, SuddenDeathRound } from "./types";
 import { SoloModeId } from "./solo-modes";
+import { throwGuessNotFound } from "./guess-error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -25,7 +26,7 @@ export async function submitGuess(word: string, game?: number | null, infinite?:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word, first: first ?? false }),
   });
-  if (res.status === 404) throw new Error("unknown_word");
+  if (res.status === 404) await throwGuessNotFound(res);
   if (res.status === 422) throw new Error("stopword");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -112,7 +113,7 @@ export async function submitDualGuess(word: string, games: number[], first?: boo
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word, first: first ?? false }),
   });
-  if (res.status === 404) throw new Error("unknown_word");
+  if (res.status === 404) await throwGuessNotFound(res);
   if (res.status === 422) throw new Error("stopword");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();

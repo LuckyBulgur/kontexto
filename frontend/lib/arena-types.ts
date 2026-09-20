@@ -48,6 +48,9 @@ export interface ArenaGuessResult {
   /** The deadline this player now runs against, straight from the server. */
   deadline_at: string | null;
   finished: boolean;
+  /** Set when the guess was a typo with exactly one plausible reading: what was
+   *  typed, so the player can see which word was actually scored. */
+  corrected_from?: string | null;
 }
 
 export type ArenaWsMessage =

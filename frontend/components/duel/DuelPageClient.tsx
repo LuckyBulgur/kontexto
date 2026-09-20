@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
-import GuessList from "@/components/GuessList";
+import GuessList, { type PodestError } from "@/components/GuessList";
+import { UnknownWordError } from "@/lib/guess-error";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
@@ -53,9 +54,7 @@ export default function DuelPageClient() {
   const [total, setTotal] = useState(0);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
-  const [podestError, setPodestError] = useState<
-    { word: string; message: string } | undefined
-  >();
+  const [podestError, setPodestError] = useState<PodestError | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -266,7 +265,12 @@ export default function DuelPageClient() {
           });
           return;
         }
-        const newGuess = { word: result.word, rank: result.rank, isTip: false };
+        const newGuess = {
+          word: result.word,
+          rank: result.rank,
+          isTip: false,
+          correctedFrom: result.corrected_from ?? undefined,
+        };
         setGuesses((prev) => [...prev, newGuess]);
         setTotal(result.total);
         setLatestWord(result.word);
@@ -292,10 +296,11 @@ export default function DuelPageClient() {
           );
         }
       } catch (e: unknown) {
-        if (e instanceof Error && e.message === "unknown_word") {
+        if (e instanceof UnknownWordError) {
           setPodestError({
             word: word.toLowerCase(),
             message: "Dieses Wort kenne ich leider nicht",
+            suggestions: e.suggestions,
           });
         } else if (e instanceof Error && e.message === "stopword") {
           setPodestError({
@@ -484,6 +489,7 @@ export default function DuelPageClient() {
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
+            onSuggestion={handleGuess}
             sortMode={sortMode}
           />
         </div>

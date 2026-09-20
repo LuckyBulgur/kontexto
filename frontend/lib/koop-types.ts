@@ -36,6 +36,9 @@ export interface KoopGuessResult {
   rank: number;
   total: number;
   already_guessed: boolean;
+  /** Set when the guess was a typo with exactly one plausible reading: what was
+   *  typed, so the player can see which word was actually scored. */
+  corrected_from?: string | null;
 }
 
 export interface KoopGuessEntry {

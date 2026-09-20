@@ -12,11 +12,17 @@ class GuessResponse(BaseModel):
     word: str
     rank: int
     total: int
+    # Set when the guess was a typo that had exactly one plausible correction:
+    # what the player typed, so the client can say which word was actually scored.
+    corrected_from: str | None = None
 
 
 class ErrorResponse(BaseModel):
     error: str
     message: str
+    # Only on "unknown_word": words the guess might have meant, for the player
+    # to pick from when the correction was too ambiguous to apply by itself.
+    suggestions: list[str] = []
 
 
 class TipResponse(BaseModel):
@@ -86,6 +92,9 @@ class DualGuessResponse(BaseModel):
     word: str
     ranks: list[DualRankEntry]
     total: int
+    # Set when the guess was a typo that had exactly one plausible correction:
+    # what the player typed, so the client can say which word was actually scored.
+    corrected_from: str | None = None
 
 
 class SuddenDeathResponse(BaseModel):
@@ -218,6 +227,9 @@ class KoopGuessResponse(BaseModel):
     rank: int
     total: int
     already_guessed: bool
+    # Set when the guess was a typo that had exactly one plausible correction:
+    # what the player typed, so the client can say which word was actually scored.
+    corrected_from: str | None = None
 
 
 class KoopGuessEntry(BaseModel):
@@ -300,6 +312,9 @@ class ArenaGuessResponse(BaseModel):
     total: int
     deadline_at: str | None
     finished: bool
+    # Set when the guess was a typo that had exactly one plausible correction:
+    # what the player typed, so the client can say which word was actually scored.
+    corrected_from: str | None = None
 
 
 # --- Matchmaking ---

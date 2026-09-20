@@ -2,6 +2,9 @@ export interface GuessResult {
   word: string;
   rank: number;
   total: number;
+  /** Set when the guess was a typo with exactly one plausible reading: what was
+   *  typed, so the player can see which word was actually scored. */
+  corrected_from?: string | null;
 }
 
 export interface TipResult {
@@ -19,6 +22,8 @@ export interface Guess {
   word: string;
   rank: number;
   isTip: boolean;
+  /** What the player typed when this guess was a corrected typo. */
+  correctedFrom?: string;
 }
 
 export interface RevealResult {
@@ -249,6 +254,9 @@ export interface DualGuessResult {
   word: string;
   ranks: { gameNumber: number; rank: number }[];
   total: number;
+  /** Set when the guess was a typo with exactly one plausible reading: what was
+   *  typed, so the player can see which word was actually scored. */
+  corrected_from?: string | null;
 }
 
 export interface SuddenDeathRound {

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
-import GuessList from "@/components/GuessList";
+import GuessList, { type PodestError } from "@/components/GuessList";
+import { UnknownWordError } from "@/lib/guess-error";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
@@ -56,9 +57,7 @@ export default function KoopPageClient() {
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [solvedBy, setSolvedBy] = useState<string | null>(null);
-  const [podestError, setPodestError] = useState<
-    { word: string; message: string } | undefined
-  >();
+  const [podestError, setPodestError] = useState<PodestError | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -159,10 +158,10 @@ export default function KoopPageClient() {
   }, [koopId, playerToken]);
 
   // Append a word to the shared list, de-duplicating by word.
-  const appendGuess = useCallback((word: string, rank: number, isTip: boolean) => {
+  const appendGuess = useCallback((word: string, rank: number, isTip: boolean, correctedFrom?: string) => {
     setGuesses((prev) => {
       if (prev.some((g) => g.word === word)) return prev;
-      return [...prev, { word, rank, isTip }];
+      return [...prev, { word, rank, isTip, correctedFrom }];
     });
     setLatestWord(word);
     // No win-confetti for a revealed (gave-up) word.
@@ -283,7 +282,7 @@ export default function KoopPageClient() {
           return;
         }
         setTotal(result.total);
-        appendGuess(result.word, result.rank, false);
+        appendGuess(result.word, result.rank, false, result.corrected_from ?? undefined);
         if (nickname) {
           setPlayers((prev) =>
             prev.map((p) =>
@@ -294,8 +293,12 @@ export default function KoopPageClient() {
           );
         }
       } catch (e: unknown) {
-        if (e instanceof Error && e.message === "unknown_word") {
-          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
+        if (e instanceof UnknownWordError) {
+          setPodestError({
+            word: word.toLowerCase(),
+            message: "Dieses Wort kenne ich leider nicht",
+            suggestions: e.suggestions,
+          });
         } else if (e instanceof Error && e.message === "stopword") {
           setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
         } else {
@@ -472,6 +475,7 @@ export default function KoopPageClient() {
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
+            onSuggestion={handleGuess}
             sortMode={sortMode}
           />
         </div>

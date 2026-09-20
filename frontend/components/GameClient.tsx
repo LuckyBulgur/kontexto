@@ -26,6 +26,8 @@ import { reportCompletion } from "@/lib/analytics";
 import { useSourceSurvey } from "@/lib/survey";
 import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
+import { UnknownWordError } from "@/lib/guess-error";
+import type { PodestError } from "@/components/GuessList";
 
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -37,7 +39,7 @@ export default function GameClient() {
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
-  const [podestError, setPodestError] = useState<{ word: string; message: string } | undefined>();
+  const [podestError, setPodestError] = useState<PodestError | undefined>();
   const [showResult, setShowResult] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -224,11 +226,15 @@ export default function GameClient() {
         setPodestError({ word: result.word, message: "Wort bereits geraten" });
         return;
       }
-      addGuess({ word: result.word, rank: result.rank, isTip: false });
+      addGuess({ word: result.word, rank: result.rank, isTip: false, correctedFrom: result.corrected_from ?? undefined });
       setTotal(result.total);
     } catch (e: unknown) {
-      if (e instanceof Error && e.message === "unknown_word") {
-        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort kenne ich leider nicht" });
+      if (e instanceof UnknownWordError) {
+        setPodestError({
+          word: word.toLowerCase(),
+          message: "Dieses Wort kenne ich leider nicht",
+          suggestions: e.suggestions,
+        });
       } else if (e instanceof Error && e.message === "stopword") {
         setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
       } else {
@@ -464,7 +470,7 @@ export default function GameClient() {
             )}
           </>
         )}
-        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} sortMode={sortMode} />
+        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} onSuggestion={handleGuess} sortMode={sortMode} />
       </div>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />

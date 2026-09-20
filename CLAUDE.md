@@ -8,7 +8,7 @@ Kontexto: a German semantic word‑guessing game (guess the secret word; each gu
 
 - `frontend/`: Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, shadcn/ui. Ships as a **static export**.
 - `backend/`: FastAPI + Uvicorn, SQLite, NumPy/fastText. Serves the game API, duel WebSockets, and analytics.
-- `data/`: pre‑computed game data (word rankings, vocab, Bloom filter, Wordle word lists) + the runtime SQLite DB. Generated, not in git.
+- `data/`: pre‑computed game data (word rankings, vocab, Bloom filter, typo index, Wordle word lists) + the runtime SQLite DB. Generated, not in git.
 - Root: Docker multi‑stage build, `docker-compose.yml` (Caddy + app), `nginx.conf`, `supervisord.conf`, `Caddyfile`, `.github/workflows/deploy.yml`.
 
 ## Commands
@@ -73,6 +73,8 @@ docker compose up --build    # http://localhost:8080, builds frontend, prepares 
 
 ### Game engine (the core mechanic is pre‑computed)
 There is **no live embedding inference at request time**. `prepare.py` (offline / build step) loads the German fastText model, debiases vectors (remove mean + top‑3 PCs), computes cosine similarity to each target, and writes per‑game rank arrays to `data/games/{NNNN}.npz`, plus `vocabulary.json`, `lemma_map.json`, `bloom.bin`, `target_words.json`, `metadata.json`. At runtime `game.py` does an O(1) dict/array lookup `word → rank`. Wordle uses `data/wordle/{solutions,valid_words}.json`.
+
+**Typo correction (`spellfix.py`)**: a guess that is not a known word is not rejected right away. `prepare.py` also writes `data/spell_index.npz`, a symmetric-delete (SymSpell) index over every surface form (vocabulary word plus inflected form from the lemma map), stored as sorted 64-bit hashes plus word ids, around 25 MB in memory and 0,05 ms per lookup. The rules are deliberately narrow: a known word is never rewritten, written-out umlauts (`haeuser`, `strasse`) always resolve, a single candidate at edit distance 1 in a word of at least 5 characters is scored with `corrected_from` set, and anything else comes back as a 404 with up to three `suggestions` the player can tap. Candidates are ordered by edit distance and German word frequency, **never** by their rank in the running game, which would turn the correction into a free hint. Two typos in one word are out of scope. A data volume from before this feature gets its index from `scripts/build-spell-index.py`, which the Docker entrypoint runs; without it each worker builds its own on the first mistyped guess (1,6 s).
 
 ### API surface (all under `/api`, defined in `main.py`, logic in `game.py`/`duel.py`/`koop.py`/`arena.py`/`matchmaking.py`/`wordle.py`/`wordle_duel.py`)
 - Kontexto: `guess`, `tip`, `game`, `games`, `reveal`, `closest`. `guess`/`tip`/`reveal` take an optional `mode` (validated against `analytics.SOLO_MODES`) so the solo modes are counted apart.

@@ -11,6 +11,8 @@ import numpy as np
 from pybloom_live import BloomFilter
 import simplemma
 
+import spellfix
+
 GERMAN_STOPWORDS = {
     # Artikel
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer", "eines",
@@ -246,6 +248,40 @@ def select_target_words(
     return ordered
 
 
+def frequency_ranks(vocab_index: dict[str, int], frequency_order: list[str]) -> np.ndarray:
+    """Rank each vocabulary word by corpus frequency, most frequent first.
+
+    fastText ships its vectors in frequency order, which ``filter_vocabulary``
+    preserves. The typo correction uses this to order its suggestions, the only
+    ordering that cannot leak anything about the secret word. Words missing from
+    the order sort last.
+    """
+    ranks = np.full(len(vocab_index), len(vocab_index), dtype=np.uint32)
+    for position, word in enumerate(frequency_order):
+        index = vocab_index.get(word)
+        if index is not None:
+            ranks[index] = position
+    return ranks
+
+
+def write_spell_index(
+    output_dir: str,
+    vocab_index: dict[str, int],
+    lemma_map: dict[str, str],
+    vocab_list: list[str],
+    frequency_order: list[str],
+) -> None:
+    """Write the symmetric-delete index the runtime typo correction reads."""
+    index = spellfix.SpellIndex.build(
+        vocab_index,
+        lemma_map,
+        vocab_list,
+        frequency_ranks(vocab_index, frequency_order),
+    )
+    index.save(os.path.join(output_dir, spellfix.INDEX_FILE))
+    print(f"  Indexed {len(index.surfaces)} surface forms for typo correction.")
+
+
 def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date: str, vocab_size: int = 100000) -> None:
     print(f"Loading vectors from {fasttext_path}...")
     raw_vectors, raw_words = load_fasttext_vectors(fasttext_path)
@@ -291,6 +327,9 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     metadata = {"start_date": start_date, "total_games": num_games, "vocab_size": len(vocab_list)}
     with open(os.path.join(output_dir, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+    print("Building typo index...")
+    write_spell_index(output_dir, vocab_index, lemma_map, vocab_list, frequency_order)
 
     print(f"Computing rankings for {num_games} games...")
     for i, target in enumerate(targets, start=1):

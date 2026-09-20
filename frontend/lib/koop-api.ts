@@ -7,6 +7,7 @@ import {
   KoopGuessEntry,
   NextGameResult,
 } from "./koop-types";
+import { throwGuessNotFound } from "./guess-error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -67,7 +68,7 @@ export async function submitKoopGuess(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word, player_token: playerToken }),
   });
-  if (res.status === 404) throw new Error("unknown_word");
+  if (res.status === 404) await throwGuessNotFound(res);
   if (res.status === 422) throw new Error("stopword");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();

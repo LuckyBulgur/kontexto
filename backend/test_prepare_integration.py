@@ -37,6 +37,7 @@ def test_run_pipeline_creates_all_files():
         assert os.path.isfile(os.path.join(tmpdir, "lemma_map.json"))
         assert os.path.isfile(os.path.join(tmpdir, "bloom.bin"))
         assert os.path.isfile(os.path.join(tmpdir, "metadata.json"))
+        assert os.path.isfile(os.path.join(tmpdir, "spell_index.npz"))
         assert os.path.isdir(os.path.join(tmpdir, "games"))
         for i in range(1, 4):
             assert os.path.isfile(os.path.join(tmpdir, "games", f"{i:04d}.npz"))

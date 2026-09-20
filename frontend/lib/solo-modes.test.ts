@@ -185,7 +185,7 @@ describe("Sudden Death", () => {
       rank: 42,
     });
     expect(s.status).toBe("lost");
-    expect(s.attempt).toEqual({ word: "daneben", rank: 42 });
+    expect(s.attempt).toEqual({ word: "daneben", rank: 42, isTip: false, correctedFrom: undefined });
     expect(soloBestRank(s)).toBe(42);
   });
 

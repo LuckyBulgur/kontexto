@@ -97,6 +97,22 @@ export function soloModeBySlug(slug: string): SoloModeMeta | null {
 
 // --- Leiter -----------------------------------------------------------------
 
+/** A scored guess as the API returns it, plus the typo the server corrected. */
+export interface SoloGuessInput {
+  word: string;
+  rank: number;
+  corrected_from?: string | null;
+}
+
+function toGuess(guess: SoloGuessInput): Guess {
+  return {
+    word: guess.word,
+    rank: guess.rank,
+    isTip: false,
+    correctedFrom: guess.corrected_from ?? undefined,
+  };
+}
+
 export interface LeiterState {
   mode: "leiter";
   gameNumber: number;
@@ -136,14 +152,14 @@ export interface LeiterOutcome {
 
 export function leiterApplyGuess(
   state: LeiterState,
-  guess: { word: string; rank: number }
+  guess: SoloGuessInput
 ): LeiterOutcome {
   if (state.status !== "running") return { state, struck: false };
 
   const improved = guess.rank < state.bestRank;
   const strikes = improved ? state.strikes : state.strikes + 1;
   const bestRank = improved ? guess.rank : state.bestRank;
-  const guesses = [...state.guesses, { word: guess.word, rank: guess.rank, isTip: false }];
+  const guesses = [...state.guesses, toGuess(guess)];
 
   let status: SoloStatus = "running";
   if (guess.rank === 1) status = "won";
@@ -182,11 +198,11 @@ export function createLimitState(gameNumber: number): LimitState {
 
 export function limitApplyGuess(
   state: LimitState,
-  guess: { word: string; rank: number }
+  guess: SoloGuessInput
 ): LimitState {
   if (state.status !== "running") return state;
 
-  const guesses = [...state.guesses, { word: guess.word, rank: guess.rank, isTip: false }];
+  const guesses = [...state.guesses, toGuess(guess)];
   let status: SoloStatus = "running";
   if (guess.rank === 1) status = "won";
   else if (guesses.length >= LIMIT_MAX_GUESSES) status = "lost";
@@ -204,6 +220,8 @@ export interface DoppelGuess {
   word: string;
   /** One rank per target, in the order of `gameNumbers`. */
   ranks: number[];
+  /** What the player typed when this guess was a corrected typo. */
+  correctedFrom?: string;
 }
 
 export interface DoppelState {
@@ -254,7 +272,7 @@ export interface SuddenDeathState {
   /** The runners-up, ranks 2 to 6. */
   hints: { word: string; rank: number }[];
   /** The single attempt, once it has been made. */
-  attempt: { word: string; rank: number } | null;
+  attempt: Guess | null;
   /** Filled after the round, so the card can name the answer. */
   solution: string | null;
   status: SoloStatus;
@@ -277,12 +295,12 @@ export function createSuddenDeathState(
 
 export function suddenDeathApplyGuess(
   state: SuddenDeathState,
-  guess: { word: string; rank: number }
+  guess: SoloGuessInput
 ): SuddenDeathState {
   if (state.status !== "running") return state;
   return {
     ...state,
-    attempt: guess,
+    attempt: toGuess(guess),
     status: guess.rank === 1 ? "won" : "lost",
     solution: guess.rank === 1 ? guess.word : state.solution,
     startedAt: state.startedAt ?? Date.now(),

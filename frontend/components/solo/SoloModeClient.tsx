@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
-import GuessList from "@/components/GuessList";
+import GuessList, { type PodestError } from "@/components/GuessList";
+import GuessSuggestions from "@/components/GuessSuggestions";
 import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
 import FAQDialog from "@/components/FAQDialog";
@@ -16,6 +17,7 @@ import SoloRulesCard from "@/components/solo/SoloRulesCard";
 import SoloStatus from "@/components/solo/SoloStatus";
 import { AD_SLOTS } from "@/lib/adsense";
 import { fireConfetti } from "@/lib/confetti";
+import { UnknownWordError } from "@/lib/guess-error";
 import { reportCompletion } from "@/lib/analytics";
 import {
   getDualNext,
@@ -35,6 +37,7 @@ import {
   createLeiterState,
   createLimitState,
   createSuddenDeathState,
+  DoppelGuess,
   doppelApplyGuess,
   leiterApplyGuess,
   limitApplyGuess,
@@ -77,7 +80,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
-  const [podestError, setPodestError] = useState<{ word: string; message: string } | undefined>();
+  const [podestError, setPodestError] = useState<PodestError | undefined>();
   const [solution, setSolution] = useState<string | null>(null);
   const [secondSolution, setSecondSolution] = useState<string | null>(null);
 
@@ -252,7 +255,11 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           }
           setTotal(result.total);
           setLatestWord(result.word);
-          setState(doppelApplyGuess(state, { word: result.word, ranks: result.ranks.map((r) => r.rank) }));
+          setState(doppelApplyGuess(state, {
+            word: result.word,
+            ranks: result.ranks.map((r) => r.rank),
+            correctedFrom: result.corrected_from ?? undefined,
+          }));
           return;
         }
 
@@ -285,8 +292,12 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           setState(suddenDeathApplyGuess(state, result));
         }
       } catch (e: unknown) {
-        if (e instanceof Error && e.message === "unknown_word") {
-          setPodestError({ word, message: "Dieses Wort kenne ich leider nicht" });
+        if (e instanceof UnknownWordError) {
+          setPodestError({
+            word,
+            message: "Dieses Wort kenne ich leider nicht",
+            suggestions: e.suggestions,
+          });
         } else if (e instanceof Error && e.message === "stopword") {
           setPodestError({ word, message: "Dieses Wort zählt nicht, es ist zu allgemein" });
         } else {
@@ -404,6 +415,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
+            onSuggestion={handleGuess}
             sortMode={sortMode}
           />
         ) : state.mode === "suddendeath" ? (
@@ -414,6 +426,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
               latestWord={latestWord}
               pendingWord={pendingWord}
               podestError={podestError}
+              onSuggestion={handleGuess}
               sortMode={sortMode}
             />
           ) : (
@@ -422,6 +435,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
               total={total}
               pendingWord={pendingWord}
               podestError={podestError}
+              onSuggestion={handleGuess}
               sortMode={sortMode}
             />
           )
@@ -432,6 +446,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
+            onSuggestion={handleGuess}
             sortMode={sortMode}
           />
         )}
@@ -460,13 +475,15 @@ function DoppelBoard({
   latestWord,
   pendingWord,
   podestError,
+  onSuggestion,
   sortMode,
 }: {
-  guesses: { word: string; ranks: number[] }[];
+  guesses: DoppelGuess[];
   total: number;
   latestWord?: string;
   pendingWord?: string;
-  podestError?: { word: string; message: string };
+  podestError?: PodestError;
+  onSuggestion: (word: string) => void;
   sortMode: SortMode;
 }) {
   // Sorted by the better of the two ranks: with two targets there is no single
@@ -475,15 +492,23 @@ function DoppelBoard({
     sortMode === "rank"
       ? [...guesses].sort((a, b) => Math.min(...a.ranks) - Math.min(...b.ranks))
       : [...guesses];
+  const latest = latestWord ? guesses.find((g) => g.word === latestWord) : undefined;
 
   return (
     <div className="space-y-0.5">
-      {(pendingWord || podestError) && (
+      {(pendingWord || podestError || latest?.correctedFrom) && (
         <div className="mt-[9px] mb-[25px]">
           {pendingWord ? (
             <p className="text-sm text-foreground animate-pulse">{"Lädt..."}</p>
+          ) : podestError ? (
+            <>
+              <p className="text-sm text-foreground font-medium">{podestError.message}</p>
+              <GuessSuggestions suggestions={podestError.suggestions} onSuggestion={onSuggestion} />
+            </>
           ) : (
-            <p className="text-sm text-foreground font-medium">{podestError?.message}</p>
+            <p className="text-sm text-muted-foreground">
+              {`„${latest?.correctedFrom}“ wurde als „${latest?.word}“ gewertet`}
+            </p>
           )}
         </div>
       )}

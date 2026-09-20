@@ -94,6 +94,28 @@ class TestGuessEndpoint:
         resp = client.post("/api/guess", json={"word": ""})
         assert resp.status_code == 422
 
+    def test_typo_is_scored_as_the_corrected_word(self, client):
+        resp = client.post("/api/guess", json={"word": "birnne"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["word"] == "birne"
+        assert data["corrected_from"] == "birnne"
+        assert data["rank"] == 2
+
+    def test_valid_guess_reports_no_correction(self, client):
+        assert client.post("/api/guess", json={"word": "apfel"}).json()["corrected_from"] is None
+
+    def test_ambiguous_typo_is_offered_instead_of_applied(self, client):
+        # Four letters: too little evidence to rewrite the guess by itself.
+        resp = client.post("/api/guess", json={"word": "haas"})
+        assert resp.status_code == 404
+        body = resp.json()
+        assert body["error"] == "unknown_word"
+        assert body["suggestions"] == ["haus"]
+
+    def test_unknown_word_without_candidates_has_no_suggestions(self, client):
+        assert client.post("/api/guess", json={"word": "xyz123"}).json()["suggestions"] == []
+
 
 class TestTipEndpoint:
     def test_easy_tip(self, client):

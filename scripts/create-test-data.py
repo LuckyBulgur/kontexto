@@ -16,10 +16,14 @@ import json
 import os
 import pickle
 import random
+import sys
 
 import numpy as np
 from pybloom_live import BloomFilter
 import simplemma
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend"))
+import spellfix  # noqa: E402  (needs the backend on the path first)
 
 WORDS = [
     "apfel", "birne", "kirsche", "banane", "orange", "zitrone", "traube", "melone",
@@ -92,6 +96,12 @@ def build_kontexto(output: str) -> None:
         order = np.argsort(distances)
         ranks[order] = np.arange(1, len(WORDS) + 1, dtype=np.uint16)
         np.savez_compressed(os.path.join(output, "games", f"{i:04d}.npz"), ranks=ranks)
+
+    # Same typo index the real pipeline writes, so the e2e backend corrects
+    # guesses exactly as production does.
+    spellfix.SpellIndex.build(vocab, lemma_map, list(WORDS)).save(
+        os.path.join(output, spellfix.INDEX_FILE)
+    )
 
     print(f"  Kontexto vocabulary: {len(WORDS)} words")
     print(f"  Kontexto games: {len(targets)}")

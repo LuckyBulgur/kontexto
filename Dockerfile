@@ -78,6 +78,11 @@ if [ ! -f /app/data/metadata.json ]; then
     gosu appuser bash /app/scripts/prepare-data.sh /app/data
 fi
 
+# A data volume from before the typo correction has everything but the index.
+# Building it once here beats every API worker building its own copy on the
+# first mistyped guess.
+gosu appuser python3 /app/scripts/build-spell-index.py /app/data
+
 if [ ! -f /app/data/wordle/solutions.json ]; then
     echo "No Wordle data found. Running Wordle data preparation..."
     gosu appuser python3 /app/scripts/prepare-wordle-data.py

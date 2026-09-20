@@ -245,5 +245,5 @@ class TestGameCacheLru:
         assert set(state._game_cache) == {2}
         # Game 1 was evicted; a guess against it must reload from disk.
         result = state.guess("birne", 1)
-        assert result == {"word": "birne", "rank": 2, "total": 5}
+        assert result == {"word": "birne", "rank": 2, "total": 5, "corrected_from": None}
         assert set(state._game_cache) == {1}

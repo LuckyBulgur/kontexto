@@ -15,9 +15,11 @@ Three properties matter more than recall here:
    and read off which of the candidates sits closer to the solution.
 3. **Guessing is left to the player when it is guessing.** A single candidate at
    distance 1 is applied, anything else is offered as a suggestion list. With
-   short words the latter is almost always the case (``hand`` reaches ``band``,
-   ``land``, ``rand``, ``sand`` and ``wand`` in one edit), which is why a word
-   below ``MIN_AUTO_LENGTH`` is never corrected on its own.
+   short words the latter is almost always the case (``xand`` reaches ``band``,
+   ``hand``, ``land``, ``rand``, ``sand`` and ``wand`` in one edit), which is why
+   a word below ``MIN_AUTO_LENGTH`` is never corrected on its own. Two typos in
+   one word are out of scope: the player retypes, which is cheaper than a wrong
+   guess in their list.
 
 The index maps every *surface* form (vocabulary word or inflected form from the
 lemma map) to the vocabulary word a guess of it would score, so a typo of an
@@ -32,13 +34,12 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+# Name of the prebuilt index inside a data directory.
+INDEX_FILE = "spell_index.npz"
+
 # Below this many characters a single edit reaches too many real words for an
 # automatic correction to be honest. Such a word only ever gets suggestions.
 MIN_AUTO_LENGTH = 5
-
-# Distance 2 is only searched for words long enough that two typos are more
-# plausible than a different word, and its results are never applied on their own.
-DISTANCE2_MIN_LENGTH = 7
 
 # Words shorter than this get no suggestions either: the list would be noise.
 MIN_SUGGEST_LENGTH = 3
@@ -148,6 +149,10 @@ def build_index(surfaces: list[str]) -> tuple[np.ndarray, np.ndarray]:
     binary search. Hashes instead of the strings themselves keep the index near
     12 bytes per entry, and a hash collision costs one extra distance check,
     because every candidate is verified against the real string afterwards.
+
+    Only single deletions are indexed. Covering two edits as well would need the
+    deletions of the deletions, which multiplies the index by five for cases a
+    player is unlikely to hit and this module would refuse to apply anyway.
     """
     hashes: list[int] = []
     ids: list[int] = []
@@ -258,8 +263,8 @@ class SpellIndex:
         """Surface ids sharing an index key with ``word``.
 
         This is the symmetric-delete trick: comparing the deletions of the query
-        against the deletions of every word covers all edits up to distance 2
-        with a single deletion index.
+        against the deletions of every word finds every single-edit neighbour,
+        one hash lookup per deletion, without touching the rest of the vocabulary.
         """
         found: set[int] = set()
         for key in _keys(word):
@@ -327,6 +332,12 @@ class SpellIndex:
         if not word or len(word) > MAX_QUERY_LENGTH:
             return Resolution()
 
+        # Defensive: a known word has nothing to correct. The callers only ask
+        # about unknown words, and this keeps that invariant true even if one
+        # day a caller forgets.
+        if word in vocabulary or word in lemma_map:
+            return Resolution()
+
         # Written-out umlauts are a spelling, not a typo, so they are resolved
         # first and independently of the length rules.
         spellings: dict[str, int] = {}
@@ -345,8 +356,6 @@ class SpellIndex:
         matches = self._matches(word, 1)
         if len(matches) == 1 and len(word) >= MIN_AUTO_LENGTH:
             return Resolution(word=next(iter(matches)), corrected_from=word)
-        if not matches and len(word) >= DISTANCE2_MIN_LENGTH:
-            matches = self._matches(word, 2)
         if not matches:
             return Resolution()
         return Resolution(suggestions=tuple(self._ordered(matches, vocabulary)[:MAX_SUGGESTIONS]))

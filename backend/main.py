@@ -139,6 +139,23 @@ def _resolve_game_number(game: int | None, *, infinite: bool = False) -> int:
     return game
 
 
+def _unknown_word_response(gs: GameState, word: str) -> JSONResponse:
+    """Reject a guess the dictionary does not have, with what it might have been.
+
+    The suggestions are the typo candidates that were too ambiguous to apply on
+    their own. They are ordered by edit distance and German word frequency, never
+    by their rank in the running game, which would make them a free hint.
+    """
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "unknown_word",
+            "message": "Wort nicht im Wörterbuch",
+            "suggestions": gs.suggestions(word),
+        },
+    )
+
+
 def _pick_next_kontexto_game(current: int, played: set[int]) -> int | None:
     """Choose the next game for a multiplayer room's "Nächstes Spiel".
 
@@ -275,10 +292,7 @@ async def guess(
 
     result = gs.guess(req.word, game_num)
     if result is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
-        )
+        return _unknown_word_response(gs, req.word)
     mode = _solo_mode(mode, infinite)
     if req.first:
         # First guess of this game for this visitor: the only point where an
@@ -527,10 +541,7 @@ async def dual_guess(
 
     results = [gs.guess(req.word, n) for n in numbers]
     if any(r is None for r in results):
-        return JSONResponse(
-            status_code=404,
-            content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
-        )
+        return _unknown_word_response(gs, req.word)
 
     normalized = results[0]["word"]
     if req.first:
@@ -555,6 +566,7 @@ async def dual_guess(
         "word": normalized,
         "ranks": [{"gameNumber": n, "rank": r["rank"]} for n, r in zip(numbers, results)],
         "total": results[0]["total"],
+        "corrected_from": results[0]["corrected_from"],
     }
 
 
@@ -669,10 +681,7 @@ async def duel_guess_endpoint(duel_id: str, req: DuelGuessRequest):
 
         result = gs.guess(req.word, game_num)
         if result is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "unknown_word", "message": "Wort nicht im Worterbuch"},
-            )
+            return _unknown_word_response(gs, req.word)
 
         await record_guess(db, duel_id, req.player_token, result["word"], result["rank"])
         await analytics.record_action(_db_path, "guesses", "duel", word=result["word"])
@@ -888,10 +897,7 @@ async def koop_guess_endpoint(koop_id: str, req: KoopGuessRequest):
 
         result = gs.guess(req.word, game_num)
         if result is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
-            )
+            return _unknown_word_response(gs, req.word)
 
         recorded = await record_koop_guess(db, koop_id, req.player_token, result["word"], result["rank"])
         if recorded is None:
@@ -1171,10 +1177,7 @@ async def arena_guess_endpoint(arena_id: str, req: ArenaGuessRequest):
             )
         result = gs.guess(req.word, game_num)
         if result is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
-            )
+            return _unknown_word_response(gs, req.word)
 
         try:
             booked = await record_arena_guess(
@@ -1199,6 +1202,7 @@ async def arena_guess_endpoint(arena_id: str, req: ArenaGuessRequest):
             "total": result["total"],
             "deadline_at": booked["deadline_at"],
             "finished": booked["finished"],
+            "corrected_from": result["corrected_from"],
         }
     finally:
         await db.close()

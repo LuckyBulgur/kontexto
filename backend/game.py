@@ -13,6 +13,7 @@ from datetime import date
 
 import numpy as np
 
+import spellfix
 from prepare import GERMAN_STOPWORDS
 
 # Upper bound for per-process game data. Each cached game holds two uint32
@@ -48,6 +49,17 @@ class GameState:
         self.start_date = date.fromisoformat(self.metadata["start_date"])
 
         self._game_cache: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
+
+        # Typo correction. The prebuilt index is the normal case; a data
+        # directory without one (an older prod volume, a hand-made fixture)
+        # builds it on first use instead of failing or slowing down startup.
+        self._spell_index: spellfix.SpellIndex | None = spellfix.SpellIndex.load(
+            os.path.join(data_dir, spellfix.INDEX_FILE),
+            self.vocabulary,
+            self.lemma_map,
+            self.index_to_word,
+        )
+        self._spell_index_built = self._spell_index is not None
 
     def load_game(self, game_number: int) -> None:
         """Warm the cache for a game (lookups load on demand anyway)."""
@@ -110,11 +122,47 @@ class GameState:
 
         return None
 
-    def guess(self, word: str, game_number: int) -> dict | None:
-        """Process a guess and return its rank."""
+    def _get_spell_index(self) -> spellfix.SpellIndex:
+        """The typo index, built on first use when the data dir shipped none."""
+        if not self._spell_index_built:
+            self._spell_index = spellfix.SpellIndex.build(
+                self.vocabulary, self.lemma_map, self.index_to_word
+            )
+            self._spell_index_built = True
+        assert self._spell_index is not None
+        return self._spell_index
+
+    def resolve_unknown(self, word: str) -> spellfix.Resolution:
+        """What an unknown guess should become: a correction, hints, or nothing.
+
+        Only ever called for a word ``normalize_word`` has already rejected, so
+        a valid guess is never rewritten.
+        """
+        return self._get_spell_index().resolve(
+            word.strip().lower(), self.vocabulary, self.lemma_map
+        )
+
+    def suggestions(self, word: str) -> list[str]:
+        """Words to offer for an unknown guess, possibly empty."""
+        return list(self.resolve_unknown(word).suggestions)
+
+    def guess(self, word: str, game_number: int, correct_typos: bool = True) -> dict | None:
+        """Process a guess and return its rank.
+
+        An unknown word that is one unambiguous typo away from a real one is
+        scored as that word, with ``corrected_from`` recording what was typed.
+        Anything less clear stays unknown, so the caller can offer suggestions.
+        """
         normalized = self.normalize_word(word)
+        corrected_from: str | None = None
         if normalized is None:
-            return None
+            if not correct_typos:
+                return None
+            resolution = self.resolve_unknown(word)
+            if not resolution.is_correction:
+                return None
+            normalized = resolution.word
+            corrected_from = resolution.corrected_from
 
         index = self.vocabulary.get(normalized)
         if index is None:
@@ -125,6 +173,7 @@ class GameState:
             "word": normalized,
             "rank": int(ranks[index]),
             "total": len(ranks),
+            "corrected_from": corrected_from,
         }
 
     def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
