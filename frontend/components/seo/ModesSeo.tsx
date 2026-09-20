@@ -8,196 +8,192 @@ import {
   Target,
   Timer,
   Users,
+  type LucideIcon,
 } from "lucide-react";
-import {
-  FeatureCard,
-  FeatureGrid,
-  RelatedLinks,
-  SeoHeading,
-  SeoSection,
-} from "@/components/seo/SeoPrimitives";
-import SeoFaq from "@/components/seo/SeoFaq";
+import Prose from "@/components/content/Prose";
 import Reveal from "@/components/motion/Reveal";
+import SeoFaq from "@/components/seo/SeoFaq";
+import { RelatedLinks } from "@/components/seo/SeoPrimitives";
 import { modesFaqs } from "@/lib/faqs";
 import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER } from "@/lib/multiplayer-modes";
 import { SOLO_MODES, SOLO_MODE_ORDER } from "@/lib/solo-modes";
-import type { QueueModeId } from "@/lib/matchmaking-types";
 
 /**
- * The mode overview. Every word of it is server-rendered: the cards are plain
- * markup fed from the mode catalogues, so the page is complete in the static
- * HTML and readable without JavaScript. Reveal only fades a section in on
- * scroll, and only below the fold, so removing Motion would cost the animation
- * and nothing else.
+ * The body of /modi/, rendered inside the normal content layout so the page has
+ * the site navigation, breadcrumbs and heading that every other content page
+ * has. It used to be built from SeoSection, which is the band that sits *below*
+ * a game and therefore brings no navigation of its own; as a whole page it
+ * looked like a fragment that had lost its header, because it was one.
+ *
+ * Every word is server-rendered from the mode catalogues, so the page is
+ * complete in the static export and readable without JavaScript. Reveal only
+ * fades a section in on scroll, and only below the fold.
  */
 export default function ModesSeo() {
   return (
-    <SeoSection label="Alle Spielmodi">
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
-        {"Alle Spielmodi von Kontexto"}
-      </h1>
-      <p className="max-w-prose">
-        {`Kontexto hat mehr als das tägliche Rätsel. Es gibt Runden gegen die Uhr, Runden
-        gegen andere und Runden mit einer einzigen Regel mehr, die alles verändert. Diese
-        Seite zeigt, was es gibt, wofür sich welcher Modus eignet und wo er anfängt.`}
-      </p>
-      <p className="mt-3 max-w-prose">
-        {`Alle Modi sind kostenlos und brauchen kein Konto. Keiner von ihnen verrät das Wort
-        des heutigen Tages: jede Runde zieht ein eigenes Wort aus dem Vorrat.`}
-      </p>
-
-      <SeoHeading>{"Zu zweit oder zu acht"}</SeoHeading>
-      <p className="mb-4 max-w-prose">
-        {`Jeder Mehrspielermodus geht auf zwei Wegen: mit einem Einladungslink, wenn du weißt,
-        mit wem du spielen willst, oder über die Mitspielersuche, wenn nicht. Die Suche
-        stellt dich mit Fremden zusammen, und dafür brauchst du nichts weiter als einen
-        Klick.`}
-      </p>
-      <p className="mb-6">
-        <Link
-          href="/suche/"
-          className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-        >
-          {"Mitspieler suchen"}
-        </Link>
-      </p>
+    <>
+      <Prose>
+        <h2 id="mehrspieler">{"Zu zweit oder zu acht"}</h2>
+        <p>
+          {`Jeder Mehrspielermodus geht auf zwei Wegen. Mit einem Einladungslink, wenn du
+          weißt, mit wem du spielen willst. Oder über die Mitspielersuche, die dich mit
+          Fremden zusammenstellt, ohne dass du jemanden fragen musst.`}
+        </p>
+      </Prose>
 
       <Reveal as="div">
         <ul className="grid list-none gap-4 sm:grid-cols-2">
-          {MULTIPLAYER_MODE_ORDER.map((id) => (
-            <ModeCard key={id} id={id} />
-          ))}
-        </ul>
-      </Reveal>
-
-      <SeoHeading>{"Allein, aber anders"}</SeoHeading>
-      <p className="mb-4 max-w-prose">
-        {`Die Solo-Modi nehmen dem täglichen Spiel jeweils eine Selbstverständlichkeit weg.
-        Mal die unbegrenzten Versuche, mal das eine Ziel, mal die Möglichkeit, sich wieder
-        zu entfernen. Was übrig bleibt, spielt sich jedes Mal deutlich anders.`}
-      </p>
-
-      <Reveal as="div">
-        <ul className="grid list-none gap-4 sm:grid-cols-2">
-          {SOLO_MODE_ORDER.map((id) => {
-            const meta = SOLO_MODES[id];
+          {MULTIPLAYER_MODE_ORDER.map((id) => {
+            const mode = MULTIPLAYER_MODES[id];
             return (
-              <li key={id} className="rounded-xl border bg-card p-5">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-foreground">
-                  <SoloIcon id={id} />
-                </div>
-                <h3 className="mb-1 text-sm font-semibold text-foreground">{meta.name}</h3>
-                <p className="mb-3 text-sm text-muted-foreground">{meta.tagline}</p>
-                <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {meta.rules.map((rule) => (
-                    <li key={rule}>{rule}</li>
-                  ))}
-                </ul>
-                <Link
-                  href={`/solo/${meta.slug}/`}
-                  className="text-sm font-medium text-primary underline underline-offset-2 hover:no-underline"
-                >
-                  {meta.name} spielen
-                </Link>
-              </li>
+              <ModeCard
+                key={id}
+                icon={MULTIPLAYER_ICONS[id]}
+                name={mode.name}
+                tagline={mode.tagline}
+                rules={mode.rules}
+                actions={[
+                  ...(mode.createHref
+                    ? [{ href: mode.createHref, label: "Mit Freunden spielen" }]
+                    : []),
+                  { href: `/suche/?modus=${mode.id}`, label: "Gegen Fremde spielen" },
+                ]}
+              />
             );
           })}
         </ul>
       </Reveal>
 
-      <SeoHeading>{"Womit anfangen"}</SeoHeading>
-      <FeatureGrid>
-        <FeatureCard icon={Target} title="Zum Kennenlernen">
-          {`Das tägliche Spiel. Kein Zeitdruck, keine Begrenzung, und jeden Tag reden alle
-          über dasselbe Wort.`}
-        </FeatureCard>
-        <FeatureCard icon={Users} title="Zu zweit auf der Couch">
-          {`Koop. Eine geteilte Liste, kein Sieger, und man sieht, wie die andere Person
-          denkt.`}
-        </FeatureCard>
-        <FeatureCard icon={Clock} title="Für zwischendurch">
-          {`Sudden Death oder Blitz-Duell. Beide sind in unter zwei Minuten vorbei.`}
-        </FeatureCard>
-        <FeatureCard icon={Flame} title="Wenn es wehtun soll">
-          {`Battle Royale oder die Zeitbonus-Jagd. Hier verliert man nicht durch ein falsches
-          Wort, sondern durch Zögern.`}
-        </FeatureCard>
-      </FeatureGrid>
+      <Prose>
+        <h2 id="solo">{"Allein, aber anders"}</h2>
+        <p>
+          {`Die Solo-Modi nehmen dem täglichen Spiel jeweils eine Selbstverständlichkeit
+          weg. Mal die unbegrenzten Versuche, mal das eine Ziel, mal die Möglichkeit, sich
+          wieder zu entfernen. Was übrig bleibt, spielt sich jedes Mal deutlich anders.`}
+        </p>
+      </Prose>
 
-      <SeoHeading>{"Häufige Fragen zu den Modi"}</SeoHeading>
+      <Reveal as="div">
+        <ul className="grid list-none gap-4 sm:grid-cols-2">
+          {SOLO_MODE_ORDER.map((id) => {
+            const mode = SOLO_MODES[id];
+            return (
+              <ModeCard
+                key={id}
+                icon={SOLO_ICONS[id]}
+                name={mode.name}
+                tagline={mode.tagline}
+                rules={mode.rules}
+                actions={[{ href: `/solo/${mode.slug}/`, label: `${mode.name} spielen` }]}
+              />
+            );
+          })}
+        </ul>
+      </Reveal>
+
+      <Prose>
+        <h2 id="auswahl">{"Womit anfangen"}</h2>
+        <ul>
+          <li>
+            <strong>{"Zum Kennenlernen:"}</strong>{" "}
+            {`das tägliche Spiel. Kein Zeitdruck, keine Begrenzung, und jeden Tag reden
+            alle über dasselbe Wort.`}
+          </li>
+          <li>
+            <strong>{"Zu zweit auf der Couch:"}</strong>{" "}
+            {`Koop. Eine geteilte Liste, kein Sieger, und man sieht, wie die andere Person
+            denkt.`}
+          </li>
+          <li>
+            <strong>{"Für zwischendurch:"}</strong>{" "}
+            {"Sudden Death oder Blitz-Duell. Beide sind in unter zwei Minuten vorbei."}
+          </li>
+          <li>
+            <strong>{"Wenn es wehtun soll:"}</strong>{" "}
+            {`Battle Royale oder die Zeitbonus-Jagd. Hier verliert man nicht durch ein
+            falsches Wort, sondern durch Zögern.`}
+          </li>
+        </ul>
+      </Prose>
+
+      <Prose>
+        <h2 id="fragen">{"Häufige Fragen zu den Modi"}</h2>
+      </Prose>
       <SeoFaq items={modesFaqs} />
 
-      <div className="mt-10">
-        <RelatedLinks
-          label="Weiterführende Seiten zu den Spielmodi"
-          heading="Mehr zum Spiel"
-          links={[
-            { href: "/", label: "Das tägliche Kontexto spielen" },
-            { href: "/arena/", label: "Die Arena-Modi im Überblick" },
-            { href: "/anleitung/", label: "Spielanleitung" },
-            { href: "/strategie/", label: "Strategien und Startwörter" },
-            { href: "/wordle/", label: "Wördle, das deutsche Wordle" },
-            { href: "/faq/", label: "Alle häufigen Fragen" },
-          ]}
-        />
-      </div>
-    </SeoSection>
+      <RelatedLinks
+        label="Weiterführende Seiten zu den Spielmodi"
+        heading="Mehr zum Spiel"
+        links={[
+          { href: "/", label: "Das tägliche Kontexto spielen" },
+          { href: "/arena/", label: "Die Arena-Modi im Überblick" },
+          { href: "/anleitung/", label: "Spielanleitung" },
+          { href: "/strategie/", label: "Strategien und Startwörter" },
+          { href: "/wordle/", label: "Wördle, das deutsche Wordle" },
+          { href: "/faq/", label: "Alle häufigen Fragen" },
+        ]}
+      />
+    </>
   );
 }
 
-const MULTIPLAYER_ICONS = {
+const MULTIPLAYER_ICONS: Record<string, LucideIcon> = {
   duel: Swords,
   koop: Users,
   wordle_duel: Layers,
   royale: Flame,
   blitz: Timer,
   timerush: Clock,
-} as const;
+};
 
-function ModeCard({ id }: { id: QueueModeId }) {
-  const meta = MULTIPLAYER_MODES[id];
-  const Icon = MULTIPLAYER_ICONS[id];
-
-  return (
-    <li className="rounded-xl border bg-card p-5">
-      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-foreground">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <h3 className="mb-1 text-sm font-semibold text-foreground">{meta.name}</h3>
-      <p className="mb-3 text-sm text-muted-foreground">{meta.tagline}</p>
-      <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-        {meta.rules.map((rule) => (
-          <li key={rule}>{rule}</li>
-        ))}
-      </ul>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {meta.createHref && (
-          <Link
-            href={meta.createHref}
-            className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-          >
-            Runde erstellen
-          </Link>
-        )}
-        <Link
-          href={`/suche/?modus=${meta.id}`}
-          className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-        >
-          Mitspieler suchen
-        </Link>
-      </div>
-    </li>
-  );
-}
-
-const SOLO_ICONS = {
+const SOLO_ICONS: Record<string, LucideIcon> = {
   leiter: Target,
   limit: Timer,
   doppel: Shuffle,
   suddendeath: Flame,
-} as const;
+};
 
-function SoloIcon({ id }: { id: keyof typeof SOLO_ICONS }) {
-  const Icon = SOLO_ICONS[id];
-  return <Icon className="h-5 w-5" aria-hidden="true" />;
+function ModeCard({
+  icon: Icon,
+  name,
+  tagline,
+  rules,
+  actions,
+}: {
+  icon: LucideIcon;
+  name: string;
+  tagline: string;
+  rules: string[];
+  /** The first one is the primary button; a mode without an invite form has one. */
+  actions: { href: string; label: string }[];
+}) {
+  return (
+    <li className="flex flex-col rounded-xl border bg-card p-5">
+      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-foreground">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <h3 className="mb-1 text-sm font-semibold text-foreground">{name}</h3>
+      <p className="mb-3 text-sm text-muted-foreground">{tagline}</p>
+      <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+        {rules.map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
+      </ul>
+      <div className="mt-auto flex flex-wrap gap-2">
+        {actions.map((action, index) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className={
+              index === 0
+                ? "rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                : "rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            }
+          >
+            {action.label}
+          </Link>
+        ))}
+      </div>
+    </li>
+  );
 }

@@ -18,6 +18,7 @@ import { ArrowRight } from "lucide-react";
 const items = [
   { href: "/", label: "Spiel" },
   { href: "/wordle/", label: "Wördle" },
+  { href: "/modi/", label: "Modi" },
   { href: "/anleitung/", label: "Anleitung" },
   { href: "/strategie/", label: "Strategie" },
   { href: "/vergleich/", label: "Vergleich" },

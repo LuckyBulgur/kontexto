@@ -66,21 +66,50 @@ test.describe("Solo-Modi", () => {
 
 /**
  * The picker is the only way into the new modes from inside a running game, so
- * the path menu -> dialog -> round is worth one test of its own. It also pins
- * the decision that a tile starts a round instead of opening a page.
+ * the path menu -> dialog -> round gets a test of its own. It also pins the two
+ * decisions behind the dialog: the first question is "with whom", and every
+ * choice after it starts a round rather than opening a page.
  */
 test.describe("Modus-Waehler", () => {
-  test("das Menue oeffnet den Dialog und eine Kachel startet die Runde", async ({ page }) => {
+  test("fragt zuerst nach dem Mitspieler und startet dann die Runde", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Menü/ }).click();
     await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByRole("heading", { name: "Noch eine Runde?" })).toBeVisible();
-    // Every mode is one tap away, solo and multiplayer alike.
-    await expect(dialog.getByRole("link", { name: "Battle Royale" })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
+    // Playing with friends is one of the three first-level choices, not a link
+    // hidden beside a mode.
+    for (const label of ["Allein", "Mit Freunden", "Gegen Fremde"]) {
+      await expect(dialog.getByRole("button", { name: new RegExp(label) })).toBeVisible();
+    }
 
-    await dialog.getByRole("link", { name: "Sudden Death" }).click();
+    await dialog.getByRole("button", { name: /Allein/ }).click();
+    await expect(dialog.getByRole("heading", { name: "Allein spielen" })).toBeVisible();
+
+    await dialog.getByRole("link", { name: /Sudden Death/ }).click();
     await expect(page).toHaveURL(/\/solo\/sudden-death\/$/);
+  });
+
+  test("der Weg mit Freunden fuehrt zum Einladungsformular", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /^Menü/ }).click();
+    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /Mit Freunden/ }).click();
+    await dialog.getByRole("link", { name: /Battle Royale/ }).click();
+    await expect(page).toHaveURL(/\/arena\/create\/\?modus=royale$/);
+  });
+
+  test("zurueck fuehrt wieder zur Frage", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /^Menü/ }).click();
+    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /Gegen Fremde/ }).click();
+    await dialog.getByRole("button", { name: "Zurück zur Auswahl" }).click();
+    await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
   });
 });

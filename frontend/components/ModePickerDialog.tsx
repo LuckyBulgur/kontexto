@@ -1,14 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowLeft,
   Clock,
   Flame,
+  Globe,
   Layers,
+  Link2,
   Shuffle,
   Swords,
   Target,
   Timer,
+  User,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -25,30 +30,48 @@ import { SOLO_MODES, SOLO_MODE_ORDER } from "@/lib/solo-modes";
 /**
  * The mode picker.
  *
- * A dialog and not a page, because this is reached from inside a running game:
- * the player wants to be somewhere else in one tap, not to read. Every tile
- * therefore leads straight into a round. For multiplayer that is the queue, not
- * the invite form: somebody who opens this menu mid-game has nobody to invite,
- * and the small link underneath covers the case where they do.
+ * A dialog and not a page, because this is opened from inside a running game:
+ * the player wants to be somewhere else in one or two taps, not to read.
  *
- * The long version of all this lives on /modi/, for search engines and for
- * anyone who actually wants to compare the modes.
+ * Two steps, because the first question a player actually has is not "which
+ * mode" but "with whom". Ten modes times two ways in is twenty choices on one
+ * screen; asking "with whom" first turns that into three, then four to six. It
+ * also puts playing with friends on the same footing as playing alone, instead
+ * of hiding it in a small link beside the mode.
+ *
+ * The long version, with the rules of every mode, is /modi/.
  */
 
-const MULTIPLAYER_ICONS: Record<string, LucideIcon> = {
+type Path = "solo" | "friends" | "strangers";
+
+const PATHS: {
+  id: Path;
+  icon: LucideIcon;
+  title: string;
+  hint: string;
+}[] = [
+  { id: "solo", icon: User, title: "Allein", hint: "Vier Modi, sofort los" },
+  { id: "friends", icon: Link2, title: "Mit Freunden", hint: "Link teilen, zusammen spielen" },
+  { id: "strangers", icon: Globe, title: "Gegen Fremde", hint: "Wir suchen dir Mitspieler" },
+];
+
+const MODE_ICONS: Record<string, LucideIcon> = {
   duel: Swords,
   koop: Users,
   wordle_duel: Layers,
   royale: Flame,
   blitz: Timer,
   timerush: Clock,
-};
-
-const SOLO_ICONS: Record<string, LucideIcon> = {
   leiter: Target,
   limit: Timer,
   doppel: Shuffle,
   suddendeath: Flame,
+};
+
+const STEP_TITLES: Record<Path, string> = {
+  solo: "Allein spielen",
+  friends: "Mit Freunden spielen",
+  strangers: "Gegen Fremde spielen",
 };
 
 interface ModePickerDialogProps {
@@ -57,51 +80,69 @@ interface ModePickerDialogProps {
 }
 
 export default function ModePickerDialog({ open, onClose }: ModePickerDialogProps) {
+  const [path, setPath] = useState<Path | null>(null);
+
+  // Reopening starts at the question again. Landing back on the list from three
+  // sessions ago would be a small mystery every time.
+  useEffect(() => {
+    if (!open) setPath(null);
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">{"Noch eine Runde?"}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            {path && (
+              <button
+                type="button"
+                onClick={() => setPath(null)}
+                aria-label="Zurück zur Auswahl"
+                className="-ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
+            <span>{path ? STEP_TITLES[path] : "Wie willst du spielen?"}</span>
+          </DialogTitle>
           <DialogDescription className="sr-only">
-            Alle Spielmodi von Kontexto, zum direkten Starten
+            {"Spielmodus auswählen und direkt starten"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[70vh] space-y-5 overflow-y-auto pt-1">
-          <Group label="Gegen andere">
-            {MULTIPLAYER_MODE_ORDER.map((id) => {
-              const mode = MULTIPLAYER_MODES[id];
-              return (
-                <Tile
-                  key={id}
-                  icon={MULTIPLAYER_ICONS[id]}
-                  name={mode.name}
-                  hook={mode.hook}
-                  href={`/suche/?modus=${mode.id}`}
-                  aside={mode.createHref ? { href: mode.createHref, label: "Mit Freunden" } : undefined}
-                />
-              );
-            })}
-          </Group>
+        <div className="max-h-[70vh] space-y-2 overflow-y-auto pt-1">
+          {path === null
+            ? PATHS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setPath(entry.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-accent focus-visible:border-primary"
+                >
+                  <Badge icon={entry.icon} />
+                  <span className="min-w-0">
+                    <span className="block text-base font-semibold">{entry.title}</span>
+                    <span className="block text-sm text-muted-foreground">{entry.hint}</span>
+                  </span>
+                </button>
+              ))
+            : modesFor(path).map((mode) => (
+                <Link
+                  key={mode.href}
+                  href={mode.href}
+                  className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent focus-visible:border-primary"
+                >
+                  <Badge icon={MODE_ICONS[mode.id]} />
+                  <span className="min-w-0">
+                    <span className="block text-base font-semibold">{mode.name}</span>
+                    <span className="block text-sm text-muted-foreground">{mode.hook}</span>
+                  </span>
+                </Link>
+              ))}
 
-          <Group label="Allein">
-            {SOLO_MODE_ORDER.map((id) => {
-              const mode = SOLO_MODES[id];
-              return (
-                <Tile
-                  key={id}
-                  icon={SOLO_ICONS[id]}
-                  name={mode.name}
-                  hook={mode.hook}
-                  href={`/solo/${mode.slug}/`}
-                />
-              );
-            })}
-          </Group>
-
-          <p className="pb-1 text-center text-xs text-muted-foreground">
+          <p className="pt-2 text-center text-xs text-muted-foreground">
             <Link href="/modi/" className="underline underline-offset-2 hover:no-underline">
-              Alle Regeln nachlesen
+              {"Regeln aller Modi nachlesen"}
             </Link>
           </p>
         </div>
@@ -110,52 +151,26 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
   );
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+function Badge({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <section className="space-y-1.5">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </h3>
-      <ul className="list-none space-y-1.5">{children}</ul>
-    </section>
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground">
+      <Icon className="h-5 w-5" aria-hidden="true" />
+    </span>
   );
 }
 
-function Tile({
-  icon: Icon,
-  name,
-  hook,
-  href,
-  aside,
-}: {
-  icon: LucideIcon;
-  name: string;
-  hook: string;
-  href: string;
-  /** The second, quieter way in: a private room with an invite link. */
-  aside?: { href: string; label: string };
-}) {
-  return (
-    <li className="relative flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent focus-within:border-primary">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </span>
-      <span className="min-w-0 flex-1">
-        {/* The stretched link makes the whole tile the target without nesting
-            interactive elements, so the invite link beside it stays reachable. */}
-        <Link href={href} className="text-sm font-semibold after:absolute after:inset-0">
-          {name}
-        </Link>
-        <span className="block truncate text-xs text-muted-foreground">{hook}</span>
-      </span>
-      {aside && (
-        <Link
-          href={aside.href}
-          className="relative z-10 shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground hover:no-underline"
-        >
-          {aside.label}
-        </Link>
-      )}
-    </li>
-  );
+/** The modes this path offers, and where each one leads. */
+function modesFor(path: Path): { id: string; name: string; hook: string; href: string }[] {
+  if (path === "solo") {
+    return SOLO_MODE_ORDER.map((id) => {
+      const mode = SOLO_MODES[id];
+      return { id, name: mode.name, hook: mode.hook, href: `/solo/${mode.slug}/` };
+    });
+  }
+  return MULTIPLAYER_MODE_ORDER.flatMap((id) => {
+    const mode = MULTIPLAYER_MODES[id];
+    const href = path === "friends" ? mode.createHref : `/suche/?modus=${mode.id}`;
+    // A mode without an invite form simply does not appear under "with friends".
+    return href ? [{ id, name: mode.name, hook: mode.hook, href }] : [];
+  });
 }
