@@ -1119,6 +1119,39 @@ class TestSurveyAnswer:
         ok, reason = run(go())
         assert not ok and reason == "bot"
 
+    def test_model_and_recorder_know_the_same_sources(self):
+        """The enum lives in two places; drift would silently drop an answer."""
+        from typing import get_args
+
+        from analytics_models import SurveyAnswerRequest
+
+        model_sources = set(get_args(
+            SurveyAnswerRequest.model_fields["source"].annotation))
+        assert model_sources == set(analytics.SURVEY_SOURCES)
+
+    def test_every_known_source_is_accepted(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                results = []
+                for index, source in enumerate(analytics.SURVEY_SOURCES):
+                    ip = f"10.0.0.{index}"
+                    fp = analytics.compute_fingerprint(ip, self.UA, JAN)
+                    token = analytics.make_beacon_token(fp, JAN)
+                    ok, _ = await analytics.record_survey_answer(
+                        db, ip=ip, user_agent=self.UA, token=token,
+                        source=source, now=JAN)
+                    results.append(ok)
+                cur = await db.execute(
+                    "SELECT COUNT(*) FROM analytics_counters WHERE metric = ?",
+                    (analytics.SURVEY_SOURCE_METRIC,))
+                return results, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        results, rows = run(go())
+        assert all(results)
+        assert rows == len(analytics.SURVEY_SOURCES)
+
     def test_unknown_source_rejected(self, db_path):
         token = self._token()
 

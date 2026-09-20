@@ -56,7 +56,7 @@ MAX_EVENTS_PER_FP_PER_DAY = 300
 SURVEY_SOURCE_VERSION = "source_v1"
 SURVEY_SOURCE_METRIC = "survey_source_v1"
 SURVEY_SOURCES = (
-    "search", "friends", "tiktok", "instagram", "youtube",
+    "search", "friends", "tiktok", "instagram", "youtube", "twitch",
     "reddit", "other_game", "random", "other",
 )
 # The dedup ledger has to outlive the raw-event window: a visitor who answered in

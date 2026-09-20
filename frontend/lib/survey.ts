@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  */
 
 export type SurveySource =
-  | "search" | "friends" | "tiktok" | "instagram" | "youtube"
+  | "search" | "friends" | "tiktok" | "instagram" | "youtube" | "twitch"
   | "reddit" | "other_game" | "random" | "other";
 
 export interface SurveyOption {
@@ -29,8 +29,8 @@ export interface SurveyOption {
 }
 
 /**
- * The catalogue. Nine entries fit on one mobile screen without scrolling, which
- * is the ceiling for a question that has to be answered in a single tap.
+ * The catalogue. Ten entries still fit on one mobile screen without scrolling,
+ * which is the ceiling for a question that has to be answered in a single tap.
  */
 export const SURVEY_OPTIONS: SurveyOption[] = [
   { id: "search", label: "Google/Suche", detailPrompt: "Wonach hast du gesucht?" },
@@ -38,6 +38,7 @@ export const SURVEY_OPTIONS: SurveyOption[] = [
   { id: "tiktok", label: "TikTok", detailPrompt: "Welcher Creator?" },
   { id: "instagram", label: "Instagram", detailPrompt: "Welcher Account?" },
   { id: "youtube", label: "YouTube", detailPrompt: "Welcher Kanal?" },
+  { id: "twitch", label: "Twitch", detailPrompt: "Welcher Streamer?" },
   { id: "reddit", label: "Reddit", detailPrompt: "Welches Subreddit?" },
   { id: "other_game", label: "Ein anderes Spiel", detailPrompt: "Welches Spiel?" },
   { id: "random", label: "Zufall", detailPrompt: "Wo denn?" },

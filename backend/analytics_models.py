@@ -76,7 +76,7 @@ class SurveyAnswerRequest(BaseModel):
     token: str = Field(..., max_length=64)
     survey: Literal["source_v1"] = "source_v1"
     source: Literal[
-        "search", "friends", "tiktok", "instagram", "youtube",
+        "search", "friends", "tiktok", "instagram", "youtube", "twitch",
         "reddit", "other_game", "random", "other",
     ]
     detail: str | None = Field(default=None, max_length=80)

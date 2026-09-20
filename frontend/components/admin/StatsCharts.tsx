@@ -40,7 +40,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 };
 const SURVEY_LABELS: Record<string, string> = {
   search: "Google/Suche", friends: "Freunde", tiktok: "TikTok", instagram: "Instagram",
-  youtube: "YouTube", reddit: "Reddit", other_game: "Anderes Spiel",
+  youtube: "YouTube", twitch: "Twitch", reddit: "Reddit", other_game: "Anderes Spiel",
   random: "Zufall", other: "Anderes",
 };
 const DEVICE_LABELS: Record<string, string> = {
