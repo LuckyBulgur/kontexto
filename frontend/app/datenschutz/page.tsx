@@ -122,6 +122,12 @@ export default function DatenschutzPage() {
               Erfasst werden nur aggregierte Kennzahlen wie Seitenaufrufe, ungefähre Besucherzahlen, grobe Geräte-/Browser-Kategorie und Spiel-Statistiken (z. B. Anzahl der Rateversuche). Die zugrundeliegenden Einzeldaten werden nach spätestens 35 Tagen automatisch gelöscht; danach verbleiben ausschließlich anonyme Summenwerte. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer datenschutzfreundlichen Reichweitenmessung).
             </p>
             <p>
+              <strong className="text-foreground">Geteilte Links:</strong> Wenn du dein Ergebnis teilst, enthält der kopierte Text einen Link auf das Spiel mit einer Kennung der Partie (etwa <span className="font-mono">?s=412</span>). Wer darüber hereinkommt, wird nur als Zahl je Seite gezählt; die Kennung wird sofort aus der Adresszeile entfernt und nicht gespeichert. Ebenfalls gezählt wird, wie oft der Teilen-Knopf gedrückt wurde, ohne Bezug zu deiner Person.
+            </p>
+            <p>
+              <strong className="text-foreground">Lesedauer:</strong> Solange eine Seite sichtbar geöffnet ist, sendet der Browser alle 20 Sekunden ein kurzes Lebenszeichen. Daraus schätzen wir die Verweildauer je Seite und zeigen, wie viele Personen gerade online sind. Gespeichert wird nur der oben beschriebene anonyme Hash-Wert mit dem Zeitpunkt, und diese Einträge werden laufend gelöscht.
+            </p>
+            <p>
               <strong className="text-foreground">Freiwillige Kurzumfrage:</strong> Nach einem beendeten Spiel fragen wir dich einmalig in einem Dialogfenster, woher du Kontexto kennst. Die Antwort ist freiwillig, der Dialog lässt sich jederzeit überspringen. Gespeichert wird nur der gewählte Kanal als Zähler (etwa „TikTok“), ohne Bezug zu deiner Person.
             </p>
             <p>

@@ -28,7 +28,10 @@ export async function submitWordleGuess(
   word: string,
   gameNumber: number,
   hardMode: boolean = false,
-  previous: { word: string; result: TileColor[] }[] = []
+  previous: { word: string; result: TileColor[] }[] = [],
+  /** Opening guess of this game: lets the server count a started game, which is
+   * the only way an abandoned one becomes visible. Deduplicated server-side. */
+  first: boolean = false,
 ): Promise<WordleGuessResponse> {
   return request("/wordle/guess", {
     method: "POST",
@@ -37,6 +40,7 @@ export async function submitWordleGuess(
       game_number: gameNumber,
       hard_mode: hardMode,
       previous,
+      first,
     }),
   });
 }

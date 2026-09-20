@@ -10,13 +10,33 @@ import { sendHeartbeat, trackPageview } from "@/lib/analytics";
 // couple of missed beats, e.g. a briefly throttled background tab).
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
+/**
+ * Reads the marker of a shared result link (`?s=412`) and removes it from the
+ * address bar right away, so it is neither shared on nor left in a bookmark. The
+ * value is handed to the pageview beacon once and counted per page there.
+ */
+function takeShareMarker(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const marker = params.get("s");
+  if (!marker || !/^(?:[0-9]{1,6}|u)$/.test(marker)) return null;
+  params.delete("s");
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    window.location.pathname + (query ? `?${query}` : "") + window.location.hash,
+  );
+  return marker;
+}
+
 // Fires a pageview beacon on every (client-side) route change, and keeps a
 // live-presence heartbeat running while the page stays open.
 export function Analytics() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname) trackPageview(pathname);
+    if (pathname) trackPageview(pathname, takeShareMarker());
   }, [pathname]);
 
   useEffect(() => {
@@ -24,12 +44,13 @@ export function Analytics() {
     // counting itself as an online visitor.
     if (!pathname || pathname.startsWith("/admin")) return;
 
-    sendHeartbeat(pathname);
-    const id = window.setInterval(() => sendHeartbeat(pathname), HEARTBEAT_INTERVAL_MS);
+    const beat = () => sendHeartbeat(pathname, document.visibilityState === "visible");
+    beat();
+    const id = window.setInterval(beat, HEARTBEAT_INTERVAL_MS);
     // Refresh immediately when a backgrounded tab becomes visible again, so a
     // returning visitor reappears in the live count without waiting a full beat.
     const onVisible = () => {
-      if (document.visibilityState === "visible") sendHeartbeat(pathname);
+      if (document.visibilityState === "visible") beat();
     };
     document.addEventListener("visibilitychange", onVisible);
 

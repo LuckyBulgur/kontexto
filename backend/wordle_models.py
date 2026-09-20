@@ -13,6 +13,8 @@ class WordleGuessRequest(BaseModel):
     game_number: int
     hard_mode: bool = False
     previous: list[PreviousGuess] = []
+    # Set on the first guess of a game so the server can count a started game.
+    first: bool = False
 
 
 class WordleGuessResponse(BaseModel):

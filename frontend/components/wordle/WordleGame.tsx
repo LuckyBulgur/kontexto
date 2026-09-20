@@ -118,7 +118,9 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
     setSubmitting(true);
     try {
       const previous = guesses.map((g, i) => ({ word: g, result: evaluations[i] }));
-      const resp = await submitWordleGuess(word, gameNumber, hardMode, previous);
+      const resp = await submitWordleGuess(
+        word, gameNumber, hardMode, previous, guesses.length === 0,
+      );
 
       if (!resp.valid) {
         if (resp.error === "not_in_word_list") {

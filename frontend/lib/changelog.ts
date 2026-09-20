@@ -25,6 +25,13 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-20",
+    kind: "Verbessert",
+    title: "Geteilte Ergebnisse enthalten jetzt den Link zum Spiel",
+    body:
+      "Bisher wanderte beim Teilen nur das Farbmuster in die Zwischenablage, ohne Adresse. Wer es geschickt bekam, musste die Seite selbst suchen. Jetzt steht der Link zum Spiel darunter, bei Kontexto und bei Wördle.",
+  },
+  {
+    date: "2026-09-20",
     kind: "Neu",
     title: "Eine einzige Frage: Woher kennst du Kontexto?",
     body:

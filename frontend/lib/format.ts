@@ -77,3 +77,18 @@ export function trend(current: number, previous: number): { delta: number; posit
 }
 
 export const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as const;
+
+/**
+ * Human-readable duration in de-DE, coarse on purpose: attention time is an
+ * estimate from 20-second heartbeats, so seconds would suggest a precision the
+ * figure does not have.
+ */
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "k. A.";
+  const total = Math.max(0, Math.round(seconds));
+  if (total < 60) return `${total} Sek.`;
+  const minutes = Math.round(total / 60);
+  if (minutes < 90) return `${formatNumber(minutes)} Min.`;
+  const hours = total / 3600;
+  return `${formatDecimal(Math.round(hours * 10) / 10)} Std.`;
+}

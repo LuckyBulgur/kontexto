@@ -19,8 +19,8 @@ import auth
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
-    RegisterOptionsRequest, RegisterVerifyRequest, SurveyAnswerRequest,
-    WebAuthnVerifyRequest,
+    RegisterOptionsRequest, RegisterVerifyRequest, ShareClickRequest,
+    SurveyAnswerRequest, WebAuthnVerifyRequest,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -229,7 +229,12 @@ if os.environ.get("KONTEXTO_DEV"):
 
 
 @app.post("/api/guess", response_model=GuessResponse)
-async def guess(req: GuessRequest, game: int | None = Query(None), infinite: bool = Query(False)):
+async def guess(
+    req: GuessRequest,
+    request: Request,
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+):
     gs = _get_game_state()
     try:
         game_num = _resolve_game_number(game, infinite=infinite)
@@ -250,6 +255,16 @@ async def guess(req: GuessRequest, game: int | None = Query(None), infinite: boo
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
     mode = "infinite" if infinite else "kontexto"
+    if req.first:
+        # First guess of this game for this visitor: the only point where an
+        # abandoned game becomes countable at all.
+        await analytics.record_game_start(
+            _db_path,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            mode=mode,
+            game_number=game_num,
+        )
     await analytics.record_action(_db_path, "guesses", mode, word=result["word"])
     await analytics.record_game_stat(_db_path, mode, game_num, "guesses")
     if result["rank"] == 1:
@@ -839,7 +854,7 @@ async def wordle_game(ws: WordleState = Depends(get_wordle_state)) -> WordleGame
 
 @app.post("/api/wordle/guess")
 async def wordle_guess(
-    req: WordleGuessRequest, ws: WordleState = Depends(get_wordle_state)
+    req: WordleGuessRequest, request: Request, ws: WordleState = Depends(get_wordle_state)
 ) -> WordleGuessResponse:
     word = req.word.lower().strip()
     if not ws.is_valid_word(word):
@@ -853,6 +868,14 @@ async def wordle_guess(
             )
     solution = ws.get_solution(req.game_number)
     result = evaluate(word, solution)
+    if req.first:
+        await analytics.record_game_start(
+            _db_path,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            mode="wordle",
+            game_number=req.game_number,
+        )
     await analytics.record_action(_db_path, "guesses", "wordle")
     if word == solution:
         await analytics.record_action(_db_path, "solves", "wordle")
@@ -1010,6 +1033,7 @@ async def collect(req: BeaconRequest, request: Request):
             referrer=req.referrer or request.headers.get("referer"),
             page=req.page,
             token=req.token,
+            share=req.share,
             now=_now(),
         )
         return {"ok": accepted}
@@ -1028,6 +1052,7 @@ async def collect_heartbeat(req: HeartbeatRequest, request: Request):
             user_agent=request.headers.get("user-agent", ""),
             page=req.page,
             token=req.token,
+            visible=req.visible,
             now=_now(),
         )
         return {"ok": accepted}
@@ -1057,6 +1082,24 @@ async def stats_complete(req: CompletionRequest, request: Request):
             tips=req.tips,
             duration_seconds=req.duration_seconds,
             best_rank=req.best_rank,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.post("/api/collect/share", response_model=BeaconResponse)
+async def collect_share(req: ShareClickRequest, request: Request):
+    """Count a press of the share button (token-gated, bot-filtered)."""
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_share_click(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            token=req.token,
+            mode=req.mode,
             now=_now(),
         )
         return {"ok": accepted}

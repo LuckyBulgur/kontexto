@@ -202,6 +202,19 @@ CREATE TABLE IF NOT EXISTS analytics_completion_seen (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_completion_seen_ts ON analytics_completion_seen(ts);
 
+-- Analytics: dedup ledger for "a game was started". One row per visitor, mode
+-- and game per day, so the start counter cannot be inflated by a client that
+-- flags every guess as the first one. Pruned with the raw-event window.
+CREATE TABLE IF NOT EXISTS analytics_start_seen (
+    fp_hash TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    game_number INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL,
+    PRIMARY KEY (fp_hash, mode, game_number, date)
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_start_seen_ts ON analytics_start_seen(ts);
+
 -- Analytics: dedup ledger for the attribution survey ("Woher kennst du Kontexto?").
 -- One accepted answer per (fingerprint, survey version); detail_done caps the
 -- optional free text at one per answer. Retention is longer than the raw-event

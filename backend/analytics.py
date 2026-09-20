@@ -66,6 +66,19 @@ SURVEY_SEEN_RETENTION_DAYS = 180
 # Hard cap for the optional free text (also enforced by the request model).
 SURVEY_DETAIL_MAX_LEN = 80
 
+# Interval the client heartbeats on (components/Analytics.tsx). Each heartbeat
+# that reports a visible tab is worth this many seconds of attention. Changing
+# the client interval without changing this constant skews the attention figure,
+# hence the comment on both sides.
+HEARTBEAT_SECONDS = 20
+# Counter metrics that belong to the growth funnel.
+START_METRIC = "starts"                   # a game was actually begun
+SHARE_METRIC = "shares"                   # the share button was pressed
+SHARE_ARRIVAL_METRIC = "share_arrivals"   # somebody came in through a shared link
+ATTENTION_METRIC = "attention"            # heartbeats on a visible tab, per page
+# Marker appended to a shared link (`?s=412`, `?s=u` for the endless mode).
+_SHARE_MARKER = re.compile(r"^(?:[0-9]{1,6}|u)$")
+
 # Number of trusted reverse-proxy hops in front of the app. Production chain is
 # Caddy -> nginx (each appends one X-Forwarded-For entry), so the real client IP
 # is the entry at position -HOPS. Configurable in case the topology changes.
@@ -398,9 +411,15 @@ async def record_pageview(
     page: str,
     token: str,
     country: str = "",
+    share: str | None = None,
     now: datetime | None = None,
 ) -> tuple[bool, str]:
     """Validate and store a pageview beacon.
+
+    `share` is the marker of a shared result link (`?s=<game>`), the only way to
+    see word of mouth that no referrer header ever reports: a link pasted into a
+    messenger arrives without one. It is counted per page, never stored per
+    visitor.
 
     Returns (accepted, reason). Rejected calls never raise and never count.
     """
@@ -417,6 +436,17 @@ async def record_pageview(
     label = normalize_page(page)
     window_start = now - timedelta(seconds=BEACON_WINDOW_SECONDS)
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Arrivals through a shared link are counted before the pageview dedup: the
+    # marker is stripped from the address bar on arrival, so it cannot be sent
+    # twice, while the dedup window would silently drop the arrival of somebody
+    # who had the page open half an hour ago.
+    if share and _SHARE_MARKER.match(share):
+        async def _bump_share(conn: aiosqlite.Connection) -> None:
+            await _bump(conn, "analytics_counters", now.strftime("%Y-%m-%d"),
+                        SHARE_ARRIVAL_METRIC, label, 1)
+
+        await _commit_with_retry(db, _bump_share, description="share_arrival")
 
     # De-dup: at most one pageview per (fp, page) per window.
     cur = await db.execute(
@@ -487,12 +517,18 @@ async def record_heartbeat(
     user_agent: str,
     page: str,
     token: str,
+    visible: bool = False,
     now: datetime | None = None,
 ) -> tuple[bool, str]:
     """Validate and store a live-presence heartbeat.
 
     Hardened like the pageview beacon: requires a valid, fingerprint-bound token
     and rejects bots. Returns (accepted, reason); rejected calls never raise.
+
+    A heartbeat from a *visible* tab additionally counts HEARTBEAT_SECONDS of
+    attention for that page. A backgrounded tab still keeps the visitor in the
+    live count (they have the site open) but earns no attention, so the figure
+    stays a reading time and not a tab-left-open time.
     """
     now = now or datetime.now(timezone.utc)
     fp_hash = compute_fingerprint(ip, user_agent, now)
@@ -504,12 +540,16 @@ async def record_heartbeat(
 
     label = normalize_page(page)
 
+    date_str = now.strftime("%Y-%m-%d")
+
     async def _write(conn: aiosqlite.Connection) -> None:
         await conn.execute(
             "INSERT INTO analytics_presence (fp_hash, last_seen, page) VALUES (?, ?, ?) "
             "ON CONFLICT(fp_hash) DO UPDATE SET last_seen = excluded.last_seen, page = excluded.page",
             (fp_hash, now.isoformat(), label),
         )
+        if visible:
+            await _bump(conn, "analytics_counters", date_str, ATTENTION_METRIC, label, 1)
 
     accepted = await _commit_with_retry(db, _write, description="record_heartbeat")
     return (True, "ok") if accepted else (False, "write_failed")
@@ -767,6 +807,90 @@ async def record_completion(
     return (True, "ok") if accepted else (False, "write_failed")
 
 
+# --- Growth funnel: game starts and sharing ----------------------------------
+
+async def record_game_start(
+    db_path: str,
+    *,
+    ip: str,
+    user_agent: str,
+    mode: str,
+    game_number: int,
+    now: datetime | None = None,
+) -> bool:
+    """Count that a visitor actually began this game. Returns True if counted.
+
+    Without it the dashboard only knows finished games, so an abandoned puzzle is
+    invisible and the completion rate is unknowable.
+
+    The client marks its first guess of a game, which keeps this off the hot path
+    (one write per game instead of one per guess). That flag is a hint, not the
+    authority: the ledger's primary key caps the count at one per fingerprint,
+    mode and game per day, so a client that flags every guess still counts once.
+    """
+    now = now or datetime.now(timezone.utc)
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+    date_str = now.strftime("%Y-%m-%d")
+
+    try:
+        db = await aiosqlite.connect(db_path)
+        try:
+            await configure_connection(db)
+            cur = await db.execute(
+                "INSERT OR IGNORE INTO analytics_start_seen "
+                "(fp_hash, mode, game_number, date, ts) VALUES (?, ?, ?, ?, ?)",
+                (fp_hash, mode, int(game_number), date_str, now.isoformat()),
+            )
+            await db.commit()
+            if cur.rowcount != 1:
+                return False
+        finally:
+            await db.close()
+    except Exception:
+        logger.exception("record_game_start failed (mode=%s, game=%s)", mode, game_number)
+        return False
+
+    await record_action(db_path, START_METRIC, mode, now=now)
+    return True
+
+
+async def record_share_click(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    token: str,
+    mode: str,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Count a press of the share button. Token-gated and bot-filtered.
+
+    Deliberately client-reported: a copy to the clipboard produces no server hit,
+    and there is no other way to see it. Paired with SHARE_ARRIVAL_METRIC it gives
+    the only honest reading of word of mouth, shares against arrivals. It counts
+    an intention, never a delivered visitor, and the dashboard says so.
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+    if mode not in ("kontexto", "infinite", "wordle"):
+        return False, "bad_payload"
+
+    date_str = now.strftime("%Y-%m-%d")
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        await _bump(conn, "analytics_counters", date_str, SHARE_METRIC, mode, 1)
+
+    accepted = await _commit_with_retry(db, _write, description="record_share_click")
+    return (True, "ok") if accepted else (False, "write_failed")
+
+
 # --- Attribution survey ------------------------------------------------------
 
 def sanitize_survey_detail(detail: str | None) -> str | None:
@@ -994,6 +1118,7 @@ async def prune_old_events(db: aiosqlite.Connection, now: datetime | None = None
     survey_cutoff = (now - timedelta(days=SURVEY_SEEN_RETENTION_DAYS)).isoformat()
     cur = await db.execute("DELETE FROM analytics_events WHERE ts < ?", (cutoff,))
     await db.execute("DELETE FROM analytics_completion_seen WHERE ts < ?", (cutoff,))
+    await db.execute("DELETE FROM analytics_start_seen WHERE ts < ?", (cutoff,))
     await db.execute("DELETE FROM analytics_survey_seen WHERE ts < ?", (survey_cutoff,))
     await db.commit()
     return cur.rowcount
@@ -1082,6 +1207,57 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "hints_total": counters_total.get("hints", 0),
         "solve_rate": round(solves_total / finished, 3) if finished else None,
         "avg_guesses_per_solve": round(guesses_total / solves_total, 1) if solves_total else None,
+    }
+
+    # Growth funnel: started vs. finished games, sharing, attention per page.
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
+        (START_METRIC,))
+    starts_by_mode = {dim: total for dim, total in await cur.fetchall()}
+    starts_total = sum(starts_by_mode.values())
+    # Finished games of the modes that report a start, so the rate compares like
+    # with like (duel and koop have their own funnel and no start signal).
+    finished_started_modes = sum(games_by_mode.get(m, 0) for m in starts_by_mode)
+    funnel = {
+        "starts_by_mode": starts_by_mode,
+        "starts_total": starts_total,
+        "finished_total": finished_started_modes,
+        "completion_rate": (
+            round(min(finished_started_modes / starts_total, 1.0), 3) if starts_total else None
+        ),
+        "abandoned_total": max(starts_total - finished_started_modes, 0),
+    }
+
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
+        (SHARE_METRIC,))
+    shares_by_mode = {dim: total for dim, total in await cur.fetchall()}
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
+        (SHARE_ARRIVAL_METRIC,))
+    share_arrivals_by_page = {dim: total for dim, total in await cur.fetchall()}
+    shares_total = sum(shares_by_mode.values())
+    arrivals_total = sum(share_arrivals_by_page.values())
+    sharing = {
+        "shares_by_mode": shares_by_mode,
+        "shares_total": shares_total,
+        "arrivals_by_page": share_arrivals_by_page,
+        "arrivals_total": arrivals_total,
+        # Visitors brought in per share. Below 1 by nature: one pasted link can
+        # reach many people, but most of them never click.
+        "arrivals_per_share": round(arrivals_total / shares_total, 2) if shares_total else None,
+    }
+
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
+        (ATTENTION_METRIC,))
+    attention_by_page = {
+        dim: total * HEARTBEAT_SECONDS for dim, total in await cur.fetchall()
+    }
+    attention = {
+        "seconds_by_page": attention_by_page,
+        "seconds_total": sum(attention_by_page.values()),
+        "sample_seconds": HEARTBEAT_SECONDS,
     }
 
     # Top guessed words across all users.
@@ -1394,6 +1570,9 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
         "monthly": monthly,
         "mode_monthly": mode_monthly,
         "survey": survey,
+        "funnel": funnel,
+        "sharing": sharing,
+        "attention": attention,
         "bots_filtered": bots_filtered,
         "note": (
             "Unique-User cookieless via monatlich rotierendem Hash (IP+Browser, kein PII). "

@@ -3,14 +3,16 @@ import { getInfiniteGame, submitGuess, getTip, revealAnswer } from "./api";
 
 interface FetchCall {
   url: string;
+  body?: string;
 }
 
 function stubFetch(status: number, body: unknown): FetchCall {
   const call: FetchCall = { url: "" };
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
       call.url = url;
+      call.body = typeof init?.body === "string" ? init.body : undefined;
       return {
         ok: status >= 200 && status < 300,
         status,
@@ -56,6 +58,18 @@ describe("infinite-mode API query building", () => {
     const call = stubFetch(200, { word: "fisch", rank: 1, total: 144 });
     await submitGuess("fisch");
     expect(call.url).toBe("/api/guess");
+  });
+
+  it("submitGuess marks the opening guess so a started game is countable", async () => {
+    const call = stubFetch(200, { word: "fisch", rank: 400, total: 144 });
+    await submitGuess("fisch", null, false, true);
+    expect(JSON.parse(call.body ?? "{}")).toEqual({ word: "fisch", first: true });
+  });
+
+  it("submitGuess flags every later guess as not-first", async () => {
+    const call = stubFetch(200, { word: "vogel", rank: 20, total: 144 });
+    await submitGuess("vogel");
+    expect(JSON.parse(call.body ?? "{}")).toEqual({ word: "vogel", first: false });
   });
 
   it("getTip includes infinite + guessed ranks", async () => {

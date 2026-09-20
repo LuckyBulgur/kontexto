@@ -1281,3 +1281,206 @@ class TestSurveyAnswer:
         ]
         assert len(survey["recent_details"]) == 3
         assert survey["recent_details"][0]["detail"] == "von 3.3.3.3"
+
+
+class TestGrowthFunnel:
+    UA = "Mozilla/5.0 Chrome/120"
+
+    def _token(self, ip="1.2.3.4", now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        return analytics.make_beacon_token(fp, now)
+
+    def test_game_start_counted_once_per_visitor_and_game(self, db_path):
+        async def go():
+            for _ in range(3):
+                await analytics.record_game_start(
+                    db_path, ip="1.2.3.4", user_agent=self.UA,
+                    mode="kontexto", game_number=42, now=JAN)
+            await analytics.record_game_start(
+                db_path, ip="1.2.3.4", user_agent=self.UA,
+                mode="kontexto", game_number=43, now=JAN)
+            await analytics.record_game_start(
+                db_path, ip="9.9.9.9", user_agent=self.UA,
+                mode="kontexto", game_number=42, now=JAN)
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric = ?",
+                    (analytics.START_METRIC,))
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        # Three flagged guesses of the same game count once; a second game and a
+        # second visitor each add one.
+        assert run(go()) == 3
+
+    def test_game_start_ignores_bots(self, db_path):
+        async def go():
+            counted = await analytics.record_game_start(
+                db_path, ip="1.2.3.4", user_agent="python-requests/2.31",
+                mode="kontexto", game_number=1, now=JAN)
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT COUNT(*) FROM analytics_start_seen")
+                return counted, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == (False, 0)
+
+    def test_start_ledger_pruned_with_the_events(self, db_path):
+        later = JAN + timedelta(days=analytics.EVENT_RETENTION_DAYS + 1)
+
+        async def go():
+            await analytics.record_game_start(
+                db_path, ip="1.2.3.4", user_agent=self.UA,
+                mode="kontexto", game_number=42, now=JAN)
+            db = await get_db(db_path)
+            try:
+                await analytics.prune_old_events(db, later)
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_start_seen")
+                rows = (await cur.fetchone())[0]
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters WHERE metric = ?",
+                    (analytics.START_METRIC,))
+                return rows, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        rows, counted = run(go())
+        assert rows == 0
+        assert counted == 1  # the rollup survives, only the ledger is transient
+
+    def test_share_click_counted(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                ok = await analytics.record_share_click(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    mode="kontexto", now=JAN)
+                bad_token = await analytics.record_share_click(
+                    db, ip="1.2.3.4", user_agent=self.UA, token="garbage",
+                    mode="kontexto", now=JAN)
+                bad_mode = await analytics.record_share_click(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    mode="telepathy", now=JAN)
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric = ?",
+                    (analytics.SHARE_METRIC,))
+                return ok, bad_token, bad_mode, [tuple(r) for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        ok, bad_token, bad_mode, rows = run(go())
+        assert ok == (True, "ok")
+        assert bad_token == (False, "invalid_token")
+        assert bad_mode == (False, "bad_payload")
+        assert rows == [("kontexto", 1)]
+
+    def test_share_arrival_counted_per_page(self, db_path):
+        async def pv(db, ip, share):
+            fp = analytics.compute_fingerprint(ip, self.UA, JAN)
+            token = analytics.make_beacon_token(fp, JAN)
+            return await analytics.record_pageview(
+                db, ip=ip, user_agent=self.UA, referrer=None, page="/",
+                token=token, share=share, now=JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await pv(db, "1.1.1.1", "412")
+                await pv(db, "2.2.2.2", "u")
+                await pv(db, "3.3.3.3", None)
+                await pv(db, "4.4.4.4", "<script>")  # not a marker, not counted
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric = ?",
+                    (analytics.SHARE_ARRIVAL_METRIC,))
+                return [tuple(r) for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        assert run(go()) == [("/", 2)]
+
+    def test_share_arrival_counted_even_for_a_deduplicated_pageview(self, db_path):
+        """A visitor who had the page open minutes ago still counts as an arrival."""
+        async def pv(db, share):
+            fp = analytics.compute_fingerprint("1.1.1.1", self.UA, JAN)
+            token = analytics.make_beacon_token(fp, JAN)
+            return await analytics.record_pageview(
+                db, ip="1.1.1.1", user_agent=self.UA, referrer=None, page="/",
+                token=token, share=share, now=JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await pv(db, None)
+                second = await pv(db, "412")
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric = ?",
+                    (analytics.SHARE_ARRIVAL_METRIC,))
+                return second, [tuple(r) for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        second, rows = run(go())
+        assert second == (False, "duplicate")  # the pageview itself is not double-counted
+        assert rows == [("/", 1)]              # the arrival is
+
+    def test_attention_only_from_visible_heartbeats(self, db_path):
+        async def beat(db, ip, visible):
+            fp = analytics.compute_fingerprint(ip, self.UA, JAN)
+            token = analytics.make_beacon_token(fp, JAN)
+            return await analytics.record_heartbeat(
+                db, ip=ip, user_agent=self.UA, page="/wordle",
+                token=token, visible=visible, now=JAN)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await beat(db, "1.1.1.1", True)
+                await beat(db, "1.1.1.1", True)
+                await beat(db, "2.2.2.2", False)
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric = ?",
+                    (analytics.ATTENTION_METRIC,))
+                return [tuple(r) for r in await cur.fetchall()]
+            finally:
+                await db.close()
+        assert run(go()) == [("/wordle", 2)]
+
+    def test_stats_payload(self, db_path):
+        async def go():
+            await analytics.record_game_start(
+                db_path, ip="1.1.1.1", user_agent=self.UA,
+                mode="kontexto", game_number=42, now=JAN)
+            await analytics.record_game_start(
+                db_path, ip="2.2.2.2", user_agent=self.UA,
+                mode="kontexto", game_number=42, now=JAN)
+            db = await get_db(db_path)
+            try:
+                await analytics.record_action(db_path, "solves", "kontexto", now=JAN)
+                fp = analytics.compute_fingerprint("1.1.1.1", self.UA, JAN)
+                token = analytics.make_beacon_token(fp, JAN)
+                await analytics.record_share_click(
+                    db, ip="1.1.1.1", user_agent=self.UA, token=token,
+                    mode="kontexto", now=JAN)
+                await analytics.record_pageview(
+                    db, ip="3.3.3.3", user_agent=self.UA, referrer=None, page="/",
+                    token=analytics.make_beacon_token(
+                        analytics.compute_fingerprint("3.3.3.3", self.UA, JAN), JAN),
+                    share="42", now=JAN)
+                await analytics.record_heartbeat(
+                    db, ip="3.3.3.3", user_agent=self.UA, page="/",
+                    token=analytics.make_beacon_token(
+                        analytics.compute_fingerprint("3.3.3.3", self.UA, JAN), JAN),
+                    visible=True, now=JAN)
+                return await analytics.get_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["funnel"]["starts_by_mode"] == {"kontexto": 2}
+        assert stats["funnel"]["finished_total"] == 1
+        assert stats["funnel"]["completion_rate"] == 0.5
+        assert stats["funnel"]["abandoned_total"] == 1
+        assert stats["sharing"]["shares_total"] == 1
+        assert stats["sharing"]["arrivals_total"] == 1
+        assert stats["sharing"]["arrivals_per_share"] == 1.0
+        assert stats["attention"]["seconds_by_page"] == {"/": analytics.HEARTBEAT_SECONDS}

@@ -24,7 +24,10 @@ async function ensureToken(): Promise<string | null> {
   }
 }
 
-export async function trackPageview(page: string): Promise<void> {
+// `share` carries the marker of a shared result link (?s=<game>). It is the only
+// way to see word of mouth: a link pasted into a messenger arrives without any
+// referrer. The server counts it per page and never stores it per visitor.
+export async function trackPageview(page: string, share?: string | null): Promise<void> {
   try {
     const t = await ensureToken();
     if (!t) return;
@@ -32,7 +35,7 @@ export async function trackPageview(page: string): Promise<void> {
     await fetch(`${API_BASE}/collect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, token: t, referrer }),
+      body: JSON.stringify({ page, token: t, referrer, share: share ?? null }),
       keepalive: true,
     });
   } catch {
@@ -44,14 +47,16 @@ export async function trackPageview(page: string): Promise<void> {
 // admin dashboard can show how many people currently have the site open. Carries
 // only the page path + the same signed token as the pageview beacon; identity is
 // derived server-side. Fire-and-forget, never disrupts the user experience.
-export async function sendHeartbeat(page: string): Promise<void> {
+// `visible` decides whether this beat also counts as attention time. A
+// backgrounded tab keeps the visitor in the live count but earns no reading time.
+export async function sendHeartbeat(page: string, visible = false): Promise<void> {
   try {
     const t = await ensureToken();
     if (!t) return;
     await fetch(`${API_BASE}/collect/heartbeat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, token: t }),
+      body: JSON.stringify({ page, token: t, visible }),
       keepalive: true,
     });
   } catch {
@@ -100,6 +105,24 @@ export async function submitSurveyAnswer(
         source,
         detail: detail?.trim() ? detail.trim().slice(0, 80) : null,
       }),
+      keepalive: true,
+    });
+  } catch {
+    // Analytics must never disrupt the user experience.
+  }
+}
+
+// Counts a press of the share button. Client-reported by necessity: a copy to
+// the clipboard produces no server hit. Together with the arrivals through
+// shared links it gives the ratio that actually describes word of mouth.
+export async function reportShare(mode: "kontexto" | "infinite" | "wordle"): Promise<void> {
+  try {
+    const t = await ensureToken();
+    if (!t) return;
+    await fetch(`${API_BASE}/collect/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t, mode }),
       keepalive: true,
     });
   } catch {

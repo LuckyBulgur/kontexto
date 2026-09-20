@@ -3,6 +3,9 @@ from pydantic import BaseModel, Field
 
 class GuessRequest(BaseModel):
     word: str = Field(..., min_length=1, max_length=100)
+    # Set on the first guess of a game so the server can count a started game.
+    # A hint only: the count is deduplicated per visitor, mode and game anyway.
+    first: bool = False
 
 
 class GuessResponse(BaseModel):

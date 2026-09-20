@@ -15,6 +15,8 @@ class BeaconRequest(BaseModel):
     page: str = Field(..., max_length=200)
     token: str = Field(..., max_length=64)
     referrer: str | None = Field(default=None, max_length=300)
+    # Marker of a shared result link (?s=<game>), counted per page only.
+    share: str | None = Field(default=None, max_length=8)
 
 
 class BeaconResponse(BaseModel):
@@ -26,6 +28,8 @@ class HeartbeatRequest(BaseModel):
     # identity is derived server-side from IP+UA, exactly like the pageview beacon.
     page: str = Field(..., max_length=200)
     token: str = Field(..., max_length=64)
+    # Only a heartbeat from a visible tab earns attention time.
+    visible: bool = False
 
 
 class LiveStatsResponse(BaseModel):
@@ -51,6 +55,14 @@ class CompletionRequest(BaseModel):
     tips: int = Field(default=0, ge=0, le=100_000)
     duration_seconds: int = Field(default=0, ge=0, le=10_000_000)
     best_rank: int = Field(default=1, ge=1, le=100_000_000)
+
+
+class ShareClickRequest(BaseModel):
+    """The share button was pressed. Client-reported by necessity: copying to the
+    clipboard produces no server hit."""
+
+    token: str = Field(..., max_length=64)
+    mode: Literal["kontexto", "infinite", "wordle"]
 
 
 class SurveyAnswerRequest(BaseModel):

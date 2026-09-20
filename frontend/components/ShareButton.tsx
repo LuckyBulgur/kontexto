@@ -2,6 +2,8 @@
 import { Guess, getRankColor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { reportShare } from "@/lib/analytics";
+import { SITE_URL } from "@/lib/seo";
 
 interface ShareButtonProps {
   gameNumber: number;
@@ -25,11 +27,17 @@ export default function ShareButton({ gameNumber, guesses, tipCount, givenUp, in
     const heading = infinite
       ? `Kontexto Unendlich-Modus \u{1f1e9}\u{1f1ea}`
       : `Kontexto #${gameNumber} \u{1f1e9}\u{1f1ea}`;
+    // The link is the point of sharing: without it the result travels and the
+    // game does not. The marker also makes those arrivals countable, which no
+    // referrer header can do for a link pasted into a messenger.
+    const link = `${SITE_URL}/?s=${infinite ? "u" : gameNumber}`;
     const text = [
       heading,
       squares,
       statusLine,
+      link,
     ].join("\n");
+    void reportShare(infinite ? "infinite" : "kontexto");
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Ergebnis kopiert!");

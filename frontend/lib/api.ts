@@ -11,11 +11,14 @@ function gameQuery(game?: number | null, infinite?: boolean): string {
   return qs ? `?${qs}` : "";
 }
 
-export async function submitGuess(word: string, game?: number | null, infinite?: boolean): Promise<GuessResult> {
+/** `first` marks the opening guess of a game so the server can count a started
+ * game, which is what makes an abandoned one visible. It is a hint: the server
+ * deduplicates the count per visitor and game anyway. */
+export async function submitGuess(word: string, game?: number | null, infinite?: boolean, first?: boolean): Promise<GuessResult> {
   const res = await fetch(`${API_BASE}/guess${gameQuery(game, infinite)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ word }),
+    body: JSON.stringify({ word, first: first ?? false }),
   });
   if (res.status === 404) throw new Error("unknown_word");
   if (res.status === 422) throw new Error("stopword");

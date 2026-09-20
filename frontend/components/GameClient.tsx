@@ -218,7 +218,7 @@ export default function GameClient() {
     }
     setPendingWord(word.toLowerCase());
     try {
-      const result = await submitGuess(word, apiGame, infinite);
+      const result = await submitGuess(word, apiGame, infinite, gameState.guesses.length === 0);
       if (gameState.guesses.some((g) => g.word === result.word)) {
         setPodestError({ word: result.word, message: "Wort bereits geraten" });
         return;

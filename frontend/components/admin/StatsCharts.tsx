@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb,
-  MessageCircleQuestion, PartyPopper, Repeat, Sparkles, Target, TrendingUp,
+  MessageCircleQuestion, PartyPopper, Repeat, Share2, Sparkles, Target, TrendingUp,
   Trophy, Type, Users, Wrench, type LucideIcon,
 } from "lucide-react";
 import {
@@ -22,7 +22,8 @@ import {
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
 import {
-  formatDecimal, formatHour, formatNumber, formatPercent, fullDate, greeting, shortMonth, trend,
+  formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, fullDate, greeting,
+  shortMonth, trend,
 } from "@/lib/format";
 import type { GameDifficultyEntry, StatsData, TimelinePoint } from "@/lib/types";
 
@@ -416,6 +417,94 @@ function SurveySection({ stats }: SectionProps) {
   );
 }
 
+/** The growth funnel: started versus finished games, sharing, attention.
+ *
+ * These three answer what the visitor counts cannot: how many games are begun
+ * and dropped, whether results are shared and whether those shares bring anyone
+ * back, and how long a page is actually looked at. */
+function FunnelSection({ stats }: SectionProps) {
+  const { funnel, sharing, attention } = stats;
+  const pageviews = Object.values(stats.pageviews_by_page).reduce((a, b) => a + b, 0);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 sm:grid-cols-4">
+        <KpiCard icon={Gamepad2} accent={2} label="Begonnene Spiele"
+          value={formatNumber(funnel.starts_total)} />
+        <KpiCard icon={Target} accent={0} label="Abschlussquote"
+          value={formatPercent(funnel.completion_rate)}
+          sub={`${formatNumber(funnel.finished_total)} beendet`} />
+        <KpiCard icon={Share2} accent={3} label="Teilen gedrückt"
+          value={formatNumber(sharing.shares_total)} />
+        <KpiCard icon={Users} accent={1} label="Über geteilte Links"
+          value={formatNumber(sharing.arrivals_total)}
+          sub={sharing.arrivals_per_share !== null
+            ? `${formatDecimal(sharing.arrivals_per_share)} je Teilen`
+            : undefined} />
+      </div>
+
+      <Panel title="Begonnen und abgebrochen" hint="je Modus">
+        {funnel.starts_total === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Noch keine Daten. Gezählt wird ab dem ersten Rateversuch eines Spiels.
+          </p>
+        ) : (
+          <>
+            <BarRanking data={funnel.starts_by_mode} accent={2} labelMap={MODE_LABELS} />
+            <p className="mt-3 text-xs text-muted-foreground">
+              {formatNumber(funnel.abandoned_total)} Spiele wurden begonnen und nicht beendet.
+              Duell und Koop melden keinen Start und bleiben hier außen vor.
+            </p>
+          </>
+        )}
+      </Panel>
+
+      <Panel title="Teilen" hint="Klicks je Modus, Ankünfte je Seite">
+        {sharing.shares_total === 0 && sharing.arrivals_total === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Noch nichts geteilt</p>
+        ) : (
+          <>
+            <BarRanking data={sharing.shares_by_mode} accent={3} labelMap={MODE_LABELS} />
+            <div className="mt-4">
+              <BarRanking data={sharing.arrivals_by_page} accent={1} labelMap={PAGE_LABELS}
+                emptyLabel="Noch keine Ankünfte" />
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Der Klick auf „Teilen“ wird vom Browser gemeldet, die Ankunft am Link serverseitig
+              gezählt. Ein Klick ist eine Absicht, kein Besuch.
+            </p>
+          </>
+        )}
+      </Panel>
+
+      <Panel title="Aufmerksamkeit je Seite" hint="nur sichtbare Tabs" className="lg:col-span-2">
+        {attention.seconds_total === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Noch keine Daten</p>
+        ) : (
+          <>
+            <BarRanking
+              data={Object.fromEntries(
+                Object.entries(attention.seconds_by_page).map(([page, seconds]) => [
+                  page,
+                  Math.round(seconds / 60),
+                ]),
+              )}
+              accent={4}
+              labelMap={PAGE_LABELS}
+            />
+            <p className="mt-3 text-xs text-muted-foreground">
+              Angaben in Minuten, gesamt {formatDuration(attention.seconds_total)}
+              {pageviews > 0 && `, im Schnitt ${formatDuration(attention.seconds_total / pageviews)} je Seitenaufruf`}
+              . Geschätzt aus Lebenszeichen im {attention.sample_seconds}-Sekunden-Takt, gezählt nur
+              bei sichtbarem Tab.
+            </p>
+          </>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
 /** Gameplay: guess/solve trends, mode popularity, and outcome distributions. */
 function GameplaySection({ stats, range }: SectionProps) {
   const dist = stats.distributions ?? {};
@@ -568,6 +657,12 @@ const SECTIONS: SectionDef[] = [
     title: "Woher kennen sie Kontexto?",
     description: "Selbst genannte Herkunft, freiwillig und ohne Besucherbezug",
     Component: SurveySection,
+  },
+  {
+    id: "funnel", group: "REICHWEITE", label: "Trichter & Teilen", icon: Share2,
+    title: "Trichter, Teilen und Aufmerksamkeit",
+    description: "Wie viele anfangen, wie viel geteilt wird, wie lange gelesen wird",
+    Component: FunnelSection,
   },
   {
     id: "totals", group: "REICHWEITE", label: "Gesamtzahlen", icon: Award,

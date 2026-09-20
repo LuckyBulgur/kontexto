@@ -133,6 +133,31 @@ export interface SurveyStats {
   total: number;
 }
 
+/** Started versus finished games (modes that report a start). */
+export interface FunnelStats {
+  starts_by_mode: Record<string, number>;
+  starts_total: number;
+  finished_total: number;
+  completion_rate: number | null;
+  abandoned_total: number;
+}
+
+/** Share presses against arrivals through a shared link. */
+export interface SharingStats {
+  shares_by_mode: Record<string, number>;
+  shares_total: number;
+  arrivals_by_page: Record<string, number>;
+  arrivals_total: number;
+  arrivals_per_share: number | null;
+}
+
+/** Attention time per page, summed from heartbeats of visible tabs. */
+export interface AttentionStats {
+  seconds_by_page: Record<string, number>;
+  seconds_total: number;
+  sample_seconds: number;
+}
+
 export interface StatsData {
   generated_at: string;
   /** Snapshot of currently-online visitors at the time the stats were generated. */
@@ -190,6 +215,9 @@ export interface StatsData {
   monthly: MonthlyPoint[];
   /** Self-reported attribution ("Woher kennst du Kontexto?"). */
   survey: SurveyStats;
+  funnel: FunnelStats;
+  sharing: SharingStats;
+  attention: AttentionStats;
   /** Finished games per month split by mode (popularity trend). */
   mode_monthly: { month: string; kontexto: number; duel: number; wordle: number; infinite: number; koop: number }[];
   bots_filtered: number;
