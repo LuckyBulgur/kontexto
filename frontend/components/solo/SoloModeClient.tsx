@@ -98,7 +98,13 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
       case "leiter": {
         const next = await getInfiniteGame([]);
         setTotal(next.total);
-        const start = await getWordAtRank(LEITER_START_RANK, next.gameNumber);
+        // The opening rank is clamped to the vocabulary. 5000 is the right
+        // distance against the production vocabulary of 80.000 words, but a
+        // smaller one (the e2e dataset, a future trimmed build) has no such
+        // rank, and the round would fail to start for a reason the player
+        // cannot act on.
+        const startRank = Math.min(LEITER_START_RANK, Math.max(2, next.total - 1));
+        const start = await getWordAtRank(startRank, next.gameNumber);
         return createLeiterState(next.gameNumber, start.word, start.rank);
       }
       case "limit": {

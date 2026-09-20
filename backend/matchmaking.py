@@ -27,7 +27,7 @@ from datetime import datetime, timedelta, timezone
 import aiosqlite
 
 from arena import iso_timestamp, parse_iso
-from target_selection import PROFANITY_BLOCKLIST
+from wordlists import PROFANITY_BLOCKLIST
 
 # Modes the queue serves. Kontexto duel and koop, Wordle duel, and the three
 # arena modes; the arena ones cost nothing extra because a room is a room.

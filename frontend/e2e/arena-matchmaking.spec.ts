@@ -1,0 +1,57 @@
+import { test, expect, blockThirdParty } from "./fixtures";
+
+/**
+ * The whole new multiplayer path in one run: two strangers enter the queue, the
+ * WS worker pairs them, both land in the same arena, the round starts and the
+ * countdown runs.
+ *
+ * This is the part the unit tests cannot reach. matchmaking.py is tested against
+ * a stand-in room factory, arena.py against explicit timestamps; neither of them
+ * knows whether the pairing loop actually runs in the served process, whether
+ * the room the queue built is the room the client opens, or whether the
+ * /arena/<id>/ fallback resolves at all.
+ */
+test.describe("Arena über die Mitspielersuche", () => {
+  test("zwei Fremde werden gepaart und starten eine Blitz-Runde", async ({ browser }) => {
+    const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+    for (const context of contexts) await blockThirdParty(context);
+    const [alice, bob] = await Promise.all(contexts.map((c) => c.newPage()));
+
+    // Both enter the queue for the same mode. Blitz pairs at two players with no
+    // grace period, so the wait is one pass of the matchmaking loop.
+    for (const [page, name] of [
+      [alice, "Alice"],
+      [bob, "Bob"],
+    ] as const) {
+      await page.goto("/suche/?modus=blitz");
+      await page.getByLabel("Dein Name (optional)").fill(name);
+      await page.getByRole("button", { name: "Mitspieler suchen" }).click();
+    }
+
+    // The queue screen redirects to the room once the pairing loop has run.
+    await expect(alice).toHaveURL(/\/arena\/[^/]+\/$/, { timeout: 20_000 });
+    await expect(bob).toHaveURL(/\/arena\/[^/]+\/$/, { timeout: 20_000 });
+    expect(new URL(alice.url()).pathname).toBe(new URL(bob.url()).pathname);
+
+    // Both sit in the same lobby and see each other.
+    await expect(alice.getByText("Im Raum (2)")).toBeVisible({ timeout: 20_000 });
+    await expect(alice.getByText("Bob").first()).toBeAttached();
+
+    // Any player may start; the first deadline is written by the server.
+    await alice.getByRole("button", { name: "Runde starten" }).click();
+
+    // A running countdown is the proof that the deadline arrived and is being
+    // rendered against the server clock. mm:ss while above a minute.
+    await expect(alice.getByText(/^\d:\d\d$/)).toBeVisible({ timeout: 20_000 });
+    await expect(bob.getByText(/^\d:\d\d$/)).toBeVisible({ timeout: 20_000 });
+
+    // A guess reaches the other player's board through the arena WebSocket.
+    const input = alice.getByRole("textbox");
+    await input.fill("apfel");
+    await input.press("Enter");
+    await expect(bob.getByText("Alice").first()).toBeAttached({ timeout: 20_000 });
+    await expect(bob.getByText("1 Versuche").first()).toBeAttached({ timeout: 20_000 });
+
+    for (const context of contexts) await context.close();
+  });
+});
