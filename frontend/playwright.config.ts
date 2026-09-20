@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 // Prerequisites for `pnpm test:e2e` (CI runs these explicitly, see deploy.yml):
 //   1. Mock dataset:   python scripts/create-test-data.py --output data-e2e
@@ -13,11 +14,26 @@ import { existsSync } from "node:fs";
 const BACKEND_PORT = 8123;
 const PROXY_PORT = 4173;
 
-// Use the backend virtualenv locally; fall back to `python -m uvicorn` in CI,
-// where requirements are installed into the job's Python on PATH.
-const backendCommand = existsSync("../backend/.venv/bin/uvicorn")
-  ? `.venv/bin/uvicorn main:app --host 127.0.0.1 --port ${BACKEND_PORT} --log-level warning`
-  : `python -m uvicorn main:app --host 127.0.0.1 --port ${BACKEND_PORT} --log-level warning`;
+// Use a backend virtualenv when there is one; fall back to `python -m uvicorn`
+// in CI, where requirements are installed into the job's Python on PATH.
+//
+// Windows gets its own candidate. A venv created under WSL lives at
+// backend/.venv and its `bin/uvicorn` exists as a file on the Windows side too,
+// so the plain existsSync check passed and then failed to execute a Linux
+// script, with an error that says nothing about why. backend/.venv-win is the
+// Windows venv and is gitignored like the others.
+const BACKEND_VENV_CANDIDATES = [
+  "../backend/.venv-win/Scripts/uvicorn.exe",
+  "../backend/.venv/Scripts/uvicorn.exe",
+  "../backend/.venv/bin/uvicorn",
+];
+const backendVenv = BACKEND_VENV_CANDIDATES.find((candidate) => existsSync(candidate));
+const backendArgs = `main:app --host 127.0.0.1 --port ${BACKEND_PORT} --log-level warning`;
+// Absolute and quoted: cmd.exe does not resolve a bare relative path like
+// `.venv-win/Scripts/uvicorn.exe` and reports it as a misspelled command.
+const backendCommand = backendVenv
+  ? `"${resolve(backendVenv)}" ${backendArgs}`
+  : `python -m uvicorn ${backendArgs}`;
 
 export default defineConfig({
   testDir: "./e2e",

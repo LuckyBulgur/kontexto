@@ -21,6 +21,7 @@ const config = (phase: string): NextConfig => {
     ...(isDevServer && {
       async rewrites() {
         return [
+          { source: "/arena/:id*/", destination: "/arena/" },
           { source: "/duel/:id*/", destination: "/duel/" },
           { source: "/koop/:id*/", destination: "/koop/" },
           { source: "/wordle/duel/:id*/", destination: "/wordle/duel/" },

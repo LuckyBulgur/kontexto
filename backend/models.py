@@ -60,6 +60,41 @@ class InfiniteNextResponse(BaseModel):
     totalGames: int
 
 
+# --- Solo modes (Leiter, Limitierte Versuche, Doppelziel, Sudden Death) ---
+
+
+class WordAtRankResponse(BaseModel):
+    """The word at one exact rank. Rank 1 is never served here."""
+    word: str
+    rank: int
+    gameNumber: int
+
+
+class DualNextResponse(BaseModel):
+    """The two independent targets of a Doppelziel round."""
+    gameNumbers: list[int]
+    total: int
+    totalGames: int
+
+
+class DualRankEntry(BaseModel):
+    gameNumber: int
+    rank: int
+
+
+class DualGuessResponse(BaseModel):
+    word: str
+    ranks: list[DualRankEntry]
+    total: int
+
+
+class SuddenDeathResponse(BaseModel):
+    """A game plus its runners-up. The player gets one attempt at rank 1."""
+    gameNumber: int
+    total: int
+    hints: list[ClosestWordEntry]
+
+
 class NextGameRequest(BaseModel):
     """Body for the multiplayer "Nächstes Spiel" endpoints (koop/duel/wordle-duel)."""
     player_token: str
@@ -197,3 +232,101 @@ class KoopGuessesResponse(BaseModel):
     guesses: list[KoopGuessEntry]
 
 
+
+
+# --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
+
+
+class CreateArenaRequest(BaseModel):
+    mode: str = Field(..., pattern="^(royale|blitz|timerush)$")
+    game_number: int = Field(..., ge=1)
+    nickname: str = Field(..., min_length=1, max_length=20)
+
+
+class CreateArenaResponse(BaseModel):
+    arena_id: str
+    player_token: str
+    mode: str
+
+
+class JoinArenaRequest(BaseModel):
+    nickname: str = Field(..., min_length=1, max_length=20)
+
+
+class ArenaPlayerInfo(BaseModel):
+    nickname: str
+    best_rank: int | None
+    guess_count: int
+    solved: bool
+    connected: bool
+    # The personal clock of this player; only Zeitbonus-Jagd fills it.
+    deadline_at: str | None
+    eliminated: bool
+    place: int | None
+
+
+class ArenaStateResponse(BaseModel):
+    arena_id: str
+    mode: str
+    game_number: int
+    status: str
+    phase: int
+    # Absolute UTC deadline of the shared clock, or null when there is none.
+    deadline_at: str | None
+    winner: str | None
+    round: int
+    # The server's clock at the moment of this read, so a client can correct its
+    # own before rendering a countdown.
+    server_time: str
+    players: list[ArenaPlayerInfo]
+
+
+class JoinArenaResponse(ArenaStateResponse):
+    player_token: str
+
+
+class ArenaTokenRequest(BaseModel):
+    player_token: str
+
+
+class ArenaGuessRequest(BaseModel):
+    word: str = Field(..., min_length=1, max_length=100)
+    player_token: str
+
+
+class ArenaGuessResponse(BaseModel):
+    word: str
+    rank: int
+    total: int
+    deadline_at: str | None
+    finished: bool
+
+
+# --- Matchmaking ---
+
+
+class MatchmakingEnqueueRequest(BaseModel):
+    mode: str = Field(..., pattern="^(duel|koop|wordle_duel|royale|blitz|timerush)$")
+    # Optional: without one, or with one the filter rejects, the server assigns a
+    # neutral generated name. Strangers read this, so it is not free text.
+    nickname: str | None = Field(None, max_length=40)
+
+
+class MatchmakingTicketResponse(BaseModel):
+    ticket: str
+    mode: str
+    nickname: str
+
+
+class MatchmakingStatusResponse(BaseModel):
+    mode: str
+    nickname: str
+    matched: bool
+    room_id: str | None
+    player_token: str | None
+    # How many players are queued for this mode right now.
+    waiting: int
+
+
+class MatchmakingCancelRequest(BaseModel):
+    ticket: str = Field(..., min_length=8, max_length=200)

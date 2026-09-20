@@ -14,6 +14,7 @@ import {
   Swords,
   BarChart3,
   Infinity,
+  LayoutGrid,
   UsersRound,
   MessageSquare,
 } from "lucide-react";
@@ -100,8 +101,12 @@ export default function Header({
   const showKoopHighlight = !hideKoopCreate && koopHighlight;
   const { highlight: feedbackHighlight, dismiss: dismissFeedbackHighlight } =
     useFeatureDiscovery("kontexto_feedback_discovered");
+  const { highlight: modesHighlight, dismiss: dismissModesHighlight } =
+    useFeatureDiscovery("kontexto_modes_discovered");
+  const showModesHighlight = modesHighlight;
   // Ping am Kebab, falls ein neuer Menüpunkt hervorgehoben werden soll.
-  const showPing = showDuelHighlight || showKoopHighlight || feedbackHighlight;
+  const showPing =
+    showDuelHighlight || showKoopHighlight || feedbackHighlight || showModesHighlight;
   // Der Unendlich-Button ist unter sm ausgeblendet, sein Hinweis wandert dort an den Kebab.
   const pingClass = showPing
     ? "flex"
@@ -162,6 +167,7 @@ export default function Header({
             if (showInfiniteHighlight) dismissInfiniteHighlight();
             if (showKoopHighlight) dismissKoopHighlight();
             if (feedbackHighlight) dismissFeedbackHighlight();
+            if (showModesHighlight) dismissModesHighlight();
           }
         }}>
           <DropdownMenuTrigger asChild>
@@ -176,9 +182,11 @@ export default function Header({
                     ? "Menü, neue Funktion: Koop"
                     : showInfiniteHighlight
                       ? "Menü, neue Funktion: Unendlich-Modus"
-                      : feedbackHighlight
-                        ? "Menü, neue Funktion: Feedback und Wünsche"
-                        : "Menü"
+                      : showModesHighlight
+                        ? "Menü, neue Funktion: weitere Mehrspielermodi"
+                        : feedbackHighlight
+                          ? "Menü, neue Funktion: Feedback und Wünsche"
+                          : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
@@ -252,6 +260,17 @@ export default function Header({
                 </Link>
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem asChild className={showModesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
+              <Link href="/modi/">
+                <LayoutGrid className="h-4 w-4" />
+                Weitere Mehrspielermodi
+                {showModesHighlight && (
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                    NEU
+                  </span>
+                )}
+              </Link>
+            </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>
                 <History className="h-4 w-4" />

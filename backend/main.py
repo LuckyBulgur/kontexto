@@ -35,22 +35,42 @@ from koop import (
     give_up_koop, advance_koop_game,
 )
 from koop import get_player_info as get_koop_player_info
+from arena import (
+    ArenaGuessRefused, advance_arena_game, cleanup_stale_arenas, create_arena,
+    get_arena_state, join_arena, record_arena_guess, start_arena,
+)
+from arena import get_player_history as get_arena_player_history
+from arena import get_player_info as get_arena_player_info
+from matchmaking import (
+    cancel as cancel_match_ticket,
+    enqueue as enqueue_for_match,
+    prune_queue,
+    run_matchmaking,
+    ticket_status,
+    waiting_counts as matchmaking_waiting,
+)
 from game import GameState
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
     InfiniteNextResponse,
+    WordAtRankResponse, DualNextResponse, DualGuessResponse, SuddenDeathResponse,
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
     CreateKoopRequest, CreateKoopResponse, JoinKoopRequest, JoinKoopResponse,
     KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
     KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
+    CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
+    ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
+    MatchmakingEnqueueRequest, MatchmakingTicketResponse,
+    MatchmakingStatusResponse, MatchmakingCancelRequest,
 )
 from websocket_manager import (
     manager as ws_manager,
     wordle_manager as wordle_ws_manager,
     koop_manager as koop_ws_manager,
+    arena_manager as arena_ws_manager,
 )
 from wordle import WordleState, evaluate, validate_hard_mode
 from wordle_models import (
@@ -164,6 +184,8 @@ async def lifespan(app: FastAPI):
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(koop_ws_manager.poll_and_broadcast(_db_path)))
+        tasks.append(asyncio.create_task(arena_ws_manager.poll_and_broadcast(_db_path)))
+        tasks.append(asyncio.create_task(_matchmaking_loop()))
         tasks.append(asyncio.create_task(_cleanup_loop()))
         # Exactly one worker (KONTEXTO_WS_MODE) runs analytics aggregation/pruning.
         # Log it so a misconfiguration where it runs nowhere is immediately visible
@@ -191,6 +213,8 @@ async def _cleanup_loop():
                 await cleanup_stale_duels(db)
                 await cleanup_stale_koops(db)
                 await cleanup_stale_wordle_duels(db)
+                await cleanup_stale_arenas(db)
+                await prune_queue(db)
                 await analytics.aggregate_daily(db)
                 await analytics.prune_old_events(db)
                 await analytics.prune_presence(db)
@@ -234,6 +258,7 @@ async def guess(
     request: Request,
     game: int | None = Query(None),
     infinite: bool = Query(False),
+    mode: str | None = Query(None),
 ):
     gs = _get_game_state()
     try:
@@ -254,7 +279,7 @@ async def guess(
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
-    mode = "infinite" if infinite else "kontexto"
+    mode = _solo_mode(mode, infinite)
     if req.first:
         # First guess of this game for this visitor: the only point where an
         # abandoned game becomes countable at all.
@@ -280,6 +305,7 @@ async def tip(
     game: int | None = Query(None),
     guessed_ranks: str = Query(""),
     infinite: bool = Query(False),
+    mode: str | None = Query(None),
 ):
     gs = _get_game_state()
     try:
@@ -296,7 +322,7 @@ async def tip(
             content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
         )
     await analytics.record_action(_db_path, "hints", difficulty)
-    await analytics.record_game_stat(_db_path, "infinite" if infinite else "kontexto", game_num, "hints")
+    await analytics.record_game_stat(_db_path, _solo_mode(mode, infinite), game_num, "hints")
     return result
 
 
@@ -365,14 +391,18 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
 
 
 @app.get("/api/reveal", response_model=RevealResponse)
-async def reveal(game: int | None = Query(None), infinite: bool = Query(False)):
+async def reveal(
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+    mode: str | None = Query(None),
+):
     gs = _get_game_state()
     try:
         game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
-    mode = "infinite" if infinite else "kontexto"
+    mode = _solo_mode(mode, infinite)
     await analytics.record_action(_db_path, "reveals", mode)
     await analytics.record_game_stat(_db_path, mode, game_num, "reveals")
     return {"word": gs.get_target_word(game_num)}
@@ -388,6 +418,171 @@ async def closest_words(game: int | None = Query(None), infinite: bool = Query(F
     gs.load_game(game_num)
 
     return {"words": gs.get_closest_words(game_num), "gameNumber": game_num}
+
+
+# --- Solo modes (Leiter, Limitierte Versuche, Doppelziel, Sudden Death) ---
+
+# Ranks shown as a starting point in Sudden Death: the five runners-up. Wide
+# enough to describe the target's neighbourhood, never rank 1.
+SUDDEN_DEATH_RANKS = [2, 3, 4, 5, 6]
+
+
+def _parse_exclude(raw: str) -> set[int]:
+    return {int(p) for p in raw.split(",") if p.strip().lstrip("-").isdigit()}
+
+
+def _solo_mode(mode: str | None, infinite: bool) -> str:
+    """Resolve the analytics mode of a solo request.
+
+    Validated against the shared allow-list rather than forwarded verbatim, so a
+    crafted request cannot create an arbitrary dimension in analytics_counters.
+    """
+    if mode and mode in analytics.SOLO_MODES:
+        return mode
+    return "infinite" if infinite else "kontexto"
+
+
+@app.get("/api/word-at-rank", response_model=WordAtRankResponse)
+async def word_at_rank(
+    rank: int = Query(..., ge=2),
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+):
+    """Serve the word sitting at one exact rank, the opening move of Leiter.
+
+    Rank 1 is rejected by the model constraint and again in ``word_at_rank``:
+    this endpoint must never become a second way to read the solution.
+    """
+    gs = _get_game_state()
+    try:
+        game_num = _resolve_game_number(game, infinite=infinite)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
+
+    result = gs.word_at_rank(game_num, rank)
+    if result is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "rank_out_of_range", "message": f"Rang {rank} gibt es in diesem Spiel nicht"},
+        )
+    return {**result, "gameNumber": game_num}
+
+
+@app.get("/api/dual/next", response_model=DualNextResponse)
+async def dual_next(exclude: str = Query("")):
+    """Pick the two independent targets of a Doppelziel round.
+
+    Never the daily game, so a Doppelziel round cannot spoil it, and never the
+    same game twice, because two identical targets would make the second rank
+    pure noise.
+    """
+    gs = _get_game_state()
+    base_exclude = {_get_current_game_number()}
+    chosen = gs.random_game_numbers(2, base_exclude | _parse_exclude(exclude))
+    if chosen is None:
+        chosen = gs.random_game_numbers(2, base_exclude)
+    if chosen is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+    return {
+        "gameNumbers": chosen,
+        "total": gs.metadata["vocab_size"],
+        "totalGames": gs.total_games(),
+    }
+
+
+@app.post("/api/dual/guess", response_model=DualGuessResponse)
+async def dual_guess(
+    req: GuessRequest,
+    request: Request,
+    games: str = Query(...),
+):
+    """Rank one word against both Doppelziel targets in a single round trip.
+
+    Two separate calls to /api/guess would work but would double the request
+    count on every keystroke-driven guess and could half-fail, leaving the client
+    with one rank and no honest way to display the round.
+    """
+    gs = _get_game_state()
+    numbers = [int(p) for p in games.split(",") if p.strip().isdigit()]
+    if len(numbers) != 2 or numbers[0] == numbers[1]:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": "Doppelziel braucht zwei verschiedene Spiele"},
+        )
+    total_games = gs.total_games()
+    if any(n < 1 or n > total_games for n in numbers):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": "Spiel existiert nicht"},
+        )
+
+    if gs.is_stopword(req.word):
+        return JSONResponse(
+            status_code=422,
+            content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
+        )
+
+    results = [gs.guess(req.word, n) for n in numbers]
+    if any(r is None for r in results):
+        return JSONResponse(
+            status_code=404,
+            content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
+        )
+
+    normalized = results[0]["word"]
+    if req.first:
+        await analytics.record_game_start(
+            _db_path,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            mode="doppel",
+            game_number=numbers[0],
+        )
+    await analytics.record_action(_db_path, "guesses", "doppel", word=normalized)
+    for n, r in zip(numbers, results):
+        await analytics.record_game_stat(_db_path, "doppel", n, "guesses")
+        if r["rank"] == 1:
+            await analytics.record_game_stat(_db_path, "doppel", n, "solves")
+    # A Doppelziel round counts as solved only when both targets are found, which
+    # is what the mode asks of the player.
+    if all(r["rank"] == 1 for r in results):
+        await analytics.record_action(_db_path, "solves", "doppel")
+
+    return {
+        "word": normalized,
+        "ranks": [{"gameNumber": n, "rank": r["rank"]} for n, r in zip(numbers, results)],
+        "total": results[0]["total"],
+    }
+
+
+@app.get("/api/sudden-death", response_model=SuddenDeathResponse)
+async def sudden_death(exclude: str = Query("")):
+    """Hand out a Sudden Death round: a game plus its five runners-up.
+
+    The daily game is excluded for the same reason as everywhere else, and the
+    solution itself never leaves the server here.
+    """
+    gs = _get_game_state()
+    base_exclude = {_get_current_game_number()}
+    chosen = gs.random_game_number(base_exclude | _parse_exclude(exclude))
+    if chosen is None:
+        chosen = gs.random_game_number(base_exclude)
+    if chosen is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+
+    hints = gs.words_at_ranks(chosen, SUDDEN_DEATH_RANKS)
+    if not hints:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_hints", "message": "Für dieses Spiel gibt es keine Nachbarn"},
+        )
+    return {"gameNumber": chosen, "total": gs.metadata["vocab_size"], "hints": hints}
 
 
 # --- Duel endpoints ---
@@ -842,6 +1037,339 @@ async def koop_websocket(websocket: WebSocket, koop_id: str, token: str = Query(
             await websocket.receive_text()
     except WebSocketDisconnect:
         await koop_ws_manager.disconnect(koop_id, token, _db_path)
+
+
+# --- Arena endpoints (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
+
+# What the player is told when a guess is refused. The codes come from
+# arena.ArenaGuessRefused; only the wording belongs here.
+_ARENA_REFUSAL_MESSAGES = {
+    "not_running": "Die Runde läuft gerade nicht",
+    "eliminated": "Du bist in dieser Runde schon raus",
+    "time_up": "Deine Zeit ist abgelaufen",
+    "player_not_found": "Spieler nicht gefunden",
+    "arena_not_found": "Runde nicht gefunden",
+}
+
+
+@app.post("/api/arena", response_model=CreateArenaResponse)
+async def create_arena_endpoint(req: CreateArenaRequest):
+    gs = _get_game_state()
+    if req.game_number < 1 or req.game_number > gs.total_games():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": f"Spiel {req.game_number} existiert nicht"},
+        )
+    db = await get_db(_db_path)
+    try:
+        result = await create_arena(db, req.mode, req.game_number, req.nickname)
+        if result is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "invalid_mode", "message": "Unbekannter Modus"},
+            )
+        await analytics.record_action(_db_path, "duels_created", req.mode)
+        return result
+    finally:
+        await db.close()
+
+
+@app.post("/api/arena/{arena_id}/join", response_model=JoinArenaResponse)
+async def join_arena_endpoint(arena_id: str, req: JoinArenaRequest):
+    db = await get_db(_db_path)
+    try:
+        state = await get_arena_state(db, arena_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "arena_not_found", "message": "Runde nicht gefunden"},
+            )
+        result = await join_arena(db, arena_id, req.nickname)
+        if result is None:
+            # Either the room is full or the round has already started. Both mean
+            # the same thing to the player: this one takes nobody else.
+            return JSONResponse(
+                status_code=409,
+                content={"error": "arena_closed", "message": "Diese Runde nimmt niemanden mehr auf"},
+            )
+        return result
+    finally:
+        await db.close()
+
+
+@app.get("/api/arena/player-info")
+async def arena_player_info(token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        info = await get_arena_player_info(db, token)
+        if info is None:
+            return JSONResponse(status_code=404, content={"error": "player_not_found"})
+        return info
+    finally:
+        await db.close()
+
+
+@app.get("/api/arena/{arena_id}", response_model=ArenaStateResponse)
+async def get_arena_endpoint(arena_id: str):
+    db = await get_db(_db_path)
+    try:
+        state = await get_arena_state(db, arena_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "arena_not_found", "message": "Runde nicht gefunden"},
+            )
+        return state
+    finally:
+        await db.close()
+
+
+@app.post("/api/arena/{arena_id}/start", response_model=ArenaStateResponse)
+async def start_arena_endpoint(arena_id: str, req: ArenaTokenRequest):
+    """Start the round. Any player in the lobby may press it.
+
+    The first deadline is written here, by the server, so that every client
+    counts down against the same absolute moment.
+    """
+    db = await get_db(_db_path)
+    try:
+        info = await get_arena_player_info(db, req.player_token)
+        if info is None or info["arena_id"] != arena_id:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        state = await start_arena(db, arena_id)
+        if state is None:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "cannot_start", "message": "Die Runde kann noch nicht starten"},
+            )
+        return state
+    finally:
+        await db.close()
+
+
+@app.post("/api/arena/{arena_id}/guess", response_model=ArenaGuessResponse)
+async def arena_guess_endpoint(arena_id: str, req: ArenaGuessRequest):
+    db = await get_db(_db_path)
+    try:
+        state = await get_arena_state(db, arena_id)
+        if state is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "arena_not_found", "message": "Runde nicht gefunden"},
+            )
+        game_num = state["game_number"]
+        gs = _get_game_state()
+        gs.load_game(game_num)
+
+        if gs.is_stopword(req.word):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
+            )
+        result = gs.guess(req.word, game_num)
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
+            )
+
+        try:
+            booked = await record_arena_guess(
+                db, arena_id, req.player_token, result["word"], result["rank"]
+            )
+        except ArenaGuessRefused as refused:
+            return JSONResponse(status_code=409, content={
+                "error": refused.code,
+                "message": _ARENA_REFUSAL_MESSAGES.get(refused.code, "Dieser Versuch zählt nicht mehr"),
+            })
+
+        mode = state["mode"]
+        await analytics.record_action(_db_path, "guesses", mode, word=result["word"])
+        await analytics.record_game_stat(_db_path, mode, game_num, "guesses")
+        if result["rank"] == 1:
+            await analytics.record_action(_db_path, "solves", mode)
+            await analytics.record_game_stat(_db_path, mode, game_num, "solves")
+
+        return {
+            "word": result["word"],
+            "rank": result["rank"],
+            "total": result["total"],
+            "deadline_at": booked["deadline_at"],
+            "finished": booked["finished"],
+        }
+    finally:
+        await db.close()
+
+
+@app.get("/api/arena/{arena_id}/history", response_model=DuelGuessHistoryResponse)
+async def arena_history_endpoint(arena_id: str, token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        return {"guesses": await get_arena_player_history(db, arena_id, token)}
+    finally:
+        await db.close()
+
+
+@app.post("/api/arena/{arena_id}/next-game", response_model=NextGameResponse)
+async def arena_next_game_endpoint(arena_id: str, req: NextGameRequest):
+    gs = _get_game_state()
+    db = await get_db(_db_path)
+    try:
+        info = await get_arena_player_info(db, req.player_token)
+        if info is None or info["arena_id"] != arena_id:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
+            )
+        new_game = await advance_arena_game(db, arena_id, _pick_next_kontexto_game)
+        if new_game is None:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "no_games", "message": "Keine weitere Runde möglich"},
+            )
+        state = await get_arena_state(db, arena_id)
+        await analytics.record_action(_db_path, "rounds", state["mode"] if state else "royale")
+        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
+@app.websocket("/ws/arena/{arena_id}")
+async def arena_websocket(websocket: WebSocket, arena_id: str, token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        state = await get_arena_state(db, arena_id)
+    finally:
+        await db.close()
+
+    if state is None:
+        await websocket.close(code=4004)
+        return
+
+    await arena_ws_manager.connect(arena_id, token, websocket, _db_path)
+    await websocket.send_json({"type": "state", **state})
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await arena_ws_manager.disconnect(arena_id, token, _db_path)
+
+
+# --- Matchmaking (random opponents for every multiplayer mode) ---
+
+async def _matchmaking_room(db, mode: str, nicknames: list[str]) -> tuple[str, list[str]]:
+    """Build the room a matched party was formed for.
+
+    matchmaking.py knows nothing about duels, koops or arenas on purpose; this is
+    the one place that maps a queue mode onto a concrete room. Tokens come back
+    positionally, because two strangers may well carry the same nickname.
+    """
+    gs = _get_game_state()
+
+    if mode == "wordle_duel":
+        ws = get_wordle_state()
+        game_number = ws.random_game_number({ws.get_game_number()})
+        if game_number is None:
+            game_number = ws.get_game_number()
+        created = await create_wordle_duel(db, nicknames[0], game_number)
+        room_id = created["duel_id"]
+        tokens = [created["player_token"]]
+        for name in nicknames[1:]:
+            joined = await join_wordle_duel(db, room_id, name)
+            tokens.append(joined["player_token"])
+        return room_id, tokens
+
+    # Every Kontexto room draws a random game that is never today's daily, so a
+    # matched round cannot spoil the puzzle the player may not have played yet.
+    game_number = gs.random_game_number({_get_current_game_number()})
+    if game_number is None:
+        game_number = _get_current_game_number()
+
+    if mode == "duel":
+        created = await create_duel(db, game_number, nicknames[0], True)
+        room_id = created["duel_id"]
+        tokens = [created["player_token"]]
+        for name in nicknames[1:]:
+            joined = await join_duel(db, room_id, name)
+            tokens.append(joined["player_token"])
+        return room_id, tokens
+
+    if mode == "koop":
+        created = await create_koop(db, game_number, nicknames[0], True)
+        room_id = created["koop_id"]
+        tokens = [created["player_token"]]
+        for name in nicknames[1:]:
+            joined = await join_koop(db, room_id, name)
+            tokens.append(joined["player_token"])
+        return room_id, tokens
+
+    created = await create_arena(db, mode, game_number, nicknames[0])
+    room_id = created["arena_id"]
+    tokens = [created["player_token"]]
+    for name in nicknames[1:]:
+        joined = await join_arena(db, room_id, name)
+        tokens.append(joined["player_token"])
+    return room_id, tokens
+
+
+async def _matchmaking_loop():
+    """Form parties once a second. Single WS worker, so there is one writer."""
+    while True:
+        await asyncio.sleep(1)
+        try:
+            db = await get_db(_db_path)
+            try:
+                for room in await run_matchmaking(db, _matchmaking_room):
+                    await analytics.record_action(_db_path, "matches_made", room["mode"])
+            finally:
+                await db.close()
+        except Exception:
+            logger.exception("matchmaking cycle failed")
+
+
+@app.post("/api/matchmaking/enqueue", response_model=MatchmakingTicketResponse)
+async def matchmaking_enqueue(req: MatchmakingEnqueueRequest):
+    db = await get_db(_db_path)
+    try:
+        result = await enqueue_for_match(db, req.mode, req.nickname)
+        if result is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "invalid_mode", "message": "Unbekannter Modus"},
+            )
+        return result
+    finally:
+        await db.close()
+
+
+@app.get("/api/matchmaking/status", response_model=MatchmakingStatusResponse)
+async def matchmaking_status(ticket: str = Query(..., min_length=8, max_length=200)):
+    db = await get_db(_db_path)
+    try:
+        status = await ticket_status(db, ticket)
+        if status is None:
+            # A ticket ages out after matchmaking.TICKET_TTL_SECONDS, so an
+            # unknown one usually means the wait was abandoned and pruned.
+            return JSONResponse(
+                status_code=404,
+                content={"error": "ticket_not_found", "message": "Die Suche ist abgelaufen"},
+            )
+        return {**status, "waiting": (await matchmaking_waiting(db)).get(status["mode"], 0)}
+    finally:
+        await db.close()
+
+
+@app.post("/api/matchmaking/cancel", response_model=BeaconResponse)
+async def matchmaking_cancel(req: MatchmakingCancelRequest):
+    db = await get_db(_db_path)
+    try:
+        return {"ok": await cancel_match_ticket(db, req.ticket)}
+    finally:
+        await db.close()
 
 
 # --- Wordle single-player endpoints ---

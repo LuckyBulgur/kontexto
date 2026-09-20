@@ -180,6 +180,8 @@ for (const path of ["/", "/faq/", "/wordle/", "/blog/"]) {
 // nicht dazu, weil sie noindex sind.
 const expectedStaticSitemapPaths = [
   "/", "/wordle/", "/duel/", "/koop/", "/wordle/duel/",
+  "/modi/", "/arena/",
+  "/solo/leiter/", "/solo/limit/", "/solo/doppelziel/", "/solo/sudden-death/",
   "/faq/", "/anleitung/", "/strategie/", "/vergleich/", "/glossar/",
   "/ueber/", "/redaktion/", "/blog/", "/zahlen/", "/changelog/",
   "/kontakt/", "/impressum/", "/nutzungsbedingungen/", "/cookies/",
@@ -228,6 +230,7 @@ const contentPages = [
   { file: "wordle/index.html", path: "/wordle/", minWords: 800, schema: '"@type":"FAQPage"' },
   { file: "duel/index.html", path: "/duel/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "koop/index.html", path: "/koop/", minWords: 600, schema: '"@type":"FAQPage"' },
+  { file: "modi/index.html", path: "/modi/", minWords: 600, schema: '"@type":"FAQPage"' },
 ];
 for (const p of contentPages) {
   const html = await read(p.file);

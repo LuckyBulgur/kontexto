@@ -76,6 +76,19 @@ START_METRIC = "starts"                   # a game was actually begun
 SHARE_METRIC = "shares"                   # the share button was pressed
 SHARE_ARRIVAL_METRIC = "share_arrivals"   # somebody came in through a shared link
 ATTENTION_METRIC = "attention"            # heartbeats on a visible tab, per page
+
+# Every game mode that may appear as a counter dimension. Kept in one place so a
+# request can never invent a dimension: the endpoints validate against these
+# tuples instead of forwarding whatever string arrived. Solo modes are the ones
+# a single player finishes alone, and they are the only ones that report a
+# give-up rank, because a multiplayer room ends for reasons other than giving up.
+SOLO_MODES: tuple[str, ...] = (
+    "kontexto", "infinite", "leiter", "limit", "doppel", "suddendeath",
+)
+MULTI_MODES: tuple[str, ...] = (
+    "duel", "koop", "wordle", "wordle_duel", "royale", "blitz", "timerush",
+)
+GAME_MODES: tuple[str, ...] = SOLO_MODES + MULTI_MODES
 # Marker appended to a shared link (`?s=412`, `?s=u` for the endless mode).
 _SHARE_MARKER = re.compile(r"^(?:[0-9]{1,6}|u)$")
 
@@ -770,7 +783,7 @@ async def record_completion(
         return False, "invalid_token"
     if classify_user_agent(user_agent)[0] == "bot":
         return False, "bot"
-    if mode not in ("kontexto", "wordle", "infinite") or outcome not in ("solved", "gaveup"):
+    if mode not in GAME_MODES or outcome not in ("solved", "gaveup"):
         return False, "bad_payload"
 
     guesses = max(1, min(int(guesses), 1000))
@@ -795,7 +808,7 @@ async def record_completion(
                         f"dist_guesses_{mode}", _bucket_guesses(guesses), 1)
             await _bump(conn, "analytics_counters", date_str,
                         f"dist_time_{mode}", _bucket_duration(duration_seconds), 1)
-        elif mode in ("kontexto", "infinite"):
+        elif mode in SOLO_MODES:
             await _bump(conn, "analytics_counters", date_str,
                         "dist_giveup_rank", _bucket_rank(best_rank), 1)
 
@@ -879,7 +892,7 @@ async def record_share_click(
         return False, "invalid_token"
     if classify_user_agent(user_agent)[0] == "bot":
         return False, "bot"
-    if mode not in ("kontexto", "infinite", "wordle"):
+    if mode not in GAME_MODES:
         return False, "bad_payload"
 
     date_str = now.strftime("%Y-%m-%d")
@@ -1516,15 +1529,10 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None) -> di
     for m, dim, v in await cur.fetchall():
         bucket = mode_monthly_map.setdefault(m, {})
         bucket[dim] = bucket.get(dim, 0) + v
+    # Every known mode gets a key, present or not, so the dashboard's series do
+    # not appear and disappear as a mode gains its first finished game.
     mode_monthly = [
-        {
-            "month": m,
-            "kontexto": mode_monthly_map[m].get("kontexto", 0),
-            "duel": mode_monthly_map[m].get("duel", 0),
-            "wordle": mode_monthly_map[m].get("wordle", 0),
-            "infinite": mode_monthly_map[m].get("infinite", 0),
-            "koop": mode_monthly_map[m].get("koop", 0),
-        }
+        {"month": m, **{mode: mode_monthly_map[m].get(mode, 0) for mode in GAME_MODES}}
         for m in sorted(mode_monthly_map)
     ]
 

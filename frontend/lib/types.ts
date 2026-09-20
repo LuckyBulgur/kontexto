@@ -218,8 +218,10 @@ export interface StatsData {
   funnel: FunnelStats;
   sharing: SharingStats;
   attention: AttentionStats;
-  /** Finished games per month split by mode (popularity trend). */
-  mode_monthly: { month: string; kontexto: number; duel: number; wordle: number; infinite: number; koop: number }[];
+  /** Finished games per month split by mode (popularity trend). The backend
+   *  fills one key per known mode, so the shape grows with analytics.GAME_MODES
+   *  instead of needing a type change for every new mode. */
+  mode_monthly: ({ month: string } & Record<string, number | string>)[];
   bots_filtered: number;
   note: string;
 }
@@ -230,8 +232,33 @@ export interface InfiniteNextResponse {
   totalGames: number;
 }
 
+/** One exact rank of a game, the opening move of the Leiter mode. */
+export interface WordAtRankResult {
+  word: string;
+  rank: number;
+  gameNumber: number;
+}
+
+export interface DualNextResponse {
+  gameNumbers: number[];
+  total: number;
+  totalGames: number;
+}
+
+export interface DualGuessResult {
+  word: string;
+  ranks: { gameNumber: number; rank: number }[];
+  total: number;
+}
+
+export interface SuddenDeathRound {
+  gameNumber: number;
+  total: number;
+  hints: ClosestWordEntry[];
+}
+
 export interface CompletionPayload {
-  mode: "kontexto" | "wordle" | "infinite";
+  mode: "kontexto" | "wordle" | "infinite" | "leiter" | "limit" | "doppel" | "suddendeath";
   game_number: number;
   outcome: "solved" | "gaveup";
   guesses: number;

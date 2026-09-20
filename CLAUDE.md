@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Kontexto: a German semantic word‑guessing game (guess the secret word; each guess is ranked by semantic closeness), plus a **Wördle** mode and real‑time **duel** modes for both, and a passkey‑protected admin analytics dashboard. Monorepo:
+Kontexto: a German semantic word‑guessing game (guess the secret word; each guess is ranked by semantic closeness), plus a **Wördle** mode, several solo rule sets, real‑time **duel**, **koop** and three timed **arena** modes, a random matchmaking queue in front of all of them, and a passkey‑protected admin analytics dashboard. Monorepo:
 
 - `frontend/`: Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, shadcn/ui. Ships as a **static export**.
 - `backend/`: FastAPI + Uvicorn, SQLite, NumPy/fastText. Serves the game API, duel WebSockets, and analytics.
@@ -38,6 +38,15 @@ NEXT_PUBLIC_API_URL=/api pnpm build                      # from frontend/
 pnpm test:e2e                                            # boots backend + proxy itself
 ```
 
+**The e2e backend needs a venv Playwright can execute.** `playwright.config.ts`
+looks for `backend/.venv-win/Scripts/uvicorn.exe`, then the two POSIX layouts, then
+falls back to `python -m uvicorn` (CI). A venv created inside WSL lives at
+`backend/.venv` and its `bin/uvicorn` is visible from Windows but not runnable there,
+which used to fail with "Der Befehl \".venv\" ist entweder falsch geschrieben". On
+Windows create `backend/.venv-win` with the runtime dependencies only (fastapi,
+uvicorn[standard], numpy, pydantic, pybloom_live, simplemma, aiosqlite, webauthn,
+plus `tzdata`, which Windows has no system copy of).
+
 **On Windows in Git Bash**, prefix the build with `MSYS_NO_PATHCONV=1`. Without it MSYS rewrites the value `/api` into `C:/Program Files/Git/api`, the export inlines that as the API base, and the app then fetches `file://` URLs. Every game page fails to load and the symptom looks exactly like a broken backend.
 
 **Do not use `pnpm lint`.** ESLint 10 is incompatible with eslint-plugin-react 7.x and it crashes project‑wide (`contextOrFilename.getFilename is not a function`) on the first file, regardless of your changes. Use **`pnpm build` + `pnpm test` + `pnpm seo:check`** as the real gates until the versions are reconciled.
@@ -49,6 +58,7 @@ KONTEXTO_DEV=1 KONTEXTO_DATA_DIR=../data uvicorn main:app --reload   # dev API s
 pytest                                                              # all backend tests (run from backend/)
 pytest test_analytics.py::test_name                                # single test
 bash ../scripts/prepare-data.sh ../data/                            # build game data (downloads German fastText, computes rankings), needed once for local dev
+python ../scripts/extend-game-pool.py --help                        # grow the prod pool offline (see docs/plans/2026-09-20-mode-expansion-upload.md)
 ```
 
 ### Full stack
@@ -59,19 +69,28 @@ docker compose up --build    # http://localhost:8080, builds frontend, prepares 
 ## Architecture (the parts that span multiple files)
 
 ### Backend process model
-`main.py` is one FastAPI app run as **two roles** (see `supervisord.conf`): **4 API workers** (`:8000`) and **exactly one WebSocket worker** (`:8001`, started with `KONTEXTO_WS_MODE=1`). Three background loops run **only in the WS worker** (single writer, no races): analytics aggregation/pruning (every 5 min), duel cleanup, and duel WebSocket poll‑and‑broadcast (every 1 s). There is no in‑process shared state between workers: **SQLite is the single source of truth**, so all writes must be idempotent (HLL `MAX`‑upserts, daily upserts) because multiple workers write concurrently (WAL, 5 s busy timeout).
+`main.py` is one FastAPI app run as **two roles** (see `supervisord.conf`): **4 API workers** (`:8000`) and **exactly one WebSocket worker** (`:8001`, started with `KONTEXTO_WS_MODE=1`). Five background loops run **only in the WS worker** (single writer, no races): analytics aggregation/pruning plus room cleanup and queue pruning (every 5 min), the duel/koop/wordle‑duel poll‑and‑broadcast loops, the **arena clock** (`arena.advance_due_arenas`, every 1 s, applies every deadline that has passed) and the **matchmaking loop** (`matchmaking.run_matchmaking`, every 1 s, forms parties). There is no in‑process shared state between workers: **SQLite is the single source of truth**, so all writes must be idempotent (HLL `MAX`‑upserts, daily upserts) because multiple workers write concurrently (WAL, 5 s busy timeout).
 
 ### Game engine (the core mechanic is pre‑computed)
 There is **no live embedding inference at request time**. `prepare.py` (offline / build step) loads the German fastText model, debiases vectors (remove mean + top‑3 PCs), computes cosine similarity to each target, and writes per‑game rank arrays to `data/games/{NNNN}.npz`, plus `vocabulary.json`, `lemma_map.json`, `bloom.bin`, `target_words.json`, `metadata.json`. At runtime `game.py` does an O(1) dict/array lookup `word → rank`. Wordle uses `data/wordle/{solutions,valid_words}.json`.
 
-### API surface (all under `/api`, defined in `main.py`, logic in `game.py`/`duel.py`/`wordle.py`/`wordle_duel.py`)
-- Kontexto: `guess`, `tip`, `game`, `games`, `reveal`, `closest`.
+### API surface (all under `/api`, defined in `main.py`, logic in `game.py`/`duel.py`/`koop.py`/`arena.py`/`matchmaking.py`/`wordle.py`/`wordle_duel.py`)
+- Kontexto: `guess`, `tip`, `game`, `games`, `reveal`, `closest`. `guess`/`tip`/`reveal` take an optional `mode` (validated against `analytics.SOLO_MODES`) so the solo modes are counted apart.
+- Solo modes: `word-at-rank` (Leiter's opening word, never rank 1), `dual/next` + `dual/guess` (Doppelziel, both ranks in one request), `sudden-death` (a game plus its runners‑up).
 - Duel: `duel` (create), `duel/{id}/join|guess|history|tip`, `duel/player-info`, `GET duel/{id}` (state); realtime `WS /ws/duel/{id}?token=…`.
+- Arena (Battle Royale, Blitz‑Duell, Zeitbonus‑Jagd): `arena` (create), `arena/{id}/join|start|guess|history|next-game`, `arena/player-info`, `GET arena/{id}`; realtime `WS /ws/arena/{id}?token=…`.
+- Matchmaking: `matchmaking/enqueue|status|cancel`. One queue for duel, koop, wordle‑duel and the three arenas.
 - Wordle + Wordle duel: mirror of the above under `/api/wordle/…` and `WS /ws/wordle/duel/{id}`.
 - Analytics: `collect/token`, `collect` (pageview, optional `share` marker), `collect/heartbeat` (presence + attention when the tab is visible), `collect/share` (share button pressed), `stats/complete` (client completion histograms), `survey/answer` (attribution survey, one answer per fingerprint).
 - Admin: `admin/webauthn/{login,register}/{options,verify}`, `GET admin/stats`.
 
 Duel realtime is **DB‑polling broadcast** (`websocket_manager.py`): the WS worker polls the players table every second and pushes diffs (`player_joined`/`rank_update`/`player_solved`/connect‑state) to all sockets in that duel.
+
+### Arenas and the clock (`arena.py`)
+Battle Royale, Blitz‑Duell and Zeitbonus‑Jagd share one table triple (`arenas`/`arena_players`/`arena_guesses`); they differ only in how a deadline is set and what happens when it passes. **The server owns time.** Every deadline is an absolute UTC timestamp written in `arena.iso_timestamp` (fixed width, so SQLite's string comparison is a time comparison) and shipped to the client together with `server_time`, which the client uses to correct its own clock. The guess path refuses a late guess itself (409 `time_up`), so the buzzer cannot be beaten inside the evaluator's one‑second window. Every transition in `advance_due_arenas` is guarded by the state it expects (`WHERE status = 'running' AND deadline_at <= ?`), so a repeated pass is a no‑op.
+
+### Matchmaking (`matchmaking.py`)
+One `matchmaking_queue` table in front of every multiplayer mode. A table and not process memory, because the five workers share nothing else. Pairing runs in the WS worker and claims tickets under `matched_room_id IS NULL`. Playing with strangers changes what a nickname is: the queue defaults to a generated German name and accepts a typed one only after a substring profanity check (`wordlists.PROFANITY_BLOCKLIST`, transliterated). Invite‑link rooms keep their free text.
 
 ### Analytics (cookieless, server‑authoritative, `analytics.py`)
 Authoritative counts (guesses/solves/hints/reveals/duels) are incremented **server‑side from the real handlers**, never trusted from the client. Visitor identity is an anonymous, non‑reversible fingerprint `SHA256(IP + UA + monthly salt)` folded into **HyperLogLog** sketches (all‑time + monthly) for unique‑visitor estimates. Raw `analytics_events` are kept **35 days** then pruned; permanent rollups live in `analytics_daily`/`analytics_counters`/HLL tables. Only the completion **distribution histograms** come from the client (`stats/complete`), token‑gated + bot‑filtered + deduped. The attribution survey („Woher kennst du Kontexto?", `survey/answer`) follows the same pattern: the countable answer is a permanent counter (`survey_source_v1`), the dedup ledger `analytics_survey_seen` is kept 180 days, and the optional free text lives in `analytics_survey_details` **without** a fingerprint. Frontend side: `lib/survey.ts` (catalogue, shuffle, frequency caps), `components/SourceSurvey*.tsx`. Three further growth signals share the same posture: `starts` (counted once per fingerprint, mode and game via `analytics_start_seen`, triggered by the `first` flag on the opening guess, which is only a hint because the ledger caps it), `shares` plus `share_arrivals` (the share text carries `?s=<game>`, the marker is counted per page and stripped from the address bar on arrival) and `attention` (one heartbeat of a visible tab = `HEARTBEAT_SECONDS`). Heatmap/peak‑hour stats are bucketed in **`DISPLAY_TZ = Europe/Berlin`** (`analytics.py`).
@@ -80,7 +99,7 @@ Authoritative counts (guesses/solves/hints/reveals/duels) are incremented **serv
 A single **WebAuthn passkey** protects `/admin`. Login issues an HMAC‑signed session token (12 h TTL, `Authorization: Bearer …`). Registration is **break‑glass**: disabled unless `KONTEXTO_ADMIN_ENROLL_TOKEN` is set. Brute‑force protection is per‑IP (in‑memory) + global (DB). All HMACs (fingerprint salt, beacon tokens, session/WebAuthn tokens) derive from one secret in `server_secret.py` (fail‑closed in prod).
 
 ### Frontend
-Static export (`next.config.ts`: `output:"export"`, `trailingSlash:true`). Dynamic duel URLs (`/duel/<id>/`) render the single `/duel` page and read the id from `window.location.pathname`; in prod nginx does the `try_files … /duel/index.html` fallback, in dev `next.config.ts` adds `rewrites()` for the same effect. Client state is plain `useState`/`useEffect` + `localStorage` (no SWR/React Query); keys are prefixed `kontexto_*` / `wordle_*`. Theme is read by an inline script in `app/layout.tsx` before hydration to avoid a flash. API access goes through `lib/api.ts` / `lib/duel-api.ts` / `lib/wordle-api.ts` (base = `NEXT_PUBLIC_API_URL`, fallback `/api`; errors thrown as coded strings like `"unauthorized"`), and the two WS hooks `lib/use-duel-websocket.ts` / `lib/use-wordle-duel-ws.ts`. recharts is loaded via `next/dynamic({ ssr:false })` (`app/admin/stats/page.tsx`) so it stays out of the main bundle. Keep dashboard/skeleton code free of static recharts imports. UI text is German throughout; de‑DE formatting helpers live in `lib/format.ts`.
+Static export (`next.config.ts`: `output:"export"`, `trailingSlash:true`). Dynamic room URLs (`/duel/<id>/`, `/koop/<id>/`, `/wordle/duel/<id>/`, `/arena/<id>/`) render the single matching page and read the id from `window.location.pathname`; in prod nginx does the `try_files … /duel/index.html` fallback, in dev `next.config.ts` adds `rewrites()` and `e2e/serve.mjs` mirrors both. One `/arena/` route serves all three arena modes, because the mode comes from the room state and does not need to be in the URL. Solo modes live at `/solo/{leiter,limit,doppelziel,sudden-death}/`, the queue at `/suche/`, the catalogue at `/modi/`; `lib/solo-modes.ts` and `lib/multiplayer-modes.ts` are the single source for a mode's name, pitch and rules. Client state is plain `useState`/`useEffect` + `localStorage` (no SWR/React Query); keys are prefixed `kontexto_*` / `wordle_*`. Theme is read by an inline script in `app/layout.tsx` before hydration to avoid a flash. API access goes through `lib/api.ts` / `lib/duel-api.ts` / `lib/wordle-api.ts` (base = `NEXT_PUBLIC_API_URL`, fallback `/api`; errors thrown as coded strings like `"unauthorized"`), and the two WS hooks `lib/use-duel-websocket.ts` / `lib/use-wordle-duel-ws.ts`. recharts is loaded via `next/dynamic({ ssr:false })` (`app/admin/stats/page.tsx`) so it stays out of the main bundle. Keep dashboard/skeleton code free of static recharts imports. UI text is German throughout; de‑DE formatting helpers live in `lib/format.ts`.
 
 ### SEO layer (a deliberate hybrid, don't regress it)
 Content/SEO pages use **JS‑free primitives** (`components/seo/SeoPrimitives.tsx`, `SeoFaq.tsx` built on `<details>`) so all content is crawlable in the static HTML. **Framer Motion** (`motion` package via `components/motion/MotionProvider.tsx`, `LazyMotion` strict + `MotionConfig reducedMotion="user"`) is layered **only as progressive enhancement**, never as the source of content. Per‑page metadata + self‑canonicals + hreflang come from `lib/seo.ts` (`buildMetadata`); JSON‑LD from `lib/structured-data.ts`; `app/sitemap.ts` + `app/robots.ts` are dynamic; the blog is MDX with an **explicit static loader map** in `app/blog/[slug]/page.tsx` (template‑literal dynamic imports break under static export).
