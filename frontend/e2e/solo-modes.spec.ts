@@ -63,3 +63,24 @@ test.describe("Solo-Modi", () => {
     });
   });
 });
+
+/**
+ * The picker is the only way into the new modes from inside a running game, so
+ * the path menu -> dialog -> round is worth one test of its own. It also pins
+ * the decision that a tile starts a round instead of opening a page.
+ */
+test.describe("Modus-Waehler", () => {
+  test("das Menue oeffnet den Dialog und eine Kachel startet die Runde", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /^Menü/ }).click();
+    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Noch eine Runde?" })).toBeVisible();
+    // Every mode is one tap away, solo and multiplayer alike.
+    await expect(dialog.getByRole("link", { name: "Battle Royale" })).toBeVisible();
+
+    await dialog.getByRole("link", { name: "Sudden Death" }).click();
+    await expect(page).toHaveURL(/\/solo\/sudden-death\/$/);
+  });
+});

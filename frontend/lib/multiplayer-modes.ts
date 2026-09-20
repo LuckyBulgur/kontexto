@@ -20,6 +20,9 @@ import {
 export interface MultiplayerModeMeta {
   id: QueueModeId;
   name: string;
+  /** Three or four words for the picker. Long enough to choose by, short
+   *  enough to read while the game is waiting. */
+  hook: string;
   /** One sentence, the way it is pitched on the mode page. */
   tagline: string;
   /** The rules as the player reads them. */
@@ -34,6 +37,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   duel: {
     id: "duel",
     name: "Duell",
+    hook: "Wer findet es zuerst",
     tagline: "Gleiches Wort, zwei Leute, wer findet es zuerst?",
     rules: [
       "Beide raten dasselbe geheime Wort.",
@@ -46,6 +50,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   koop: {
     id: "koop",
     name: "Koop",
+    hook: "Gemeinsam eine Liste",
     tagline: "Eine gemeinsame Liste, ein gemeinsamer Sieg.",
     rules: [
       "Alle raten zusammen auf einer geteilten Liste.",
@@ -58,6 +63,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   wordle_duel: {
     id: "wordle_duel",
     name: "Wördle-Duell",
+    hook: "Wördle, Kopf an Kopf",
     tagline: "Dasselbe Wördle, zwei Bretter, sechs Versuche.",
     rules: [
       "Beide lösen dasselbe Wördle.",
@@ -70,6 +76,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   royale: {
     id: "royale",
     name: "Battle Royale",
+    hook: "Der Letzte bleibt",
     tagline: `Bis zu ${ROYALE_MAX_PLAYERS} Leute, und alle paar Minuten fliegt einer raus.`,
     rules: [
       `Bis zu ${ROYALE_MAX_PLAYERS} Spieler raten dasselbe Wort.`,
@@ -83,6 +90,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   blitz: {
     id: "blitz",
     name: "Blitz-Duell",
+    hook: "120 Sekunden, bester Rang",
     tagline: `${BLITZ_SECONDS} Sekunden für alle, der beste Rang gewinnt.`,
     rules: [
       `Eine gemeinsame Uhr über ${BLITZ_SECONDS} Sekunden.`,
@@ -95,6 +103,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   timerush: {
     id: "timerush",
     name: "Zeitbonus-Jagd",
+    hook: "Nur bessere Wörter kaufen Zeit",
     tagline: "Deine Uhr läuft, und nur ein besseres Wort dreht sie zurück.",
     rules: [
       `Jeder startet mit ${TIMERUSH_START_SECONDS} Sekunden auf der eigenen Uhr.`,

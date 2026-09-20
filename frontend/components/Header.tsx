@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import ShareLinkButton from "@/components/ShareLinkButton";
+import ModePickerDialog from "@/components/ModePickerDialog";
 
 interface HeaderProps {
   onTip: () => void;
@@ -90,6 +91,9 @@ export default function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+  // The picker is owned here rather than passed in: every client that renders
+  // the menu would otherwise have to carry the same three lines of state.
+  const [showModePicker, setShowModePicker] = useState(false);
   const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
     useFeatureDiscovery("kontexto_duel_discovered");
   const showDuelHighlight = !hideDuelCreate && duelHighlight;
@@ -183,7 +187,7 @@ export default function Header({
                     : showInfiniteHighlight
                       ? "Menü, neue Funktion: Unendlich-Modus"
                       : showModesHighlight
-                        ? "Menü, neue Funktion: weitere Mehrspielermodi"
+                        ? "Menü, neue Funktion: weitere Spielmodi"
                         : feedbackHighlight
                           ? "Menü, neue Funktion: Feedback und Wünsche"
                           : "Menü"
@@ -260,16 +264,17 @@ export default function Header({
                 </Link>
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem asChild className={showModesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
-              <Link href="/modi/">
-                <LayoutGrid className="h-4 w-4" />
-                Weitere Mehrspielermodi
-                {showModesHighlight && (
-                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
-                    NEU
-                  </span>
-                )}
-              </Link>
+            <DropdownMenuItem
+              onClick={() => setShowModePicker(true)}
+              className={showModesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Weitere Spielmodi
+              {showModesHighlight && (
+                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                  NEU
+                </span>
+              )}
             </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>
@@ -319,6 +324,7 @@ export default function Header({
       {showCountdown && (
         <p className="text-xs text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
       )}
+      <ModePickerDialog open={showModePicker} onClose={() => setShowModePicker(false)} />
     </header>
   );
 }

@@ -19,6 +19,8 @@ export interface SoloModeMeta {
   /** Route segment under /solo/. */
   slug: string;
   name: string;
+  /** Three or four words for the picker. */
+  hook: string;
   /** One sentence for the mode catalogue and the page description. */
   tagline: string;
   /** The rules as the player reads them, in order. */
@@ -38,6 +40,7 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
     id: "leiter",
     slug: "leiter",
     name: "Leiter",
+    hook: "Immer näher, sonst raus",
     tagline: "Jedes Wort muss näher dran sein als das vorige.",
     rules: [
       `Du startest mit einem vorgegebenen Wort auf Rang ${LEITER_START_RANK}.`,
@@ -50,6 +53,7 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
     id: "limit",
     slug: "limit",
     name: "Limitierte Versuche",
+    hook: "20 Versuche, keine Tipps",
     tagline: `${LIMIT_MAX_GUESSES} Versuche, keine Tipps.`,
     rules: [
       `Du hast ${LIMIT_MAX_GUESSES} Versuche für das geheime Wort.`,
@@ -61,6 +65,7 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
     id: "doppel",
     slug: "doppelziel",
     name: "Doppelziel",
+    hook: "Zwei Wörter auf einmal",
     tagline: "Zwei geheime Wörter gleichzeitig, jeder Versuch zählt für beide.",
     rules: [
       "Es gibt zwei geheime Wörter, die nichts miteinander zu tun haben.",
@@ -73,6 +78,7 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
     id: "suddendeath",
     slug: "sudden-death",
     name: "Sudden Death",
+    hook: "Ein Versuch, mehr nicht",
     tagline: "Du siehst die fünf nächsten Nachbarn. Ein Versuch.",
     rules: [
       "Du bekommst die Wörter auf Rang 2 bis 6 zu sehen.",

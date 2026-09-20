@@ -13,6 +13,9 @@ const playLinks = [
   // traegt noindex und bleibt aus der dauerhaften Navigation heraus.
   { href: "/koop/", label: "Koop" },
   { href: "/duel/", label: "Duell" },
+  // The in-game mode picker is a dialog. This page is the durable, linkable
+  // version of it, so the footer is where it belongs.
+  { href: "/modi/", label: "Alle Modi" },
 ];
 
 const readingLinks = [
