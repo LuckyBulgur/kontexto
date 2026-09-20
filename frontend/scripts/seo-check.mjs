@@ -231,6 +231,7 @@ const contentPages = [
   { file: "duel/index.html", path: "/duel/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "koop/index.html", path: "/koop/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "modi/index.html", path: "/modi/", minWords: 600, schema: '"@type":"FAQPage"' },
+  { file: "arena/index.html", path: "/arena/", minWords: 600, schema: '"@type":"FAQPage"' },
 ];
 for (const p of contentPages) {
   const html = await read(p.file);

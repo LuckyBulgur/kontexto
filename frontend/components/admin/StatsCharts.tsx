@@ -31,9 +31,15 @@ const PAGE_LABELS: Record<string, string> = {
   "/": "Startseite", "/wordle": "Wördle", "/duel": "Kontexto-Duell",
   "/wordle/duel": "Wördle-Duell", other: "Sonstige",
 };
+// Every mode the backend can count (analytics.GAME_MODES). A missing entry here
+// would show the raw key to the reader, which is how a new mode quietly turns
+// into "timerush" in the dashboard.
 const MODE_LABELS: Record<string, string> = {
-  kontexto: "Kontexto", duel: "Kontexto-Duell", wordle: "Wördle", infinite: "Unendlich",
-  koop: "Kontexto-Koop",
+  kontexto: "Kontexto", infinite: "Unendlich", wordle: "Wördle",
+  duel: "Kontexto-Duell", koop: "Kontexto-Koop", wordle_duel: "Wördle-Duell",
+  royale: "Battle Royale", blitz: "Blitz-Duell", timerush: "Zeitbonus-Jagd",
+  leiter: "Leiter", limit: "Limitierte Versuche", doppel: "Doppelziel",
+  suddendeath: "Sudden Death",
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "Leicht", medium: "Mittel", hard: "Schwer",
@@ -51,13 +57,39 @@ const GUESS_BUCKETS = ["1", "2-3", "4-5", "6-10", "11-20", "21-50", "51-100", "1
 const TIME_BUCKETS = ["<1 Min", "1-2 Min", "2-5 Min", "5-10 Min", "10-20 Min", "20-45 Min", "45+ Min"];
 const RANK_BUCKETS = ["1-10", "11-50", "51-200", "201-1000", "1001-5000", "5000+"];
 
-const MODE_SERIES = [
-  { key: "kontexto", label: "Kontexto", accent: 0 },
-  { key: "duel", label: "Kontexto-Duell", accent: 2 },
-  { key: "wordle", label: "Wördle", accent: 1 },
-  { key: "infinite", label: "Unendlich", accent: 3 },
-  { key: "koop", label: "Kontexto-Koop", accent: 4 },
+/**
+ * The popularity trend groups the thirteen modes into five families.
+ *
+ * Not a simplification for its own sake: there are five chart accents, and
+ * thirteen stacked bands over five colours is a picture nobody can read. The
+ * per-mode figures stay available one panel down, in the donut, where a single
+ * colour and thirteen labels work fine.
+ */
+const MODE_FAMILIES = [
+  { key: "kontexto", label: "Kontexto täglich", accent: 0, members: ["kontexto"] },
+  { key: "wordle", label: "Wördle", accent: 1, members: ["wordle", "wordle_duel"] },
+  { key: "multiplayer", label: "Mehrspieler", accent: 2, members: ["duel", "koop", "royale", "blitz", "timerush"] },
+  { key: "infinite", label: "Unendlich", accent: 3, members: ["infinite"] },
+  { key: "solo", label: "Solo-Modi", accent: 4, members: ["leiter", "limit", "doppel", "suddendeath"] },
 ];
+
+const MODE_SERIES = MODE_FAMILIES.map(({ key, label, accent }) => ({ key, label, accent }));
+
+/** Sum each month's per-mode counts into the five families. */
+function modeFamilyTrend(
+  monthly: ({ month: string } & Record<string, number | string>)[],
+): Record<string, number | string>[] {
+  return monthly.map((point) => {
+    const row: Record<string, number | string> = { month: point.month };
+    for (const family of MODE_FAMILIES) {
+      row[family.key] = family.members.reduce(
+        (sum, member) => sum + (Number(point[member]) || 0),
+        0,
+      );
+    }
+    return row;
+  });
+}
 
 /** Daily average guesses per solve, only for days that had at least one solve. */
 function avgGuessesPerSolveTimeline(
@@ -523,8 +555,8 @@ function GameplaySection({ stats, range }: SectionProps) {
       <Panel title="Ø Versuche bis zur Lösung: Trend">
         <AreaTrend data={sliceTimeline(avgPerSolve, range)} accent={0} valueFormatter={(v) => formatDecimal(Number(v))} />
       </Panel>
-      <Panel title="Modus-Beliebtheit über Zeit" hint="abgeschlossene Spiele/Monat" className="lg:col-span-2">
-        <StackedAreaTrend data={stats.mode_monthly} series={MODE_SERIES} xKey="month" labelFormatter={shortMonth} />
+      <Panel title="Modus-Beliebtheit über Zeit" hint="abgeschlossene Spiele/Monat, nach Familie" className="lg:col-span-2">
+        <StackedAreaTrend data={modeFamilyTrend(stats.mode_monthly)} series={MODE_SERIES} xKey="month" labelFormatter={shortMonth} />
       </Panel>
       <Panel title="Spiele je Modus (abgeschlossen)">
         <DonutChart data={stats.games_by_mode} labelMap={MODE_LABELS} />

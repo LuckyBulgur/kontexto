@@ -25,6 +25,33 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-20",
+    kind: "Neu",
+    title: "Mitspielersuche: spielen, ohne jemanden einladen zu müssen",
+    body:
+      "Bisher brauchte jede Mehrspielerrunde einen Einladungslink, also jemanden zum Einladen. Jetzt gibt es eine Suche: Modus wählen, kurz warten, und der Server stellt dich mit Fremden zusammen. Das gilt für Duell, Koop, Wördle-Duell und die drei neuen Arena-Modi. Deinen Namen lesen dabei Unbekannte mit, deshalb bekommst du ohne Eingabe einen zugeteilten.",
+    href: "/suche/",
+    hrefLabel: "Mitspieler suchen",
+  },
+  {
+    date: "2026-09-20",
+    kind: "Neu",
+    title: "Drei Modi mit Uhr: Battle Royale, Blitz-Duell, Zeitbonus-Jagd",
+    body:
+      "In der Arena läuft die Zeit mit. Im Battle Royale scheidet alle paar Minuten aus, wer am weitesten weg ist, und die Uhr wird von Runde zu Runde kürzer. Das Blitz-Duell gibt dem ganzen Raum 120 Sekunden, danach gewinnt der beste Rang. In der Zeitbonus-Jagd hat jeder eine eigene Uhr, und nur ein Wort, das näher dran ist als dein bisher bestes, legt Sekunden drauf.",
+    href: "/arena/",
+    hrefLabel: "Die Arena-Modi ansehen",
+  },
+  {
+    date: "2026-09-20",
+    kind: "Neu",
+    title: "Vier neue Solo-Modi",
+    body:
+      "Jeder nimmt dem täglichen Spiel eine Selbstverständlichkeit weg. Leiter gibt ein Startwort vor, und jedes weitere muss näher dran sein. Limitierte Versuche gibt dir zwanzig Wörter und keine Tipps. Doppelziel sucht zwei geheime Wörter gleichzeitig, jeder Versuch bekommt zwei Ränge. Sudden Death zeigt dir die fünf nächsten Nachbarn und lässt dir genau einen Versuch.",
+    href: "/modi/",
+    hrefLabel: "Alle Spielmodi",
+  },
+  {
+    date: "2026-09-20",
     kind: "Verbessert",
     title: "Geteilte Ergebnisse enthalten jetzt den Link zum Spiel",
     body:

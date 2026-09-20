@@ -55,3 +55,37 @@ test.describe("Arena über die Mitspielersuche", () => {
     for (const context of contexts) await context.close();
   });
 });
+
+/**
+ * The other two room shapes the queue can build. `_matchmaking_room` in main.py
+ * has one branch per family (duel, koop, wordle-duel, arena) and the Blitz test
+ * above only covers the arena one. A broken branch would not fail a unit test:
+ * matchmaking.py is tested against a stand-in factory precisely so it knows
+ * nothing about rooms.
+ */
+const PAIRED_MODES = [
+  { mode: "koop", label: "Koop", path: /\/koop\/[^/]+\/$/ },
+  { mode: "wordle_duel", label: "Wördle-Duell", path: /\/wordle\/duel\/[^/]+\/$/ },
+] as const;
+
+for (const entry of PAIRED_MODES) {
+  test(`die Suche baut auch einen ${entry.label}-Raum`, async ({ browser }) => {
+    const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+    for (const context of contexts) await blockThirdParty(context);
+    const pages = await Promise.all(contexts.map((c) => c.newPage()));
+
+    for (const [index, page] of pages.entries()) {
+      await page.goto(`/suche/?modus=${entry.mode}`);
+      await page.getByLabel("Dein Name (optional)").fill(`Spieler${index + 1}`);
+      await page.getByRole("button", { name: "Mitspieler suchen" }).click();
+    }
+
+    // Koop waits out a grace period before starting small, so allow for it.
+    for (const page of pages) {
+      await expect(page).toHaveURL(entry.path, { timeout: 40_000 });
+    }
+    expect(new URL(pages[0].url()).pathname).toBe(new URL(pages[1].url()).pathname);
+
+    for (const context of contexts) await context.close();
+  });
+}

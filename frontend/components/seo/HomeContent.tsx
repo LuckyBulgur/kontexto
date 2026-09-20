@@ -267,6 +267,7 @@ export default function HomeContent() {
           heading="Mehr entdecken"
           label="Mehr über Kontexto"
           links={[
+            { href: "/modi/", label: "Alle Spielmodi: allein, mit Freunden, gegen Fremde" },
             { href: "/anleitung/", label: "Spielanleitung" },
             { href: "/strategie/", label: "Strategie & Tipps" },
             { href: "/vergleich/", label: "Kontexto, Wordle, Contexto & Semantle im Vergleich" },

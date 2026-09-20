@@ -18,6 +18,7 @@
 export const CONTENT_REVISIONS: Record<string, string> = {
   "/": "2026-09-15",
   "/modi/": "2026-09-20",
+  "/arena/": "2026-09-20",
   "/anleitung/": "2026-09-15",
   "/strategie/": "2026-09-15",
   "/vergleich/": "2026-09-15",

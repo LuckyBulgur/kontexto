@@ -278,6 +278,38 @@ export const modesFaqs: Faq[] = [
   },
 ];
 
+/** Questions about the three timed arena modes, for /arena/. */
+export const arenaFaqs: Faq[] = [
+  {
+    q: `Was ist die Kontexto-Arena?`,
+    a: `Die Arena fasst die drei Kontexto-Modi zusammen, in denen eine Uhr mitläuft: Battle Royale, Blitz-Duell und die Zeitbonus-Jagd. In allen dreien ratet ihr dasselbe geheime Wort, aber ihr habt nicht unbegrenzt Zeit dafür. Wer gewinnt, entscheidet nicht nur, wer das Wort findet, sondern auch, wer es rechtzeitig findet. Alle drei sind kostenlos und brauchen kein Konto.`,
+  },
+  {
+    q: `Wie läuft eine Battle-Royale-Runde ab?`,
+    a: `Bis zu acht Leute raten gleichzeitig dasselbe Wort. Nach drei Minuten scheidet aus, wer den schlechtesten besten Rang hat, wer also am weitesten vom Ziel entfernt geblieben ist. Danach wird die Uhr kürzer: zwei Minuten, anderthalb, eine, dann 45 und 30 Sekunden. Gewonnen hat, wer als Letzter übrig bleibt oder vorher Rang 1 trifft. Wer gar nichts eingegeben hat, fliegt zuerst.`,
+  },
+  {
+    q: `Wie funktioniert das Blitz-Duell?`,
+    a: `Der ganze Raum teilt sich eine Uhr über 120 Sekunden. Wenn sie abläuft, gewinnt, wer den besten Rang erreicht hat, nicht wer die meisten Wörter probiert hat. Trifft jemand vorher Rang 1, ist die Runde sofort vorbei. Das ist der kürzeste Modus im Spiel und der einzige, in dem man mit einem einzigen guten Einfall gewinnen kann.`,
+  },
+  {
+    q: `Was ist die Zeitbonus-Jagd?`,
+    a: `Jede Person hat hier eine eigene Uhr, die mit 60 Sekunden startet. Jedes Wort, das näher am Ziel liegt als dein bisher bestes, legt acht Sekunden drauf, gedeckelt bei drei Minuten. Ein Wort, das nicht näher kommt, bringt nichts. Wessen Uhr abläuft, ist raus. Der Modus bestraft also nicht das falsche Wort, sondern das Stehenbleiben.`,
+  },
+  {
+    q: `Wer entscheidet, wann eine Arena-Runde startet?`,
+    a: `Bei einer Runde über Einladungslink ihr selbst: sobald zwei Leute im Raum sind, kann jeder von euch auf Start drücken, nicht nur wer den Link erstellt hat. Bei der Mitspielersuche entscheidet niemand, sondern der Server. Er stellt die Runde zusammen, sobald genug Leute warten, und startet sie ohne Zutun.`,
+  },
+  {
+    q: `Was passiert, wenn meine Verbindung abbricht?`,
+    a: `Die Uhr gehört dem Server, nicht deinem Gerät, deshalb läuft die Runde ohne dich weiter. Kommst du rechtzeitig zurück, spielst du weiter, wo du warst. Eine lange Unterbrechung kostet dich in Battle Royale und in der Zeitbonus-Jagd die Runde, weil dein Rückstand währenddessen wächst. Ein Versuch, der nach Ablauf der Zeit ankommt, zählt nicht mehr, auch wenn er unterwegs war.`,
+  },
+  {
+    q: `Kann ich die Arena allein ausprobieren?`,
+    a: `Nein, alle drei Modi brauchen mindestens zwei Personen. Wer allein gegen eine Uhr spielen möchte, findet das bei den Solo-Modi: Sudden Death gibt dir genau einen Versuch, Limitierte Versuche gibt dir zwanzig. Für die Arena selbst nimmst du entweder die Mitspielersuche oder schickst jemandem den Einladungslink.`,
+  },
+];
+
 /** Questions about the Woerdle duel, for /wordle/duel/. */
 export const wordleDuelFaqs: Faq[] = [
   {
