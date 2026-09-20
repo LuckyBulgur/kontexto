@@ -216,7 +216,12 @@ jobs:
             fi
             sitemap=$(curl -fsSL https://kontexto.de/sitemap.xml)
             sitemap_count=$(echo "$sitemap" | grep -c '<loc>')
-            if [ "$sitemap_count" -ne 44 ] || echo "$sitemap" | grep -Fq '/duel/create/'; then
+            # Twin of expectedStaticSitemapPaths in frontend/scripts/seo-check.mjs.
+            # Both are allow-lists so a functional path cannot become an indexed
+            # one by accident, and both have to move when a public page is added.
+            # This one guards the deployed site, seo:check guards the build.
+            functional='/(duel|koop|wordle/duel|arena)/create/|/suche/'
+            if [ "$sitemap_count" -ne 50 ] || echo "$sitemap" | grep -Eq "$functional"; then
               echo "Unexpected public sitemap: ${sitemap_count} URLs or a functional create URL" >&2
               exit 1
             fi
