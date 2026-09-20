@@ -157,13 +157,21 @@ Run for real against production, from a read-only copy pulled over SSH.
 - **Every one of the 2,400 existing solutions sits at Zipf 4.0 or above, and that band is
   spent**: only 69 unused words are left in it. Any growth therefore has to come from a
   rarer band, which is a product decision, not a technical one. Chosen floor: Zipf 3.2.
-- Result: 7,141 games appended, pool 2,400 to 9,541. Games 1 to 2,400 are untouched and
+- Result: 7,137 games appended, pool 2,400 to 9,537. The four blocked words below are
+  why it is not 9,541: the verification gate refused the larger number rather than
+  quietly filling the gap. Games 1 to 2,400 are untouched and
   `target_words.json` keeps the old list as its exact prefix.
 - Hand audit of the appended words against the name gazetteer and the 120 most common
   German surnames found four with no everyday common-noun sense: `hübner`, `riedel`,
   `orion`, `jeep`. They went into `NAME_BLOCKLIST` and the pool was regenerated. The many
   surnames that *are* ordinary nouns (`bergmann`, `hahn`, `fuhrmann`, `koch`) stayed, which
   is the filter working as designed.
+- **Uploaded and live on 2026-09-20.** 9,537 npz in the volume, 2.0 GB. `/api/game` still
+  reports game 105, the same number as before the upload, which is the check that the daily
+  schedule did not move. `/api/infinite/next` reports the new `totalGames`, a guess against
+  game 9,537 scores, and the entrypoint restored `appuser` ownership on restart. The
+  read-only copy under `.regen-work/prod` is kept until tomorrow's puzzle has been played,
+  so the old `metadata.json` and `target_words.json` can go back in one step.
 - User-facing text that quoted the old pool size was updated (`lib/faqs.ts`,
   `components/seo/HomeContent.tsx`). The benchmark sentences that say "measured over all
   2,400 puzzles" were left alone: that measurement was over 2,400 and still was.
