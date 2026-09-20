@@ -81,6 +81,63 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
     UNIQUE(koop_id, word)
 );
 
+-- Arenas: the three timed multiplayer modes (Battle Royale, Blitz-Duell,
+-- Zeitbonus-Jagd). One table triple for all three rather than a fourth copy of
+-- the duel tables: they differ only in how a deadline is set and what happens
+-- when it passes.
+--
+-- Every deadline is an absolute UTC timestamp written by the server
+-- (arena._iso, fixed width so SQLite's string comparison is a time comparison).
+-- A duration plus a client start time would be unverifiable and would drift.
+CREATE TABLE IF NOT EXISTS arenas (
+    id TEXT PRIMARY KEY,
+    mode TEXT NOT NULL,                       -- royale | blitz | timerush
+    game_number INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'lobby',     -- lobby | running | finished
+    -- royale: how many elimination phases have already passed.
+    phase INTEGER NOT NULL DEFAULT 0,
+    -- The shared clock (royale, blitz). timerush runs a clock per player.
+    deadline_at TEXT,
+    started_at TEXT,
+    finished_at TEXT,
+    winner TEXT,
+    round INTEGER NOT NULL DEFAULT 1,
+    played_games TEXT NOT NULL DEFAULT '',
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS arena_players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    arena_id TEXT NOT NULL REFERENCES arenas(id) ON DELETE CASCADE,
+    nickname TEXT NOT NULL,
+    player_token TEXT NOT NULL UNIQUE,
+    best_rank INTEGER,
+    guess_count INTEGER NOT NULL DEFAULT 0,
+    solved BOOLEAN NOT NULL DEFAULT 0,
+    connected BOOLEAN NOT NULL DEFAULT 0,
+    -- timerush only: this player's own clock.
+    deadline_at TEXT,
+    eliminated_at TEXT,
+    -- Final standing, 1 = winner. Filled as players drop out.
+    place INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS arena_guesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    arena_id TEXT NOT NULL REFERENCES arenas(id) ON DELETE CASCADE,
+    player_token TEXT NOT NULL,
+    word TEXT NOT NULL,
+    rank INTEGER NOT NULL,
+    guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_arena_players_arena ON arena_players(arena_id);
+CREATE INDEX IF NOT EXISTS idx_arena_guesses_arena ON arena_guesses(arena_id, player_token);
+-- The deadline evaluator scans running arenas once a second.
+CREATE INDEX IF NOT EXISTS idx_arenas_running ON arenas(status, deadline_at);
+
 CREATE TABLE IF NOT EXISTS wordle_duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,

@@ -232,3 +232,68 @@ class KoopGuessesResponse(BaseModel):
     guesses: list[KoopGuessEntry]
 
 
+
+
+# --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
+
+
+class CreateArenaRequest(BaseModel):
+    mode: str = Field(..., pattern="^(royale|blitz|timerush)$")
+    game_number: int = Field(..., ge=1)
+    nickname: str = Field(..., min_length=1, max_length=20)
+
+
+class CreateArenaResponse(BaseModel):
+    arena_id: str
+    player_token: str
+    mode: str
+
+
+class JoinArenaRequest(BaseModel):
+    nickname: str = Field(..., min_length=1, max_length=20)
+
+
+class ArenaPlayerInfo(BaseModel):
+    nickname: str
+    best_rank: int | None
+    guess_count: int
+    solved: bool
+    connected: bool
+    # The personal clock of this player; only Zeitbonus-Jagd fills it.
+    deadline_at: str | None
+    eliminated: bool
+    place: int | None
+
+
+class ArenaStateResponse(BaseModel):
+    arena_id: str
+    mode: str
+    game_number: int
+    status: str
+    phase: int
+    # Absolute UTC deadline of the shared clock, or null when there is none.
+    deadline_at: str | None
+    winner: str | None
+    round: int
+    players: list[ArenaPlayerInfo]
+
+
+class JoinArenaResponse(ArenaStateResponse):
+    player_token: str
+
+
+class ArenaTokenRequest(BaseModel):
+    player_token: str
+
+
+class ArenaGuessRequest(BaseModel):
+    word: str = Field(..., min_length=1, max_length=100)
+    player_token: str
+
+
+class ArenaGuessResponse(BaseModel):
+    word: str
+    rank: int
+    total: int
+    deadline_at: str | None
+    finished: bool

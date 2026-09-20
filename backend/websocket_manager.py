@@ -7,6 +7,10 @@ import logging
 from fastapi import WebSocket
 
 from database import get_db
+from arena import (
+    advance_due_arenas,
+    set_player_connected as set_arena_player_connected,
+)
 from duel import set_player_connected
 from koop import (
     get_koop_guesses,
@@ -597,3 +601,181 @@ class KoopConnectionManager:
 
 
 koop_manager = KoopConnectionManager()
+
+
+class ArenaConnectionManager:
+    """Real-time layer for the three arena modes.
+
+    It carries one job the other managers do not have: the clock. Once a second
+    it asks arena.advance_due_arenas to apply every deadline that has passed and
+    broadcasts what came of it. That call writes, which is why this loop belongs
+    to the single WS worker; the API workers only read deadlines and refuse late
+    guesses.
+    """
+
+    def __init__(self) -> None:
+        self.connections: dict[str, dict[str, WebSocket]] = {}
+        self._known_state: dict[str, dict[str, dict]] = {}
+        self._known_round: dict[str, int] = {}
+        self._known_status: dict[str, str] = {}
+
+    async def connect(
+        self, arena_id: str, player_token: str, websocket: WebSocket, db_path: str
+    ) -> None:
+        await websocket.accept()
+        self.connections.setdefault(arena_id, {})[player_token] = websocket
+
+        db = await get_db(db_path)
+        try:
+            await set_arena_player_connected(db, player_token, True)
+        finally:
+            await db.close()
+
+    async def disconnect(self, arena_id: str, player_token: str, db_path: str) -> None:
+        room = self.connections.get(arena_id)
+        if room is not None:
+            room.pop(player_token, None)
+            if not room:
+                del self.connections[arena_id]
+                self._known_state.pop(arena_id, None)
+                self._known_round.pop(arena_id, None)
+                self._known_status.pop(arena_id, None)
+
+        db = await get_db(db_path)
+        try:
+            await set_arena_player_connected(db, player_token, False)
+        finally:
+            await db.close()
+
+    async def broadcast(
+        self, arena_id: str, message: dict, exclude_token: str | None = None
+    ) -> None:
+        conns = self.connections.get(arena_id)
+        if not conns:
+            return
+        await _send_to_all(conns, message, exclude_token)
+
+    async def poll_and_broadcast(self, db_path: str) -> None:
+        while True:
+            await asyncio.sleep(1)
+            try:
+                db = await get_db(db_path)
+                try:
+                    # The clock runs for every arena, not only the ones with a
+                    # socket attached: a player who lost their connection must
+                    # still be eliminated when their time is up.
+                    for event in await advance_due_arenas(db):
+                        arena_id = event.pop("arena_id")
+                        await self.broadcast(arena_id, event)
+
+                    for arena_id in list(self.connections.keys()):
+                        await self._diff_room(db, arena_id)
+                finally:
+                    await db.close()
+            except Exception:
+                logger.exception("Error in arena poll_and_broadcast")
+
+    async def _diff_room(self, db, arena_id: str) -> None:
+        cursor = await db.execute(
+            "SELECT game_number, round, status, phase, deadline_at FROM arenas WHERE id = ?",
+            (arena_id,),
+        )
+        arena = await cursor.fetchone()
+        if arena is None:
+            return
+
+        cursor = await db.execute(
+            "SELECT player_token, nickname, best_rank, guess_count, solved, connected, "
+            "deadline_at, eliminated_at, place FROM arena_players WHERE arena_id = ?",
+            (arena_id,),
+        )
+        players = await cursor.fetchall()
+        current = {
+            p["player_token"]: {
+                "nickname": p["nickname"],
+                "best_rank": p["best_rank"],
+                "guess_count": p["guess_count"],
+                "solved": bool(p["solved"]),
+                "connected": bool(p["connected"]),
+                "deadline_at": p["deadline_at"],
+                "eliminated": p["eliminated_at"] is not None,
+                "place": p["place"],
+            }
+            for p in players
+        }
+
+        new_round = arena["round"]
+        prev_round = self._known_round.get(arena_id)
+        if prev_round is not None and new_round > prev_round:
+            # A rematch wipes every player's stats. Re-seeding the baseline keeps
+            # that wipe from being read as a room full of rank changes.
+            await self.broadcast(
+                arena_id, {"type": "next_game", "game_number": arena["game_number"]}
+            )
+            self._known_state[arena_id] = current
+            self._known_round[arena_id] = new_round
+            self._known_status[arena_id] = arena["status"]
+            return
+        self._known_round[arena_id] = new_round
+
+        status = arena["status"]
+        if self._known_status.get(arena_id) != status:
+            self._known_status[arena_id] = status
+            if status == "running":
+                await self.broadcast(
+                    arena_id,
+                    {
+                        "type": "arena_started",
+                        "phase": arena["phase"],
+                        "deadline_at": arena["deadline_at"],
+                    },
+                )
+
+        prev = self._known_state.get(arena_id, {})
+        for token, state in current.items():
+            old = prev.get(token)
+            if old is None:
+                await self.broadcast(
+                    arena_id,
+                    {"type": "player_joined", "nickname": state["nickname"]},
+                    exclude_token=token,
+                )
+            elif state["solved"] and not old.get("solved"):
+                await self.broadcast(
+                    arena_id,
+                    {
+                        "type": "player_solved",
+                        "nickname": state["nickname"],
+                        "guess_count": state["guess_count"],
+                    },
+                )
+            elif (
+                old.get("best_rank") != state["best_rank"]
+                or old.get("guess_count") != state["guess_count"]
+                or old.get("deadline_at") != state["deadline_at"]
+            ):
+                await self.broadcast(
+                    arena_id,
+                    {
+                        "type": "rank_update",
+                        "nickname": state["nickname"],
+                        "best_rank": state["best_rank"],
+                        "guess_count": state["guess_count"],
+                        "deadline_at": state["deadline_at"],
+                    },
+                    exclude_token=token,
+                )
+            elif old.get("connected") != state["connected"]:
+                await self.broadcast(
+                    arena_id,
+                    {
+                        "type": "player_reconnected" if state["connected"] else "player_disconnected",
+                        "nickname": state["nickname"],
+                    },
+                    exclude_token=token,
+                )
+
+        self._known_state[arena_id] = current
+
+
+arena_manager = ArenaConnectionManager()
