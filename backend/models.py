@@ -297,3 +297,33 @@ class ArenaGuessResponse(BaseModel):
     total: int
     deadline_at: str | None
     finished: bool
+
+
+# --- Matchmaking ---
+
+
+class MatchmakingEnqueueRequest(BaseModel):
+    mode: str = Field(..., pattern="^(duel|koop|wordle_duel|royale|blitz|timerush)$")
+    # Optional: without one, or with one the filter rejects, the server assigns a
+    # neutral generated name. Strangers read this, so it is not free text.
+    nickname: str | None = Field(None, max_length=40)
+
+
+class MatchmakingTicketResponse(BaseModel):
+    ticket: str
+    mode: str
+    nickname: str
+
+
+class MatchmakingStatusResponse(BaseModel):
+    mode: str
+    nickname: str
+    matched: bool
+    room_id: str | None
+    player_token: str | None
+    # How many players are queued for this mode right now.
+    waiting: int
+
+
+class MatchmakingCancelRequest(BaseModel):
+    ticket: str = Field(..., min_length=8, max_length=200)

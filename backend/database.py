@@ -138,6 +138,26 @@ CREATE INDEX IF NOT EXISTS idx_arena_guesses_arena ON arena_guesses(arena_id, pl
 -- The deadline evaluator scans running arenas once a second.
 CREATE INDEX IF NOT EXISTS idx_arenas_running ON arenas(status, deadline_at);
 
+-- Random matchmaking. One queue in front of every multiplayer mode, so a player
+-- with nobody to invite can still get a game.
+--
+-- It is a table, not process memory: the five uvicorn workers share nothing but
+-- this file, so an in-memory queue would only ever pair two players who happened
+-- to hit the same worker. Pairing itself runs in the single WS worker.
+CREATE TABLE IF NOT EXISTS matchmaking_queue (
+    ticket TEXT PRIMARY KEY,
+    mode TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    enqueued_at TEXT NOT NULL,
+    -- Filled the moment the ticket is matched; the client polls for these.
+    matched_room_id TEXT,
+    matched_token TEXT,
+    matched_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_matchmaking_waiting
+    ON matchmaking_queue(mode, matched_room_id, enqueued_at);
+
 CREATE TABLE IF NOT EXISTS wordle_duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,

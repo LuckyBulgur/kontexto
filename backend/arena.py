@@ -62,7 +62,8 @@ MIN_PLAYERS = 2
 _TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
-def _iso(moment: datetime) -> str:
+def iso_timestamp(moment: datetime) -> str:
+    """Render a moment in the fixed-width format every timestamp column uses."""
     return moment.astimezone(timezone.utc).strftime(_TS_FORMAT)
 
 
@@ -227,14 +228,14 @@ async def start_arena(
     mode = arena["mode"]
     shared_deadline: str | None = None
     if mode == "royale":
-        shared_deadline = _iso(now + timedelta(seconds=royale_phase_seconds(0)))
+        shared_deadline = iso_timestamp(now + timedelta(seconds=royale_phase_seconds(0)))
     elif mode == "blitz":
-        shared_deadline = _iso(now + timedelta(seconds=BLITZ_SECONDS))
+        shared_deadline = iso_timestamp(now + timedelta(seconds=BLITZ_SECONDS))
 
     cursor = await db.execute(
         "UPDATE arenas SET status = 'running', started_at = ?, deadline_at = ?, "
         "last_activity = CURRENT_TIMESTAMP WHERE id = ? AND status = 'lobby'",
-        (_iso(now), shared_deadline, arena_id),
+        (iso_timestamp(now), shared_deadline, arena_id),
     )
     if cursor.rowcount != 1:
         await db.commit()
@@ -243,7 +244,7 @@ async def start_arena(
     if mode == "timerush":
         await db.execute(
             "UPDATE arena_players SET deadline_at = ? WHERE arena_id = ?",
-            (_iso(now + timedelta(seconds=TIMERUSH_START_SECONDS)), arena_id),
+            (iso_timestamp(now + timedelta(seconds=TIMERUSH_START_SECONDS)), arena_id),
         )
     await db.commit()
     return await get_arena_state(db, arena_id)
@@ -298,7 +299,7 @@ async def record_arena_guess(
         raise ArenaGuessRefused("eliminated")
 
     own_deadline = player["deadline_at"] if arena["mode"] == "timerush" else arena["deadline_at"]
-    if own_deadline is not None and _iso(now) >= own_deadline:
+    if own_deadline is not None and iso_timestamp(now) >= own_deadline:
         raise ArenaGuessRefused("time_up")
 
     improved = player["best_rank"] is None or rank < player["best_rank"]
@@ -319,7 +320,7 @@ async def record_arena_guess(
     # client a round trip and keeps its countdown on the server's clock.
     new_deadline = own_deadline
     if arena["mode"] == "timerush" and improved and not solved:
-        new_deadline = _iso(_timerush_extend(parse_iso(player["deadline_at"]), now))
+        new_deadline = iso_timestamp(_timerush_extend(parse_iso(player["deadline_at"]), now))
         await db.execute(
             "UPDATE arena_players SET deadline_at = ? WHERE id = ?",
             (new_deadline, player["id"]),
@@ -370,7 +371,7 @@ async def advance_due_arenas(
     it expects, so running it twice for the same second is a no-op.
     """
     now = now or _now()
-    stamp = _iso(now)
+    stamp = iso_timestamp(now)
     events: list[dict] = []
 
     cursor = await db.execute(
@@ -405,7 +406,7 @@ async def _royale_deadline(
 
     await db.execute(
         "UPDATE arena_players SET eliminated_at = ?, place = ? WHERE id = ? AND eliminated_at IS NULL",
-        (_iso(now), len(remaining) + 1, victim["id"]),
+        (iso_timestamp(now), len(remaining) + 1, victim["id"]),
     )
     events = [
         {"arena_id": arena_id, "type": "player_eliminated", "nickname": victim["nickname"],
@@ -423,7 +424,7 @@ async def _royale_deadline(
         return events
 
     next_phase = phase + 1
-    next_deadline = _iso(now + timedelta(seconds=royale_phase_seconds(next_phase)))
+    next_deadline = iso_timestamp(now + timedelta(seconds=royale_phase_seconds(next_phase)))
     await db.execute(
         "UPDATE arenas SET phase = ?, deadline_at = ? WHERE id = ? AND status = 'running' AND phase = ?",
         (next_phase, next_deadline, arena_id, phase),
@@ -453,7 +454,7 @@ async def _blitz_deadline(db: aiosqlite.Connection, arena_id: str, now: datetime
 
 async def _timerush_deadlines(db: aiosqlite.Connection, now: datetime) -> list[dict]:
     """Retire every player whose own clock has run out, and close empty arenas."""
-    stamp = _iso(now)
+    stamp = iso_timestamp(now)
     cursor = await db.execute(
         "SELECT p.id, p.arena_id, p.nickname FROM arena_players p "
         "JOIN arenas a ON a.id = p.arena_id "
@@ -503,7 +504,7 @@ async def _finish(
     cursor = await db.execute(
         "UPDATE arenas SET status = 'finished', winner = ?, finished_at = ?, deadline_at = NULL "
         "WHERE id = ? AND status = 'running'",
-        (winner, _iso(now), arena_id),
+        (winner, iso_timestamp(now), arena_id),
     )
     return cursor.rowcount == 1
 
