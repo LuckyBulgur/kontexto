@@ -18,6 +18,7 @@ import StatsDialog from "@/components/StatsDialog";
 import SourceSurvey from "@/components/SourceSurvey";
 import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
+import { Button } from "@/components/ui/button";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
@@ -394,20 +395,14 @@ export default function GameClient() {
         showCountdown={gameOver && !infinite}
       />
       {pastGame !== null && (
-        <button
-          onClick={handleBackToToday}
-          className="mx-4 mt-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={handleBackToToday} className="mx-4 mt-2">
           Du spielst Spiel #{pastGame} · Zurück zum heutigen Spiel
-        </button>
+        </Button>
       )}
       {infinite && (
-        <button
-          onClick={handleBackToToday}
-          className="mx-4 mt-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={handleBackToToday} className="mx-4 mt-2">
           Unendlich-Modus · {infiniteSolved} gelöst · Zurück zum heutigen Spiel
-        </button>
+        </Button>
       )}
       <div className="flex-1 px-4 py-4 flex flex-col gap-4">
         {gameOver && showResult ? (

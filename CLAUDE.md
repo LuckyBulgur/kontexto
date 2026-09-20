@@ -101,6 +101,23 @@ A single **WebAuthn passkey** protects `/admin`. Login issues an HMAC‑signed s
 ### Frontend
 Static export (`next.config.ts`: `output:"export"`, `trailingSlash:true`). Dynamic room URLs (`/duel/<id>/`, `/koop/<id>/`, `/wordle/duel/<id>/`, `/arena/<id>/`) render the single matching page and read the id from `window.location.pathname`; in prod nginx does the `try_files … /duel/index.html` fallback, in dev `next.config.ts` adds `rewrites()` and `e2e/serve.mjs` mirrors both. One `/arena/` route serves all three arena modes, because the mode comes from the room state and does not need to be in the URL. Solo modes live at `/solo/{leiter,limit,doppelziel,sudden-death}/`, the queue at `/suche/`, the catalogue at `/modi/`; `lib/solo-modes.ts` and `lib/multiplayer-modes.ts` are the single source for a mode's name, pitch and rules. Client state is plain `useState`/`useEffect` + `localStorage` (no SWR/React Query); keys are prefixed `kontexto_*` / `wordle_*`. Theme is read by an inline script in `app/layout.tsx` before hydration to avoid a flash. API access goes through `lib/api.ts` / `lib/duel-api.ts` / `lib/wordle-api.ts` (base = `NEXT_PUBLIC_API_URL`, fallback `/api`; errors thrown as coded strings like `"unauthorized"`), and the two WS hooks `lib/use-duel-websocket.ts` / `lib/use-wordle-duel-ws.ts`. recharts is loaded via `next/dynamic({ ssr:false })` (`app/admin/stats/page.tsx`) so it stays out of the main bundle. Keep dashboard/skeleton code free of static recharts imports. UI text is German throughout; de‑DE formatting helpers live in `lib/format.ts`.
 
+### shadcn/ui: the full set is vendored
+`frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),
+not only the ones in use. They are vendored source, not a dependency, so an unused file
+costs a file and nothing in the bundle, and having them present means a new surface is
+built from the design system instead of from hand-rolled markup. Add a missing one with
+`pnpm dlx shadcn@latest add <name>`; `--all` currently fails on a broken registry entry
+(`questionnaire`), so pass an explicit list.
+
+Two things bite after any `shadcn add`:
+1. **It reintroduces `transition-all`.** Run `pnpm verify:slop --all` and name the property
+   that actually changes. Eight components needed this on the initial sweep.
+2. **`--overwrite` silently reverts deliberate edits.** It wrote `import { cn } from "cn"`
+   into all 50 files (wrong path, build-breaking), pulled `next-themes` into `sonner.tsx`
+   (this project has no next-themes) and reset the enlarged touch targets in
+   `dropdown-menu.tsx` and the dialog width in `dialog.tsx`. Never overwrite a component
+   the project has already touched; check `git diff components/ui/` afterwards.
+
 ### SEO layer (a deliberate hybrid, don't regress it)
 Content/SEO pages use **JS‑free primitives** (`components/seo/SeoPrimitives.tsx`, `SeoFaq.tsx` built on `<details>`) so all content is crawlable in the static HTML. **Framer Motion** (`motion` package via `components/motion/MotionProvider.tsx`, `LazyMotion` strict + `MotionConfig reducedMotion="user"`) is layered **only as progressive enhancement**, never as the source of content. Per‑page metadata + self‑canonicals + hreflang come from `lib/seo.ts` (`buildMetadata`); JSON‑LD from `lib/structured-data.ts`; `app/sitemap.ts` + `app/robots.ts` are dynamic; the blog is MDX with an **explicit static loader map** in `app/blog/[slug]/page.tsx` (template‑literal dynamic imports break under static export).
 

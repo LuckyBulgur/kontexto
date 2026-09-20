@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Header from "@/components/Header";
 import { createArena } from "@/lib/arena-api";
 import { ArenaModeId } from "@/lib/arena-types";
 import { getInfiniteGame } from "@/lib/api";
 import { ARENA_MODE_ORDER, MULTIPLAYER_MODES, isArenaMode } from "@/lib/multiplayer-modes";
+import { PARTY_RULES, partySizeLabel } from "@/lib/matchmaking-rules";
 import { cn } from "@/lib/utils";
 
 /** `?modus=blitz` preselects a mode; anything else falls back to the first one. */
@@ -66,64 +70,68 @@ export default function ArenaCreatePageClient() {
       />
 
       <div className="flex-1 px-4 py-4">
-        <form onSubmit={handleCreate} className="rounded-xl border bg-card p-6 space-y-5">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold">Arena-Runde erstellen</h1>
-            <p className="text-sm text-muted-foreground">
-              {"Du bekommst einen Link zum Teilen. Die Runde startet, sobald ihr zu zweit seid."}
-            </p>
-          </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Modus
-            </legend>
-            {ARENA_MODE_ORDER.map((id) => {
-              const meta = MULTIPLAYER_MODES[id];
-              return (
-                <label
-                  key={id}
-                  className={cn(
-                    "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
-                    mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
-                  )}
+        <form onSubmit={handleCreate}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Arena-Runde erstellen</CardTitle>
+              <CardDescription>
+                {"Du bekommst einen Link zum Teilen. Sobald ihr zu zweit seid, kann jeder von euch die Runde starten."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Modus
+                </Label>
+                <RadioGroup
+                  value={mode}
+                  onValueChange={(value) => setMode(value as ArenaModeId)}
+                  className="gap-2"
                 >
-                  <input
-                    type="radio"
-                    name="modus"
-                    value={id}
-                    checked={mode === id}
-                    onChange={() => setMode(id)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium">{meta.name}</span>
-                    <span className="block text-xs text-muted-foreground">{meta.tagline}</span>
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
+                  {ARENA_MODE_ORDER.map((id) => {
+                    const meta = MULTIPLAYER_MODES[id];
+                    return (
+                      <Label
+                        key={id}
+                        htmlFor={`modus-${id}`}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal transition-colors",
+                          mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
+                        )}
+                      >
+                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-0.5" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{meta.name}</span>
+                          <span className="block text-xs text-muted-foreground">{meta.tagline}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {partySizeLabel(PARTY_RULES[id])}
+                          </span>
+                        </span>
+                      </Label>
+                    );
+                  })}
+                </RadioGroup>
+              </div>
 
-          <div className="space-y-2">
-            <label htmlFor="nickname" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Dein Name
-            </label>
-            <Input
-              id="nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Dein Nickname..."
-              maxLength={20}
-              autoComplete="off"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="nickname">Dein Name</Label>
+                <Input
+                  id="nickname"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Dein Nickname..."
+                  maxLength={20}
+                  autoComplete="off"
+                />
+              </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" disabled={loading || !nickname.trim()} className="w-full">
-            {loading ? "Wird erstellt..." : "Runde erstellen"}
-          </Button>
+              <Button type="submit" disabled={loading || !nickname.trim()} className="w-full">
+                {loading ? "Wird erstellt..." : "Runde erstellen"}
+              </Button>
+            </CardContent>
+          </Card>
         </form>
       </div>
     </div>

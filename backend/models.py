@@ -312,13 +312,24 @@ class MatchmakingEnqueueRequest(BaseModel):
     nickname: str | None = Field(None, max_length=40)
 
 
-class MatchmakingTicketResponse(BaseModel):
+class PartyRuleFields(BaseModel):
+    """When a round of this mode starts. Read straight from PARTY_RULES, so the
+    waiting screen can state the rule instead of guessing at it."""
+    # Below this many players nothing starts.
+    min_players: int
+    # At this many it starts at once, without waiting out the grace period.
+    max_players: int
+    # How long a party smaller than max_players waits for more before starting.
+    grace_seconds: int
+
+
+class MatchmakingTicketResponse(PartyRuleFields):
     ticket: str
     mode: str
     nickname: str
 
 
-class MatchmakingStatusResponse(BaseModel):
+class MatchmakingStatusResponse(PartyRuleFields):
     mode: str
     nickname: str
     matched: bool

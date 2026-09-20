@@ -27,12 +27,12 @@ const COPY = {
   done: "Danke, das hilft uns weiter.",
 };
 
-const CHIP_CLASS =
-  "min-h-11 rounded-lg border bg-card px-3 py-2 text-sm font-medium transition-colors " +
-  "hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
-const LINK_CLASS =
-  "rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground " +
-  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+// Only what the Button variant does not already carry. The border, the surface,
+// the hover and the focus ring come from `outline` and `link`; what is left is
+// the 44 px touch target the survey sits behind on a phone, and the muted size
+// of the skip link.
+const CHIP_CLASS = "min-h-11 whitespace-normal";
+const LINK_CLASS = "h-auto px-1 py-0 text-xs text-muted-foreground hover:text-foreground";
 
 export default function SourceSurvey({
   onAnswered,
@@ -116,16 +116,23 @@ export default function SourceSurvey({
       {!hideQuestion && <legend className="px-1 text-sm font-medium">{COPY.question}</legend>}
       <div className="flex flex-wrap gap-2 pt-1">
         {options.map((option) => (
-          <button key={option.id} type="button" onClick={() => choose(option)} className={CHIP_CLASS}>
+          <Button
+            key={option.id}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => choose(option)}
+            className={CHIP_CLASS}
+          >
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
       {onSkipped && (
         <div className="mt-2 flex justify-end">
-          <button type="button" onClick={onSkipped} className={LINK_CLASS}>
+          <Button type="button" variant="link" size="sm" onClick={onSkipped} className={LINK_CLASS}>
             {skipLabel}
-          </button>
+          </Button>
         </div>
       )}
     </fieldset>

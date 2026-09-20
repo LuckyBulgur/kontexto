@@ -140,7 +140,15 @@ async def enqueue(
         (ticket, mode, resolved, iso_timestamp(now)),
     )
     await db.commit()
-    return {"ticket": ticket, "mode": mode, "nickname": resolved}
+    rule = PARTY_RULES[mode]
+    return {
+        "ticket": ticket,
+        "mode": mode,
+        "nickname": resolved,
+        "min_players": rule.minimum,
+        "max_players": rule.maximum,
+        "grace_seconds": rule.grace_seconds,
+    }
 
 
 async def ticket_status(db: aiosqlite.Connection, ticket: str) -> dict | None:
@@ -156,12 +164,18 @@ async def ticket_status(db: aiosqlite.Connection, ticket: str) -> dict | None:
     # reservation placeholder while the room is still being built, and a client
     # polling in that window must not be sent to a room that does not exist yet.
     matched = row["matched_token"] is not None
+    rule = PARTY_RULES[row["mode"]]
     return {
         "mode": row["mode"],
         "nickname": row["nickname"],
         "matched": matched,
         "room_id": row["matched_room_id"] if matched else None,
         "player_token": row["matched_token"],
+        # The waiting screen promises the player when the round will start, so
+        # the promise comes from the same table the pairing loop reads.
+        "min_players": rule.minimum,
+        "max_players": rule.maximum,
+        "grace_seconds": rule.grace_seconds,
     }
 
 

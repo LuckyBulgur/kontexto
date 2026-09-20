@@ -34,7 +34,7 @@ test.describe("Arena über die Mitspielersuche", () => {
     expect(new URL(alice.url()).pathname).toBe(new URL(bob.url()).pathname);
 
     // Both sit in the same lobby and see each other.
-    await expect(alice.getByText("Im Raum (2)")).toBeVisible({ timeout: 20_000 });
+    await expect(alice.getByText(/Im Raum: 2 von \d+/)).toBeVisible({ timeout: 20_000 });
     await expect(alice.getByText("Bob").first()).toBeAttached();
 
     // Any player may start; the first deadline is written by the server.

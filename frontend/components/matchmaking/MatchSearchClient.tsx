@@ -1,11 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Spinner } from "@/components/ui/spinner";
 import { cancelMatch, enqueueForMatch, getMatchStatus } from "@/lib/matchmaking-api";
-import { QueueModeId, roomPath } from "@/lib/matchmaking-types";
+import { PARTY_RULES, partySizeLabel, waitingSentence } from "@/lib/matchmaking-rules";
+import { MatchmakingTicket, QueueModeId, roomPath } from "@/lib/matchmaking-types";
 import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER, isQueueMode } from "@/lib/multiplayer-modes";
 import { cn } from "@/lib/utils";
 
@@ -24,12 +30,16 @@ function modeFromQuery(): QueueModeId | null {
  * Polling, not a socket: the wait is short, one small request every one and a
  * half seconds is cheaper than a connection per waiting player, and the static
  * export has no server to hold one open on this page anyway.
+ *
+ * The screen states the start rule rather than leaving the player to guess at
+ * it. Nobody presses start here and nobody sets a party size: the server pairs
+ * as soon as enough people are queued. A per-player size setting would split one
+ * queue into several, and a split queue is a queue that never fills.
  */
 export default function MatchSearchClient() {
   const [mode, setMode] = useState<QueueModeId | null>(null);
   const [nickname, setNickname] = useState("");
-  const [ticket, setTicket] = useState<string | null>(null);
-  const [assignedName, setAssignedName] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<MatchmakingTicket | null>(null);
   const [waiting, setWaiting] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +53,11 @@ export default function MatchSearchClient() {
   // with a tab that is already gone.
   useEffect(() => {
     if (!ticket) return;
+    const id = ticket.ticket;
     const release = () => {
       navigator.sendBeacon?.(
         `${process.env.NEXT_PUBLIC_API_URL || "/api"}/matchmaking/cancel`,
-        new Blob([JSON.stringify({ ticket })], { type: "application/json" })
+        new Blob([JSON.stringify({ ticket: id })], { type: "application/json" })
       );
     };
     window.addEventListener("pagehide", release);
@@ -55,11 +66,12 @@ export default function MatchSearchClient() {
 
   useEffect(() => {
     if (!ticket) return;
+    const id = ticket.ticket;
     let cancelled = false;
 
     const tick = async () => {
       try {
-        const status = await getMatchStatus(ticket);
+        const status = await getMatchStatus(id);
         if (cancelled) return;
         setWaiting(status.waiting);
         if (status.matched && status.room_id && status.player_token) {
@@ -97,8 +109,8 @@ export default function MatchSearchClient() {
       const created = await enqueueForMatch(mode, nickname);
       searchingSince.current = Date.now();
       setElapsed(0);
-      setAssignedName(created.nickname);
-      setTicket(created.ticket);
+      setWaiting(0);
+      setTicket(created);
     } catch {
       setError("Die Suche konnte nicht gestartet werden");
     }
@@ -106,14 +118,10 @@ export default function MatchSearchClient() {
 
   const handleCancel = useCallback(async () => {
     if (!ticket) return;
-    await cancelMatch(ticket);
+    await cancelMatch(ticket.ticket);
     setTicket(null);
     searchingSince.current = null;
   }, [ticket]);
-
-  const meta = mode ? MULTIPLAYER_MODES[mode] : null;
-  const nameWasReplaced =
-    assignedName !== null && nickname.trim() !== "" && assignedName !== nickname.trim();
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
@@ -135,100 +143,140 @@ export default function MatchSearchClient() {
 
       <div className="flex-1 px-4 py-4">
         {ticket ? (
-          <div className="rounded-xl border bg-card p-6 space-y-4 text-center">
-            <h1 className="text-xl font-bold">Suche Mitspieler</h1>
-            <p className="text-sm text-muted-foreground">
-              {[
-                meta?.name,
-                `${elapsed} Sekunden`,
-                waiting === 1 ? "nur du in der Warteschlange" : `${waiting} in der Warteschlange`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <p className="text-sm">
-              {"Du spielst als "}
-              <strong>{assignedName}</strong>
-            </p>
-            {nameWasReplaced && (
-              <p className="text-xs text-muted-foreground">
-                {"Dein Wunschname geht so nicht. Fremde lesen ihn mit, deshalb dieser hier."}
-              </p>
-            )}
-            <div
-              className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-primary"
-              aria-hidden
-            />
-            <Button variant="outline" onClick={handleCancel}>
-              Suche abbrechen
-            </Button>
-          </div>
+          <WaitingCard
+            ticket={ticket}
+            waiting={waiting}
+            elapsed={elapsed}
+            typedNickname={nickname}
+            onCancel={handleCancel}
+          />
         ) : (
-          <div className="rounded-xl border bg-card p-6 space-y-5">
-            <div className="space-y-1">
-              <h1 className="text-xl font-bold">Gegen Fremde spielen</h1>
-              <p className="text-sm text-muted-foreground">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gegen Fremde spielen</CardTitle>
+              <CardDescription>
                 {"Kein Link, keine Verabredung. Modus wählen, kurz warten, losspielen."}
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Modus
+                </Label>
+                <RadioGroup
+                  value={mode ?? ""}
+                  onValueChange={(value) => setMode(value as QueueModeId)}
+                  className="gap-2"
+                >
+                  {MULTIPLAYER_MODE_ORDER.map((id) => {
+                    const entry = MULTIPLAYER_MODES[id];
+                    const rule = PARTY_RULES[id];
+                    return (
+                      <Label
+                        key={id}
+                        htmlFor={`modus-${id}`}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal transition-colors",
+                          mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
+                        )}
+                      >
+                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-0.5" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{entry.name}</span>
+                          <span className="block text-xs text-muted-foreground">{entry.hook}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {partySizeLabel(rule)}
+                            {rule.graceSeconds > 0
+                              ? `, Start nach spätestens ${rule.graceSeconds} Sekunden`
+                              : ", Start sofort zu zweit"}
+                          </span>
+                        </span>
+                      </Label>
+                    );
+                  })}
+                </RadioGroup>
+              </div>
 
-            <fieldset className="space-y-2">
-              <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Modus
-              </legend>
-              {MULTIPLAYER_MODE_ORDER.map((id) => {
-                const entry = MULTIPLAYER_MODES[id];
-                return (
-                  <label
-                    key={id}
-                    className={cn(
-                      "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
-                      mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="modus"
-                      value={id}
-                      checked={mode === id}
-                      onChange={() => setMode(id)}
-                      className="mt-1"
-                    />
-                    <span>
-                      <span className="block text-sm font-medium">{entry.name}</span>
-                      <span className="block text-xs text-muted-foreground">{entry.tagline}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </fieldset>
+              <div className="space-y-2">
+                <Label htmlFor="nickname">Dein Name (optional)</Label>
+                <Input
+                  id="nickname"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Ohne Eingabe bekommst du einen Namen"
+                  maxLength={20}
+                  autoComplete="off"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor="nickname"
-                className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Dein Name (optional)
-              </label>
-              <Input
-                id="nickname"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="Ohne Eingabe bekommst du einen Namen"
-                maxLength={20}
-                autoComplete="off"
-              />
-            </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
-            <Button onClick={handleSearch} disabled={!mode} className="w-full">
-              Mitspieler suchen
-            </Button>
-          </div>
+              <Button onClick={handleSearch} disabled={!mode} className="w-full">
+                Mitspieler suchen
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
+  );
+}
+
+function WaitingCard({
+  ticket,
+  waiting,
+  elapsed,
+  typedNickname,
+  onCancel,
+}: {
+  ticket: MatchmakingTicket;
+  waiting: number;
+  elapsed: number;
+  typedNickname: string;
+  onCancel: () => void;
+}) {
+  const mode = MULTIPLAYER_MODES[ticket.mode];
+  const nameWasReplaced =
+    typedNickname.trim() !== "" && ticket.nickname !== typedNickname.trim();
+
+  return (
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle>Suche Mitspieler</CardTitle>
+        <CardDescription>
+          {[mode.name, `${waiting} in der Warteschlange`, `${elapsed} Sekunden`].join(" · ")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-center">
+        <Spinner className="mx-auto size-6 text-primary" />
+
+        <p className="text-sm">{waitingSentence(waiting, ticket)}</p>
+
+        <div className="rounded-lg border bg-muted/40 p-3 text-left text-xs text-muted-foreground">
+          <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+            Wann startet die Runde?
+          </p>
+          <p>
+            {`Sobald ${ticket.min_players} Leute warten, spätestens ${ticket.grace_seconds} Sekunden danach. Bei ${ticket.max_players} geht es sofort los. Niemand drückt hier auf Start, das macht der Server.`}
+          </p>
+        </div>
+
+        <p className="text-sm">
+          {"Du spielst als "}
+          <strong>{ticket.nickname}</strong>
+        </p>
+        {nameWasReplaced && (
+          <p className="text-xs text-muted-foreground">
+            {"Dein Wunschname geht so nicht. Fremde lesen ihn mit, deshalb dieser hier."}
+          </p>
+        )}
+
+        <Button variant="outline" onClick={onCancel}>
+          Suche abbrechen
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

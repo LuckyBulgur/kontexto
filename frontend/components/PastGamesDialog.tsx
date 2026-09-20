@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -64,14 +65,15 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
             <p className="text-sm text-destructive text-center py-4">{error}</p>
           )}
           {!loading && !error && games.map((game) => (
-            <button
+            <Button
               key={game.gameNumber}
+              variant="ghost"
               onClick={() => { onSelectGame(game.gameNumber); onClose(); }}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-accent text-left transition-colors"
+              className="h-auto w-full justify-between px-3 py-2.5 text-left font-normal"
             >
               <span className="font-medium">Spiel #{game.gameNumber}</span>
               <span className="text-sm text-muted-foreground">{formatDate(game.date)}</span>
-            </button>
+            </Button>
           ))}
           {!loading && !error && games.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">Keine vergangenen Spiele verfügbar</p>

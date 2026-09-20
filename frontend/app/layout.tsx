@@ -8,6 +8,7 @@ import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
 import { SITE_SAME_AS } from "@/lib/social";
 import Footer from "@/components/Footer";
+import FeedbackFab from "@/components/FeedbackFab";
 import MotionProvider from "@/components/motion/MotionProvider";
 import EventBackdrop from "@/components/event/EventBackdrop";
 import EventBanner from "@/components/event/EventBanner";
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <EventBanner />
         </MotionProvider>
         <Footer />
+        <FeedbackFab />
         <Toaster />
         <Analytics />
         <SideRailAds />
