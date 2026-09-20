@@ -188,6 +188,11 @@ async def get_arena_state(db: aiosqlite.Connection, arena_id: str) -> dict | Non
         "deadline_at": arena["deadline_at"],
         "winner": arena["winner"],
         "round": arena["round"],
+        # The server's own clock, shipped with every state read. A countdown
+        # rendered against a deadline alone is only as correct as the device's
+        # clock, and a phone that is two minutes fast would show a round that
+        # ended before it began.
+        "server_time": iso_timestamp(_now()),
         "players": players,
     }
 

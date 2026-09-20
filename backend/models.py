@@ -275,6 +275,9 @@ class ArenaStateResponse(BaseModel):
     deadline_at: str | None
     winner: str | None
     round: int
+    # The server's clock at the moment of this read, so a client can correct its
+    # own before rendering a countdown.
+    server_time: str
     players: list[ArenaPlayerInfo]
 
 

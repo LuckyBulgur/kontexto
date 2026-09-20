@@ -26,6 +26,8 @@ export interface ArenaState {
   deadline_at: string | null;
   winner: string | null;
   round: number;
+  /** The server's clock at the moment of this read, for skew correction. */
+  server_time: string;
   players: ArenaPlayer[];
 }
 
