@@ -6,6 +6,7 @@ import { SideRailAds } from "@/components/SideRailAds";
 import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
+import { SITE_SAME_AS } from "@/lib/social";
 import Footer from "@/components/Footer";
 import MotionProvider from "@/components/motion/MotionProvider";
 import EventBackdrop from "@/components/event/EventBackdrop";
@@ -44,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" className={anton.variable} suppressHydrationWarning>
       <head>
-        <StructuredData data={organizationSchema(AUTHOR_SAME_AS)} />
+        <StructuredData data={organizationSchema([...SITE_SAME_AS, ...AUTHOR_SAME_AS])} />
         <StructuredData data={websiteSchema()} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />

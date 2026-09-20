@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import ConsentSettingsLink from "@/components/ConsentSettingsLink";
 import { AUTHOR_PROFILES } from "@/lib/author";
+import { SITE_PROFILES } from "@/lib/social";
 
-const socials = AUTHOR_PROFILES;
+const socials = [...SITE_PROFILES, ...AUTHOR_PROFILES];
 
 const playLinks = [
   { href: "/", label: "Kontexto" },
