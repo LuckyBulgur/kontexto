@@ -60,6 +60,41 @@ class InfiniteNextResponse(BaseModel):
     totalGames: int
 
 
+# --- Solo modes (Leiter, Limitierte Versuche, Doppelziel, Sudden Death) ---
+
+
+class WordAtRankResponse(BaseModel):
+    """The word at one exact rank. Rank 1 is never served here."""
+    word: str
+    rank: int
+    gameNumber: int
+
+
+class DualNextResponse(BaseModel):
+    """The two independent targets of a Doppelziel round."""
+    gameNumbers: list[int]
+    total: int
+    totalGames: int
+
+
+class DualRankEntry(BaseModel):
+    gameNumber: int
+    rank: int
+
+
+class DualGuessResponse(BaseModel):
+    word: str
+    ranks: list[DualRankEntry]
+    total: int
+
+
+class SuddenDeathResponse(BaseModel):
+    """A game plus its runners-up. The player gets one attempt at rank 1."""
+    gameNumber: int
+    total: int
+    hints: list[ClosestWordEntry]
+
+
 class NextGameRequest(BaseModel):
     """Body for the multiplayer "Nächstes Spiel" endpoints (koop/duel/wordle-duel)."""
     player_token: str

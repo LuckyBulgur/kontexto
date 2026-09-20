@@ -40,6 +40,7 @@ from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
     InfiniteNextResponse,
+    WordAtRankResponse, DualNextResponse, DualGuessResponse, SuddenDeathResponse,
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
     DuelGuessHistoryResponse,
@@ -234,6 +235,7 @@ async def guess(
     request: Request,
     game: int | None = Query(None),
     infinite: bool = Query(False),
+    mode: str | None = Query(None),
 ):
     gs = _get_game_state()
     try:
@@ -254,7 +256,7 @@ async def guess(
             status_code=404,
             content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
         )
-    mode = "infinite" if infinite else "kontexto"
+    mode = _solo_mode(mode, infinite)
     if req.first:
         # First guess of this game for this visitor: the only point where an
         # abandoned game becomes countable at all.
@@ -280,6 +282,7 @@ async def tip(
     game: int | None = Query(None),
     guessed_ranks: str = Query(""),
     infinite: bool = Query(False),
+    mode: str | None = Query(None),
 ):
     gs = _get_game_state()
     try:
@@ -296,7 +299,7 @@ async def tip(
             content={"error": "no_tip", "message": "Kein Tipp verfügbar"},
         )
     await analytics.record_action(_db_path, "hints", difficulty)
-    await analytics.record_game_stat(_db_path, "infinite" if infinite else "kontexto", game_num, "hints")
+    await analytics.record_game_stat(_db_path, _solo_mode(mode, infinite), game_num, "hints")
     return result
 
 
@@ -365,14 +368,18 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
 
 
 @app.get("/api/reveal", response_model=RevealResponse)
-async def reveal(game: int | None = Query(None), infinite: bool = Query(False)):
+async def reveal(
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+    mode: str | None = Query(None),
+):
     gs = _get_game_state()
     try:
         game_num = _resolve_game_number(game, infinite=infinite)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
 
-    mode = "infinite" if infinite else "kontexto"
+    mode = _solo_mode(mode, infinite)
     await analytics.record_action(_db_path, "reveals", mode)
     await analytics.record_game_stat(_db_path, mode, game_num, "reveals")
     return {"word": gs.get_target_word(game_num)}
@@ -388,6 +395,171 @@ async def closest_words(game: int | None = Query(None), infinite: bool = Query(F
     gs.load_game(game_num)
 
     return {"words": gs.get_closest_words(game_num), "gameNumber": game_num}
+
+
+# --- Solo modes (Leiter, Limitierte Versuche, Doppelziel, Sudden Death) ---
+
+# Ranks shown as a starting point in Sudden Death: the five runners-up. Wide
+# enough to describe the target's neighbourhood, never rank 1.
+SUDDEN_DEATH_RANKS = [2, 3, 4, 5, 6]
+
+
+def _parse_exclude(raw: str) -> set[int]:
+    return {int(p) for p in raw.split(",") if p.strip().lstrip("-").isdigit()}
+
+
+def _solo_mode(mode: str | None, infinite: bool) -> str:
+    """Resolve the analytics mode of a solo request.
+
+    Validated against the shared allow-list rather than forwarded verbatim, so a
+    crafted request cannot create an arbitrary dimension in analytics_counters.
+    """
+    if mode and mode in analytics.SOLO_MODES:
+        return mode
+    return "infinite" if infinite else "kontexto"
+
+
+@app.get("/api/word-at-rank", response_model=WordAtRankResponse)
+async def word_at_rank(
+    rank: int = Query(..., ge=2),
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+):
+    """Serve the word sitting at one exact rank, the opening move of Leiter.
+
+    Rank 1 is rejected by the model constraint and again in ``word_at_rank``:
+    this endpoint must never become a second way to read the solution.
+    """
+    gs = _get_game_state()
+    try:
+        game_num = _resolve_game_number(game, infinite=infinite)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
+
+    result = gs.word_at_rank(game_num, rank)
+    if result is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "rank_out_of_range", "message": f"Rang {rank} gibt es in diesem Spiel nicht"},
+        )
+    return {**result, "gameNumber": game_num}
+
+
+@app.get("/api/dual/next", response_model=DualNextResponse)
+async def dual_next(exclude: str = Query("")):
+    """Pick the two independent targets of a Doppelziel round.
+
+    Never the daily game, so a Doppelziel round cannot spoil it, and never the
+    same game twice, because two identical targets would make the second rank
+    pure noise.
+    """
+    gs = _get_game_state()
+    base_exclude = {_get_current_game_number()}
+    chosen = gs.random_game_numbers(2, base_exclude | _parse_exclude(exclude))
+    if chosen is None:
+        chosen = gs.random_game_numbers(2, base_exclude)
+    if chosen is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+    return {
+        "gameNumbers": chosen,
+        "total": gs.metadata["vocab_size"],
+        "totalGames": gs.total_games(),
+    }
+
+
+@app.post("/api/dual/guess", response_model=DualGuessResponse)
+async def dual_guess(
+    req: GuessRequest,
+    request: Request,
+    games: str = Query(...),
+):
+    """Rank one word against both Doppelziel targets in a single round trip.
+
+    Two separate calls to /api/guess would work but would double the request
+    count on every keystroke-driven guess and could half-fail, leaving the client
+    with one rank and no honest way to display the round.
+    """
+    gs = _get_game_state()
+    numbers = [int(p) for p in games.split(",") if p.strip().isdigit()]
+    if len(numbers) != 2 or numbers[0] == numbers[1]:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": "Doppelziel braucht zwei verschiedene Spiele"},
+        )
+    total_games = gs.total_games()
+    if any(n < 1 or n > total_games for n in numbers):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_game", "message": "Spiel existiert nicht"},
+        )
+
+    if gs.is_stopword(req.word):
+        return JSONResponse(
+            status_code=422,
+            content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
+        )
+
+    results = [gs.guess(req.word, n) for n in numbers]
+    if any(r is None for r in results):
+        return JSONResponse(
+            status_code=404,
+            content={"error": "unknown_word", "message": "Wort nicht im Wörterbuch"},
+        )
+
+    normalized = results[0]["word"]
+    if req.first:
+        await analytics.record_game_start(
+            _db_path,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            mode="doppel",
+            game_number=numbers[0],
+        )
+    await analytics.record_action(_db_path, "guesses", "doppel", word=normalized)
+    for n, r in zip(numbers, results):
+        await analytics.record_game_stat(_db_path, "doppel", n, "guesses")
+        if r["rank"] == 1:
+            await analytics.record_game_stat(_db_path, "doppel", n, "solves")
+    # A Doppelziel round counts as solved only when both targets are found, which
+    # is what the mode asks of the player.
+    if all(r["rank"] == 1 for r in results):
+        await analytics.record_action(_db_path, "solves", "doppel")
+
+    return {
+        "word": normalized,
+        "ranks": [{"gameNumber": n, "rank": r["rank"]} for n, r in zip(numbers, results)],
+        "total": results[0]["total"],
+    }
+
+
+@app.get("/api/sudden-death", response_model=SuddenDeathResponse)
+async def sudden_death(exclude: str = Query("")):
+    """Hand out a Sudden Death round: a game plus its five runners-up.
+
+    The daily game is excluded for the same reason as everywhere else, and the
+    solution itself never leaves the server here.
+    """
+    gs = _get_game_state()
+    base_exclude = {_get_current_game_number()}
+    chosen = gs.random_game_number(base_exclude | _parse_exclude(exclude))
+    if chosen is None:
+        chosen = gs.random_game_number(base_exclude)
+    if chosen is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+        )
+
+    hints = gs.words_at_ranks(chosen, SUDDEN_DEATH_RANKS)
+    if not hints:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "no_hints", "message": "Für dieses Spiel gibt es keine Nachbarn"},
+        )
+    return {"gameNumber": chosen, "total": gs.metadata["vocab_size"], "hints": hints}
 
 
 # --- Duel endpoints ---

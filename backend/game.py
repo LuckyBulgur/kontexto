@@ -168,6 +168,29 @@ class GameState:
             "rank": target_rank,
         }
 
+    def word_at_rank(self, game_number: int, rank: int) -> dict | None:
+        """Return the word sitting at an exact rank of a game.
+
+        Used by the Leiter mode, which opens on a deliberately distant word, and
+        by Sudden Death, which shows the runners-up. Rank 1 is never handed out
+        here: that is the solution, and no mode may learn it this way.
+        """
+        if rank < 2:
+            return None
+        ranks, rank_to_index = self._get_game(game_number)
+        if rank > len(ranks):
+            return None
+        return {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
+
+    def words_at_ranks(self, game_number: int, wanted: list[int]) -> list[dict]:
+        """Return the words at several exact ranks, skipping the ones out of range."""
+        out: list[dict] = []
+        for rank in wanted:
+            entry = self.word_at_rank(game_number, rank)
+            if entry is not None:
+                out.append(entry)
+        return out
+
     def total_games(self) -> int:
         """Number of pre-computed games available (the full infinite-mode pool)."""
         return self.metadata.get("total_games", len(self.target_words))
@@ -180,6 +203,17 @@ class GameState:
         if not candidates:
             return None
         return random.choice(candidates)
+
+    def random_game_numbers(self, count: int, exclude: set[int]) -> list[int] | None:
+        """Pick ``count`` distinct random games, skipping ``exclude``.
+
+        Returns None when the pool cannot supply that many, so the caller can
+        relax its exclusion set instead of silently handing out a shorter list.
+        """
+        candidates = [n for n in range(1, self.total_games() + 1) if n not in exclude]
+        if len(candidates) < count:
+            return None
+        return random.sample(candidates, count)
 
     def get_target_word(self, game_number: int) -> str:
         """Return the target word for the given game number."""
