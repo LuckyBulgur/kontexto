@@ -36,8 +36,12 @@ from webauthn.helpers.structs import (
 
 from server_secret import server_secret as _server_secret
 
-# Session token validity (seconds).
-SESSION_TTL = 12 * 60 * 60  # 12 hours
+# Session token validity (seconds). Long on purpose: a single passkey holder on
+# their own device, and the dashboard is read-only. Re-authenticating is one
+# passkey prompt, so the only cost of a shorter window is friction. There is no
+# revocation list, so shortening this value (or rotating KONTEXTO_SERVER_SECRET,
+# which invalidates every token at once) is the way to cut a session short.
+SESSION_TTL = 30 * 24 * 60 * 60  # 30 days
 # WebAuthn challenge token validity (seconds).
 CHALLENGE_TTL = 300  # 5 minutes
 

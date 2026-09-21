@@ -17,6 +17,33 @@ const Dashboard = dynamic(() => import("@/components/admin/StatsCharts"), {
 
 const TOKEN_KEY = "kontexto_admin_token";
 
+// localStorage, not sessionStorage: the session should survive closing the tab.
+// Guarded, because a private window or blocked site data makes every access
+// throw, and the dashboard has to load either way.
+function readToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // The session then lives only in memory, for this tab.
+  }
+}
+
+function clearToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Nothing stored, nothing to clear.
+  }
+}
+
 export default function AdminStatsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -24,7 +51,7 @@ export default function AdminStatsPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem(TOKEN_KEY);
+    const saved = readToken();
     if (saved) setToken(saved);
   }, []);
 
@@ -38,7 +65,7 @@ export default function AdminStatsPage() {
       })
       .catch((e) => {
         if (e.message === "unauthorized") {
-          sessionStorage.removeItem(TOKEN_KEY);
+          clearToken();
           setToken(null);
         }
         setError("Statistiken konnten nicht geladen werden.");
@@ -47,7 +74,7 @@ export default function AdminStatsPage() {
   }, [token]);
 
   if (!token) {
-    return <LoginForm onLogin={(t) => { sessionStorage.setItem(TOKEN_KEY, t); setToken(t); }} />;
+    return <LoginForm onLogin={(t) => { writeToken(t); setToken(t); }} />;
   }
 
   return (
@@ -61,7 +88,7 @@ export default function AdminStatsPage() {
           <LiveUsers token={token} initial={stats?.live} />
           <Button
             variant="outline"
-            onClick={() => { sessionStorage.removeItem(TOKEN_KEY); setToken(null); setStats(null); }}
+            onClick={() => { clearToken(); setToken(null); setStats(null); }}
           >
             Abmelden
           </Button>
