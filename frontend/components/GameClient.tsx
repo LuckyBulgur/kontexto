@@ -20,7 +20,7 @@ import SourceSurvey from "@/components/SourceSurvey";
 import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { Button } from "@/components/ui/button";
-import { Panel, PanelHeader, Stat, StatRow } from "@/components/design";
+import { Panel, PanelHeader } from "@/components/design";
 import OpeningDemo, { OPENING_DEMO_TARGET } from "@/components/OpeningDemo";
 import { HowToPlaySteps, RankLegend } from "@/components/HowToPlay";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
@@ -447,15 +447,20 @@ export default function GameClient() {
           </>
         ) : (
           <>
-            <StatRow className="-mt-1">
+            {/* Deliberately not a StatRow. Stacking the label over the value
+                and ruling the three apart turns a one-line status into a small
+                table, and this line sits directly above the input, where the
+                eye wants to pass through it, not read it. Label and value stay
+                on one line. The sizes are the same tokens StatRow uses. */}
+            <div className="flex items-center gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
               {infinite ? (
-                <Stat label="Modus" value="Unendlich" />
+                <span>Modus: <span className="text-lead font-bold text-foreground">Unendlich</span></span>
               ) : (
-                <Stat label="Spiel" value={`#${gameNumber}`} />
+                <span>Spiel: <span className="text-lead font-bold text-foreground">#{gameNumber}</span></span>
               )}
-              <Stat label="Versuche" value={gameState.guesses.length} />
-              <Stat label="Tipps" value={gameState.tips} />
-            </StatRow>
+              <span>Versuche: <span className="text-lead font-bold text-foreground">{gameState.guesses.length}</span></span>
+              <span>Tipps: <span className="text-lead font-bold text-foreground">{gameState.tips}</span></span>
+            </div>
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
               <Panel>
