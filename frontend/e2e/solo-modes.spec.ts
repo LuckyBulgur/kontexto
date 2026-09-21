@@ -74,7 +74,7 @@ test.describe("Modus-Waehler", () => {
   test("fragt zuerst nach dem Mitspieler und startet dann die Runde", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
@@ -94,10 +94,13 @@ test.describe("Modus-Waehler", () => {
   test("der Weg mit Freunden fuehrt zum Einladungsformular", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
 
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: /Mit Freunden/ }).click();
+    // Wordle has its own header and its own picker, so a Kontexto board never
+    // offers a round of the other game.
+    await expect(dialog.getByRole("link", { name: /Wördle/ })).toHaveCount(0);
     await dialog.getByRole("link", { name: /Battle Royale/ }).click();
     await expect(page).toHaveURL(/\/arena\/create\/\?modus=royale$/);
   });
@@ -105,7 +108,7 @@ test.describe("Modus-Waehler", () => {
   test("zurueck fuehrt wieder zur Frage", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Weitere Spielmodi/ }).click();
+    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
 
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: /Gegen Fremde/ }).click();

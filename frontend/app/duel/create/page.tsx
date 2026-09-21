@@ -1,4 +1,4 @@
-import DuelCreatePageClient from "@/components/duel/DuelCreatePageClient";
+import RoomCreateClient from "@/components/rooms/RoomCreateClient";
 import { buildMetadata } from "@/lib/seo";
 
 // noindex: thin, purely functional lobby-creation form, kept out of the index
@@ -11,4 +11,4 @@ export const metadata = buildMetadata({
   noindex: true,
 });
 
-export default function DuelCreatePage() { return <DuelCreatePageClient />; }
+export default function DuelCreatePage() { return <RoomCreateClient preselect="duel" />; }

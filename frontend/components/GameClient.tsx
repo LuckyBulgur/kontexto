@@ -9,8 +9,6 @@ import GuessList from "@/components/GuessList";
 import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
-import FAQDialog from "@/components/FAQDialog";
-import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
 import PastGamesDialog from "@/components/PastGamesDialog";
 import GameResultCard from "@/components/GameResultCard";
@@ -49,8 +47,6 @@ export default function GameClient() {
   const [showResult, setShowResult] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
-  const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [showPastGames, setShowPastGames] = useState(false);
   const [showClosestWords, setShowClosestWords] = useState(false);
@@ -405,9 +401,7 @@ export default function GameClient() {
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
-        onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
-        onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => setShowPastGames(true)}
         onInfiniteStart={handleStartInfinite}
         onStatsOpen={() => setShowStats(true)}
@@ -496,8 +490,6 @@ export default function GameClient() {
       </div>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
-      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
-      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />
       <ClosestWordsDialog open={showClosestWords} onClose={() => setShowClosestWords(false)} game={infinite ? gameNumber : pastGame} infinite={infinite} />

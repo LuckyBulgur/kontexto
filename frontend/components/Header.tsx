@@ -6,16 +6,11 @@ import {
   Lightbulb,
   Flag,
   BookOpen,
-  CircleHelp,
   Settings,
-  Info,
   History,
-  Shield,
-  Swords,
   BarChart3,
   Infinity,
   LayoutGrid,
-  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -36,9 +31,7 @@ interface HeaderProps {
   onTip: () => void;
   onGiveUp: () => void;
   onHowToPlayOpen: () => void;
-  onFAQOpen: () => void;
   onSettingsOpen: () => void;
-  onCreditsOpen: () => void;
   onPastGamesOpen: () => void;
   onInfiniteStart?: () => void;
   onStatsOpen?: () => void;
@@ -51,8 +44,6 @@ interface HeaderProps {
   hideTip?: boolean;
   hideGiveUp?: boolean;
   hidePastGames?: boolean;
-  hideDuelCreate?: boolean;
-  hideKoopCreate?: boolean;
   backHref?: string;
 }
 
@@ -71,9 +62,7 @@ export default function Header({
   onTip,
   onGiveUp,
   onHowToPlayOpen,
-  onFAQOpen,
   onSettingsOpen,
-  onCreditsOpen,
   onPastGamesOpen,
   onInfiniteStart,
   onStatsOpen,
@@ -85,8 +74,6 @@ export default function Header({
   hideTip,
   hideGiveUp,
   hidePastGames,
-  hideDuelCreate,
-  hideKoopCreate,
   backHref,
 }: HeaderProps) {
   const pathname = usePathname();
@@ -94,20 +81,17 @@ export default function Header({
   // The picker is owned here rather than passed in: every client that renders
   // the menu would otherwise have to carry the same three lines of state.
   const [showModePicker, setShowModePicker] = useState(false);
-  const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
-    useFeatureDiscovery("kontexto_duel_discovered");
-  const showDuelHighlight = !hideDuelCreate && duelHighlight;
   const { highlight: infiniteHighlight, dismiss: dismissInfiniteHighlight } =
     useFeatureDiscovery("kontexto_infinite_discovered");
   const showInfiniteHighlight = !!onInfiniteStart && infiniteHighlight;
-  const { highlight: koopHighlight, dismiss: dismissKoopHighlight } =
-    useFeatureDiscovery("kontexto_koop_discovered");
-  const showKoopHighlight = !hideKoopCreate && koopHighlight;
+  // Duel and koop used to sit in this menu as their own entries with their own
+  // badge. They are modes, so they live behind the one door that shows every
+  // mode, and the badge moved to that door with them.
   const { highlight: modesHighlight, dismiss: dismissModesHighlight } =
     useFeatureDiscovery("kontexto_modes_discovered");
   const showModesHighlight = modesHighlight;
   // Ping am Kebab, falls ein neuer Menüpunkt hervorgehoben werden soll.
-  const showPing = showDuelHighlight || showKoopHighlight || showModesHighlight;
+  const showPing = showModesHighlight;
   // Der Unendlich-Button ist unter sm ausgeblendet, sein Hinweis wandert dort an den Kebab.
   const pingClass = showPing
     ? "flex"
@@ -170,9 +154,7 @@ export default function Header({
         )}
         <DropdownMenu onOpenChange={(open) => {
           if (!open) {
-            if (showDuelHighlight) dismissDuelHighlight();
             if (showInfiniteHighlight) dismissInfiniteHighlight();
-            if (showKoopHighlight) dismissKoopHighlight();
             if (showModesHighlight) dismissModesHighlight();
           }
         }}>
@@ -182,15 +164,11 @@ export default function Header({
               size="icon"
               className="relative h-10 w-10"
               aria-label={
-                showDuelHighlight
-                  ? "Menü, neue Funktion: Duell"
-                  : showKoopHighlight
-                    ? "Menü, neue Funktion: Koop"
-                    : showInfiniteHighlight
-                      ? "Menü, neue Funktion: Unendlich-Modus"
-                      : showModesHighlight
-                        ? "Menü, neue Funktion: weitere Spielmodi"
-                        : "Menü"
+                showModesHighlight
+                  ? "Menü, neue Funktion: weitere Spielmodi"
+                  : showInfiniteHighlight
+                    ? "Menü, neue Funktion: Unendlich-Modus"
+                    : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
@@ -223,42 +201,12 @@ export default function Header({
               <BookOpen className="h-4 w-4" />
               Spielanleitung
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onFAQOpen}>
-              <CircleHelp className="h-4 w-4" />
-              FAQ
-            </DropdownMenuItem>
-            {!hideDuelCreate && (
-              <DropdownMenuItem asChild className={showDuelHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
-                <Link href="/duel/create/">
-                  <Swords className="h-4 w-4" />
-                  Duell erstellen
-                  {showDuelHighlight && (
-                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
-                      NEU
-                    </span>
-                  )}
-                </Link>
-              </DropdownMenuItem>
-            )}
-            {!hideKoopCreate && (
-              <DropdownMenuItem asChild className={showKoopHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
-                <Link href="/koop/create/">
-                  <UsersRound className="h-4 w-4" />
-                  Koop erstellen
-                  {showKoopHighlight && (
-                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
-                      NEU
-                    </span>
-                  )}
-                </Link>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={() => setShowModePicker(true)}
               className={showModesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}
             >
               <LayoutGrid className="h-4 w-4" />
-              Weitere Spielmodi
+              Spielmodi
               {showModesHighlight && (
                 <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                   NEU
@@ -292,16 +240,6 @@ export default function Header({
             <DropdownMenuItem onClick={onSettingsOpen}>
               <Settings className="h-4 w-4" />
               Einstellungen
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onCreditsOpen}>
-              <Info className="h-4 w-4" />
-              Credits
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/datenschutz/">
-                <Shield className="h-4 w-4" />
-                Datenschutz
-              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

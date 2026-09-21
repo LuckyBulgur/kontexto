@@ -1,4 +1,4 @@
-import KoopCreatePageClient from "@/components/koop/KoopCreatePageClient";
+import RoomCreateClient from "@/components/rooms/RoomCreateClient";
 import { buildMetadata } from "@/lib/seo";
 
 // noindex: thin, purely functional lobby-creation form, kept out of the index
@@ -11,4 +11,4 @@ export const metadata = buildMetadata({
   noindex: true,
 });
 
-export default function KoopCreatePage() { return <KoopCreatePageClient />; }
+export default function KoopCreatePage() { return <RoomCreateClient preselect="koop" />; }

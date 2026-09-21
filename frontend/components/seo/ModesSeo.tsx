@@ -58,7 +58,7 @@ export default function ModesSeo() {
                   ...(mode.createHref
                     ? [{ href: mode.createHref, label: "Mit Freunden spielen" }]
                     : []),
-                  { href: `/suche/?modus=${mode.id}`, label: "Gegen Fremde spielen" },
+                  { href: mode.queueHref, label: "Gegen Fremde spielen" },
                 ]}
               />
             );

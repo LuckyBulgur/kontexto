@@ -49,7 +49,9 @@ export default function SettingsModal({
           <DialogDescription className="sr-only">Design und Schwierigkeitsgrad anpassen</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-8 pt-4">
+        {/* The about section made this dialog longer than a phone screen, so
+            the body scrolls rather than the page behind it. */}
+        <div className="scrollbar-thin max-h-[70vh] space-y-8 overflow-y-auto pt-4">
           {/* Darstellung */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
@@ -134,6 +136,50 @@ export default function SettingsModal({
               </div>
             </section>
           )}
+          {/* Was its own menu entry and its own dialog. It is read once, so it
+              sits at the end of the settings rather than in the menu every
+              player passes several times a day. */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-micro font-medium text-muted-foreground">Über Kontexto</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="space-y-4 text-small text-muted-foreground">
+              <p>
+                <strong className="text-foreground">Kontexto</strong> ist ein deutschsprachiges Wortratespiel, inspiriert von{" "}
+                <a href="https://contexto.me" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                  Contexto
+                </a>.
+              </p>
+
+              <div className="space-y-1">
+                <h3 className="font-medium text-foreground">Technologie</h3>
+                <p>
+                  Die Wortähnlichkeiten werden mit{" "}
+                  <a href="https://fasttext.cc" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                    fastText
+                  </a>
+                  -Worteinbettungen berechnet, die auf deutschen Texten trainiert wurden.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-medium text-foreground">Entwicklung</h3>
+                <p>Entwickelt mit Next.js, FastAPI und viel Liebe zur deutschen Sprache.</p>
+                <p>
+                  Von Ugur Aydogan,{" "}
+                  <a href="https://github.com/LuckyBulgur" target="_blank" rel="me noopener noreferrer" className="underline hover:text-foreground">
+                    GitHub
+                  </a>
+                  {", "}
+                  <a href="https://www.linkedin.com/in/ugur-aydogan-15453224a/" target="_blank" rel="me noopener noreferrer" className="underline hover:text-foreground">
+                    LinkedIn
+                  </a>
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
       </DialogContent>
     </Dialog>

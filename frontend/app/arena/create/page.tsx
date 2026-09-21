@@ -1,4 +1,4 @@
-import ArenaCreatePageClient from "@/components/arena/ArenaCreatePageClient";
+import RoomCreateClient from "@/components/rooms/RoomCreateClient";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
@@ -11,7 +11,7 @@ export const metadata = buildMetadata({
 export default function ArenaCreatePage() {
   return (
     <main>
-      <ArenaCreatePageClient />
+      <RoomCreateClient preselect="royale" />
     </main>
   );
 }

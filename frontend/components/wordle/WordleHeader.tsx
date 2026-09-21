@@ -1,12 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   EllipsisVertical,
   BookOpen,
-  Dices,
-  Swords,
+  LayoutGrid,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -20,13 +19,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ShareLinkButton from "@/components/ShareLinkButton";
+import WordleModeDialog from "@/components/wordle/WordleModeDialog";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import { WordmarkName } from "@/components/design";
 
 interface WordleHeaderProps {
   /** Spielanleitung öffnen */
   onHelp?: () => void;
-  /** Zufallsspiel starten */
+  /** Zufallsspiel starten, falls diese Seite eines kennt */
   onRandom?: () => void;
   /** Statistik öffnen */
   onStats?: () => void;
@@ -38,8 +38,6 @@ interface WordleHeaderProps {
   subtitle?: ReactNode;
   /** Zeigt einen Zurück-Pfeil links und verlinkt dorthin */
   backHref?: string;
-  /** Blendet den "Duell erstellen"-Menüpunkt aus */
-  hideDuelCreate?: boolean;
 }
 
 /**
@@ -47,6 +45,11 @@ interface WordleHeaderProps {
  * Aktionen gebündelt in einem 3-Punkte-Dropdown. Repliziert bewusst die Hülle
  * von `components/Header.tsx`, zeigt aber Wördle-eigene Menüpunkte, beide
  * Spiele bleiben so entkoppelt bei identischem Erscheinungsbild.
+ *
+ * Every way into another round sits behind one entry, the mode dialog. The menu
+ * used to list the random round and the duel separately, and the Wordle duel
+ * additionally hung in the Kontexto picker, which offered a round of the other
+ * game from a Kontexto board.
  */
 export default function WordleHeader({
   onHelp,
@@ -56,15 +59,12 @@ export default function WordleHeader({
   onCopyLink,
   subtitle,
   backHref,
-  hideDuelCreate,
 }: WordleHeaderProps) {
-  const showDuelCreate = !hideDuelCreate;
-  const { highlight: duelHighlight, dismiss: dismissDuelHighlight } =
+  const [showModes, setShowModes] = useState(false);
+  // The badge used to sit on the duel entry. That entry is now one of three in
+  // the dialog, so the hint moves to the door in front of it.
+  const { highlight: modesHighlight, dismiss: dismissModesHighlight } =
     useFeatureDiscovery("wordle_duel_discovered");
-  const showDuelHighlight = showDuelCreate && duelHighlight;
-  const hasPrimaryItems =
-    Boolean(onHelp) || Boolean(onRandom) || showDuelCreate || Boolean(onStats);
-  const hasMenu = hasPrimaryItems || Boolean(onSettings);
 
   return (
     <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
@@ -83,79 +83,71 @@ export default function WordleHeader({
           <span className="text-border" aria-hidden="true">/</span>
           <Link href="/wordle/">Wördle</Link>
         </div>
-        {(onCopyLink || hasMenu) && (
-          <div className="absolute right-4 flex items-center gap-0.5">
-            {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
-            {hasMenu && (
-            <DropdownMenu onOpenChange={(open) => {
-              if (!open) {
-                if (showDuelHighlight) dismissDuelHighlight();
-              }
-            }}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-10 w-10"
-                  aria-label={
-                    showDuelHighlight ? "Menü, neue Funktion: Duell" : "Menü"
-                  }
-                >
-                  <EllipsisVertical className="h-6! w-6!" />
-                  {showDuelHighlight && (
-                    <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                    </span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {onHelp && (
-                  <DropdownMenuItem onClick={onHelp}>
-                    <BookOpen className="h-4 w-4" />
-                    Spielanleitung
-                  </DropdownMenuItem>
+        <div className="absolute right-4 flex items-center gap-0.5">
+          {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
+          <DropdownMenu onOpenChange={(open) => {
+            if (!open && modesHighlight) dismissModesHighlight();
+          }}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-10 w-10"
+                aria-label={
+                  modesHighlight ? "Menü, neue Funktion: weitere Spielmodi" : "Menü"
+                }
+              >
+                <EllipsisVertical className="h-6! w-6!" />
+                {modesHighlight && (
+                  <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                  </span>
                 )}
-                {onRandom && (
-                  <DropdownMenuItem onClick={onRandom}>
-                    <Dices className="h-4 w-4" />
-                    Zufallsspiel
-                  </DropdownMenuItem>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onHelp && (
+                <DropdownMenuItem onClick={onHelp}>
+                  <BookOpen className="h-4 w-4" />
+                  Spielanleitung
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={() => setShowModes(true)}
+                className={modesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Spielmodi
+                {modesHighlight && (
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
+                    NEU
+                  </span>
                 )}
-                {showDuelCreate && (
-                  <DropdownMenuItem asChild className={showDuelHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}>
-                    <Link href="/wordle/duel/create/">
-                      <Swords className="h-4 w-4" />
-                      Duell erstellen
-                      {showDuelHighlight && (
-                        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
-                          NEU
-                        </span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {onStats && (
-                  <DropdownMenuItem onClick={onStats}>
-                    <BarChart3 className="h-4 w-4" />
-                    Statistik
-                  </DropdownMenuItem>
-                )}
-                {onSettings && hasPrimaryItems && <DropdownMenuSeparator />}
-                {onSettings && (
-                  <DropdownMenuItem onClick={onSettings}>
-                    <Settings className="h-4 w-4" />
-                    Einstellungen
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            )}
-          </div>
-        )}
+              </DropdownMenuItem>
+              {onStats && (
+                <DropdownMenuItem onClick={onStats}>
+                  <BarChart3 className="h-4 w-4" />
+                  Statistik
+                </DropdownMenuItem>
+              )}
+              {onSettings && <DropdownMenuSeparator />}
+              {onSettings && (
+                <DropdownMenuItem onClick={onSettings}>
+                  <Settings className="h-4 w-4" />
+                  Einstellungen
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       {subtitle && <div className="text-small text-muted-foreground mt-1">{subtitle}</div>}
+      <WordleModeDialog
+        open={showModes}
+        onClose={() => setShowModes(false)}
+        onRandom={onRandom}
+      />
     </header>
   );
 }

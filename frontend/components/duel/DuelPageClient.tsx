@@ -7,9 +7,7 @@ import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
 import { UnknownWordError } from "@/lib/guess-error";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
-import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
-import CreditsDialog from "@/components/CreditsDialog";
 import PlayerBar from "@/components/duel/PlayerBar";
 import JoinDialog from "@/components/duel/JoinDialog";
 import DuelResultCard from "@/components/duel/DuelResultCard";
@@ -72,9 +70,7 @@ export default function DuelPageClient() {
     typeof window !== "undefined" ? loadTheme() : "light"
   );
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showCredits, setShowCredits] = useState(false);
   // Which game this round was played on. It arrives with the reveal once this
   // player has solved, not with the room state, because the number is the
   // answer while the opponent is still guessing (lib/types RoomRevealResult).
@@ -444,9 +440,7 @@ export default function DuelPageClient() {
         onTip={handleTip}
         onGiveUp={() => {}}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
-        onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
-        onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
         tipDisabled={solved || !duelState?.tips_allowed}
         giveUpDisabled
@@ -454,8 +448,6 @@ export default function DuelPageClient() {
         hideTip={!duelState?.tips_allowed}
         hideGiveUp
         hidePastGames
-        hideDuelCreate
-        hideKoopCreate
         backHref="/"
       />
 
@@ -519,7 +511,6 @@ export default function DuelPageClient() {
       </div>
 
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
-      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
       <SettingsModal
         open={showSettings}
         onClose={() => setShowSettings(false)}
@@ -530,7 +521,6 @@ export default function DuelPageClient() {
         sortMode={sortMode}
         onSortModeChange={(s) => { setSortMode(s); saveSortMode(s); }}
       />
-      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
     </div>
   );
 }

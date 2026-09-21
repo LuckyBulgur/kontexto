@@ -7,8 +7,6 @@ import GuessList, { type PodestError } from "@/components/GuessList";
 import GuessSuggestions from "@/components/GuessSuggestions";
 import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
-import FAQDialog from "@/components/FAQDialog";
-import CreditsDialog from "@/components/CreditsDialog";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import { AdUnit } from "@/components/AdUnit";
 import DualGuessBar from "@/components/solo/DualGuessBar";
@@ -89,8 +87,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [showSettings, setShowSettings] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
-  const [showCredits, setShowCredits] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // Guards the once-per-round completion beacon against firing again for a round
@@ -359,9 +355,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         onTip={() => {}}
         onGiveUp={() => {}}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
-        onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
-        onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
         hideTip
         hideGiveUp
@@ -464,8 +458,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         onSortModeChange={handleSortModeChange}
       />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
-      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
-      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
     </div>
   );
 }

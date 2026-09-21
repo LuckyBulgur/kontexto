@@ -19,6 +19,10 @@ import {
 
 export interface MultiplayerModeMeta {
   id: QueueModeId;
+  /** Which of the two games this mode belongs to. Kontexto and Wordle have
+   *  their own header, their own menu and their own way in, so a picker that
+   *  mixed them would offer a round of a game the player is not in. */
+  game: "kontexto" | "wordle";
   name: string;
   /** Three or four words for the picker. Long enough to choose by, short
    *  enough to read while the game is waiting. */
@@ -31,11 +35,15 @@ export interface MultiplayerModeMeta {
   createHref: string | null;
   /** Whether this mode is one of the three timed arenas. */
   arena: boolean;
+  /** Where the random queue for this mode is asked for. Wordle has its own
+   *  queue page, so the path is stored rather than assembled by each caller. */
+  queueHref: string;
 }
 
 export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
   duel: {
     id: "duel",
+    game: "kontexto",
     name: "Duell",
     hook: "Wer findet es zuerst",
     tagline: "Gleiches Wort, zwei Leute, wer findet es zuerst?",
@@ -46,9 +54,11 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/duel/create/",
     arena: false,
+    queueHref: "/suche/?modus=duel",
   },
   koop: {
     id: "koop",
+    game: "kontexto",
     name: "Koop",
     hook: "Gemeinsam eine Liste",
     tagline: "Eine gemeinsame Liste, ein gemeinsamer Sieg.",
@@ -59,9 +69,11 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/koop/create/",
     arena: false,
+    queueHref: "/suche/?modus=koop",
   },
   wordle_duel: {
     id: "wordle_duel",
+    game: "wordle",
     name: "Wördle-Duell",
     hook: "Wördle, Kopf an Kopf",
     tagline: "Dasselbe Wördle, zwei Bretter, sechs Versuche.",
@@ -72,9 +84,11 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/wordle/duel/create/",
     arena: false,
+    queueHref: "/wordle/suche/",
   },
   royale: {
     id: "royale",
+    game: "kontexto",
     name: "Battle Royale",
     hook: "Der Letzte bleibt",
     tagline: `Bis zu ${ROYALE_MAX_PLAYERS} Leute, und alle paar Minuten fliegt einer raus.`,
@@ -86,9 +100,11 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=royale",
     arena: true,
+    queueHref: "/suche/?modus=royale",
   },
   blitz: {
     id: "blitz",
+    game: "kontexto",
     name: "Blitz-Duell",
     hook: "120 Sekunden, bester Rang",
     tagline: `${BLITZ_SECONDS} Sekunden für alle, der beste Rang gewinnt.`,
@@ -99,9 +115,11 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=blitz",
     arena: true,
+    queueHref: "/suche/?modus=blitz",
   },
   timerush: {
     id: "timerush",
+    game: "kontexto",
     name: "Zeitbonus-Jagd",
     hook: "Nur bessere Wörter kaufen Zeit",
     tagline: "Deine Uhr läuft, und nur ein besseres Wort dreht sie zurück.",
@@ -113,6 +131,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=timerush",
     arena: true,
+    queueHref: "/suche/?modus=timerush",
   },
 };
 
@@ -125,6 +144,18 @@ export const MULTIPLAYER_MODE_ORDER: QueueModeId[] = [
   "blitz",
   "timerush",
 ];
+
+/** The modes Kontexto offers, so its picker and its create form never lead
+ *  into the other game. Derived from the full order, because a second
+ *  hand-written list is a list that drifts. */
+export const KONTEXTO_MULTIPLAYER_ORDER: QueueModeId[] = MULTIPLAYER_MODE_ORDER.filter(
+  (id) => MULTIPLAYER_MODES[id].game === "kontexto"
+);
+
+/** The same for Wordle, which today is the one duel. */
+export const WORDLE_MULTIPLAYER_ORDER: QueueModeId[] = MULTIPLAYER_MODE_ORDER.filter(
+  (id) => MULTIPLAYER_MODES[id].game === "wordle"
+);
 
 export const ARENA_MODE_ORDER: ArenaModeId[] = ["royale", "blitz", "timerush"];
 

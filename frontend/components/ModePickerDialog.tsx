@@ -4,11 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  ChevronRight,
   Clock,
   Flame,
   Globe,
-  Layers,
   Link2,
   Shuffle,
   Swords,
@@ -25,9 +23,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ModeRow from "@/components/ModeRow";
 import { loadSentence, totalSentence } from "@/lib/matchmaking-rules";
 import { QueueModeId } from "@/lib/matchmaking-types";
-import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER } from "@/lib/multiplayer-modes";
+import { KONTEXTO_MULTIPLAYER_ORDER, MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
 import { SOLO_MODES, SOLO_MODE_ORDER } from "@/lib/solo-modes";
 import { useMatchmakingLive } from "@/lib/use-matchmaking-live";
 
@@ -38,10 +37,13 @@ import { useMatchmakingLive } from "@/lib/use-matchmaking-live";
  * the player wants to be somewhere else in one or two taps, not to read.
  *
  * Two steps, because the first question a player actually has is not "which
- * mode" but "with whom". Ten modes times two ways in is twenty choices on one
- * screen; asking "with whom" first turns that into three, then four to six. It
- * also puts playing with friends on the same footing as playing alone, instead
- * of hiding it in a small link beside the mode.
+ * mode" but "with whom". Nine modes times two ways in is eighteen choices on
+ * one screen; asking "with whom" first turns that into three, then four to
+ * five. It also puts playing with friends on the same footing as playing alone,
+ * instead of hiding it in a small link beside the mode.
+ *
+ * Kontexto only. The Wordle duel is offered by the Wordle header, because it is
+ * a round of the other game and this dialog opens on a Kontexto board.
  *
  * The long version, with the rules of every mode, is /modi/.
  */
@@ -62,7 +64,6 @@ const PATHS: {
 const MODE_ICONS: Record<string, LucideIcon> = {
   duel: Swords,
   koop: Users,
-  wordle_duel: Layers,
   royale: Flame,
   blitz: Timer,
   timerush: Clock,
@@ -121,42 +122,26 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
         <div className="max-h-[70vh] space-y-2 overflow-y-auto pt-1">
           {path === null
             ? PATHS.map((entry) => (
-                <button
+                <ModeRow
                   key={entry.id}
-                  type="button"
+                  icon={entry.icon}
+                  title={entry.title}
+                  hint={entry.id === "strangers" && live ? totalSentence(live) : entry.hint}
                   onClick={() => setPath(entry.id)}
-                  className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-accent focus-visible:border-primary"
-                >
-                  <Badge icon={entry.icon} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-display text-lead font-bold">{entry.title}</span>
-                    <span className="block text-small text-muted-foreground">
-                      {entry.id === "strangers" && live ? totalSentence(live) : entry.hint}
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                </button>
+                />
               ))
             : modesFor(path).map((mode) => (
-                <Link
+                <ModeRow
                   key={mode.href}
+                  icon={MODE_ICONS[mode.id]}
+                  title={mode.name}
+                  hint={mode.hook}
                   href={mode.href}
-                  className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent focus-visible:border-primary"
-                >
-                  <Badge icon={MODE_ICONS[mode.id]} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-display text-lead font-bold">{mode.name}</span>
-                    <span className="block text-small text-muted-foreground">{mode.hook}</span>
-                    {mode.queueId && (
-                      // Same reserved line as on /suche/: the figure arrives a
-                      // moment after the list and must not move it.
-                      <span className="block min-h-[1lh] text-micro text-muted-foreground/80">
-                        {loadSentence(live?.modes[mode.queueId])}
-                      </span>
-                    )}
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                </Link>
+                  // Same reserved line as on /suche/: the figure arrives a
+                  // moment after the list and must not move it.
+                  reserveNote={Boolean(mode.queueId)}
+                  note={mode.queueId ? loadSentence(live?.modes[mode.queueId]) : undefined}
+                />
               ))}
 
           <p className="pt-2 text-center text-micro text-muted-foreground">
@@ -167,14 +152,6 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Badge({ icon: Icon }: { icon: LucideIcon }) {
-  return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
-      <Icon className="h-5 w-5" aria-hidden="true" />
-    </span>
   );
 }
 
@@ -195,9 +172,9 @@ function modesFor(path: Path): PickerEntry[] {
       return { id, name: mode.name, hook: mode.hook, href: `/solo/${mode.slug}/` };
     });
   }
-  return MULTIPLAYER_MODE_ORDER.flatMap((id) => {
+  return KONTEXTO_MULTIPLAYER_ORDER.flatMap((id) => {
     const mode = MULTIPLAYER_MODES[id];
-    const href = path === "friends" ? mode.createHref : `/suche/?modus=${mode.id}`;
+    const href = path === "friends" ? mode.createHref : mode.queueHref;
     // A mode without an invite form simply does not appear under "with friends".
     if (!href) return [];
     // An invite link needs no queue, and a friend who has the link is coming

@@ -143,6 +143,7 @@ test.describe("design audit", () => {
     "/",
     "/modi/",
     "/suche/",
+    "/wordle/suche/",
     "/wordle/",
     "/zahlen/",
     "/anleitung/",

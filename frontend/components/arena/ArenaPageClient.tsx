@@ -5,8 +5,6 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
-import CreditsDialog from "@/components/CreditsDialog";
-import FAQDialog from "@/components/FAQDialog";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import SettingsModal from "@/components/SettingsModal";
 import DuelSkeleton from "@/components/duel/DuelSkeleton";
@@ -83,8 +81,6 @@ export default function ArenaPageClient() {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [showSettings, setShowSettings] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
-  const [showCredits, setShowCredits] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const offsetMs = useClockOffset(state?.server_time);
@@ -377,16 +373,12 @@ export default function ArenaPageClient() {
         onTip={() => {}}
         onGiveUp={() => {}}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
-        onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
-        onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
         onCopyLink={handleCopyLink}
         hideTip
         hideGiveUp
         hidePastGames
-        hideDuelCreate
-        hideKoopCreate
         subtitle={`Modus: ${meta.name}`}
         backHref="/modi/"
       />
@@ -489,8 +481,6 @@ export default function ArenaPageClient() {
         }}
       />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
-      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
-      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
     </div>
   );
 }

@@ -7,9 +7,7 @@ import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
 import { UnknownWordError } from "@/lib/guess-error";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
-import FAQDialog from "@/components/FAQDialog";
 import SettingsModal from "@/components/SettingsModal";
-import CreditsDialog from "@/components/CreditsDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
 import PlayerBar from "@/components/koop/PlayerBar";
 import JoinDialog from "@/components/koop/JoinDialog";
@@ -75,9 +73,7 @@ export default function KoopPageClient() {
     typeof window !== "undefined" ? loadTheme() : "light"
   );
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
   // Which game this round was played on. It arrives with the reveal once the
@@ -436,17 +432,13 @@ export default function KoopPageClient() {
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
-        onFAQOpen={() => setShowFAQ(true)}
         onSettingsOpen={() => setShowSettings(true)}
-        onCreditsOpen={() => setShowCredits(true)}
         onPastGamesOpen={() => {}}
         tipDisabled={roundOver || !koopState?.tips_allowed}
         giveUpDisabled={roundOver}
         onCopyLink={handleCopyLink}
         hideTip={!koopState?.tips_allowed}
         hidePastGames
-        hideDuelCreate
-        hideKoopCreate
         backHref="/"
       />
 
@@ -506,7 +498,6 @@ export default function KoopPageClient() {
       </div>
 
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
-      <FAQDialog open={showFAQ} onClose={() => setShowFAQ(false)} />
       <SettingsModal
         open={showSettings}
         onClose={() => setShowSettings(false)}
@@ -517,7 +508,6 @@ export default function KoopPageClient() {
         sortMode={sortMode}
         onSortModeChange={(s) => { setSortMode(s); saveSortMode(s); }}
       />
-      <CreditsDialog open={showCredits} onClose={() => setShowCredits(false)} />
       <GiveUpDialog
         open={showGiveUp}
         onClose={() => setShowGiveUp(false)}

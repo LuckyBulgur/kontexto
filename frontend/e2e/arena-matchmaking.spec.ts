@@ -65,7 +65,7 @@ test.describe("Auslastung vor dem Einreihen", () => {
   test("jeder Modus nennt, wie viel gerade los ist", async ({ page }) => {
     await page.goto("/suche/");
 
-    for (const mode of ["duel", "koop", "wordle_duel", "royale", "blitz", "timerush"]) {
+    for (const mode of ["duel", "koop", "royale", "blitz", "timerush"]) {
       const row = page.locator(`label[for="modus-${mode}"]`);
       await expect(row.getByText(LOAD_LINE)).toBeVisible({ timeout: 20_000 });
     }
@@ -121,8 +121,15 @@ test.describe("Auslastung vor dem Einreihen", () => {
  * nothing about rooms.
  */
 const PAIRED_MODES = [
-  { mode: "koop", label: "Koop", path: /\/koop\/[^/]+\/$/ },
-  { mode: "wordle_duel", label: "Wördle-Duell", path: /\/wordle\/duel\/[^/]+\/$/ },
+  { mode: "koop", label: "Koop", url: "/suche/?modus=koop", path: /\/koop\/[^/]+\/$/ },
+  // Wordle queues on its own page, because its duel is a round of the other
+  // game and /suche/ no longer lists it.
+  {
+    mode: "wordle_duel",
+    label: "Wördle-Duell",
+    url: "/wordle/suche/",
+    path: /\/wordle\/duel\/[^/]+\/$/,
+  },
 ] as const;
 
 for (const entry of PAIRED_MODES) {
@@ -132,7 +139,7 @@ for (const entry of PAIRED_MODES) {
     const pages = await Promise.all(contexts.map((c) => c.newPage()));
 
     for (const [index, page] of pages.entries()) {
-      await page.goto(`/suche/?modus=${entry.mode}`);
+      await page.goto(entry.url);
       await page.getByLabel("Dein Name (optional)").fill(`Spieler${index + 1}`);
       await page.getByRole("button", { name: "Mitspieler suchen" }).click();
     }

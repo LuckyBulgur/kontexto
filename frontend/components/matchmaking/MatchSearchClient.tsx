@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Info } from "lucide-react";
 import Header from "@/components/Header";
+import WordleHeader from "@/components/wordle/WordleHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,17 +18,29 @@ import {
   waitingSentence,
 } from "@/lib/matchmaking-rules";
 import { MatchmakingTicket, QueueModeId, roomPath } from "@/lib/matchmaking-types";
-import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER, isQueueMode } from "@/lib/multiplayer-modes";
+import { MULTIPLAYER_MODES, isQueueMode } from "@/lib/multiplayer-modes";
 import { useMatchmakingLive } from "@/lib/use-matchmaking-live";
 import { cn } from "@/lib/utils";
+
+interface MatchSearchClientProps {
+  /** The modes this queue screen offers, in display order. */
+  modes: QueueModeId[];
+  /** Which game this queue belongs to, which decides the header. The two games
+   *  do not share one, and the header carries the way back into its own game. */
+  game: "kontexto" | "wordle";
+  title: string;
+  description: string;
+  backHref: string;
+}
 
 /** How often the waiting screen asks whether a room has been built. */
 const POLL_INTERVAL_MS = 1500;
 
-function modeFromQuery(): QueueModeId | null {
+function modeFromQuery(allowed: QueueModeId[]): QueueModeId | null {
   if (typeof window === "undefined") return null;
   const requested = new URLSearchParams(window.location.search).get("modus");
-  return requested && isQueueMode(requested) ? requested : null;
+  if (!requested || !isQueueMode(requested)) return null;
+  return allowed.includes(requested) ? requested : null;
 }
 
 /**
@@ -41,9 +54,21 @@ function modeFromQuery(): QueueModeId | null {
  * it. Nobody presses start here and nobody sets a party size: the server pairs
  * as soon as enough people are queued. A per-player size setting would split one
  * queue into several, and a split queue is a queue that never fills.
+ *
+ * The screen serves both games, which is why the modes and the header come from
+ * outside: Kontexto queues five modes under its own header, Wordle queues its
+ * one duel under the Wordle header. With a single mode the list is dropped,
+ * because a choice of one is not a choice.
  */
-export default function MatchSearchClient() {
-  const [mode, setMode] = useState<QueueModeId | null>(null);
+export default function MatchSearchClient({
+  modes,
+  game,
+  title,
+  description,
+  backHref,
+}: MatchSearchClientProps) {
+  const single = modes.length === 1 ? modes[0] : null;
+  const [mode, setMode] = useState<QueueModeId | null>(single);
   const [nickname, setNickname] = useState("");
   const [ticket, setTicket] = useState<MatchmakingTicket | null>(null);
   const [waiting, setWaiting] = useState(0);
@@ -56,8 +81,9 @@ export default function MatchSearchClient() {
   const live = useMatchmakingLive(ticket === null);
 
   useEffect(() => {
-    setMode(modeFromQuery());
-  }, []);
+    if (single) return;
+    setMode(modeFromQuery(modes));
+  }, [single, modes]);
 
   // Leaving the page must leave the queue too, or the next player is paired
   // with a tab that is already gone.
@@ -135,21 +161,21 @@ export default function MatchSearchClient() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
-      <Header
-        onTip={() => {}}
-        onGiveUp={() => {}}
-        onHowToPlayOpen={() => {}}
-        onFAQOpen={() => {}}
-        onSettingsOpen={() => {}}
-        onCreditsOpen={() => {}}
-        onPastGamesOpen={() => {}}
-        hideTip
-        hideGiveUp
-        hidePastGames
-        hideDuelCreate
-        hideKoopCreate
-        backHref="/modi/"
-      />
+      {game === "wordle" ? (
+        <WordleHeader backHref={backHref} />
+      ) : (
+        <Header
+          onTip={() => {}}
+          onGiveUp={() => {}}
+          onHowToPlayOpen={() => {}}
+          onSettingsOpen={() => {}}
+          onPastGamesOpen={() => {}}
+          hideTip
+          hideGiveUp
+          hidePastGames
+          backHref={backHref}
+        />
+      )}
 
       <div className="flex-1 px-4 py-4">
         {ticket ? (
@@ -162,12 +188,13 @@ export default function MatchSearchClient() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Gegen Fremde spielen</CardTitle>
-              <CardDescription>
-                {"Kein Link, keine Verabredung. Modus wählen, kurz warten, losspielen."}
-              </CardDescription>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              {single ? (
+                <SingleModeNote mode={single} live={live} />
+              ) : (
               <div className="space-y-2">
                 <Label className="text-micro font-semibold text-muted-foreground">
                   Modus
@@ -177,7 +204,7 @@ export default function MatchSearchClient() {
                   onValueChange={(value) => setMode(value as QueueModeId)}
                   className="gap-2"
                 >
-                  {MULTIPLAYER_MODE_ORDER.map((id) => {
+                  {modes.map((id) => {
                     const entry = MULTIPLAYER_MODES[id];
                     const rule = PARTY_RULES[id];
                     return (
@@ -214,6 +241,7 @@ export default function MatchSearchClient() {
                   })}
                 </RadioGroup>
               </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="nickname">Dein Name (optional)</Label>
@@ -236,6 +264,33 @@ export default function MatchSearchClient() {
           </Card>
         )}
       </div>
+    </div>
+  );
+}
+
+/** What the list would have said about the one mode on offer. */
+function SingleModeNote({
+  mode,
+  live,
+}: {
+  mode: QueueModeId;
+  live: ReturnType<typeof useMatchmakingLive>;
+}) {
+  const entry = MULTIPLAYER_MODES[mode];
+  const rule = PARTY_RULES[mode];
+  return (
+    <div className="rounded-lg border p-3.5">
+      <p className="font-display text-lead font-bold">{entry.name}</p>
+      <p className="text-small text-muted-foreground">{entry.tagline}</p>
+      <p className="text-micro text-muted-foreground/80">
+        {partySizeLabel(rule)}
+        {rule.graceSeconds > 0
+          ? `, Start nach spätestens ${rule.graceSeconds} Sekunden`
+          : ", Start sofort zu zweit"}
+      </p>
+      <p className="min-h-[1lh] text-micro text-muted-foreground/80">
+        {loadSentence(live?.modes[mode])}
+      </p>
     </div>
   );
 }
