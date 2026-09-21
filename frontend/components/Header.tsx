@@ -6,6 +6,7 @@ import {
   Lightbulb,
   Flag,
   BookOpen,
+  ChevronRight,
   Settings,
   History,
   BarChart3,
@@ -212,13 +213,37 @@ export default function Header({
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
+            {/* The one entry that leads to another round, so it is the first
+                one under the separator and the only one carrying the accent
+                colour. Everything else in this menu is upkeep: rules, history,
+                settings. A flat tint from the token, not a gradient, and the
+                chevron says that something opens rather than happens. */}
+            <DropdownMenuItem
+              onClick={() => setShowModePicker(true)}
+              className="relative overflow-hidden bg-primary font-semibold text-primary-foreground focus:bg-primary focus:text-primary-foreground"
+            >
+              {/* Two circles cut off by the corners, the same shape the ring in
+                  the wordmark is built from. Flat token fills, no blur and no
+                  gradient: this marks one entry as the way on, it does not
+                  pretend to be depth. The fill is the full accent rather than a
+                  tint of it, because accent-coloured text on a tinted dark
+                  surface measures 2,7:1 and the pair primary-foreground on
+                  primary is already measured at 7,3:1 light and 5,5:1 dark. */}
+              <span
+                className="pointer-events-none absolute -left-3 -top-4 h-9 w-9 rounded-full bg-primary-foreground/15"
+                aria-hidden
+              />
+              <span
+                className="pointer-events-none absolute -bottom-5 -right-2 h-11 w-11 rounded-full bg-primary-foreground/10"
+                aria-hidden
+              />
+              <LayoutGrid className="relative h-4 w-4" />
+              <span className="relative">Spielmodi</span>
+              <ChevronRight className="relative ml-auto h-4 w-4 opacity-80" />
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onHowToPlayOpen}>
               <BookOpen className="h-4 w-4" />
               Spielanleitung
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowModePicker(true)}>
-              <LayoutGrid className="h-4 w-4" />
-              Spielmodi
             </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>

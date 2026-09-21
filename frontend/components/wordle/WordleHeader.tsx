@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   EllipsisVertical,
   BookOpen,
+  ChevronRight,
   LayoutGrid,
   BarChart3,
   Settings,
@@ -104,9 +105,25 @@ export default function WordleHeader({
                   Spielanleitung
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => setShowModes(true)}>
-                <LayoutGrid className="h-4 w-4" />
-                Spielmodi
+              {/* Same weighting as in the Kontexto menu: the entry that leads
+                  to another round carries the accent, the upkeep entries do
+                  not. */}
+              <DropdownMenuItem
+                onClick={() => setShowModes(true)}
+                className="relative overflow-hidden bg-primary font-semibold text-primary-foreground focus:bg-primary focus:text-primary-foreground"
+              >
+                {/* Same two corner circles as in the Kontexto menu. */}
+                <span
+                  className="pointer-events-none absolute -left-3 -top-4 h-9 w-9 rounded-full bg-primary-foreground/15"
+                  aria-hidden
+                />
+                <span
+                  className="pointer-events-none absolute -bottom-5 -right-2 h-11 w-11 rounded-full bg-primary-foreground/10"
+                  aria-hidden
+                />
+                <LayoutGrid className="relative h-4 w-4" />
+                <span className="relative">Spielmodi</span>
+                <ChevronRight className="relative ml-auto h-4 w-4 opacity-80" />
               </DropdownMenuItem>
               {onStats && (
                 <DropdownMenuItem onClick={onStats}>
