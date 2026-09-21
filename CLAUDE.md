@@ -27,6 +27,9 @@ pnpm verify:slop         # UI patterns that read as machine-built (gradient fill
                          # No argument = changed + untracked files; --branch = vs master; --all = whole repo
 pnpm verify:dashes       # em dash (U+2014/U+2015 always, U+2013 only as a dash) across the WHOLE
                          # repo, including backend Python, Dockerfile, docs and .claude/
+pnpm icons               # rasterises app/icon.svg into favicon.ico, apple-icon.png and the
+                         # three manifest PNGs. Only needed after editing app/icon.svg;
+                         # the outputs are committed, the Docker build does not run it
 ```
 **Before reporting anything done:** `pnpm build && pnpm test && pnpm seo:check && pnpm verify:slop --all && pnpm verify:dashes`, plus `pytest` from `backend/` if you touched Python. The type-check alone is not enough; the export build finds more.
 
@@ -163,6 +166,16 @@ Ratebalken für alle Modi), `ResultHero` und `ResultList`/`ResultRow` (alle fün
 `KONTEXTO_DESIGN_AUDIT=1` prüft 19 Farbpaare je Theme gegen 4,5:1 und legt Screenshots in
 `.checks/`. Details und die Begründungen: `.claude/rules/frontend/no-slop.md`, Abschnitt
 „Designsystem“.
+
+**Das Zeichen** ist der Ring aus `components/design/Wordmark.tsx`, und es steht genau einmal als
+Vektor in `frontend/app/icon.svg`. Favicon, Apple-Touch-Icon und die drei Manifest-PNGs entstehen
+daraus durch `scripts/build-icons.mjs` (`pnpm icons`), damit sie nicht wieder auseinanderlaufen:
+vor dem Redesign stand eine grüne Verlaufskachel mit einem „K“ im Tab neben dem tintenblauen
+Ring im Kopf der Seite. Die Strichstärke des Icons ist bewusst leichter als die der Wortmarke,
+begründet in der Datei selbst. Die Ableitungen sind eingecheckt, der Docker-Build ruft das Skript
+nicht auf. Das Teilen-Bild (`app/opengraph-image.tsx`) zeigt dieselbe Wortmarke; Satori kommt nicht
+an die Schriften von `next/font/google`, deshalb liegen die beiden Schnitte als TTF unter
+`frontend/assets/fonts/`, mit der Begründung im README daneben.
 
 **Farbwelten** (`lib/palette.ts`, `lib/use-palette.ts`, `components/PalettePicker.tsx`): die
 Akzentfarbe ist einstellbar, unabhängig von hell und dunkel. Fünf Stück, `tinte` (Vorgabe),

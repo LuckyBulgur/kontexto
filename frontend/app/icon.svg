@@ -1,10 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#0d9488"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <text x="256" y="390" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="380" fill="white" letter-spacing="-10">K</text>
+<!--
+  The mark, drawn once.
+
+  It is the same shape as the final o of the wordmark
+  (components/design/Wordmark.tsx): a ring around an empty centre, because the
+  game closes in on one hidden word. The wordmark is the name plus that ring;
+  the icon is the ring on its own, since at 16 pixels a letter beside it stops
+  being a letter while the ring still reads.
+
+  Two numbers, two different jobs. The outer diameter is 320 of 512, so the mark
+  fills the tile the way an app icon has to. The stroke is 72, lighter than the
+  0.16em of 0.52em the wordmark uses, and that is deliberate: at 14 pixel text
+  size the ring needs that weight to hold its own between letters, but alone on
+  a 512 tile the same ratio closes the counter until the form reads as a disc
+  with a hole instead of the letter o. The counter here is 176, a little over
+  half the outer diameter, which is where a real lowercase o sits.
+
+  The colour is --primary from app/globals.css in light mode,
+  oklch(0.45 0.16 258), written as sRGB because an SVG file does not see the
+  document's CSS variables. One surface, one colour: no gradient, see
+  .claude/rules/frontend/no-slop.md (M1).
+
+  The PNG and ICO derivatives are generated from this exact file by
+  scripts/build-icons.mjs. After a change here, run: pnpm icons
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#0850ab"/>
+  <circle cx="256" cy="256" r="124" fill="none" stroke="#f8fafd" stroke-width="72"/>
 </svg>
