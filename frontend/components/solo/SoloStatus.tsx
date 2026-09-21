@@ -6,7 +6,7 @@ import {
   leiterStrikesLeft,
   limitGuessesLeft,
 } from "@/lib/solo-modes";
-import { Stat, StatRow } from "@/components/design";
+import { cn } from "@/lib/utils";
 
 /**
  * The one line above the input that says where the player stands. Each mode has
@@ -15,16 +15,26 @@ import { Stat, StatRow } from "@/components/design";
  * counter is worse than showing none, so every mode names its own.
  */
 export default function SoloStatus({ state }: { state: SoloState }) {
-  return <StatRow className="-mt-1">{renderFor(state)}</StatRow>;
+  // One line, not a StatRow. Stacking the label over the value and ruling the
+  // counters apart turns a status into a small table, and this sits directly
+  // above the input, where the eye should pass through it. Same decision, and
+  // the same tokens, as the status line on the daily game.
+  return (
+    <div className="flex items-center gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
+      {renderFor(state)}
+    </div>
+  );
 }
 
 /** Under this many left, the counter is the warning. */
 function Counter({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
-    <Stat
-      label={label}
-      value={<span className={warn ? "text-destructive" : undefined}>{value}</span>}
-    />
+    <span>
+      {label}:{" "}
+      <span className={cn("text-lead font-bold", warn ? "text-destructive" : "text-foreground")}>
+        {value}
+      </span>
+    </span>
   );
 }
 
