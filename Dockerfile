@@ -83,8 +83,21 @@ fi
 # first mistyped guess.
 gosu appuser python3 /app/scripts/build-spell-index.py /app/data
 
-if [ ! -f /app/data/wordle/solutions.json ]; then
-    echo "No Wordle data found. Running Wordle data preparation..."
+# Not just "is it there": a volume from an earlier deploy keeps whatever list
+# it was built with, and the rules that produce that list do change. The word
+# "pussy" sat in a generated solution list until 2026-09-21 for exactly that
+# reason. LIST_VERSION in the script is the contract; a mismatch rebuilds.
+# The version is read out of the source with a regex rather than imported: the
+# script pulls in wordfreq and the whole preparation module at import time, and
+# a startup check should not pay for that.
+if ! gosu appuser python3 -c "
+import json, re, sys
+source = open('/app/scripts/prepare-wordle-data.py', encoding='utf-8').read()
+want = int(re.search(r'^LIST_VERSION = (\d+)', source, re.M).group(1))
+have = json.load(open('/app/data/wordle/meta.json'))['list_version']
+sys.exit(0 if have >= want else 1)
+" 2>/dev/null; then
+    echo "Wordle data missing or outdated. Running Wordle data preparation..."
     gosu appuser python3 /app/scripts/prepare-wordle-data.py
 fi
 

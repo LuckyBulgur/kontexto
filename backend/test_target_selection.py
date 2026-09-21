@@ -64,6 +64,26 @@ def test_foreign_words_are_rejected(legacy, word):
     assert legacy.is_valid_target(word) is False, f"{word!r} is a foreign word and must be rejected"
 
 
+# The English vulgar register, which used to pass every gate: the blocklist was
+# German only, the foreign-word gate lets a loanword through once German usage
+# has caught up with English usage, and the profanity tiers under data/ answer a
+# different question (may a user write this). "pussy" reached a generated Woerdle
+# solution list that way, on the loose filter Woerdle uses.
+@pytest.mark.parametrize("word", ["pussy", "fuck", "shit", "bitch", "porn", "milf",
+                                  "blowjob", "bullshit", "asshole", "nigga"])
+def test_english_vulgar_loanwords_are_rejected(legacy, word):
+    assert legacy.reject_reason(word) == "offensive", f"{word!r} must never be a solution"
+
+
+# The same rule as for German homographs: a word whose everyday German sense is
+# harmless stays a solution, whatever it means in English.
+@pytest.mark.parametrize("word", ["dick", "sex", "brief", "gift", "rock", "band"])
+def test_english_homographs_of_german_words_are_kept(word):
+    from wordlists import SOLUTION_BLOCKLIST
+
+    assert word not in SOLUTION_BLOCKLIST
+
+
 # Concrete everyday nouns: the words the game is now built from.
 CONCRETE_NOUNS = ["hund", "katze", "apfel", "haus", "tisch", "flughafen",
                   "marmor", "rucksack", "löffel", "leuchtturm", "kissen"]

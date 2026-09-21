@@ -62,6 +62,19 @@ SOLUTION_BLOCKLIST: frozenset[str] = frozenset({
     "neger", "nigger", "analritter",
     # sexual violence, disturbing for a casual puzzle
     "vergewaltigung", "vergewaltigen", "vergewaltiger",
+    # English loanwords. They are the gap this list had until 2026-09-21:
+    # every entry above is German, but a German web corpus carries the English
+    # vulgar register at a frequency that clears any threshold (``pussy`` sits
+    # at German Zipf 3,9), and neither the foreign-word gate nor the German
+    # profanity tiers catch them. ``pussy`` reached a generated Woerdle
+    # solution list that way. Homographs stay out, same rule as above:
+    # ``dick`` is a German adjective, ``sex`` and ``porno`` are German nouns
+    # with an everyday sense, so only ``porno`` (already listed) is judged on
+    # its own register.
+    "pussy", "fuck", "fucking", "fucker", "motherfucker", "shit", "bullshit",
+    "bitch", "cunt", "cock", "whore", "slut", "boobs", "tits", "wanker",
+    "asshole", "blowjob", "handjob", "cumshot", "gangbang", "milf", "porn",
+    "nigga", "faggot", "retard", "bastard",
 })
 
 

@@ -42,6 +42,15 @@ FIVE_LETTER = re.compile(r"^[a-z]{5}$")
 # ~1050 solutions (~3 years). Guesses (valid_words) stay fully permissive.
 SOLUTION_MIN_ZIPF = 3.0
 SHUFFLE_SEED = 42
+# Bumped whenever the rules that produce the lists change, so a data volume
+# that already holds a list gets it rebuilt instead of keeping the old one
+# forever. The entrypoint compares this against wordle/meta.json.
+#
+#   1  initial lists
+#   2  2026-09-21, SOLUTION_BLOCKLIST gained the English vulgar register after
+#      "pussy" turned up as a daily solution (it is a noun in the German
+#      corpus, so no gate before the blocklist had a reason to drop it)
+LIST_VERSION = 2
 
 
 def _load_words(path: str) -> list[str]:
@@ -100,8 +109,20 @@ def main() -> None:
     with open(valid_path, "w", encoding="utf-8") as f:
         json.dump(valid_words, f, ensure_ascii=False)
 
+    meta_path = os.path.join(OUTPUT_DIR, "meta.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "list_version": LIST_VERSION,
+                "solutions": len(solutions),
+                "valid_words": len(valid_words),
+            },
+            f,
+        )
+
     print(f"Solutions:   {len(solutions)} words -> {solutions_path}")
     print(f"Valid words: {len(valid_words)} words -> {valid_path}")
+    print(f"List version {LIST_VERSION} -> {meta_path}")
 
 
 if __name__ == "__main__":
