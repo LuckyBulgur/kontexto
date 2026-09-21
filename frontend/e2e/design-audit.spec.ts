@@ -86,6 +86,8 @@ test.describe("design audit", () => {
           { pair: "muted-foreground on background", ratio: ratio(v("--muted-foreground"), bg) },
           { pair: "muted-foreground on card", ratio: ratio(v("--muted-foreground"), card) },
           { pair: "primary-foreground on primary", ratio: ratio(v("--primary-foreground"), v("--primary")) },
+          { pair: "primary-ink on background", ratio: ratio(v("--primary-ink"), bg) },
+          { pair: "primary-ink on card", ratio: ratio(v("--primary-ink"), card) },
         ];
         for (const tone of ["near", "mid", "far"]) {
           out.push({

@@ -76,10 +76,15 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
     <TooltipProvider>
       <Tooltip open={hintOpen || undefined}>
         <TooltipTrigger asChild>
+          {/* Ghost, like every other lone glyph in this header, but in the
+              accent ink rather than in the text colour: it sits next to a kebab
+              of the same size, and two grey glyphs read as a pair rather than
+              as an invitation. The ink and not `--primary`, which is a fill and
+              measures 2,9:1 against the dark page. */}
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-10 w-10"
+            className="relative h-10 w-10 text-primary-ink hover:text-primary-ink"
             aria-label="Spielmodi"
             onClick={() => {
               setHintOpen(false);
@@ -90,8 +95,8 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
             <LayoutGrid className="h-6! w-6!" />
             {highlight && (
               <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-ink opacity-75 motion-reduce:hidden" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-ink" />
               </span>
             )}
           </Button>

@@ -76,6 +76,13 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* The accent as text or as a lone glyph. `--primary` is a fill: it is chosen
+     to carry white on top of it, which in dark mode leaves it too dark to be
+     read on the page itself (measured 2,9:1). The ink is the same hue tuned to
+     clear 4,5:1 against background and card, exactly as the status family does
+     it. Every palette carries both, or a palette switch would silently break
+     the contrast of whatever uses it. */
+  --color-primary-ink: var(--primary-ink);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -146,6 +153,7 @@
   --popover-foreground: oklch(0.21 0.03 262);
   --primary: oklch(0.45 0.16 258);
   --primary-foreground: oklch(0.985 0.004 250);
+  --primary-ink: oklch(0.45 0.16 258);
   --secondary: oklch(0.955 0.012 255);
   --secondary-foreground: oklch(0.28 0.04 260);
   --muted: oklch(0.955 0.012 255);
@@ -207,6 +215,7 @@
   --popover-foreground: oklch(0.96 0.005 250);
   --primary: oklch(0.52 0.17 262);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-ink: oklch(0.78 0.12 262);
   --secondary: oklch(0.285 0.022 263);
   --secondary-foreground: oklch(0.96 0.005 250);
   --muted: oklch(0.285 0.022 263);
@@ -413,6 +422,7 @@
   --card-foreground: oklch(0.21 0.03 262);
   --primary: oklch(0.45 0.16 258);
   --primary-foreground: oklch(0.985 0.004 250);
+  --primary-ink: oklch(0.45 0.16 258);
   --border: oklch(0.9 0.012 255);
 }
 
@@ -423,6 +433,7 @@
   --card-foreground: oklch(0.96 0.005 250);
   --primary: oklch(0.52 0.17 262);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-ink: oklch(0.78 0.12 262);
   --border: oklch(1 0 0 / 12%);
 }
 
@@ -436,6 +447,7 @@
   --popover-foreground: oklch(0.22 0.03 330);
   --primary: oklch(0.52 0.2 355);
   --primary-foreground: oklch(0.99 0.004 340);
+  --primary-ink: oklch(0.52 0.2 355);
   --secondary: oklch(0.955 0.014 340);
   --secondary-foreground: oklch(0.3 0.05 340);
   --muted: oklch(0.955 0.014 340);
@@ -473,6 +485,7 @@
   --popover-foreground: oklch(0.96 0.006 340);
   --primary: oklch(0.52 0.21 355);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-ink: oklch(0.78 0.14 355);
   --secondary: oklch(0.29 0.026 332);
   --secondary-foreground: oklch(0.96 0.006 340);
   --muted: oklch(0.29 0.026 332);
@@ -511,6 +524,7 @@
   --popover-foreground: oklch(0.21 0.035 288);
   --primary: oklch(0.48 0.21 285);
   --primary-foreground: oklch(0.99 0.004 290);
+  --primary-ink: oklch(0.48 0.21 285);
   --secondary: oklch(0.955 0.014 288);
   --secondary-foreground: oklch(0.3 0.05 288);
   --muted: oklch(0.955 0.014 288);
@@ -548,6 +562,7 @@
   --popover-foreground: oklch(0.96 0.006 290);
   --primary: oklch(0.5 0.22 285);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-ink: oklch(0.78 0.14 285);
   --secondary: oklch(0.285 0.028 288);
   --secondary-foreground: oklch(0.96 0.006 290);
   --muted: oklch(0.285 0.028 288);
@@ -586,6 +601,7 @@
   --popover-foreground: oklch(0.21 0.025 210);
   --primary: oklch(0.47 0.1 200);
   --primary-foreground: oklch(0.99 0.004 200);
+  --primary-ink: oklch(0.47 0.1 200);
   --secondary: oklch(0.955 0.014 200);
   --secondary-foreground: oklch(0.3 0.04 205);
   --muted: oklch(0.955 0.014 200);
@@ -625,6 +641,7 @@
   --popover-foreground: oklch(0.96 0.006 200);
   --primary: oklch(0.48 0.11 200);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-ink: oklch(0.8 0.09 200);
   --secondary: oklch(0.285 0.026 205);
   --secondary-foreground: oklch(0.96 0.006 200);
   --muted: oklch(0.285 0.026 205);
@@ -678,6 +695,7 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+  --primary-ink: oklch(0.205 0 0);
   --secondary: oklch(0.955 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.955 0 0);
@@ -716,6 +734,7 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+  --primary-ink: oklch(0.922 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
