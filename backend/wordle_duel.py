@@ -6,6 +6,8 @@ import string
 
 import aiosqlite
 
+from nicknames import sanitize_nickname
+
 
 def _generate_id(length: int = 6) -> str:
     chars = string.ascii_lowercase + string.digits
@@ -28,6 +30,9 @@ def _format_played(games: set[int]) -> str:
 async def create_wordle_duel(
     db: aiosqlite.Connection, nickname: str, game_number: int
 ) -> dict:
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     duel_id = _generate_id()
     player_token = _generate_token()
     await db.execute(
@@ -45,6 +50,9 @@ async def create_wordle_duel(
 async def join_wordle_duel(
     db: aiosqlite.Connection, duel_id: str, nickname: str
 ) -> dict:
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     cursor = await db.execute(
         "SELECT game_number FROM wordle_duels WHERE id = ?", (duel_id,)

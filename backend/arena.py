@@ -27,6 +27,8 @@ from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
+from nicknames import sanitize_nickname
+
 # --- Rules ------------------------------------------------------------------
 
 ARENA_MODES: tuple[str, ...] = ("royale", "blitz", "timerush")
@@ -112,6 +114,9 @@ async def create_arena(
     if mode not in ARENA_MODES:
         return None
 
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     arena_id = _generate_id()
     player_token = _generate_token()
     await db.execute(
@@ -143,6 +148,9 @@ async def join_arena(db: aiosqlite.Connection, arena_id: str, nickname: str) -> 
     if (await cursor.fetchone())["cnt"] >= MAX_PLAYERS[arena["mode"]]:
         return None
 
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     await db.execute(
         "INSERT INTO arena_players (arena_id, nickname, player_token) VALUES (?, ?, ?)",

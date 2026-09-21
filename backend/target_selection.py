@@ -43,7 +43,7 @@ import os
 from HanTa import HanoverTagger as hnt
 from wordfreq import zipf_frequency
 
-from wordlists import PROFANITY_BLOCKLIST
+from wordlists import SOLUTION_BLOCKLIST
 
 # POS labels (in german-nouns) that mark a token as a proper noun rather than a
 # common noun. A dictionary entry carrying any of these is not, on its own,
@@ -245,7 +245,7 @@ class TargetWordFilter:
         """
         # ß→ss-folded so "scheiße" matches the "scheisse" entry; umlauts are
         # left intact (the blocklist lists them as they appear in the vocab).
-        if word.replace("ß", "ss") in PROFANITY_BLOCKLIST:
+        if word.replace("ß", "ss") in SOLUTION_BLOCKLIST:
             return "offensive"
         if word in NAME_BLOCKLIST:
             return "proper_noun"

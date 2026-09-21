@@ -1,0 +1,38 @@
+# Legitimate German words that carry a substring-tier term inside them. Measured
+# with scripts/classify-profanity-list.py against wordfreq's 50.000 most
+# frequent German words plus german_names.txt, then reviewed by hand: an
+# inflection of the insult itself (arsche, verarschen, pornos) does NOT belong
+# here, only words with an unrelated meaning.
+#
+# Matching removes these from the text before the scan, so a stem covers its
+# whole family: "marsch" also clears marschieren and einmarschieren.
+
+# arsch
+marsch
+marschall
+barsch
+harsch
+haarscharf
+haarschnitt
+nachbarschaft
+sekundarschule
+warschau
+farschid
+vormarsch
+anmarsch
+aufmarsch
+einmarsch
+
+# mongo
+mongolei
+mongolen
+mongolisch
+
+# hure
+broschure
+broschuere
+schuren
+thure
+
+# schiesser
+schiesserei

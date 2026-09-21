@@ -80,6 +80,22 @@ class TestDuelCRUD:
                 await conn.close()
         self._run(run())
 
+    def test_an_abusive_name_is_reflected_back_in_both_doors(self, db):
+        """Invite rooms run the same nickname rule as the matchmaking queue."""
+        from duel import create_duel, join_duel, get_duel_state
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_duel(
+                    conn, game_number=1, nickname="Hurensohn", tips_allowed=True)
+                await join_duel(conn, created["duel_id"], "xxWichserxx")
+                state = await get_duel_state(conn, created["duel_id"])
+                names = [p["nickname"] for p in state["players"]]
+                assert names == ["Ich bin H*******n", "Ich bin W*****r"]
+            finally:
+                await conn.close()
+        self._run(run())
+
     def test_join_nonexistent_duel(self, db):
         from duel import join_duel
         async def run():

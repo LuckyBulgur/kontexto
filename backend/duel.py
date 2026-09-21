@@ -5,6 +5,8 @@ import string
 
 import aiosqlite
 
+from nicknames import sanitize_nickname
+
 
 def _generate_id(length: int = 6) -> str:
     chars = string.ascii_letters + string.digits
@@ -30,6 +32,9 @@ async def create_duel(
     nickname: str,
     tips_allowed: bool,
 ) -> dict:
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     duel_id = _generate_id()
     player_token = _generate_token()
 
@@ -50,6 +55,9 @@ async def join_duel(db: aiosqlite.Connection, duel_id: str, nickname: str) -> di
     if not await cursor.fetchone():
         return None
 
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     await db.execute(
         "INSERT INTO duel_players (duel_id, nickname, player_token) VALUES (?, ?, ?)",

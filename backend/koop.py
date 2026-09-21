@@ -11,6 +11,8 @@ import string
 
 import aiosqlite
 
+from nicknames import sanitize_nickname
+
 
 def _generate_id(length: int = 6) -> str:
     chars = string.ascii_letters + string.digits
@@ -56,6 +58,9 @@ async def create_koop(
     nickname: str,
     tips_allowed: bool,
 ) -> dict:
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     koop_id = _generate_id()
     player_token = _generate_token()
 
@@ -78,6 +83,9 @@ async def join_koop(
     if not await cursor.fetchone():
         return None
 
+    # One rule for every room, invite links included: an abusive name is not
+    # rejected, it comes back masked and pointed at its author.
+    nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     unique = await _unique_nickname(db, koop_id, nickname)
     await db.execute(

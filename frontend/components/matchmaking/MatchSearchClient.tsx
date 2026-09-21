@@ -157,7 +157,6 @@ export default function MatchSearchClient() {
             ticket={ticket}
             waiting={waiting}
             elapsed={elapsed}
-            typedNickname={nickname}
             onCancel={handleCancel}
           />
         ) : (
@@ -245,18 +244,14 @@ function WaitingCard({
   ticket,
   waiting,
   elapsed,
-  typedNickname,
   onCancel,
 }: {
   ticket: MatchmakingTicket;
   waiting: number;
   elapsed: number;
-  typedNickname: string;
   onCancel: () => void;
 }) {
   const mode = MULTIPLAYER_MODES[ticket.mode];
-  const nameWasReplaced =
-    typedNickname.trim() !== "" && ticket.nickname !== typedNickname.trim();
 
   return (
     <Card>
@@ -285,12 +280,6 @@ function WaitingCard({
           {"Du spielst als "}
           <strong>{ticket.nickname}</strong>
         </p>
-        {nameWasReplaced && (
-          <p className="text-micro text-muted-foreground">
-            {"Dein Wunschname geht so nicht. Fremde lesen ihn mit, deshalb dieser hier."}
-          </p>
-        )}
-
         <Button variant="outline" onClick={onCancel}>
           Suche abbrechen
         </Button>

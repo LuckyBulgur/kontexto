@@ -76,6 +76,22 @@ class TestKoopCRUD:
                 await conn.close()
         self._run(run())
 
+    def test_an_abusive_name_is_reflected_back_in_both_doors(self, db):
+        """Invite rooms run the same nickname rule as the matchmaking queue."""
+        from koop import create_koop, join_koop, get_koop_state
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(
+                    conn, game_number=1, nickname="Hurensohn", tips_allowed=True)
+                joined = await join_koop(conn, created["koop_id"], "arschgeige1")
+                assert joined["nickname"] == "Ich bin A********e"
+                state = await get_koop_state(conn, created["koop_id"])
+                assert state["players"][0]["nickname"] == "Ich bin H*******n"
+            finally:
+                await conn.close()
+        self._run(run())
+
     def test_join_duplicate_nickname_disambiguated(self, db):
         from koop import create_koop, join_koop
         async def run():

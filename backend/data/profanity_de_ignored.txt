@@ -1,0 +1,126 @@
+# Entries of the vendored list this project does not enforce, with the reason.
+# Two groups: words that are not profanity at all, and words the project keeps
+# deliberately mild (see the SOLUTION_BLOCKLIST comment in wordlists.py).
+# This file is documentation. The runtime never reads it.
+aetzend      # aetzend, mild
+ambiguitaet  # Ambiguitaet
+ambisexuell  # an orientation, not an insult
+ambosexuell  # an orientation, not an insult
+ameisenbaer  # Ameisenbaer, the anteater
+armleuchter  # Armleuchter, a candelabra
+auberfeiger  # not a German word
+aufrecht     # aufrechterhalten
+babyface     # Babyface
+beinhart     # beinhart, tough
+bohnenstange # Bohnenstange, a bean pole
+breitsein    # mild
+brillenschlange # Brillenschlange, the cobra
+bruchbude    # a building, not a person
+bulle        # Bulle, the animal
+bumsen       # project policy keeps bumsen a homograph
+dasstinktmir # an opinion
+donnerwetter # Donnerwetter
+drecksnest   # a place, not a person
+dumme        # an adjective, not an insult
+duncauf      # not a word
+dusau        # not a word
+duspinnstwohl # an opinion
+ecke         # Ecke, and every -ecken verb
+egoismus     # a character trait
+eindringen   # an ordinary verb
+erektion     # anatomy, not an insult
+felgen       # Felgen, rims
+filzlaus     # Filzlaus, the louse
+fischkopp    # regional, mild
+flasche      # Bierflasche
+flattermachen # an ordinary verb
+fregatte     # Fregatte, the ship
+gammler      # Gammler, mild
+gebaermutter # anatomy, not an insult
+gesoeff      # gesoffen
+giftzahn     # Giftzahn, a fang
+giftzwerg    # mild
+haenfling    # Haenfling, the bird
+homo         # an orientation, not an insult
+horst        # Horst is a first name
+huan         # Marihuana, Huang
+hungerhaken  # mild
+ichhassedich # an opinion, not an insult
+ichliebedich # not an insult in any reading
+ische        # every -ische adjective ending
+istwas       # not a word
+jumbo        # Jumbo
+kannstmichmal # an opinion
+kimme        # Kimme, rear sight
+knacker      # Nussknacker
+knoepfe      # Knoepfe
+knopf        # Knopfdruck
+kotzen       # project policy keeps kotzen mild
+labertasche  # mild
+lahmeente    # mild
+lesbe        # an orientation, not an insult; the slur stays (kampflesbe)
+lick         # Augenblick, anklicken
+lickaumosh   # not a German word
+lms          # Filmstar, Wilhelms
+lotterliese  # mild
+lutschen     # an ordinary verb
+lutscher     # Lutscher, a lollipop
+miefen       # miefen, mild
+moepse       # Moepse
+mufti        # Mufti
+nackt        # project policy keeps nackt mild
+nebelkraehe  # Nebelkraehe, the bird
+nilpferd     # Nilpferd, the hippo
+nippel       # Nippel, a fitting
+notgeil      # geil is deliberately allowed
+nymphe       # Nymphe, a mythological figure and an insect stage
+pansexuell   # an orientation, not an insult
+pinkeln      # project policy keeps pinkeln mild
+plattmachen  # an ordinary verb
+plinzen      # not a word
+popel        # project policy keeps popel mild
+poppen       # project policy keeps poppen a homograph
+quacksalber  # Quacksalber, a quack
+quatsch      # Quatsch, mild
+rassig       # rassig, mild
+reihern      # reihern, mild
+reudig       # freudig
+rosette      # Rosette, ornament
+ruck         # Druck, Ausdruck, Rucksack
+sadismus     # a clinical term
+saftladen    # mild
+saufen       # Auslandsaufenthalt, besaufen
+saugen       # absaugen
+schein       # Bescheinigung, anscheinend
+schluffig    # mild
+schnapsleiche # mild
+schnarchsack # mild
+schnoodlenoodle # not a German word
+schwanz      # project policy keeps Schwanz, the tail
+schwul       # an orientation, not an insult; the slurs stay (schwuchtel)
+schwuler     # an orientation, not an insult; the slurs stay (schwuchtel)
+shaisa       # not a word
+spargel      # asparagus
+spargeltarzan # mild, and built on Spargel
+spiessig     # mild
+spinnen      # spinnen, to spin
+spinner      # Spinnerei, a mill
+spinnst      # spinnen, to spin
+spinnstdu    # an opinion
+stinkstiefel # mild
+sturerbock   # mild
+teufel       # Teufelskreis
+ticknichtab  # an opinion
+transuse     # mild
+trantuete    # mild
+tratschtante # mild
+ungeheuer    # ungeheuerlich, an adverb
+verdammt     # verdammt, an intensifier
+vielfrass    # Vielfrass, the wolverine
+vogelscheuche # Vogelscheuche, a scarecrow
+waschlappen  # Waschlappen, a flannel
+witzbold     # Witzbold, a joker
+wuetend      # wuetend, an emotion
+xbewertet    # not a German word
+ziehleine    # not an insult
+zombie       # Zombie, not an insult

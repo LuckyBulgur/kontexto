@@ -1,7 +1,8 @@
 """Tests for the random matchmaking queue.
 
-Two things carry real risk here and are tested directly: a ticket must never end
-up in two rooms, and a nickname that strangers will read must not be free text.
+The risk that carries here is a ticket ending up in two rooms. The nickname rule
+lives in ``nicknames`` and is tested there; this file only checks that the queue
+actually runs a name through it.
 """
 
 import asyncio
@@ -18,13 +19,10 @@ from matchmaking import (
     TICKET_TTL_SECONDS,
     cancel,
     enqueue,
-    generate_nickname,
-    is_nickname_acceptable,
     live_counts,
     playing_counts,
     prune_queue,
     reset_connected_flags,
-    resolve_nickname,
     run_matchmaking,
     ticket_status,
     waiting_counts,
@@ -57,38 +55,6 @@ class RecordingFactory:
         return room_id, [f"token-{room_id}-{i}" for i in range(len(nicknames))]
 
 
-class TestNicknames:
-    def test_a_plain_name_is_accepted(self):
-        assert is_nickname_acceptable("Marlene")
-        assert resolve_nickname("Marlene") == "Marlene"
-
-    def test_an_insult_is_rejected(self):
-        assert not is_nickname_acceptable("Hurensohn")
-
-    def test_an_insult_hidden_in_a_longer_name_is_rejected(self):
-        """A word list that only matches whole words is evaded in one keystroke."""
-        assert not is_nickname_acceptable("xxWichserxx")
-        assert not is_nickname_acceptable("arschgeige1")
-
-    def test_the_umlaut_spelling_is_rejected_too(self):
-        assert not is_nickname_acceptable("Möse")
-
-    def test_an_empty_or_oversized_name_is_rejected(self):
-        assert not is_nickname_acceptable("   ")
-        assert not is_nickname_acceptable("x" * 21)
-
-    def test_a_control_character_is_rejected(self):
-        assert not is_nickname_acceptable("Anna\u0007")
-
-    def test_a_rejected_name_becomes_a_generated_one(self):
-        assert resolve_nickname("Hurensohn") != "Hurensohn"
-        assert resolve_nickname(None)
-
-    def test_a_generated_name_survives_its_own_filter(self):
-        for _ in range(200):
-            assert is_nickname_acceptable(generate_nickname())
-
-
 class TestQueue:
     def test_enqueue_returns_a_ticket(self, db_path):
         async def scenario():
@@ -103,6 +69,16 @@ class TestQueue:
         assert result["nickname"] == "Ada"
         assert status["matched"] is False
         assert status["room_id"] is None
+
+    def test_the_queue_runs_the_name_through_the_shared_rule(self, db_path):
+        """The rule itself is tested in test_nicknames; this is the wiring."""
+        async def scenario():
+            db = await get_db(db_path)
+            result = await enqueue(db, "duel", "Hurensohn", now=T0)
+            await db.close()
+            return result
+
+        assert run(scenario())["nickname"] == "Ich bin H*******n"
 
     def test_an_unknown_mode_is_refused(self, db_path):
         async def scenario():

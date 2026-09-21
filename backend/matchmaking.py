@@ -8,9 +8,9 @@ Three things follow from "with strangers" and are handled here rather than in
 the individual modes:
 
 * **The nickname is not free text.** A name that everyone in the room reads is
-  a broadcast channel. The queue defaults to a generated German name and only
-  accepts a typed one after a profanity check. Invite-link rooms keep their free
-  text: there the players already know each other.
+  a broadcast channel. The queue defaults to a generated German name and puts a
+  typed one through ``nicknames.sanitize_nickname``, the same rule every room
+  applies, including the invite-link ones.
 * **Pairing is a single writer.** It runs in the WS worker, and every claim is
   still guarded by ``matched_room_id IS NULL`` so a repeated pass cannot put one
   ticket into two rooms.
@@ -20,14 +20,13 @@ the individual modes:
 
 from __future__ import annotations
 
-import random
 import secrets
 from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
 from arena import iso_timestamp, parse_iso
-from wordlists import contains_profanity
+from nicknames import sanitize_nickname
 
 # Modes the queue serves. Kontexto duel and koop, Wordle duel, and the three
 # arena modes; the arena ones cost nothing extra because a room is a room.
@@ -60,52 +59,6 @@ PARTY_RULES: dict[str, PartyRule] = {
 # A ticket nobody claimed by then is dropped: the tab is gone, the player is not.
 TICKET_TTL_SECONDS = 300
 
-MAX_NICKNAME_LENGTH = 20
-
-
-# --- Nicknames --------------------------------------------------------------
-
-_ADJECTIVES = (
-    "Flinke", "Stille", "Kluge", "Wache", "Kuehne", "Feine", "Ruhige", "Helle",
-    "Rasche", "Zaehe", "Muntere", "Weise", "Frische", "Kesse", "Sanfte", "Freche",
-)
-
-_NOUNS = (
-    "Eule", "Otter", "Elster", "Dohle", "Amsel", "Marder", "Luchs", "Gemse",
-    "Robbe", "Biene", "Hummel", "Libelle", "Forelle", "Krabbe", "Kroete", "Meise",
-)
-
-
-def generate_nickname() -> str:
-    """A neutral German name for a player who did not choose one.
-
-    Two words plus a small number: short enough to read in a player list, varied
-    enough that a room of eight rarely shows the same name twice.
-    """
-    return f"{random.choice(_ADJECTIVES)} {random.choice(_NOUNS)} {random.randint(2, 99)}"
-
-
-def is_nickname_acceptable(name: str) -> bool:
-    """Whether a typed nickname may be shown to strangers.
-
-    A nickname is one token, so the whole string is joined before matching:
-    "arschgeige1" and "xxfotzexx" are the shapes a word list is evaded with.
-    """
-    stripped = name.strip()
-    if not 1 <= len(stripped) <= MAX_NICKNAME_LENGTH:
-        return False
-    if any(ord(ch) < 32 for ch in stripped):
-        return False
-
-    return not contains_profanity(stripped, collapse_words=True)
-
-
-def resolve_nickname(requested: str | None) -> str:
-    """The name this player will carry into a room with strangers."""
-    if requested and is_nickname_acceptable(requested):
-        return requested.strip()
-    return generate_nickname()
-
 
 # --- Queue ------------------------------------------------------------------
 
@@ -122,7 +75,7 @@ async def enqueue(
     now = now or datetime.now(timezone.utc)
 
     ticket = secrets.token_urlsafe(24)
-    resolved = resolve_nickname(nickname)
+    resolved = sanitize_nickname(nickname)
     await db.execute(
         "INSERT INTO matchmaking_queue (ticket, mode, nickname, enqueued_at) VALUES (?, ?, ?, ?)",
         (ticket, mode, resolved, iso_timestamp(now)),

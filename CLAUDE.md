@@ -92,7 +92,46 @@ Duel realtime is **DB‑polling broadcast** (`websocket_manager.py`): the WS wor
 Battle Royale, Blitz‑Duell and Zeitbonus‑Jagd share one table triple (`arenas`/`arena_players`/`arena_guesses`); they differ only in how a deadline is set and what happens when it passes. **The server owns time.** Every deadline is an absolute UTC timestamp written in `arena.iso_timestamp` (fixed width, so SQLite's string comparison is a time comparison) and shipped to the client together with `server_time`, which the client uses to correct its own clock. The guess path refuses a late guess itself (409 `time_up`), so the buzzer cannot be beaten inside the evaluator's one‑second window. Every transition in `advance_due_arenas` is guarded by the state it expects (`WHERE status = 'running' AND deadline_at <= ?`), so a repeated pass is a no‑op.
 
 ### Matchmaking (`matchmaking.py`)
-One `matchmaking_queue` table in front of every multiplayer mode. A table and not process memory, because the five workers share nothing else. Pairing runs in the WS worker and claims tickets under `matched_room_id IS NULL`. Playing with strangers changes what a nickname is: the queue defaults to a generated German name and accepts a typed one only after a substring profanity check (`wordlists.PROFANITY_BLOCKLIST`, transliterated). Invite‑link rooms keep their free text.
+One `matchmaking_queue` table in front of every multiplayer mode. A table and not process memory, because the five workers share nothing else. Pairing runs in the WS worker and claims tickets under `matched_room_id IS NULL`. The nickname rule is not the queue's own; it is `nicknames.sanitize_nickname` and every room runs it, invite links included (see below).
+
+### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)
+A name is the only free text the game has, everyone in the room reads it, and an invite link
+gets forwarded, so **one rule guards every door**: `sanitize_nickname` runs in `create_*` and
+`join_*` of duel, koop, arena and wordle‑duel as well as in `matchmaking.enqueue`. It is
+idempotent, because the matchmaking path sanitizes and then hands the name to a room
+constructor that sanitizes again.
+
+An abusive name is **not rejected, it is reflected**: whoever types `Hurensohn` plays as
+`Ich bin H*******n`. The mask is built from the blocklist entry, never from the typed spelling,
+so `HURENSOHN`, `hur3nsohn` and `xxHurensohnxx` all produce the same name. Nothing tells the
+player the filter fired. A rejection with a message is a probe (type, read the error, adjust);
+a silent rename gives nothing to calibrate against. The frontend needs no change for this: every
+client already reads the name back from the server (`player-info` or the join response).
+
+**Two lists, two questions.** `SOLUTION_BLOCKLIST` (hand‑maintained, exact match) answers
+"may this word be the puzzle's answer" and stays narrow on purpose: `Schwanz`, `Sack`, `geil`
+and `blasen` remain solvable homographs. The tiers under `backend/data/` answer "may a user
+write this" and are built on the vendored LDNOOBW German list (622 entries, CC0,
+`profanity_de_raw.txt`). Letting the big list decide the first question would ban harmless
+puzzle words.
+
+**The user‑text list has two tiers, because German compounds.** `profanity_de_strict.txt` is
+matched as a substring, which is how a word list gets evaded (`arschgeige1`, `xxfotzexx`).
+`profanity_de_word.txt` is matched only as a whole token, for entries that sit inside ordinary
+German (`mist` in `Mistel`, `after` in `Botschafter`, `puff` in `Auspuff`).
+`profanity_de_allow.txt` holds the legitimate words that carry a strict term inside them
+(`marsch`, `mongolei`, `broschure`) and is removed from the text before the scan.
+`profanity_de_ignored.txt` documents every raw entry this project does **not** enforce, with the
+reason; `Nilpferd`, `Ecke` and `Druck` are not insults, and neither are `schwul`, `homo` or
+`lesbe`, while the slurs built on them (`schwuchtel`, `kampflesbe`) stay. Which entry belongs
+where is measured, not guessed: `scripts/classify-profanity-list.py` scans the list against
+wordfreq's 50.000 most frequent German words plus `backend/german_names.txt` and prints the
+collisions. Run it after any list update.
+
+Matching happens over a normalised form that survives leetspeak (`f1ck`), Unicode confusables
+(a Cyrillic `а` in `аrsch`), zero‑width characters, combining marks and stretched
+letters (`aaarsch`). The survey free text uses the same engine with `collapse_words=False`, so
+tokens stay separate and "Star Schule" does not read as profane.
 
 ### Analytics (cookieless, server‑authoritative, `analytics.py`)
 Authoritative counts (guesses/solves/hints/reveals/duels) are incremented **server‑side from the real handlers**, never trusted from the client. Visitor identity is an anonymous, non‑reversible fingerprint `SHA256(IP + UA + monthly salt)` folded into **HyperLogLog** sketches (all‑time + monthly) for unique‑visitor estimates. Raw `analytics_events` are kept **35 days** then pruned; permanent rollups live in `analytics_daily`/`analytics_counters`/HLL tables. Only the completion **distribution histograms** come from the client (`stats/complete`), token‑gated + bot‑filtered + deduped. The attribution survey („Woher kennst du Kontexto?", `survey/answer`) follows the same pattern: the countable answer is a permanent counter (`survey_source_v1`), the dedup ledger `analytics_survey_seen` is kept 180 days, and the optional free text lives in `analytics_survey_details` **without** a fingerprint. Frontend side: `lib/survey.ts` (catalogue, shuffle, frequency caps), `components/SourceSurvey*.tsx`. Three further growth signals share the same posture: `starts` (counted once per fingerprint, mode and game via `analytics_start_seen`, triggered by the `first` flag on the opening guess, which is only a hint because the ledger caps it), `shares` plus `share_arrivals` (the share text carries `?s=<game>`, the marker is counted per page and stripped from the address bar on arrival) and `attention` (one heartbeat of a visible tab = `HEARTBEAT_SECONDS`). Heatmap/peak‑hour stats are bucketed in **`DISPLAY_TZ = Europe/Berlin`** (`analytics.py`).
@@ -135,6 +174,16 @@ wandern mit. Achtung bei neuen Farbwelten: `.dark` und `[data-palette]` haben di
 Spezifität, eine Farbwelt braucht deshalb **immer beide Blöcke**, auch die Vorgabe. Geprüft von
 `e2e/palette.spec.ts` und vom Kontrastlauf in `e2e/design-audit.spec.ts`, der alle fünf in beiden
 Modi misst.
+
+**Bewegung:** vier Stellen bewegen sich, jede an ein Ereignis gebunden. `Meter` fährt die Breite
+eines neu geratenen Worts an (CSS-Keyframe `meter-run` mit **nur einem `from`**, damit die
+Endbreite im Inline-Style steht und ohne JavaScript und unter `prefers-reduced-motion` stimmt),
+`RevealWord` baut das gelöste Wort buchstabenweise auf, `CountUp` zählt die Aufschlüsselung hoch,
+`OpeningDemo` spielt im Leerzustand einmal die Mechanik vor. Reihenfolge beim Lösen: Balken fährt
+an, dann Karte (`result-in`), dann Konfetti. Die beiden JS-getriebenen Stücke fragen
+`useReducedMotion()` selbst, weil der globale CSS-Block sie nicht erreicht, und tragen den
+Endzustand vom ersten Rendern an im DOM. Doppelt geprüft in `e2e/motion.spec.ts`: dass es sich
+bewegt, und dass es das bei `reducedMotion: "reduce"` nicht tut.
 
 ### shadcn/ui: the full set is vendored
 `frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),

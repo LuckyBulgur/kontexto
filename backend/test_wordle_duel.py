@@ -50,6 +50,23 @@ class TestCreateDuel:
         asyncio.run(_test())
 
 
+class TestNicknameRule:
+    def test_an_abusive_name_is_reflected_back_in_both_doors(self, db):
+        """Invite rooms run the same nickname rule as the matchmaking queue."""
+        async def _test():
+            conn = await _get_conn(db)
+            try:
+                created = await create_wordle_duel(conn, nickname="Hurensohn", game_number=42)
+                joined = await join_wordle_duel(
+                    conn, duel_id=created["duel_id"], nickname="xxWichserxx")
+                assert joined["nickname"] == "Ich bin W*****r"
+                assert [p["nickname"] for p in joined["players"]] == [
+                    "Ich bin H*******n", "Ich bin W*****r"]
+            finally:
+                await conn.close()
+        asyncio.run(_test())
+
+
 class TestJoinDuel:
     def test_join_returns_state(self, db):
         async def _test():

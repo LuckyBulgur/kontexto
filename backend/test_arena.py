@@ -77,6 +77,18 @@ class TestLobby:
         assert [p["nickname"] for p in state["players"]] == ["Ada", "Bob"]
         assert state["deadline_at"] is None
 
+    def test_an_abusive_name_is_reflected_back_in_both_doors(self, db_path):
+        """Invite rooms run the same nickname rule as the matchmaking queue."""
+        async def scenario():
+            db, arena_id, _ = await _room(db_path, "royale", ["Hurensohn", "xxWichserxx"])
+            state = await get_arena_state(db, arena_id)
+            await db.close()
+            return state
+
+        state = run(scenario())
+        assert [p["nickname"] for p in state["players"]] == [
+            "Ich bin H*******n", "Ich bin W*****r"]
+
     def test_an_unknown_mode_is_refused(self, db_path):
         async def scenario():
             db = await _open(db_path)

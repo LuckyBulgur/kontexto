@@ -266,7 +266,7 @@ export const modesFaqs: Faq[] = [
   },
   {
     q: `Warum wird mein Wunschname manchmal ersetzt?`,
-    a: `In einer Runde mit Fremden lesen alle deinen Namen, und ein Name ist damit eine Nachricht an Unbekannte. Beleidigende Namen werden deshalb abgelehnt und durch einen neutralen ersetzt. In einer Runde über Einladungslink gilt das nicht, dort kennt ihr euch.`,
+    a: `In jeder Runde lesen alle deinen Namen, und ein Einladungslink wird weitergereicht. Die Regel gilt deshalb überall, auch in Runden unter Freunden. Ein beleidigender Name wird nicht abgelehnt, er kommt zurück und zeigt auf dich selbst, mit Sternchen in der Mitte. Wer nichts Beleidigendes tippt, merkt davon nichts.`,
   },
   {
     q: `Was passiert, wenn meine Verbindung mitten in einer Runde abbricht?`,

@@ -5,7 +5,7 @@ Background
 ----------
 Two classes of solution must never appear:
   * offensive / FSK18 / insulting words (e.g. ``Arsch``), now blocked by
-    ``target_selection.PROFANITY_BLOCKLIST``;
+    ``wordlists.SOLUTION_BLOCKLIST``;
   * ß/ss orthographic twins (solution ``anlässlich`` while ``anläßlich`` sits at
     rank 2), now excluded by ``prepare.orthographic_twins`` /
     ``select_target_words``.

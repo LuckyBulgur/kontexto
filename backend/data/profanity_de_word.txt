@@ -1,0 +1,41 @@
+# Exact-token tier: only a whole word counts. These are insults on their own
+# but appear inside ordinary German, so a substring match would take Mistel,
+# Methoden, Auspuff and Botschafter with it.
+aas
+after
+bonze
+bordel
+bratze
+depp
+doedel
+fratze
+fresse
+hoden
+kacke
+kamel
+lellek
+lude
+luder
+luemmel
+lusche
+macker
+milf
+mist
+nepp
+nutte
+orgie
+orgien
+penner
+piefke
+piefkes
+puff
+scheide
+transe
+transen
+trottel
+tunte
+tunten
+tussi
+weichei
+zicke
+zickig
