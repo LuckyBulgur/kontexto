@@ -30,6 +30,7 @@ import {
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import ShareLinkButton from "@/components/ShareLinkButton";
 import ModePickerDialog from "@/components/ModePickerDialog";
+import { WordmarkName } from "@/components/design";
 
 interface HeaderProps {
   onTip: () => void;
@@ -135,7 +136,7 @@ export default function Header({
             href="/"
             className={pathname.startsWith("/wordle") ? "text-muted-foreground transition-colors hover:text-foreground" : ""}
           >
-            Kontexto
+            <WordmarkName name="Kontexto" />
           </Link>
           <span className="text-border" aria-hidden="true">/</span>
           <Link

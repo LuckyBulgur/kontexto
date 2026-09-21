@@ -23,6 +23,7 @@ export default function GuessBar({ word, rank, total, isNew, size = "default" }:
       fraction={getBarWidth(rank, total)}
       tone={toneFromRankColor(getRankColor(rank))}
       isNew={isNew}
+      highlight={isNew}
       emphasis={size === "lg"}
       className="mb-1"
     />

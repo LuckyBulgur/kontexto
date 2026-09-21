@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ShareLinkButton from "@/components/ShareLinkButton";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
+import { WordmarkName } from "@/components/design";
 
 interface WordleHeaderProps {
   /** Spielanleitung öffnen */
@@ -77,7 +78,7 @@ export default function WordleHeader({
         )}
         <div className="flex items-center gap-1.5 font-display text-h3 font-extrabold tracking-tight">
           <Link href="/" className="text-muted-foreground transition-colors hover:text-foreground">
-            Kontexto
+            <WordmarkName name="Kontexto" />
           </Link>
           <span className="text-border" aria-hidden="true">/</span>
           <Link href="/wordle/">Wördle</Link>

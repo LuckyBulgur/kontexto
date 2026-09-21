@@ -71,10 +71,33 @@ test.describe("Auslastung vor dem Einreihen", () => {
     }
   });
 
+  /**
+   * How many the royale row currently claims are waiting. "Gerade niemand da"
+   * is zero; anything else carries the figure.
+   */
+  async function waitingOnRoyale(page: import("@playwright/test").Page): Promise<number> {
+    const row = page.locator('label[for="modus-royale"]');
+    const text = await row.innerText();
+    const hit = text.match(/(\d+)\s+(?:wartet|warten)/);
+    return hit ? Number(hit[1]) : 0;
+  }
+
   test("ein wartender Spieler taucht in der Liste auf", async ({ browser }) => {
     const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
     for (const context of contexts) await blockThirdParty(context);
     const [waiter, watcher] = await Promise.all(contexts.map((c) => c.newPage()));
+
+    // Asserted as a delta, not as an absolute count. A ticket lives
+    // TICKET_TTL_SECONDS (300s, matchmaking.py) and the suite shares one SQLite
+    // file, so leftovers from an earlier test or an earlier run are still in the
+    // queue and "1 wartet" is only true on a cold one. Measured: the same line
+    // read "1 wartet gerade" and then "2 warten gerade" seconds later, with
+    // nobody new joining.
+    await watcher.goto("/suche/");
+    await expect(watcher.locator('label[for="modus-royale"]').getByText(LOAD_LINE)).toBeVisible({
+      timeout: 20_000,
+    });
+    const before = await waitingOnRoyale(watcher);
 
     // Royale needs three players, so a single ticket stays in the queue long
     // enough for a second tab to read it.
@@ -82,9 +105,9 @@ test.describe("Auslastung vor dem Einreihen", () => {
     await waiter.getByRole("button", { name: "Mitspieler suchen" }).click();
     await expect(waiter.getByText("Suche Mitspieler")).toBeVisible({ timeout: 20_000 });
 
-    await watcher.goto("/suche/");
-    const royale = watcher.locator('label[for="modus-royale"]');
-    await expect(royale.getByText(/1 wartet/)).toBeVisible({ timeout: 20_000 });
+    await expect
+      .poll(() => waitingOnRoyale(watcher), { timeout: 20_000, intervals: [500] })
+      .toBeGreaterThan(before);
 
     for (const context of contexts) await context.close();
   });

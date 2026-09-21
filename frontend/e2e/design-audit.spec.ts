@@ -129,6 +129,59 @@ test.describe("design audit", () => {
     });
   }
 
+  /**
+   * Affordance: a control that carries text must look like a control when
+   * nobody is pointing at it.
+   *
+   * `variant="ghost"` renders as bare text and only grows a surface on hover,
+   * and on a touch screen there is no hover at all, so it never grows one. An
+   * icon is exempt: a glyph carries its own shape, which is why the back arrow
+   * and the kebab stay ghosts. Text without an icon is not exempt, and that is
+   * the whole rule.
+   */
+  const AFFORDANCE_PAGES = [
+    "/",
+    "/modi/",
+    "/suche/",
+    "/wordle/",
+    "/zahlen/",
+    "/anleitung/",
+    "/solo/leiter/",
+    "/duel/create/",
+    "/koop/create/",
+    "/arena/create/",
+    "/blog/",
+    "/faq/",
+  ];
+
+  for (const path of AFFORDANCE_PAGES) {
+    test(`Knopf-Affordanz ${path}`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForTimeout(250);
+
+      const bare = await page.evaluate(() => {
+        const flat = (c: string) => c === "transparent" || c === "rgba(0, 0, 0, 0)";
+        return [...document.querySelectorAll("[data-slot='button']")]
+          .filter((el) => {
+            const box = el.getBoundingClientRect();
+            if (box.width === 0 || box.height === 0) return false;
+            // A glyph is its own affordance.
+            if (el.querySelector("svg")) return false;
+            if (!el.textContent?.trim()) return false;
+            const cs = getComputedStyle(el);
+            const hasFill = !flat(cs.backgroundColor);
+            const hasEdge =
+              Number.parseFloat(cs.borderTopWidth) > 0 && !flat(cs.borderTopColor);
+            const hasUnderline = cs.textDecorationLine.includes("underline");
+            return !hasFill && !hasEdge && !hasUnderline;
+          })
+          .map((el) => el.textContent!.trim().slice(0, 40));
+      });
+
+      expect(bare, `Knoepfe ohne Flaeche, Kante oder Unterstrich auf ${path}`).toEqual([]);
+    });
+  }
+
   const PAGES: { path: string; name: string; prepare?: (page: Page) => Promise<void> }[] = [
     { path: "/", name: "home-empty" },
     {

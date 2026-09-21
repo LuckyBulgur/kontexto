@@ -85,7 +85,7 @@ export default function SourceSurveyDialog({
             {COPY.done}
           </Button>
         ) : (
-          <Button variant="ghost" onClick={onSkipped} className="w-full text-muted-foreground">
+          <Button variant="outline" onClick={onSkipped} className="w-full text-muted-foreground">
             {COPY.skip}
           </Button>
         )}

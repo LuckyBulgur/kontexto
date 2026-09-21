@@ -32,6 +32,7 @@ import { KoopPlayer, KoopWsMessage, KoopState } from "@/lib/koop-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
+import RoomLanding from "@/components/RoomLanding";
 
 function getKoopIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
@@ -384,12 +385,12 @@ export default function KoopPageClient() {
 
   if (!koopId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-muted-foreground">Kein Koop ausgewählt.</p>
-        <a href="/koop/create/" className="text-primary underline">
-          Neuen Koop erstellen
-        </a>
-      </div>
+      <RoomLanding
+        title="Kein Koop offen"
+        description="Ein Koop braucht einen Einladungslink. Erstell einen, dann bekommst du ihn."
+        createHref="/koop/create/"
+        createLabel="Koop erstellen"
+      />
     );
   }
 

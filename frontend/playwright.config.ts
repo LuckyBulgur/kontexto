@@ -36,6 +36,9 @@ const backendCommand = backendVenv
   : `python -m uvicorn ${backendArgs}`;
 
 export default defineConfig({
+  // Clears the matchmaking queue before the run; see e2e/global-setup.ts for
+  // why that one table and not the whole database.
+  globalSetup: "./e2e/global-setup.ts",
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
   // Single backend + one SQLite file is shared state; run serially so the smoke

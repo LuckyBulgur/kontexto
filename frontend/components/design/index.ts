@@ -8,4 +8,6 @@ export { ResultHero } from "./ResultHero";
 export type { ResultHeroProps } from "./ResultHero";
 export { ResultList, ResultRow } from "./ResultList";
 export type { ResultRowProps } from "./ResultList";
-export { Wordmark } from "./Wordmark";
+export { Wordmark, WordmarkName } from "./Wordmark";
+export { CountUp } from "./CountUp";
+export { RevealWord } from "./RevealWord";

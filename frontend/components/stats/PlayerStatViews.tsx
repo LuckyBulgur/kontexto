@@ -4,15 +4,13 @@
 // statistics dialogs. Deliberately NOT built on recharts so the game route
 // bundles stay small (recharts is reserved for the admin dashboard).
 
+import { Stat } from "@/components/design";
 import { WEEKDAY_LABELS } from "@/lib/format";
 
+/** The tile form of the shared Stat, so the statistics dialogs and the rest of
+ *  the site count in the same shape. */
 export function StatTile({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-xl bg-muted/60 px-2 py-3 text-center">
-      <div className="text-h2 font-bold tabular-nums leading-none">{value}</div>
-      <div className="mt-1 text-micro leading-tight text-muted-foreground">{label}</div>
-    </div>
-  );
+  return <Stat layout="tile" label={label} value={value} />;
 }
 
 export interface DistributionRow {
@@ -37,7 +35,7 @@ export function DistributionBars({
             <span className="w-12 shrink-0 text-right text-micro tabular-nums text-muted-foreground">{r.label}</span>
             <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
               <div
-                className={`flex h-full items-center justify-end rounded px-1.5 text-micro font-bold text-white ${
+                className={`flex h-full items-center justify-end rounded px-1.5 text-micro font-bold text-primary-foreground ${
                   highlighted ? "bg-primary" : "bg-muted-foreground/55"
                 }`}
                 style={{ width: `${r.value > 0 ? Math.max(12, (r.value / max) * 100) : 0}%` }}

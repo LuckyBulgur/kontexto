@@ -32,7 +32,8 @@ const COPY = {
 // the 44 px touch target the survey sits behind on a phone, and the muted size
 // of the skip link.
 const CHIP_CLASS = "min-h-11 whitespace-normal";
-const LINK_CLASS = "h-auto px-1 py-0 text-micro text-muted-foreground hover:text-foreground";
+/** Small and quiet, but still underlined: it is a control, not a caption. */
+const LINK_CLASS = "h-auto px-1 py-0 text-micro";
 
 export default function SourceSurvey({
   onAnswered,

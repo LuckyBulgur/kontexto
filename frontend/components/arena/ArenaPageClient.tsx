@@ -33,6 +33,7 @@ import { formatCountdown, useClockOffset, useCountdown } from "@/lib/use-server-
 import { loadDifficulty, loadSortMode, loadTheme, saveDifficulty, saveSortMode, saveTheme } from "@/lib/storage";
 import { Difficulty, Guess, SortMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import RoomLanding from "@/components/RoomLanding";
 
 /** `/arena/<id>/` carries the room; `/arena/` and `/arena/create/` do not. */
 function getArenaIdFromPath(): string | null {
@@ -481,30 +482,15 @@ export default function ArenaPageClient() {
   );
 }
 
-/** `/arena/` without a room id: the three modes and where to start one. */
+/** `/arena/` without a room id: where to start one. Shared with duel and koop,
+ *  so a lost link looks the same in every mode. */
 function ArenaLanding() {
   return (
-    <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center gap-4 px-4">
-      <div className="w-full rounded-xl border bg-card p-6 space-y-3 text-center">
-        <h2 className="text-h3 font-bold">{"Hier ist gerade keine Runde"}</h2>
-        <p className="text-small text-muted-foreground">
-          {"Eine Arena-Runde braucht einen Link oder eine Suche nach Mitspielern."}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <a
-            href="/modi/"
-            className="rounded-lg bg-primary px-4 py-2.5 text-small font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {"Alle Modi ansehen"}
-          </a>
-          <a
-            href="/arena/create/"
-            className="rounded-lg border px-4 py-2.5 text-small font-medium transition-colors hover:bg-accent"
-          >
-            {"Eigene Runde erstellen"}
-          </a>
-        </div>
-      </div>
-    </div>
+    <RoomLanding
+      title="Keine Runde offen"
+      description="Eine Arena-Runde braucht einen Link oder eine Suche nach Mitspielern."
+      createHref="/arena/create/"
+      createLabel="Runde erstellen"
+    />
   );
 }

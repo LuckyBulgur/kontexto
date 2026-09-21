@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { RevealWord } from "./RevealWord";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,6 +23,9 @@ export interface ResultHeroProps {
   /** Renders the hero in the muted ink used for a lost round. */
   lost?: boolean;
   as?: "h1" | "h2";
+  /** Builds the headline letter by letter. Only for a single solved word: on a
+   *  sentence like "Niemand gewinnt" it would read as a typewriter gimmick. */
+  reveal?: boolean;
   className?: string;
 }
 
@@ -31,6 +35,7 @@ export function ResultHero({
   support,
   lost,
   as = "h2",
+  reveal,
   className,
 }: ResultHeroProps) {
   const Heading = as;
@@ -46,7 +51,11 @@ export function ResultHero({
         )}
         lang="de"
       >
-        {headline}
+        {reveal && typeof headline === "string" ? (
+          <RevealWord word={headline} delayMs={120} />
+        ) : (
+          headline
+        )}
       </Heading>
       {support ? (
         <p className="mt-1 text-body text-muted-foreground">{support}</p>

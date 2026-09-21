@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
+import { prefersReducedMotion } from "@/lib/use-reduced-motion";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
@@ -20,7 +21,8 @@ import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelHeader, Stat, StatRow } from "@/components/design";
-import { cn } from "@/lib/utils";
+import OpeningDemo, { OPENING_DEMO_TARGET } from "@/components/OpeningDemo";
+import { HowToPlaySteps, RankLegend } from "@/components/HowToPlay";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
@@ -31,18 +33,7 @@ import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
 import type { PodestError } from "@/components/GuessList";
 
-/** The three steps of a round, in the order they actually happen. */
-const HOW_IT_WORKS = [
-  { title: "Wort eingeben.", body: "Jedes deutsche Wort zählt, auch eines, das weit daneben liegt." },
-  { title: "Rang ablesen.", body: "Rang 1 ist das gesuchte Wort. Je kleiner die Zahl, desto näher bist du." },
-  { title: "Der Bedeutung folgen.", body: "Denk weiter in die Richtung, in der die Ränge kleiner werden." },
-] as const;
 
-const RANK_LEGEND = [
-  { dot: "bg-rank-near", label: "Grün", range: "Rang 1 bis 300", desc: "sehr nah am Zielwort" },
-  { dot: "bg-rank-mid", label: "Gelb", range: "Rang 301 bis 1500", desc: "auf dem richtigen Weg" },
-  { dot: "bg-rank-far", label: "Rot", range: "ab Rang 1501", desc: "noch weit entfernt" },
-] as const;
 
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -216,11 +207,20 @@ export default function GameClient() {
     }));
     setLatestWord(guess.word);
     if (guess.rank === 1) {
-      fireConfetti();
       if (pastGame === null && !infinite) {
         recordGamePlayed(new Date().toISOString().slice(0, 10));
       }
-      setTimeout(() => setShowResult(true), 500);
+      // One staged moment, in the order a player reads it: the winning bar runs
+      // out (Meter, 1000ms on the emphasised row), then the card arrives, then
+      // the confetti celebrates what is already on screen. Firing the confetti
+      // first, as it did, celebrated a result nobody had seen yet.
+      if (prefersReducedMotion()) {
+        setShowResult(true);
+        fireConfetti();
+      } else {
+        setTimeout(() => setShowResult(true), 1100);
+        setTimeout(fireConfetti, 1450);
+      }
     }
   }, [pastGame, infinite]);
 
@@ -459,44 +459,30 @@ export default function GameClient() {
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
               <Panel>
+                {/* Watch first, read second. The demo plays the mechanic once,
+                    the rules underneath stay on the page for anyone who wants
+                    them without opening a dialog. */}
+                <div className="flex flex-col gap-3">
+                  {/* One line down to 320px, measured. It also says the one
+                      thing nothing else on this page says yet: what separates
+                      Kontexto from Wördle. Step 3 below covers "follow the
+                      meaning", so repeating that here would be filler. */}
+                  <p className="text-lead font-semibold text-balance">
+                    Bedeutung statt Buchstaben.
+                  </p>
+                  <OpeningDemo />
+                  <p className="text-micro text-muted-foreground">
+                    Beispiel, gesucht war „{OPENING_DEMO_TARGET}“
+                  </p>
+                </div>
+
                 <PanelHeader
+                  as="h3"
                   title="So funktioniert's"
                   description="Gib ein beliebiges deutsches Wort ein. Kontexto sagt dir, wie nah seine Bedeutung am geheimen Wort liegt."
                 />
-                {/* An ordered list because the order is real: you cannot read a
-                    rank before you have guessed, and you cannot follow the
-                    meaning before you have read one. */}
-                <ol className="flex flex-col gap-3">
-                  {HOW_IT_WORKS.map((step, i) => (
-                    <li key={step.title} className="flex gap-3">
-                      <span
-                        data-numeric
-                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-micro font-bold text-primary-foreground"
-                        aria-hidden="true"
-                      >
-                        {i + 1}
-                      </span>
-                      <p className="text-small text-muted-foreground">
-                        <span className="font-semibold text-foreground">{step.title}</span>{" "}
-                        {step.body}
-                      </p>
-                    </li>
-                  ))}
-                </ol>
-                <Panel tone="quiet" padding="sm" className="gap-2">
-                  {RANK_LEGEND.map((row) => (
-                    <div key={row.label} className="flex items-start gap-2.5">
-                      <span
-                        className={cn("mt-[0.45rem] inline-block h-2.5 w-2.5 shrink-0 rounded-full", row.dot)}
-                        aria-hidden="true"
-                      />
-                      <p className="text-small">
-                        <span className="font-semibold">{row.label}</span>{" "}
-                        <span className="text-muted-foreground">{row.range}, {row.desc}</span>
-                      </p>
-                    </div>
-                  ))}
-                </Panel>
+                <HowToPlaySteps />
+                <RankLegend />
               </Panel>
             )}
           </>

@@ -30,6 +30,7 @@ import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
+import RoomLanding from "@/components/RoomLanding";
 
 function getDuelIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
@@ -393,12 +394,12 @@ export default function DuelPageClient() {
 
   if (!duelId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-muted-foreground">Kein Duell ausgewählt.</p>
-        <a href="/duel/create/" className="text-primary underline">
-          Neues Duell erstellen
-        </a>
-      </div>
+      <RoomLanding
+        title="Kein Duell offen"
+        description="Ein Duell braucht einen Einladungslink. Erstell eins, dann bekommst du einen."
+        createHref="/duel/create/"
+        createLabel="Duell erstellen"
+      />
     );
   }
 

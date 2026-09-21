@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Guess, getRankColor } from "@/lib/types";
 import { loadStreakData } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
-import { Panel, ResultHero } from "@/components/design";
+import { CountUp, Panel, ResultHero } from "@/components/design";
 import ShareButton from "./ShareButton";
 
 interface GameResultCardProps {
@@ -66,6 +66,7 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         eyebrow={infinite ? "Das Wort war" : `Spiel #${gameNumber}, das Wort war`}
         headline={solvedWord}
         lost={givenUp}
+        reveal={isWin}
         support={`${isWin ? "Gelöst in" : "Aufgegeben nach"} ${plural(guessCount, "Versuch", "Versuchen")}${
           tipCount > 0 ? ` und ${plural(tipCount, "Tipp", "Tipps")}` : " ohne Tipp"
         }.${isWin ? " Stark!" : ""}`}
@@ -75,12 +76,14 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         // A tally, not three stacked stats: with one tone present a stat column
         // sits alone on the left and reads as a broken layout.
         <div className="flex flex-wrap items-baseline justify-center gap-x-6 gap-y-2">
-          {breakdown.map((row) => (
+          {breakdown.map((row, i) => (
             <span key={row.key} className="flex items-baseline gap-1.5 text-small text-muted-foreground">
               <span aria-hidden="true">{row.emoji}</span>
-              <span data-numeric className="font-display text-lead font-bold text-foreground">
-                {row.count}
-              </span>
+              <CountUp
+                value={row.count}
+                delayMs={420 + i * 140}
+                className="font-display text-lead font-bold text-foreground"
+              />
               {row.label}
             </span>
           ))}
@@ -124,11 +127,11 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         </p>
         <div className="flex flex-wrap gap-2">
           {!infinite && (
-            <Button variant="ghost" size="sm" onClick={onOpenPastGames}>
+            <Button variant="outline" size="sm" onClick={onOpenPastGames}>
               Vorherige Spiele
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onOpenClosestWords}>
+          <Button variant="outline" size="sm" onClick={onOpenClosestWords}>
             Ähnlichste Wörter
           </Button>
         </div>

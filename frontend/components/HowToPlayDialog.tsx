@@ -6,52 +6,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { HowToPlayBody } from "@/components/HowToPlay";
 
 interface HowToPlayDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
+/**
+ * The same explanation the empty board shows, in the same shape.
+ *
+ * It used to be four paragraphs of prose with a bullet list for the colours,
+ * while the board showed three numbered steps and a legend panel. Same content,
+ * two shapes, two things to keep true. `HowToPlay` is now the single source.
+ */
 export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-h3">Spielanleitung</DialogTitle>
-          <DialogDescription className="sr-only">Wie man Kontexto spielt</DialogDescription>
+          <DialogDescription>
+            {"Errate das geheime Wort über seine Bedeutung, nicht über die Buchstaben."}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2 text-small text-muted-foreground">
-          <p>
-            Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
-          </p>
-
-          <div className="space-y-2">
-            <h3 className="font-medium text-foreground">Rang-System</h3>
-            <p>
-              Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit zum geheimen Wort. Je niedriger der Rang, desto näher bist du dran.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-medium text-foreground">Farben</h3>
-            <ul className="space-y-1 list-none">
-              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-near mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
-              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-mid mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
-              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-far mr-2 align-middle" />Rot: noch weit entfernt (Rang 1501+)</li>
-            </ul>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-medium text-foreground">Tipps</h3>
-            <p>
-              Nutze das Menü, um dir einen Tipp geben zu lassen. Der Schwierigkeitsgrad kann in den Einstellungen angepasst werden.
-            </p>
-          </div>
-
-          <p>
-            Jeden Tag gibt es ein neues Wort. Viel Spaß beim Raten!
-          </p>
+        <div className="scrollbar-thin max-h-[70vh] overflow-y-auto pt-1">
+          <HowToPlayBody />
         </div>
       </DialogContent>
     </Dialog>

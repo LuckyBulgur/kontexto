@@ -17,6 +17,19 @@ import { cn } from "@/lib/utils";
 
 export type StatSize = "sm" | "md" | "lg";
 
+/**
+ * Two orders, and the difference is not taste.
+ *
+ * `row`: label above value, left aligned. Used where several counters sit side
+ * by side and the reader scans the labels to find the one they want.
+ * `tile`: value above label, centred, on a quiet fill. Used in a grid, where
+ * the numbers are the content and the labels only name them.
+ *
+ * Both existed before as two components with two looks and no stated reason.
+ * They are one component now, and this is the reason.
+ */
+export type StatLayout = "row" | "tile";
+
 const VALUE_SIZE: Record<StatSize, string> = {
   sm: "text-lead",
   md: "text-h2",
@@ -31,6 +44,7 @@ export interface StatProps {
   size?: StatSize;
   /** Dims the whole pair for a counter that is currently irrelevant. */
   muted?: boolean;
+  layout?: StatLayout;
   className?: string;
 }
 
@@ -40,32 +54,52 @@ export function Stat({
   unit,
   size = "sm",
   muted,
+  layout = "row",
   className,
 }: StatProps) {
+  const tile = layout === "tile";
+  const name = (
+    <span
+      // German compounds are long and a tile is narrow: "Loesungsquote" has no
+      // break opportunity of its own and was painting under the next tile.
+      // `hyphens-auto` with a language gives it one, `break-words` is the
+      // fallback for a word even hyphenation cannot place.
+      lang={tile ? "de" : undefined}
+      className={cn(
+        "text-micro",
+        tile ? "leading-tight hyphens-auto break-words" : "truncate",
+        muted ? "text-muted-foreground/70" : "text-muted-foreground",
+      )}
+    >
+      {label}
+    </span>
+  );
+  const figure = (
+    <span
+      className={cn(
+        "flex items-baseline gap-1 font-display font-bold tabular-nums",
+        tile ? "justify-center leading-none" : "",
+        VALUE_SIZE[tile ? "md" : size],
+        muted && "text-muted-foreground",
+      )}
+    >
+      <span data-numeric>{value}</span>
+      {unit ? (
+        <span className="text-micro font-sans font-medium text-muted-foreground">{unit}</span>
+      ) : null}
+    </span>
+  );
+
   return (
-    <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
-      <span
-        className={cn(
-          "truncate text-micro",
-          muted ? "text-muted-foreground/70" : "text-muted-foreground",
-        )}
-      >
-        {label}
-      </span>
-      <span
-        className={cn(
-          "flex items-baseline gap-1 font-display font-bold tabular-nums",
-          VALUE_SIZE[size],
-          muted && "text-muted-foreground",
-        )}
-      >
-        <span data-numeric>{value}</span>
-        {unit ? (
-          <span className="text-micro font-sans font-medium text-muted-foreground">
-            {unit}
-          </span>
-        ) : null}
-      </span>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        tile ? "gap-1 rounded-xl bg-muted px-2 py-3 text-center" : "gap-0.5",
+        className,
+      )}
+    >
+      {tile ? figure : name}
+      {tile ? name : figure}
     </div>
   );
 }

@@ -50,7 +50,7 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
           <DialogDescription className="sr-only">Wähle ein vergangenes Spiel zum Spielen</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-80 overflow-y-auto -mx-2">
+        <div className="scrollbar-thin -mx-2 flex max-h-80 flex-col gap-1.5 overflow-y-auto px-2 pb-1">
           {loading && (
             <div className="space-y-1" aria-busy="true" aria-label="Spiele werden geladen">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -66,12 +66,15 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
           )}
           {!loading && !error && games.map((game) => (
             <Button
-              key={game.gameNumber}
-              variant="ghost"
+              // Keyed by date, not by game number: the pool wraps, so the same
+              // puzzle comes round again on a later date and the number is not
+              // unique in this list. One row per day, so the date is.
+              key={game.date}
+              variant="secondary"
               onClick={() => { onSelectGame(game.gameNumber); onClose(); }}
               className="h-auto w-full justify-between px-3 py-2.5 text-left font-normal"
             >
-              <span className="font-medium">Spiel #{game.gameNumber}</span>
+              <span data-numeric className="font-display font-bold">Spiel #{game.gameNumber}</span>
               <span className="text-small text-muted-foreground">{formatDate(game.date)}</span>
             </Button>
           ))}

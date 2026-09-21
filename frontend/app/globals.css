@@ -282,11 +282,96 @@
   button, a, [role="button"], input[type="submit"], select {
     cursor: pointer;
   }
+  /* A thin scrollbar in the theme's own colours, everywhere.
+     The native chrome is the one part of the page that ignored the design
+     system: a wide grey bar that changes shape per operating system and does
+     not follow the Farbwelt. `scrollbar-width` and `scrollbar-color` are the
+     standard properties (Chrome 121+, Firefox, Safari 18+); the ::-webkit
+     block underneath carries older WebKit, where the standard ones are
+     ignored rather than conflicting. */
+  /* On `*`, not on `html`: `scrollbar-width` does not inherit, so scoping it
+     to the document would style the page scrollbar and leave every inner
+     scroll container, every dialog list and every code block on the native
+     one. The ::-webkit rules below are already universal, so this is also what
+     makes the two mechanisms agree instead of disagreeing per browser. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    /* Inset via a transparent border so the thumb reads as a slim pill with
+       breathing room, instead of filling the gutter edge to edge. */
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: var(--border);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* Opt-in for a scroll container that should be slimmer than the page itself,
+   such as a list inside a dialog. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: var(--border);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
 }
 
 /* The one staged moment: the result card arrives after the winning bar has
    finished running out. Bound to a single event, never to scroll or to a
    section becoming visible. */
+/* The rank bar running out to its length.
+   `transform`, not `width`: animating width makes the browser re-run layout on
+   every frame, which is what made this read as sluggish rather than as motion.
+   A scale runs on the compositor, so it holds 60fps on a phone.
+   Only a `from` is given, so the animation ends at whatever scale the element
+   was rendered with: the end state lives in the inline style and is therefore
+   correct with no JavaScript at all, which is what makes this safe under
+   `prefers-reduced-motion` (duration goes to ~0, `both` snaps it to the end)
+   and correct on a page that never hydrates. */
+@keyframes meter-run {
+  from { transform: scaleX(0); }
+}
+
+.animate-meter-run {
+  /* Fast out of the gate, settling rather than braking. Shorter than the
+     original 500ms: the bar is read at a glance, and a glance does not wait. */
+  animation: meter-run 340ms cubic-bezier(0.22, 0.75, 0.3, 1) both;
+  will-change: transform;
+}
+
+.animate-meter-run-slow {
+  /* The winning row, the last thing that happens in a round. */
+  animation: meter-run 620ms cubic-bezier(0.22, 0.75, 0.3, 1) both;
+  will-change: transform;
+}
+
 @keyframes result-in {
   from { opacity: 0; transform: translateY(8px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -801,6 +886,7 @@
      .animate-wordle-bounce    Gewinnreihe ohne Huepfen
      .animate-wordle-fade-in   kein Einblenden
      .animate-result-in        Ergebniskarte steht sofort da
+     .animate-meter-run        Ratebalken steht sofort auf seiner Breite
      event-goal                der Torjubel entfaellt
 
    Framer Motion braucht diesen Block nicht, es haengt bereits an derselben
