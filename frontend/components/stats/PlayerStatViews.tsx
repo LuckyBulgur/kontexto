@@ -9,8 +9,8 @@ import { WEEKDAY_LABELS } from "@/lib/format";
 export function StatTile({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl bg-muted/60 px-2 py-3 text-center">
-      <div className="text-2xl font-bold tabular-nums leading-none">{value}</div>
-      <div className="mt-1 text-[11px] leading-tight text-muted-foreground">{label}</div>
+      <div className="text-h2 font-bold tabular-nums leading-none">{value}</div>
+      <div className="mt-1 text-micro leading-tight text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -34,11 +34,11 @@ export function DistributionBars({
         const highlighted = r.label === highlightLabel;
         return (
           <div key={r.label} className="flex items-center gap-2">
-            <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{r.label}</span>
+            <span className="w-12 shrink-0 text-right text-micro tabular-nums text-muted-foreground">{r.label}</span>
             <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
               <div
-                className={`flex h-full items-center justify-end rounded px-1.5 text-[10px] font-bold text-white ${
-                  highlighted ? "bg-green-600" : "bg-zinc-500 dark:bg-zinc-600"
+                className={`flex h-full items-center justify-end rounded px-1.5 text-micro font-bold text-white ${
+                  highlighted ? "bg-primary" : "bg-muted-foreground/55"
                 }`}
                 style={{ width: `${r.value > 0 ? Math.max(12, (r.value / max) * 100) : 0}%` }}
               >
@@ -75,7 +75,7 @@ export function CalendarHeatmap({ dates, weeks = 18 }: { dates: string[]; weeks?
   return (
     <div className="overflow-x-auto">
       <div className="flex gap-[3px]">
-        <div className="mr-1 flex flex-col gap-[3px] pt-[2px] text-[9px] text-muted-foreground">
+        <div className="mr-1 flex flex-col gap-[3px] pt-[2px] text-micro text-muted-foreground">
           {WEEKDAY_LABELS.map((d, i) => (
             <span key={d} className="h-3 leading-3">{i % 2 === 0 ? d : ""}</span>
           ))}
@@ -90,7 +90,7 @@ export function CalendarHeatmap({ dates, weeks = 18 }: { dates: string[]; weeks?
               return (
                 <div
                   key={ms}
-                  title={future ? "" : `${iso}${active ? " · gespielt" : ""}`}
+                  title={future ? "" : `${iso}${active ? ", gespielt" : ""}`}
                   className={`h-3 w-3 rounded-[2px] ${isToday ? "ring-1 ring-foreground/50" : ""}`}
                   style={{
                     backgroundColor: future

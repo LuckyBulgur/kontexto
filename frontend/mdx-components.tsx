@@ -11,14 +11,14 @@ import Callout from "@/components/content/Callout";
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     h1: (p) => (
-      <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground" {...p} />
+      <h1 className="mb-4 text-h1 font-bold tracking-tight text-foreground" {...p} />
     ),
     h2: ({ children, ...p }) => {
       const id = typeof children === "string" ? slugify(children) : undefined;
       return (
         <h2
           id={id}
-          className="mt-10 mb-3 scroll-mt-24 text-xl font-semibold text-foreground"
+          className="mt-10 mb-3 scroll-mt-24 text-h3 font-semibold text-foreground"
           {...p}
         >
           {children}
@@ -30,7 +30,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       return (
         <h3
           id={id}
-          className="mt-6 mb-2 scroll-mt-24 text-lg font-semibold text-foreground"
+          className="mt-6 mb-2 scroll-mt-24 text-lead font-semibold text-foreground"
           {...p}
         >
           {children}
@@ -47,7 +47,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     hr: () => <hr className="my-8 border-border" />,
     table: (p) => (
       <div className="my-6 overflow-x-auto rounded-lg border border-border">
-        <table className="w-full border-collapse text-sm" {...p} />
+        <table className="w-full border-collapse text-small" {...p} />
       </div>
     ),
     thead: (p) => <thead className="bg-muted/50" {...p} />,

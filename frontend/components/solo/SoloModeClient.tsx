@@ -57,6 +57,7 @@ import {
   saveTheme,
 } from "@/lib/storage";
 import { Difficulty, SortMode } from "@/lib/types";
+import { Panel } from "@/components/design";
 
 interface SoloModeClientProps {
   mode: SoloModeId;
@@ -392,17 +393,17 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
               placeholder={inputPlaceholder(state)}
             />
             {state.mode === "suddendeath" && (
-              <div className="rounded-xl border bg-card p-4 space-y-2">
-                <h2 className="text-sm font-semibold">{"Die nächsten Nachbarn"}</h2>
+              <Panel padding="sm" className="gap-2">
+                <h2 className="text-small font-semibold">{"Die nächsten Nachbarn"}</h2>
                 <ol className="space-y-1">
                   {state.hints.map((hint) => (
-                    <li key={hint.word} className="flex items-baseline justify-between text-sm">
+                    <li key={hint.word} className="flex items-baseline justify-between text-small">
                       <span className="font-medium">{hint.word}</span>
-                      <span className="font-mono text-muted-foreground">Rang {hint.rank}</span>
+                      <span className="tabular-nums text-muted-foreground">Rang {hint.rank}</span>
                     </li>
                   ))}
                 </ol>
-              </div>
+              </Panel>
             )}
             {soloGuessCount(state) === 0 && <SoloRulesCard mode={meta} />}
           </>
@@ -499,14 +500,14 @@ function DoppelBoard({
       {(pendingWord || podestError || latest?.correctedFrom) && (
         <div className="mt-[9px] mb-[25px]">
           {pendingWord ? (
-            <p className="text-sm text-foreground animate-pulse">{"Lädt..."}</p>
+            <p className="text-small text-foreground animate-pulse">{"Lädt..."}</p>
           ) : podestError ? (
             <>
-              <p className="text-sm text-foreground font-medium">{podestError.message}</p>
+              <p className="text-small text-foreground font-medium">{podestError.message}</p>
               <GuessSuggestions suggestions={podestError.suggestions} onSuggestion={onSuggestion} />
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               {`„${latest?.correctedFrom}“ wurde als „${latest?.word}“ gewertet`}
             </p>
           )}

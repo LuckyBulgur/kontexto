@@ -45,20 +45,20 @@ export default function StatsDialog({ open, onClose }: StatsDialogProps) {
         </div>
 
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Versuche bis zur Lösung</h4>
+          <h4 className="text-small font-semibold">Versuche bis zur Lösung</h4>
           {hasDistribution ? (
             <DistributionBars rows={distRows} />
           ) : (
-            <p className="text-sm text-muted-foreground">Löse dein erstes Rätsel, um die Verteilung zu sehen.</p>
+            <p className="text-small text-muted-foreground">Löse dein erstes Rätsel, um die Verteilung zu sehen.</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Gespielte Tage</h4>
+          <h4 className="text-small font-semibold">Gespielte Tage</h4>
           {streak.datesPlayed.length > 0 ? (
             <CalendarHeatmap dates={streak.datesPlayed} />
           ) : (
-            <p className="text-sm text-muted-foreground">Noch keine gespielten Tage.</p>
+            <p className="text-small text-muted-foreground">Noch keine gespielten Tage.</p>
           )}
         </div>
       </DialogContent>

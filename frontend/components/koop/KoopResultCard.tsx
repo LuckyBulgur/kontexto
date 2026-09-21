@@ -3,6 +3,7 @@
 import { Guess } from "@/lib/types";
 import { KoopPlayer } from "@/lib/koop-types";
 import { Button } from "@/components/ui/button";
+import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface KoopResultCardProps {
   gameNumber: number;
@@ -29,54 +30,37 @@ export default function KoopResultCard({
   const sorted = [...players].sort(
     (a, b) => b.contribution_count - a.contribution_count
   );
+  const finder = !gaveUp && solvedBy
+    ? `${solvedBy}${solvedBy === currentNickname ? " (du)" : ""} hat es gefunden, nach ${guesses.length} Versuchen im Team.`
+    : `${guesses.length} Versuche im Team.`;
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4 text-center">
-      <h2 className="text-xl font-bold">
-        {gaveUp ? "Aufgegeben" : "Gemeinsam gelöst!"}
-      </h2>
-      <p className="text-muted-foreground">
-        Spiel #{gameNumber} · Das Wort war{" "}
-        <strong className="text-foreground text-lg uppercase">{solvedWord}</strong>
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {!gaveUp && solvedBy ? (
-          <>
-            Gefunden von{" "}
-            <strong className="text-foreground">
-              {solvedBy}
-              {solvedBy === currentNickname ? " (du)" : ""}
-            </strong>{" "}
-            · {guesses.length} Versuche im Team
-          </>
-        ) : (
-          <>{guesses.length} Versuche im Team</>
-        )}
-      </p>
+    <Panel className="animate-result-in">
+      <ResultHero
+        eyebrow={`Koop, Spiel #${gameNumber}, das Wort war`}
+        headline={solvedWord}
+        lost={gaveUp}
+        support={gaveUp ? `Aufgegeben nach ${guesses.length} Versuchen im Team.` : finder}
+      />
 
-      <div className="space-y-2">
+      {/* No places here on purpose: koop is one shared result, and ranking the
+          team against itself would invent a competition the mode does not have. */}
+      <ResultList>
         {sorted.map((p) => (
-          <div
+          <ResultRow
             key={p.nickname}
-            className="flex items-center justify-between py-2 px-3 rounded-lg border bg-muted/30"
-          >
-            <span className="font-medium">
-              {p.nickname}
-              {p.nickname === currentNickname ? " (du)" : ""}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {p.contribution_count}{" "}
-              {p.contribution_count === 1 ? "Beitrag" : "Beiträge"}
-            </span>
-          </div>
+            name={p.nickname}
+            you={p.nickname === currentNickname}
+            detail={`${p.contribution_count} ${p.contribution_count === 1 ? "Beitrag" : "Beiträge"}`}
+          />
         ))}
-      </div>
+      </ResultList>
 
       {onNextGame && (
-        <Button size="lg" className="w-full" onClick={onNextGame}>
+        <Button size="lg" onClick={onNextGame}>
           Nächstes Spiel
         </Button>
       )}
-    </div>
+    </Panel>
   );
 }

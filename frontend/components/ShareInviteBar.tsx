@@ -21,9 +21,9 @@ export default function ShareInviteBar({ onCopy, title, description }: ShareInvi
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div className="min-w-0">
-        <p className="text-sm font-medium">{title}</p>
+        <p className="text-small font-medium">{title}</p>
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-micro text-muted-foreground">{description}</p>
         )}
       </div>
       <Button onClick={onCopy} size="sm" className="shrink-0 self-start sm:self-auto">

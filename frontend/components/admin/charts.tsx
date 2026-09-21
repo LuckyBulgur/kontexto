@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { formatNumber, shortDate, WEEKDAY_LABELS } from "@/lib/format";
 import type { TimelinePoint } from "@/lib/types";
+import { Panel as SurfacePanel } from "@/components/design";
 
 export const CHART_COLORS = [
   "var(--color-chart-1)",
@@ -51,13 +52,15 @@ export function SectionHeader({
         <Icon className="h-5 w-5" aria-hidden />
       </div>
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        <h2 className="text-lead font-semibold tracking-tight">{title}</h2>
+        {description && <p className="text-small text-muted-foreground">{description}</p>}
       </div>
     </div>
   );
 }
 
+/** The dashboard's panel. Same surface as the rest of the site, so the admin
+ *  view is not a second design; only the title row is dashboard-specific. */
 export function Panel({
   title,
   hint,
@@ -70,15 +73,15 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <div className={`rounded-2xl border bg-card p-4 shadow-sm sm:p-5 ${className}`}>
+    <SurfacePanel padding="sm" className={`gap-3 sm:p-5 ${className}`}>
       {title && (
-        <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-small font-semibold text-foreground">{title}</h3>
+          {hint && <span className="text-micro text-muted-foreground">{hint}</span>}
         </div>
       )}
       {children}
-    </div>
+    </SurfacePanel>
   );
 }
 
@@ -103,9 +106,9 @@ export function KpiCard({
 }) {
   const color = CHART_COLORS[accent % CHART_COLORS.length];
   return (
-    <div className="relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-card p-4 shadow-sm">
+    <SurfacePanel padding="sm" className="relative gap-2 overflow-hidden">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-micro font-medium text-muted-foreground">{label}</span>
         <span
           className="flex h-7 w-7 items-center justify-center rounded-lg"
           style={{ backgroundColor: color, color: "var(--color-card)" }}
@@ -114,11 +117,11 @@ export function KpiCard({
         </span>
       </div>
       <div className="flex items-end gap-2">
-        <span className="text-2xl font-bold tabular-nums tracking-tight">{value}</span>
+        <span className="text-h2 font-bold tabular-nums tracking-tight">{value}</span>
         {trend && (
           <span
-            className={`mb-1 inline-flex items-center gap-0.5 text-xs font-medium ${
-              trend.positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+            className={`mb-1 inline-flex items-center gap-0.5 text-micro font-medium ${
+              trend.positive ? "text-success-ink" : "text-destructive"
             }`}
           >
             {trend.positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -126,13 +129,13 @@ export function KpiCard({
           </span>
         )}
       </div>
-      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+      {sub && <span className="text-micro text-muted-foreground">{sub}</span>}
       {spark && spark.length > 1 && (
         <div className="mt-1 h-8 w-full">
           <Sparkline data={spark} color={color} />
         </div>
       )}
-    </div>
+    </SurfacePanel>
   );
 }
 
@@ -177,7 +180,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+    <div className="rounded-lg border bg-popover px-3 py-2 text-micro shadow-md">
       {label != null && (
         <div className="mb-1 font-medium text-popover-foreground">
           {labelFormatter ? labelFormatter(label) : label}
@@ -312,11 +315,11 @@ export function DonutChart({
       </div>
       <ul className="flex-1 space-y-1.5 self-center">
         {entries.map((e, i) => (
-          <li key={e.name} className="flex items-center gap-2 text-sm">
+          <li key={e.name} className="flex items-center gap-2 text-small">
             <span className="inline-block h-3 w-3 rounded-sm" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
             <span className="flex-1 truncate text-foreground">{e.name}</span>
             <span className="tabular-nums text-muted-foreground">{formatNumber(e.value)}</span>
-            <span className="w-10 text-right tabular-nums text-xs text-muted-foreground">
+            <span className="w-10 text-right tabular-nums text-micro text-muted-foreground">
               {Math.round((e.value / total) * 100)}%
             </span>
           </li>
@@ -352,20 +355,20 @@ export function BarRanking({
   return (
     <div className="space-y-1.5">
       {entries.map(([key, value]) => (
-        <div key={key} className="flex items-center gap-2 text-sm">
+        <div key={key} className="flex items-center gap-2 text-small">
           <span className="w-28 shrink-0 truncate" title={labelMap?.[key] ?? key}>
             {labelMap?.[key] ?? key}
           </span>
           <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
             <div
-              className="flex h-full items-center justify-end rounded px-1.5 text-[10px] font-semibold text-white"
+              className="flex h-full items-center justify-end rounded px-1.5 text-micro font-semibold text-white"
               style={{ width: `${Math.max(6, (value / max) * 100)}%`, backgroundColor: color }}
             >
               {value >= max * 0.15 ? formatNumber(value) : ""}
             </div>
           </div>
           {value < max * 0.15 && (
-            <span className="w-10 shrink-0 text-right tabular-nums text-xs text-muted-foreground">
+            <span className="w-10 shrink-0 text-right tabular-nums text-micro text-muted-foreground">
               {formatNumber(value)}
             </span>
           )}
@@ -427,12 +430,12 @@ export function Heatmap({ data }: { data: number[][] }) {
   return (
     <div>
       {/* Peak readout, context for the busiest slot. */}
-      <p className="mb-3 flex items-center gap-2 text-sm">
+      <p className="mb-3 flex items-center gap-2 text-small">
         <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: HEATMAP_LEVEL_BG[4] }} />
         <span>
           <span className="text-muted-foreground">Spitze: </span>
           <span className="font-semibold text-foreground">{WEEKDAY_FULL[peak.wd]}, {peak.h} Uhr</span>
-          <span className="text-muted-foreground"> · {formatNumber(peak.v)} Aufrufe</span>
+          <span className="text-muted-foreground">, {formatNumber(peak.v)} Aufrufe</span>
         </span>
       </p>
 
@@ -443,14 +446,14 @@ export function Heatmap({ data }: { data: number[][] }) {
             <div className="mb-1 grid items-end" style={gridStyle} aria-hidden>
               <span />
               {Array.from({ length: 24 }, (_, h) => (
-                <span key={h} className="text-center text-[10px] tabular-nums text-muted-foreground">{h}</span>
+                <span key={h} className="text-center text-micro tabular-nums text-muted-foreground">{h}</span>
               ))}
             </div>
 
             {/* Weekday rows: each cell shows its count, shaded by intensity. */}
             {data.map((row, wd) => (
               <div key={wd} role="row" className="mt-1 grid items-center" style={gridStyle}>
-                <span className="pr-1 text-right text-xs font-medium text-muted-foreground">{WEEKDAY_LABELS[wd]}</span>
+                <span className="pr-1 text-right text-micro font-medium text-muted-foreground">{WEEKDAY_LABELS[wd]}</span>
                 {row.map((v, h) => {
                   const isPeak = peak.wd === wd && peak.h === h;
                   return (
@@ -461,7 +464,7 @@ export function Heatmap({ data }: { data: number[][] }) {
                       onPointerEnter={(e) => setTip({ wd, h, x: e.clientX, y: e.clientY })}
                       onPointerMove={(e) => setTip({ wd, h, x: e.clientX, y: e.clientY })}
                       onPointerLeave={() => setTip(null)}
-                      className={`flex h-7 cursor-default items-center justify-center rounded-md text-[11px] tabular-nums transition-shadow hover:ring-2 hover:ring-foreground/40 ${
+                      className={`flex h-7 cursor-default items-center justify-center rounded-md text-micro tabular-nums transition-shadow hover:ring-2 hover:ring-foreground/40 ${
                         v === 0 ? "text-muted-foreground/40" : "font-medium text-foreground"
                       } ${isPeak ? "ring-2 ring-foreground/60" : ""}`}
                       style={{ backgroundColor: HEATMAP_LEVEL_BG[level(v)] }}
@@ -475,7 +478,7 @@ export function Heatmap({ data }: { data: number[][] }) {
           </div>
 
           {/* Legend */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-micro text-muted-foreground">
             <span className="flex items-center gap-1.5">
               wenig
               {HEATMAP_LEVEL_BG.map((bg, i) => (
@@ -493,7 +496,7 @@ export function Heatmap({ data }: { data: number[][] }) {
       {/* Cursor-following tooltip: instant, styled, shown on hover/touch. */}
       {tip && (
         <div
-          className="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-md"
+          className="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-micro shadow-md"
           style={{ left: Math.min(tip.x + 14, (typeof window !== "undefined" ? window.innerWidth : 9999) - 160), top: tip.y + 14 }}
         >
           <div className="font-medium text-popover-foreground">{WEEKDAY_FULL[tip.wd]}, {tip.h} Uhr</div>
@@ -505,7 +508,7 @@ export function Heatmap({ data }: { data: number[][] }) {
 }
 
 function Empty({ label = "Noch keine Daten" }: { label?: string }) {
-  return <p className="py-6 text-center text-sm text-muted-foreground">{label}</p>;
+  return <p className="py-6 text-center text-small text-muted-foreground">{label}</p>;
 }
 
 // --- Stacked area (categorical share over time) ------------------------------
@@ -546,7 +549,7 @@ export function StackedAreaTrend({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-micro">
         {series.map((s) => (
           <li key={s.key} className="flex items-center gap-1.5 text-muted-foreground">
             <span className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -580,7 +583,7 @@ export function RangeToggle({
   onChange: (range: RangeKey) => void;
 }) {
   return (
-    <div className="inline-flex rounded-xl border bg-card p-0.5 text-sm shadow-sm" role="group" aria-label="Zeitraum">
+    <div className="inline-flex rounded-lg border bg-card p-0.5 text-small" role="group" aria-label="Zeitraum">
       {RANGE_ORDER.map((k) => {
         const active = value === k;
         return (

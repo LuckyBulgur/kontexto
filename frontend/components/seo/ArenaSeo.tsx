@@ -27,7 +27,7 @@ import {
 export default function ArenaSeo() {
   return (
     <SeoSection label="Über die Kontexto-Arena">
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-h2 font-bold text-foreground">
         {"Die Kontexto-Arena: drei Modi mit Uhr"}
       </h1>
       <p className="max-w-prose">

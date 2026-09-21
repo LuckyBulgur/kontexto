@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Anton } from "next/font/google";
+import { Figtree, Bricolage_Grotesque, Anton } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
@@ -16,7 +16,21 @@ import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
 import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// Two families, two jobs. Figtree carries every running text, control and
+// guess row; Bricolage Grotesque carries headings and numeric heroes. Both need
+// latin-ext, because the whole product is German and loses its diacritics
+// without it. Variables (not className) so `font-sans` and `font-display` in
+// Tailwind resolve to them, see the @theme block in app/globals.css.
+const figtree = Figtree({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-figtree",
+  display: "swap",
+});
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
 // Charakter-Display-Font, ausschließlich für die WM-2026-Event-Chrome
 // (Badge, Banner, „TOR!"). Der SEO-Body-Font (Inter) bleibt unangetastet.
 const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-event", display: "swap" });
@@ -39,18 +53,22 @@ export const metadata: Metadata = {
     index: true, follow: true,
     googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
-  other: { "theme-color": "#ffffff", "google-adsense-account": "ca-pub-3545758989514084" },
+  other: { "theme-color": "#f8f9fc", "google-adsense-account": "ca-pub-3545758989514084" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" className={anton.variable} suppressHydrationWarning>
+    <html
+      lang="de"
+      className={`${figtree.variable} ${bricolage.variable} ${anton.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <StructuredData data={organizationSchema([...SITE_SAME_AS, ...AUTHOR_SAME_AS])} />
         <StructuredData data={websiteSchema()} />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#f8f9fc" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#16181f" media="(prefers-color-scheme: dark)" />
         {/*
           Der AdSense-Loader steht als echtes Script-Tag im <head> und nicht als
           next/script mit strategy="afterInteractive".
@@ -79,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <script dangerouslySetInnerHTML={{ __html: EVENT_THEME_SCRIPT }} />
       </head>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <MotionProvider>
           <EventBackdrop />
           {children}

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Panel } from "@/components/design";
 
 // Structure-faithful placeholder for the admin stats dashboard. Deliberately
 // self-contained: it must NOT import from charts.tsx, which pulls recharts into
@@ -78,11 +79,11 @@ export default function StatsSkeleton() {
 
         {/* Default "Überblick" section: greeting + two KPI grids */}
         <div className="space-y-4">
-          <div className="space-y-3 rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+          <Panel className="gap-3 sm:p-8">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-7 w-3/4 max-w-2xl" />
             <Skeleton className="h-3 w-48" />
-          </div>
+          </Panel>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} spark />)}
           </div>

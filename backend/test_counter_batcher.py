@@ -58,7 +58,7 @@ async def _word(path, word):
 
 def test_coalesces_and_flushes_sum(db_path):
     async def run():
-        b = CounterBatcher(db_path)
+        b = CounterBatcher(db_path, flush_interval=100)  # timer effectively never fires
         await b.start()
         try:
             for _ in range(100):
@@ -79,7 +79,7 @@ def test_coalesces_and_flushes_sum(db_path):
 def test_multiple_flushes_accumulate(db_path):
     """Each flush must ADD its delta (value = value + ?), not overwrite."""
     async def run():
-        b = CounterBatcher(db_path)
+        b = CounterBatcher(db_path, flush_interval=100)  # timer effectively never fires
         await b.start()
         try:
             b.incr_counter("2026-06-19", "solves", "duel", 4)
@@ -95,7 +95,7 @@ def test_multiple_flushes_accumulate(db_path):
 
 def test_empty_flush_is_noop(db_path):
     async def run():
-        b = CounterBatcher(db_path)
+        b = CounterBatcher(db_path, flush_interval=100)  # timer effectively never fires
         await b.start()
         try:
             await b._flush_once()  # nothing buffered
@@ -122,7 +122,7 @@ def test_failed_flush_folds_back(db_path, monkeypatch):
     """If a flush write fails, its deltas must be retained (not lost) and applied
     on a subsequent successful flush."""
     async def run():
-        b = CounterBatcher(db_path)
+        b = CounterBatcher(db_path, flush_interval=100)  # timer effectively never fires
         await b.start()
         try:
             b.incr_counter("2026-06-19", "guesses", "kontexto", 9)

@@ -54,16 +54,16 @@ export default function EventBanner() {
     >
       <span
         aria-hidden="true"
-        className="font-event grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sm font-normal tracking-wide text-white"
+        className="font-event grid h-9 w-9 shrink-0 place-items-center rounded-lg text-small font-normal tracking-wide text-white"
         style={{ backgroundColor: "var(--event-green)" }}
       >
         26
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-event text-base leading-tight tracking-wide" style={{ color: "var(--event-green)" }}>
+        <p className="font-event text-body leading-tight tracking-wide" style={{ color: "var(--event-green)" }}>
           Kontexto im WM-Fieber
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-micro text-muted-foreground">
           Zeitlich begrenztes WM-2026-Design. In den Einstellungen abschaltbar.
         </p>
       </div>

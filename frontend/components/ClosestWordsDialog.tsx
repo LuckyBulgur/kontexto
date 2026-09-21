@@ -40,7 +40,7 @@ export default function ClosestWordsDialog({ open, onClose, game, infinite }: Cl
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Ähnlichste Wörter</DialogTitle>
+          <DialogTitle className="text-h3">Ähnlichste Wörter</DialogTitle>
           <DialogDescription className="sr-only">Die 500 ähnlichsten Wörter zum Zielwort</DialogDescription>
         </DialogHeader>
 
@@ -53,7 +53,7 @@ export default function ClosestWordsDialog({ open, onClose, game, infinite }: Cl
             </div>
           )}
           {error && (
-            <p className="text-sm text-destructive text-center py-4">{error}</p>
+            <p className="text-small text-destructive text-center py-4">{error}</p>
           )}
           {!loading && !error && words.map((entry) => (
             <GuessBar key={entry.rank} word={entry.word} rank={entry.rank} total={500} />

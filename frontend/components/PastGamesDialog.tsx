@@ -46,7 +46,7 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Vergangene Spiele</DialogTitle>
+          <DialogTitle className="text-h3">Vergangene Spiele</DialogTitle>
           <DialogDescription className="sr-only">Wähle ein vergangenes Spiel zum Spielen</DialogDescription>
         </DialogHeader>
 
@@ -62,7 +62,7 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
             </div>
           )}
           {error && (
-            <p className="text-sm text-destructive text-center py-4">{error}</p>
+            <p className="text-small text-destructive text-center py-4">{error}</p>
           )}
           {!loading && !error && games.map((game) => (
             <Button
@@ -72,11 +72,11 @@ export default function PastGamesDialog({ open, onClose, onSelectGame }: PastGam
               className="h-auto w-full justify-between px-3 py-2.5 text-left font-normal"
             >
               <span className="font-medium">Spiel #{game.gameNumber}</span>
-              <span className="text-sm text-muted-foreground">{formatDate(game.date)}</span>
+              <span className="text-small text-muted-foreground">{formatDate(game.date)}</span>
             </Button>
           ))}
           {!loading && !error && games.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">Keine vergangenen Spiele verfügbar</p>
+            <p className="text-small text-muted-foreground text-center py-4">Keine vergangenen Spiele verfügbar</p>
           )}
         </div>
       </DialogContent>

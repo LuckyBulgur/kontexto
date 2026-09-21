@@ -34,7 +34,7 @@ export default function AdminEnrollPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-4 rounded-xl border p-6">
-        <h1 className="text-xl font-bold">Passkey registrieren</h1>
+        <h1 className="text-h3 font-bold">Passkey registrieren</h1>
         <Input
           aria-label="Enroll-Token"
           type="password"
@@ -44,7 +44,7 @@ export default function AdminEnrollPage() {
           autoFocus
         />
         {message && (
-          <p className={`text-sm ${status === "ok" ? "text-green-700" : "text-red-500"}`}>{message}</p>
+          <p className={`text-small ${status === "ok" ? "text-success-ink" : "text-destructive"}`}>{message}</p>
         )}
         <Button onClick={register} className="w-full" disabled={busy || !token.trim()}>
           {busy ? "…" : "Passkey registrieren"}

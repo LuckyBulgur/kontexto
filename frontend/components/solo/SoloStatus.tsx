@@ -6,7 +6,7 @@ import {
   leiterStrikesLeft,
   limitGuessesLeft,
 } from "@/lib/solo-modes";
-import { cn } from "@/lib/utils";
+import { Stat, StatRow } from "@/components/design";
 
 /**
  * The one line above the input that says where the player stands. Each mode has
@@ -15,19 +15,16 @@ import { cn } from "@/lib/utils";
  * counter is worse than showing none, so every mode names its own.
  */
 export default function SoloStatus({ state }: { state: SoloState }) {
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 -mt-2 -mb-2 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
-      {renderFor(state)}
-    </div>
-  );
+  return <StatRow className="-mt-1">{renderFor(state)}</StatRow>;
 }
 
-function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+/** Under this many left, the counter is the warning. */
+function Counter({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
-    <span>
-      {label}:{" "}
-      <span className={cn("text-[18px] font-bold", warn ? "text-destructive" : "text-foreground")}>{value}</span>
-    </span>
+    <Stat
+      label={label}
+      value={<span className={warn ? "text-destructive" : undefined}>{value}</span>}
+    />
   );
 }
 
@@ -37,27 +34,23 @@ function renderFor(state: SoloState) {
       const left = leiterStrikesLeft(state);
       return (
         <>
-          <Stat label="Zu schlagen" value={String(state.bestRank)} />
-          <Stat label="Leben" value={`${left} von ${LEITER_MAX_STRIKES}`} warn={left <= 1} />
+          <Counter label="Zu schlagen" value={String(state.bestRank)} />
+          <Counter label="Leben" value={`${left} von ${LEITER_MAX_STRIKES}`} warn={left <= 1} />
         </>
       );
     }
     case "limit": {
       const left = limitGuessesLeft(state);
-      return (
-        <>
-          <Stat label="Versuche übrig" value={`${left} von ${LIMIT_MAX_GUESSES}`} warn={left <= 3} />
-        </>
-      );
+      return <Counter label="Versuche übrig" value={`${left} von ${LIMIT_MAX_GUESSES}`} warn={left <= 3} />;
     }
     case "doppel":
       return (
         <>
-          <Stat label="Gefunden" value={`${state.solved.filter(Boolean).length} von 2`} />
-          <Stat label="Versuche" value={String(state.guesses.length)} />
+          <Counter label="Gefunden" value={`${state.solved.filter(Boolean).length} von 2`} />
+          <Counter label="Versuche" value={String(state.guesses.length)} />
         </>
       );
     case "suddendeath":
-      return <Stat label="Versuche" value={state.attempt ? "0 von 1" : "1 von 1"} />;
+      return <Counter label="Versuche" value={state.attempt ? "0 von 1" : "1 von 1"} />;
   }
 }

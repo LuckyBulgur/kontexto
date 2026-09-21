@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/design";
 
 interface JoinDialogProps {
   onJoin: (nickname: string) => void;
@@ -20,9 +21,9 @@ export default function JoinDialog({ onJoin, loading, error }: JoinDialogProps) 
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="rounded-xl border bg-card p-6 w-full space-y-4">
-        <h2 className="text-xl font-bold text-center">Koop beitreten</h2>
-        <p className="text-sm text-muted-foreground text-center">
+      <Panel className="w-full gap-4 p-6">
+        <h2 className="text-h3 font-bold text-center">Koop beitreten</h2>
+        <p className="text-small text-muted-foreground text-center">
           Sucht gemeinsam dasselbe geheime Wort.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -34,7 +35,7 @@ export default function JoinDialog({ onJoin, loading, error }: JoinDialogProps) 
             autoComplete="off"
             autoFocus
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-small text-destructive">{error}</p>}
           <Button
             type="submit"
             disabled={loading || !nickname.trim()}
@@ -43,7 +44,7 @@ export default function JoinDialog({ onJoin, loading, error }: JoinDialogProps) 
             {loading ? "Beitreten..." : "Beitreten"}
           </Button>
         </form>
-      </div>
+      </Panel>
     </div>
   );
 }

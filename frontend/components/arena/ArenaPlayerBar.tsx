@@ -4,6 +4,7 @@ import { ArenaModeId, ArenaPlayer } from "@/lib/arena-types";
 import { getRankColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatCountdown, useCountdown } from "@/lib/use-server-countdown";
+import { Panel } from "@/components/design";
 
 interface ArenaPlayerBarProps {
   players: ArenaPlayer[];
@@ -42,14 +43,14 @@ export default function ArenaPlayerBar({
   return (
     <>
       <div className="hidden md:block w-60 shrink-0">
-        <div className="rounded-xl border bg-card p-3 space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Panel padding="sm" className="gap-2 p-3">
+          <h3 className="text-micro font-semibold text-muted-foreground">
             Spieler
           </h3>
           {list}
-        </div>
+        </Panel>
       </div>
-      <div className="md:hidden rounded-xl border bg-card p-3">{list}</div>
+      <Panel padding="sm" className="p-3 md:hidden">{list}</Panel>
     </>
   );
 }
@@ -88,17 +89,17 @@ function PlayerEntry({
       )}
     >
       <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate text-sm font-medium">
+        <span className="truncate text-small font-medium">
           {player.nickname}
-          {isYou && <span className="ml-1 text-xs text-muted-foreground">(du)</span>}
+          {isYou && <span className="ml-1 text-micro text-muted-foreground">(du)</span>}
         </span>
         {!player.connected && !player.eliminated && (
-          <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <span className="shrink-0 text-micro text-muted-foreground">
             offline
           </span>
         )}
       </div>
-      <div className="mt-0.5 flex items-baseline justify-between gap-2 text-xs">
+      <div className="mt-0.5 flex items-baseline justify-between gap-2 text-micro">
         <span className="text-muted-foreground">
           {player.eliminated
             ? player.place
@@ -108,11 +109,11 @@ function PlayerEntry({
         </span>
         <span className="flex items-baseline gap-2">
           {seconds !== null && (
-            <span className={cn("font-mono", seconds <= 10 && "text-destructive")}>
+            <span className={cn("tabular-nums", seconds <= 10 && "text-destructive")}>
               {formatCountdown(seconds)}
             </span>
           )}
-          <span className={cn("font-mono font-bold", rankClass(player.best_rank))}>
+          <span className={cn("font-display font-bold tabular-nums", rankClass(player.best_rank))}>
             {player.best_rank ?? "-"}
           </span>
         </span>
@@ -125,10 +126,10 @@ function rankClass(rank: number | null): string {
   if (rank === null) return "text-muted-foreground";
   switch (getRankColor(rank)) {
     case "green":
-      return "text-green-600 dark:text-green-400";
+      return "text-rank-near-ink";
     case "yellow":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-rank-mid-ink";
     default:
-      return "text-red-600 dark:text-red-400";
+      return "text-rank-far-ink";
   }
 }

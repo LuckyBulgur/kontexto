@@ -20,9 +20,9 @@ export default function Prose({
   return (
     <div
       className={cn(
-        "space-y-4 text-base leading-7 text-muted-foreground",
-        "[&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-foreground",
-        "[&_h3]:scroll-mt-24 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-foreground",
+        "space-y-4 text-body leading-7 text-muted-foreground",
+        "[&_h2]:scroll-mt-24 [&_h2]:text-h3 [&_h2]:font-semibold [&_h2]:text-foreground",
+        "[&_h3]:scroll-mt-24 [&_h3]:text-lead [&_h3]:font-semibold [&_h3]:text-foreground",
         "[&_p]:leading-7",
         "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2",
         "[&_strong]:font-semibold [&_strong]:text-foreground",

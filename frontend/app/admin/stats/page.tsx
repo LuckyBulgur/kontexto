@@ -54,8 +54,8 @@ export default function AdminStatsPage() {
     <main className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
-          <p className="text-sm text-muted-foreground">Übersicht über Besucher und Spielverhalten</p>
+          <h1 className="text-h2 font-bold tracking-tight">Statistiken</h1>
+          <p className="text-small text-muted-foreground">Übersicht über Besucher und Spielverhalten</p>
         </div>
         <div className="flex items-center gap-3">
           <LiveUsers token={token} initial={stats?.live} />
@@ -69,7 +69,7 @@ export default function AdminStatsPage() {
       </div>
 
       {loading && <StatsSkeleton />}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-destructive">{error}</p>}
       {stats && <Dashboard stats={stats} />}
     </main>
   );
@@ -98,8 +98,8 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-4 rounded-xl border p-6">
-        <h1 className="text-xl font-bold">Admin-Login</h1>
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        <h1 className="text-h3 font-bold">Admin-Login</h1>
+        {error && <p className="text-small text-destructive">{error}</p>}
         <Button onClick={login} className="w-full" disabled={busy}>
           {busy ? "…" : "Mit Passkey anmelden"}
         </Button>

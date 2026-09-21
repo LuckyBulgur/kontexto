@@ -19,7 +19,7 @@ export interface Crumb {
  */
 export default function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
-    <nav aria-label="Brotkrümelnavigation" className="mt-4 text-xs text-muted-foreground">
+    <nav aria-label="Brotkrümelnavigation" className="mt-4 text-micro text-muted-foreground">
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((c, i) => {
           const last = i === items.length - 1;

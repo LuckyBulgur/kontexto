@@ -13,9 +13,9 @@ export const metadata = buildMetadata({
 });
 
 const KIND_STYLES: Record<ChangeKind, string> = {
-  Neu: "bg-green-500/10 text-green-700 dark:text-green-400 ring-green-500/20",
-  Verbessert: "bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20",
-  Behoben: "bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20",
+  Neu: "bg-success/10 text-success-ink ring-success/25",
+  Verbessert: "bg-info/10 text-info-ink ring-info/25",
+  Behoben: "bg-warning/10 text-warning-ink ring-warning/25",
 };
 
 const fmt = (iso: string) =>
@@ -52,18 +52,18 @@ export default function ChangelogPage() {
             />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${KIND_STYLES[e.kind]}`}
+                className={`rounded-full px-2 py-0.5 text-micro font-medium ring-1 ring-inset ${KIND_STYLES[e.kind]}`}
               >
                 {e.kind}
               </span>
-              <time dateTime={e.date} className="text-xs text-muted-foreground">
+              <time dateTime={e.date} className="text-micro text-muted-foreground">
                 {fmt(e.date)}
               </time>
             </div>
-            <h2 className="mt-2 text-lg font-semibold text-foreground">{e.title}</h2>
-            <p className="mt-1 text-base leading-7 text-muted-foreground">{e.body}</p>
+            <h2 className="mt-2 text-lead font-semibold text-foreground">{e.title}</h2>
+            <p className="mt-1 text-body leading-7 text-muted-foreground">{e.body}</p>
             {e.href && (
-              <p className="mt-2 text-sm">
+              <p className="mt-2 text-small">
                 <Link href={e.href} className="text-primary underline underline-offset-2">
                   {e.hrefLabel ?? "Mehr dazu"}
                 </Link>

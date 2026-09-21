@@ -51,28 +51,28 @@ export default function ZahlenPage() {
 
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {Object.entries(T).map(([key, value]) => (
-            <div key={key} className="rounded-lg border border-border bg-muted/30 p-4">
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+            <div key={key} className="rounded-xl border border-border bg-card p-4">
+              <dt className="text-micro text-muted-foreground">
                 {LABELS[key] ?? key}
               </dt>
-              <dd className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+              <dd className="mt-1 font-display text-h1 font-bold tabular-nums text-foreground">
                 {nf.format(value)}
               </dd>
             </div>
           ))}
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <dt className="text-micro text-muted-foreground">
               Rateversuche je Lösung
             </dt>
-            <dd className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            <dd className="mt-1 font-display text-h1 font-bold tabular-nums text-foreground">
               {nf.format(stats.guesses_per_solve ?? 0)}
             </dd>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <dt className="text-micro text-muted-foreground">
               Anteil gelöster beendeter Partien
             </dt>
-            <dd className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            <dd className="mt-1 font-display text-h1 font-bold tabular-nums text-foreground">
               {new Intl.NumberFormat("de-DE", { style: "percent" }).format(finishedSolveShare)}
             </dd>
           </div>
@@ -115,8 +115,8 @@ export default function ZahlenPage() {
           role="region"
           aria-label="Startwort-Benchmark mit Kandidaten"
         >
-          <table className="w-full min-w-[34rem] border-collapse text-sm">
-            <caption className="caption-bottom pt-3 text-xs text-muted-foreground">
+          <table className="w-full min-w-[34rem] border-collapse text-small">
+            <caption className="caption-bottom pt-3 text-micro text-muted-foreground">
               {benchmark.results.length} Kandidaten über {nf.format(benchmark.games_evaluated)}{" "}
               Rätsel. Median: mittlerer Rang. IQR: Streuung (Interquartilsabstand).
             </caption>
@@ -178,14 +178,14 @@ export default function ZahlenPage() {
           </p>
         </Prose>
 
-        <ol className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-3 lg:grid-cols-4">
+        <ol className="grid grid-cols-2 gap-x-6 gap-y-1 text-small sm:grid-cols-3 lg:grid-cols-4">
           {stats.top_words.map((w, i) => (
             <li key={w.word} className="flex items-baseline justify-between gap-2 border-b border-border/40 py-1">
               <span className="text-foreground">
-                <span className="mr-2 text-xs tabular-nums text-muted-foreground">{i + 1}.</span>
+                <span className="mr-2 text-micro tabular-nums text-muted-foreground">{i + 1}.</span>
                 {w.word}
               </span>
-              <span className="tabular-nums text-xs text-muted-foreground">{nf.format(w.count)}</span>
+              <span className="tabular-nums text-micro text-muted-foreground">{nf.format(w.count)}</span>
             </li>
           ))}
         </ol>

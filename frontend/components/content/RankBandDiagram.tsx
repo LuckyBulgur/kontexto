@@ -17,9 +17,9 @@ export default function RankBandDiagram() {
   const path = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 
   const bands: [number, number, string, string][] = [
-    [40, 62, "1-300", "fill-green-600/15"],
-    [102, 74, "301-1500", "fill-yellow-600/15"],
-    [176, 204, "ab 1501", "fill-rose-600/10"],
+    [40, 62, "1-300", "fill-rank-near/25"],
+    [102, 74, "301-1500", "fill-rank-mid/25"],
+    [176, 204, "ab 1501", "fill-rank-far/25"],
   ];
 
   return (

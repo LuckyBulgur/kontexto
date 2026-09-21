@@ -17,11 +17,11 @@ export default function CreditsDialog({ open, onClose }: CreditsDialogProps) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Credits</DialogTitle>
+          <DialogTitle className="text-h3">Credits</DialogTitle>
           <DialogDescription className="sr-only">Informationen über Kontexto</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2 text-sm text-muted-foreground">
+        <div className="space-y-4 pt-2 text-small text-muted-foreground">
           <p>
             <strong className="text-foreground">Kontexto</strong> ist ein deutschsprachiges Wortratespiel, inspiriert von{" "}
             <a href="https://contexto.me" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
@@ -48,7 +48,7 @@ export default function CreditsDialog({ open, onClose }: CreditsDialogProps) {
               <a href="https://github.com/LuckyBulgur" target="_blank" rel="me noopener noreferrer" className="underline hover:text-foreground">
                 GitHub
               </a>
-              {" · "}
+              {", "}
               <a href="https://www.linkedin.com/in/ugur-aydogan-15453224a/" target="_blank" rel="me noopener noreferrer" className="underline hover:text-foreground">
                 LinkedIn
               </a>

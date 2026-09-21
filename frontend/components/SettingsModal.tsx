@@ -44,7 +44,7 @@ export default function SettingsModal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Einstellungen</DialogTitle>
+          <DialogTitle className="text-h3">Einstellungen</DialogTitle>
           <DialogDescription className="sr-only">Design und Schwierigkeitsgrad anpassen</DialogDescription>
         </DialogHeader>
 
@@ -52,13 +52,13 @@ export default function SettingsModal({
           {/* Darstellung */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Darstellung</span>
+              <span className="text-micro font-medium text-muted-foreground">Darstellung</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Design</Label>
-              <p className="text-xs text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
+              <Label className="text-small font-medium">Design</Label>
+              <p className="text-micro text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
               <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -74,13 +74,13 @@ export default function SettingsModal({
           {/* Spieloptionen */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Spieloptionen</span>
+              <span className="text-micro font-medium text-muted-foreground">Spieloptionen</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Sortierung</Label>
-              <p className="text-xs text-muted-foreground">Reihenfolge der geratenen W&ouml;rter in der Liste</p>
+              <Label className="text-small font-medium">Sortierung</Label>
+              <p className="text-micro text-muted-foreground">Reihenfolge der geratenen W&ouml;rter in der Liste</p>
               <Select value={sortMode} onValueChange={(v) => onSortModeChange(v as SortMode)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -93,8 +93,8 @@ export default function SettingsModal({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Schwierigkeitsgrad</Label>
-              <p className="text-xs text-muted-foreground">Bestimmt wie nah die Tipps am Zielwort sind</p>
+              <Label className="text-small font-medium">Schwierigkeitsgrad</Label>
+              <p className="text-micro text-muted-foreground">Bestimmt wie nah die Tipps am Zielwort sind</p>
               <Select value={difficulty} onValueChange={(v) => onDifficultyChange(v as Difficulty)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -112,13 +112,13 @@ export default function SettingsModal({
           {eventAvailable && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Limited-Time-Event</span>
+                <span className="text-micro font-medium text-muted-foreground">Limited-Time-Event</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
               <div className="flex items-center justify-between">
                 <div className="pr-4">
-                  <Label className="text-sm font-medium">WM-Design</Label>
-                  <p className="text-xs text-muted-foreground">Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt)</p>
+                  <Label className="text-small font-medium">WM-Design</Label>
+                  <p className="text-micro text-muted-foreground">Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt)</p>
                 </div>
                 <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label="WM-Design" />
               </div>

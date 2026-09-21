@@ -96,11 +96,11 @@ export default function AnleitungPage() {
         <ComparisonTable
           columns={["Dein Tipp", "Rang", "Bedeutung"]}
           rows={[
-            ["Computer", "8420", <span key="c" className="text-red-600 dark:text-red-400">weit entfernt</span>],
-            ["Meer", "312", <span key="m" className="text-yellow-700 dark:text-yellow-500">auf dem Weg</span>],
-            ["Küste", "47", <span key="k" className="text-green-700 dark:text-green-400">sehr nah</span>],
-            ["Sand", "12", <span key="sa" className="text-green-700 dark:text-green-400">ganz nah</span>],
-            ["Strand", "1", <span key="s" className="font-semibold text-green-700 dark:text-green-400">Treffer!</span>],
+            ["Computer", "8420", <span key="c" className="text-rank-far-ink">weit entfernt</span>],
+            ["Meer", "312", <span key="m" className="text-rank-mid-ink">auf dem Weg</span>],
+            ["Küste", "47", <span key="k" className="text-rank-near-ink">sehr nah</span>],
+            ["Sand", "12", <span key="sa" className="text-rank-near-ink">ganz nah</span>],
+            ["Strand", "1", <span key="s" className="font-semibold text-rank-near-ink">Treffer!</span>],
           ]}
           caption="Beispielhafte Tipps für das Zielwort Strand"
         />

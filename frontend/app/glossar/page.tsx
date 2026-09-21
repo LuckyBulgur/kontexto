@@ -29,7 +29,7 @@ export default function GlossarPage() {
       <dl className="space-y-6">
         {glossary.map((t) => (
           <div key={t.slug} id={t.slug} className="scroll-mt-24 border-t border-border pt-5">
-            <dt className="text-lg font-semibold text-foreground">{t.term}</dt>
+            <dt className="text-lead font-semibold text-foreground">{t.term}</dt>
             <dd className="mt-1.5 leading-7 text-muted-foreground">{t.definition}</dd>
           </div>
         ))}

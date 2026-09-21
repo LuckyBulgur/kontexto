@@ -11,9 +11,9 @@ interface DualGuessBarProps {
 }
 
 const COLOR_CLASSES = {
-  green: "bg-green-500 dark:bg-green-700",
-  yellow: "bg-amber-500 dark:bg-amber-700",
-  red: "bg-red-500 dark:bg-red-700",
+  green: "bg-rank-near",
+  yellow: "bg-rank-mid",
+  red: "bg-rank-far",
 };
 
 /**
@@ -25,7 +25,7 @@ const COLOR_CLASSES = {
 export default function DualGuessBar({ word, ranks, total, isNew }: DualGuessBarProps) {
   return (
     <div className={cn("mb-1 rounded-lg bg-black/5 dark:bg-white/10", isNew && "animate-slideIn ring-2 ring-white")}>
-      <div className="px-3 pt-1.5 pb-1 text-sm font-bold text-foreground dark:text-white">{word}</div>
+      <div className="px-3 pt-1.5 pb-1 text-small font-bold text-foreground dark:text-white">{word}</div>
       <div className="flex gap-1 px-1.5 pb-1.5">
         {ranks.map((rank, i) => (
           <div key={i} className="relative flex h-7 flex-1 items-center rounded-md bg-black/5 dark:bg-white/10">
@@ -33,10 +33,10 @@ export default function DualGuessBar({ word, ranks, total, isNew }: DualGuessBar
               className={cn("absolute inset-y-0 left-0 rounded-md transition-[width] duration-500", COLOR_CLASSES[getRankColor(rank)])}
               style={{ width: `${getBarWidth(rank, total)}%` }}
             />
-            <span className="relative z-10 ml-2 text-[11px] font-medium uppercase tracking-wide text-foreground dark:text-white">
+            <span className="relative z-10 ml-2 text-micro font-semibold text-rank-foreground">
               Ziel {i + 1}
             </span>
-            <span className="relative z-10 ml-auto mr-2 font-mono text-xs font-bold text-foreground dark:text-white">
+            <span className="relative z-10 ml-auto mr-2 font-display text-micro font-bold tabular-nums text-rank-foreground">
               {rank}
             </span>
           </div>

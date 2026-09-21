@@ -28,7 +28,7 @@ export default function ComparisonTable({
       role="region"
       aria-label={caption}
     >
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-small">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr className="bg-muted/50">

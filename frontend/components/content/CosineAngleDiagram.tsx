@@ -12,8 +12,8 @@ const SCALE = 15;
 
 const VECTORS: [string, number, number, string][] = [
   ["Hund", 8, 6, "stroke-foreground"],
-  ["Katze", 7, 7, "stroke-emerald-600"],
-  ["Tisch", 1, 9, "stroke-rose-600"],
+  ["Katze", 7, 7, "stroke-rank-near"],
+  ["Tisch", 1, 9, "stroke-rank-far"],
 ];
 
 export default function CosineAngleDiagram() {

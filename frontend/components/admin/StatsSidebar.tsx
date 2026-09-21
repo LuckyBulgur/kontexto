@@ -50,7 +50,7 @@ export function StatsSidebar({
               onClick={() => onSelect(item.id)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-small font-medium transition-colors",
                 FOCUS_RING,
                 active
                   ? "border-transparent bg-secondary text-foreground shadow-sm"
@@ -68,7 +68,7 @@ export function StatsSidebar({
       <div className="hidden lg:block lg:space-y-6">
         {groups.map((group) => (
           <div key={group.title} className="space-y-1">
-            <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="px-3 text-micro font-medium text-muted-foreground">
               {group.title}
             </p>
             <ul className="space-y-0.5">
@@ -82,7 +82,7 @@ export function StatsSidebar({
                       onClick={() => onSelect(item.id)}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+                        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-small font-medium transition-colors",
                         FOCUS_RING,
                         active
                           ? "bg-secondary text-foreground shadow-sm"

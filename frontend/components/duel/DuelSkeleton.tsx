@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Panel } from "@/components/design";
 
 // Placeholder for the Kontexto duel during initial load. Mirrors DuelPageClient's
 // layout (max-w-4xl, header → flex-col md:flex-row body with main column + desktop
@@ -6,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function PlayerBarSkeleton() {
   return (
-    <div className="w-56 shrink-0 space-y-2 rounded-xl border bg-card p-3">
+    <Panel padding="sm" className="w-56 shrink-0 gap-2 p-3">
       <Skeleton className="h-3 w-24" />
       {Array.from({ length: 2 }).map((_, i) => (
         <div key={i} className="flex items-center justify-between px-2 py-1.5">
@@ -17,7 +18,7 @@ function PlayerBarSkeleton() {
           <Skeleton className="h-4 w-8" />
         </div>
       ))}
-    </div>
+    </Panel>
   );
 }
 

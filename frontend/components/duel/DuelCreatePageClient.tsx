@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { createDuel } from "@/lib/duel-api";
 import { getGameInfo } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
+import { Panel } from "@/components/design";
+import { Wordmark } from "@/components/design";
 
 export default function DuelCreatePageClient() {
   const router = useRouter();
@@ -56,13 +58,13 @@ export default function DuelCreatePageClient() {
               <ArrowLeft className="h-6! w-6!" />
             </Button>
           </a>
-          <span className="text-[24px] font-bold tracking-wider">KONTEXTO</span>
+          <Wordmark />
         </div>
-        <h1 className="text-sm text-muted-foreground mt-1">Duell erstellen</h1>
+        <h1 className="mt-2 text-h1">Duell erstellen</h1>
       </header>
 
       <main className="flex-1 px-4 py-6 flex flex-col gap-5">
-        <div className="rounded-xl border bg-card p-5 space-y-5">
+        <Panel className="gap-5">
           <div className="space-y-2">
             <Label htmlFor="nickname">Dein Nickname</Label>
             <Input
@@ -106,7 +108,7 @@ export default function DuelCreatePageClient() {
             />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-small text-destructive">{error}</p>}
 
           <Button
             onClick={handleCreate}
@@ -115,7 +117,7 @@ export default function DuelCreatePageClient() {
           >
             {loading ? "Erstelle..." : "Duell erstellen"}
           </Button>
-        </div>
+        </Panel>
       </main>
     </div>
   );

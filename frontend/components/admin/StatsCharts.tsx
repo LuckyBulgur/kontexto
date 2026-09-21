@@ -124,13 +124,13 @@ function lastMilestone(n: number): number {
 
 function WordTable({ rows }: { rows: GameDifficultyEntry[] }) {
   if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">Noch zu wenig Daten</p>;
+    return <p className="py-6 text-center text-small text-muted-foreground">Noch zu wenig Daten</p>;
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-small">
         <thead>
-          <tr className="text-left text-xs text-muted-foreground">
+          <tr className="text-left text-micro text-muted-foreground">
             <th className="pb-2 font-medium">Wort</th>
             <th className="pb-2 text-right font-medium">Lösungsrate</th>
             <th className="pb-2 text-right font-medium">Ø Versuche</th>
@@ -141,7 +141,7 @@ function WordTable({ rows }: { rows: GameDifficultyEntry[] }) {
           {rows.map((r) => (
             <tr key={`${r.mode}-${r.game_number}`} className="border-t">
               <td className="py-1.5 font-medium">
-                {r.word} <span className="text-xs text-muted-foreground">#{r.game_number}</span>
+                {r.word} <span className="text-micro text-muted-foreground">#{r.game_number}</span>
               </td>
               <td className="py-1.5 text-right tabular-nums">{formatPercent(r.solve_rate)}</td>
               <td className="py-1.5 text-right tabular-nums">{formatDecimal(r.avg_guesses)}</td>
@@ -171,10 +171,10 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
   }
 
   return (
-    <header className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-      <div className="text-sm font-medium text-muted-foreground">{greeting()}</div>
-      <p className="mt-2 max-w-3xl text-xl font-bold tracking-tight sm:text-2xl">{summary}</p>
-      <p className="mt-3 text-xs text-muted-foreground">
+    <header className="rounded-xl border bg-card p-6 sm:p-8">
+      <div className="text-small font-medium text-muted-foreground">{greeting()}</div>
+      <p className="mt-2 max-w-3xl text-h3 font-bold tracking-tight sm:text-h2">{summary}</p>
+      <p className="mt-3 text-micro text-muted-foreground">
         Stand: {fullDate(stats.generated_at.slice(0, 10))},{" "}
         {generated.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
       </p>
@@ -185,10 +185,10 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
 function DefRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-t py-2 first:border-t-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-small text-muted-foreground">{label}</span>
       <span className="text-right">
         <span className="font-semibold tabular-nums">{value}</span>
-        {sub && <span className="ml-1 text-xs text-muted-foreground">{sub}</span>}
+        {sub && <span className="ml-1 text-micro text-muted-foreground">{sub}</span>}
       </span>
     </div>
   );
@@ -206,7 +206,7 @@ function Milestones({ stats }: { stats: StatsData }) {
   return (
     <Panel title="Meilensteine" hint="Fortschritt zur nächsten runden Marke">
       {headline >= 100 && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-sm font-medium">
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-small font-medium">
           <PartyPopper className="h-4 w-4 shrink-0" aria-hidden style={{ color: CHART_COLORS[3] }} />
           Über {formatNumber(headline)} Spiele gespielt!
         </div>
@@ -218,7 +218,7 @@ function Milestones({ stats }: { stats: StatsData }) {
           const color = CHART_COLORS[r.accent % CHART_COLORS.length];
           return (
             <div key={r.label} className="space-y-1">
-              <div className="flex items-baseline justify-between text-sm">
+              <div className="flex items-baseline justify-between text-small">
                 <span className="font-medium">{r.label}</span>
                 <span className="tabular-nums text-muted-foreground">
                   {formatNumber(r.value)} / {formatNumber(next)}
@@ -273,7 +273,7 @@ function OverviewSection({ stats, range }: SectionProps) {
           spark={sliceTimeline(stats.solves_timeline, range)} />
       </div>
 
-      <p className="pt-2 text-xs font-medium text-muted-foreground">Qualität & Bindung (gesamt)</p>
+      <p className="pt-2 text-micro font-medium text-muted-foreground">Qualität & Bindung (gesamt)</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard icon={Target} accent={4} label="Lösungsrate" value={formatPercent(e.solve_rate)} />
         <KpiCard icon={Activity} accent={0} label="Ø Versuche/Lösung" value={formatDecimal(e.avg_guesses_per_solve)} />
@@ -292,13 +292,13 @@ function TotalsSection({ stats }: SectionProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard icon={Users} accent={0} label="Eindeutige Besucher (gesamt)" value={formatNumber(at.unique_visitors)}
-          sub={at.unique_since ? `geschätzt · seit ${fullDate(at.unique_since)}` : "geschätzt"} />
+          sub={at.unique_since ? `geschätzt, seit ${fullDate(at.unique_since)}` : "geschätzt"} />
         <KpiCard icon={Eye} accent={1} label="Seitenaufrufe (gesamt)" value={formatNumber(at.pageviews)}
           sub={at.data_since ? `seit ${fullDate(at.data_since)}` : undefined} />
         <KpiCard icon={CalendarDays} accent={2} label="Besuchertage" value={formatNumber(at.visitor_days)}
           sub="Summe täglicher Besucher" />
         <KpiCard icon={Clock} accent={4} label="Aktiv (30 Tage)" value={formatNumber(stats.active_users.mau)}
-          sub={`7 T: ${formatNumber(stats.active_users.wau)} · heute: ${formatNumber(stats.active_users.dau)}`} />
+          sub={`7 Tage ${formatNumber(stats.active_users.wau)}, heute ${formatNumber(stats.active_users.dau)}`} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Rekorde" hint="bester einzelner Tag">
@@ -379,7 +379,7 @@ function ReachSection({ stats, range }: SectionProps) {
             labelFormatter={formatHour}
           />
         ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">Heute noch keine Aufrufe</p>
+          <p className="py-6 text-center text-small text-muted-foreground">Heute noch keine Aufrufe</p>
         )}
       </Panel>
       <Panel title="Wann wird gespielt? (Wochentag × Stunde, Ortszeit)" className="lg:col-span-2">
@@ -399,7 +399,7 @@ function SurveySection({ stats }: SectionProps) {
   if (answered === 0) {
     return (
       <Panel title="Woher kennen sie Kontexto?">
-        <p className="py-6 text-center text-sm text-muted-foreground">
+        <p className="py-6 text-center text-small text-muted-foreground">
           Noch keine Antworten. Die Frage erscheint auf der Ergebniskarte eines beendeten Spiels.
         </p>
       </Panel>
@@ -431,14 +431,14 @@ function SurveySection({ stats }: SectionProps) {
       )}
       <Panel title="Freitexte" hint="neueste zuerst">
         {survey.recent_details.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Noch keine Freitexte</p>
+          <p className="py-6 text-center text-small text-muted-foreground">Noch keine Freitexte</p>
         ) : (
           <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
             {survey.recent_details.map((entry, index) => (
               <li key={`${entry.date}-${index}`} className="border-b pb-2 last:border-0 last:pb-0">
-                <p className="text-sm">{entry.detail}</p>
-                <p className="text-xs text-muted-foreground">
-                  {SURVEY_LABELS[entry.source] ?? entry.source} · {fullDate(entry.date)}
+                <p className="text-small">{entry.detail}</p>
+                <p className="text-micro text-muted-foreground">
+                  {SURVEY_LABELS[entry.source] ?? entry.source}, {fullDate(entry.date)}
                 </p>
               </li>
             ))}
@@ -477,13 +477,13 @@ function FunnelSection({ stats }: SectionProps) {
 
       <Panel title="Begonnen und abgebrochen" hint="je Modus">
         {funnel.starts_total === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-small text-muted-foreground">
             Noch keine Daten. Gezählt wird ab dem ersten Rateversuch eines Spiels.
           </p>
         ) : (
           <>
             <BarRanking data={funnel.starts_by_mode} accent={2} labelMap={MODE_LABELS} />
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-micro text-muted-foreground">
               {formatNumber(funnel.abandoned_total)} Spiele wurden begonnen und nicht beendet.
               Duell und Koop melden keinen Start und bleiben hier außen vor.
             </p>
@@ -493,7 +493,7 @@ function FunnelSection({ stats }: SectionProps) {
 
       <Panel title="Teilen" hint="Klicks je Modus, Ankünfte je Seite">
         {sharing.shares_total === 0 && sharing.arrivals_total === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Noch nichts geteilt</p>
+          <p className="py-6 text-center text-small text-muted-foreground">Noch nichts geteilt</p>
         ) : (
           <>
             <BarRanking data={sharing.shares_by_mode} accent={3} labelMap={MODE_LABELS} />
@@ -501,7 +501,7 @@ function FunnelSection({ stats }: SectionProps) {
               <BarRanking data={sharing.arrivals_by_page} accent={1} labelMap={PAGE_LABELS}
                 emptyLabel="Noch keine Ankünfte" />
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-micro text-muted-foreground">
               Der Klick auf „Teilen“ wird vom Browser gemeldet, die Ankunft am Link serverseitig
               gezählt. Ein Klick ist eine Absicht, kein Besuch.
             </p>
@@ -511,7 +511,7 @@ function FunnelSection({ stats }: SectionProps) {
 
       <Panel title="Aufmerksamkeit je Seite" hint="nur sichtbare Tabs" className="lg:col-span-2">
         {attention.seconds_total === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Noch keine Daten</p>
+          <p className="py-6 text-center text-small text-muted-foreground">Noch keine Daten</p>
         ) : (
           <>
             <BarRanking
@@ -524,7 +524,7 @@ function FunnelSection({ stats }: SectionProps) {
               accent={4}
               labelMap={PAGE_LABELS}
             />
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-micro text-muted-foreground">
               Angaben in Minuten, gesamt {formatDuration(attention.seconds_total)}
               {pageviews > 0 && `, im Schnitt ${formatDuration(attention.seconds_total / pageviews)} je Seitenaufruf`}
               . Geschätzt aus Lebenszeichen im {attention.sample_seconds}-Sekunden-Takt, gezählt nur
@@ -619,8 +619,8 @@ function MethodologySection({ stats }: SectionProps) {
     <div className="rounded-2xl border bg-card px-4 shadow-sm sm:px-5">
       <Accordion type="single" collapsible>
         <AccordionItem value="methodik" className="border-none">
-          <AccordionTrigger className="text-sm">Datenerhebung & Hinweise</AccordionTrigger>
-          <AccordionContent className="space-y-3 text-sm text-muted-foreground">
+          <AccordionTrigger className="text-small">Datenerhebung & Hinweise</AccordionTrigger>
+          <AccordionContent className="space-y-3 text-small text-muted-foreground">
             <p>{stats.note}</p>
             <ul className="space-y-1">
               <li>Herausgefilterte Bots: <span className="font-medium text-foreground">{formatNumber(stats.bots_filtered)}</span></li>
@@ -628,7 +628,7 @@ function MethodologySection({ stats }: SectionProps) {
                 {formatNumber(Object.values(stats.duels_created ?? {}).reduce((a, b) => a + b, 0))}</span>
                 {Object.keys(stats.duels_created ?? {}).length > 0 && (
                   <span> ({Object.entries(stats.duels_created).map(([k, v]) =>
-                    `${MODE_LABELS[k] ?? k}: ${formatNumber(v)}`).join(" · ")})</span>
+                    `${MODE_LABELS[k] ?? k}: ${formatNumber(v)}`).join(", ")})</span>
                 )}
               </li>
               <li>Klebrigkeit (Tag/Monat): <span className="font-medium text-foreground">{formatPercent(stats.stickiness)}</span></li>

@@ -34,10 +34,10 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
       {showPodest && (
         <div className="mt-[9px] mb-[25px]">
           {pendingWord ? (
-            <p className="text-sm text-foreground animate-pulse">Lädt...</p>
+            <p className="text-small text-foreground animate-pulse">Lädt...</p>
           ) : podestError ? (
             <>
-              <p className="text-sm text-foreground font-medium">{podestError.message}</p>
+              <p className="text-small text-foreground font-medium">{podestError.message}</p>
               {onSuggestion && (
                 <GuessSuggestions suggestions={podestError.suggestions} onSuggestion={onSuggestion} />
               )}
@@ -46,7 +46,7 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
             <>
               <GuessBar word={latest.word} rank={latest.rank} total={total} isNew size="lg" />
               {latest.correctedFrom && (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-small text-muted-foreground">
                   „{latest.correctedFrom}“ wurde als „{latest.word}“ gewertet
                 </p>
               )}

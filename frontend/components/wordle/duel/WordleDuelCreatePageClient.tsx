@@ -10,6 +10,7 @@ import { getWordleGame, createWordleDuel } from "@/lib/wordle-api";
 import { saveDuelToken, saveDuelNickname } from "@/lib/wordle-storage";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { ArrowLeft } from "lucide-react";
+import { Panel, Wordmark } from "@/components/design";
 
 export default function WordleDuelCreatePageClient() {
   const router = useRouter();
@@ -50,13 +51,13 @@ export default function WordleDuelCreatePageClient() {
               <ArrowLeft className="h-6! w-6!" />
             </Button>
           </a>
-          <span className="text-[24px] font-bold tracking-wider">WÖRDLE</span>
+          <Wordmark name="Wördle" href="/wordle/" />
         </div>
-        <h1 className="text-sm text-muted-foreground mt-1">Duell erstellen</h1>
+        <h1 className="mt-2 text-h1">Wördle-Duell erstellen</h1>
       </header>
 
       <main className="flex-1 px-4 py-6 flex flex-col gap-5">
-        <div className="rounded-xl border bg-card p-5 space-y-5">
+        <Panel className="gap-5">
           <div className="space-y-2">
             <Label htmlFor="nickname">Dein Nickname</Label>
             <Input
@@ -88,7 +89,7 @@ export default function WordleDuelCreatePageClient() {
                 Zufälliges Spiel
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               {gameMode === "today"
                 ? `Spiel #${gameNumber ?? "..."} (heutiges Wördle)`
                 : "Zufälliges Wördle, für beide Spieler gleich"}
@@ -102,7 +103,7 @@ export default function WordleDuelCreatePageClient() {
           >
             {creating ? "Erstellen..." : "Duell erstellen"}
           </Button>
-        </div>
+        </Panel>
       </main>
     </div>
   );

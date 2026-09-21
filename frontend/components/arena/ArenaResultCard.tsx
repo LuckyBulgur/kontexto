@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArenaState } from "@/lib/arena-types";
 import { MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
+import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface ArenaResultCardProps {
   state: ArenaState;
@@ -26,54 +27,36 @@ export default function ArenaResultCard({
   const standings = [...state.players].sort(byPlace);
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4 text-center">
-      <h2 className="text-xl font-bold">
-        {youWon ? "Gewonnen" : state.winner ? `${state.winner} gewinnt` : "Niemand gewinnt"}
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        {meta.name} · Spiel #{state.game_number}
-        {solution && (
-          <>
-            {" "}
-            · Das Wort war <strong className="text-foreground">{solution}</strong>
-          </>
-        )}
-      </p>
+    <Panel className="animate-result-in">
+      <ResultHero
+        eyebrow={`${meta.name}, Spiel #${state.game_number}`}
+        headline={youWon ? "Gewonnen!" : state.winner ? `${state.winner} gewinnt` : "Niemand gewinnt"}
+        lost={!youWon && !state.winner}
+        support={solution ? `Das Wort war ${solution}.` : undefined}
+      />
 
-      <ol className="space-y-1 text-left">
+      <ResultList>
         {standings.map((player, index) => (
-          <li
+          <ResultRow
             key={player.nickname}
-            className="flex items-baseline justify-between rounded-lg border px-3 py-2 text-sm"
-          >
-            <span>
-              <span className="mr-2 font-mono text-muted-foreground">
-                {player.place ?? index + 1}.
-              </span>
-              {player.nickname}
-              {player.nickname === currentNickname && (
-                <span className="ml-1 text-xs text-muted-foreground">(du)</span>
-              )}
-            </span>
-            <span className="font-mono">
-              {player.best_rank ?? "-"}
-              <span className="ml-2 text-xs text-muted-foreground">
-                {player.guess_count} Versuche
-              </span>
-            </span>
-          </li>
+            place={player.place ?? index + 1}
+            lead={player.nickname === state.winner}
+            name={player.nickname}
+            you={player.nickname === currentNickname}
+            detail={`Rang ${player.best_rank ?? "-"}, ${player.guess_count} Versuche`}
+          />
         ))}
-      </ol>
+      </ResultList>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <Button onClick={onNextRound} disabled={nextLoading}>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button className="flex-1" onClick={onNextRound} disabled={nextLoading}>
           {nextLoading ? "Lädt..." : "Neue Runde"}
         </Button>
-        <Button variant="outline" asChild>
+        <Button variant="outline" className="flex-1" asChild>
           <Link href="/modi/">Andere Modi</Link>
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }
 

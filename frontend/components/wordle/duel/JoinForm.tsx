@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/design";
 
 interface JoinFormProps {
   onJoin: (nickname: string) => void;
@@ -20,8 +21,8 @@ export default function JoinForm({ onJoin, loading, error }: JoinFormProps) {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="rounded-xl border bg-card p-6 w-full space-y-4">
-        <h2 className="text-xl font-bold text-center">Wördle Duell beitreten</h2>
+      <Panel className="w-full gap-4 p-6">
+        <h2 className="text-h3 font-bold text-center">Wördle Duell beitreten</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             value={nickname}
@@ -31,7 +32,7 @@ export default function JoinForm({ onJoin, loading, error }: JoinFormProps) {
             autoComplete="off"
             autoFocus
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-small text-destructive">{error}</p>}
           <Button
             type="submit"
             disabled={loading || !nickname.trim()}
@@ -40,7 +41,7 @@ export default function JoinForm({ onJoin, loading, error }: JoinFormProps) {
             {loading ? "Beitreten..." : "Beitreten"}
           </Button>
         </form>
-      </div>
+      </Panel>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Panel, ResultHero } from "@/components/design";
 import {
   SoloModeMeta,
   SoloState,
@@ -29,32 +30,32 @@ export default function SoloResultCard({
 }: SoloResultCardProps) {
   const won = state.status === "won";
 
+  const words = [solution, secondSolution].filter(Boolean) as string[];
+
   return (
-    <div className="rounded-xl border bg-card p-6 space-y-4 text-center">
-      <h2 className="text-xl font-bold">{won ? headline(mode.id) : "Diesmal nicht"}</h2>
+    <Panel className="animate-result-in">
+      <ResultHero
+        eyebrow={
+          words.length === 0
+            ? mode.name
+            : words.length > 1
+              ? `${mode.name}, die Wörter waren`
+              : `${mode.name}, das Wort war`
+        }
+        headline={words.length > 0 ? words.join(" und ") : won ? headline(mode.id) : "Diesmal nicht"}
+        lost={!won}
+        support={summary(state)}
+      />
 
-      <p className="text-sm text-muted-foreground">{summary(state)}</p>
-
-      {(solution || secondSolution) && (
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            {state.mode === "doppel" ? "Die gesuchten Wörter" : "Das gesuchte Wort"}
-          </p>
-          <p className="text-lg font-bold">
-            {[solution, secondSolution].filter(Boolean).join(" und ")}
-          </p>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <Button onClick={onRestart} disabled={restarting}>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button className="flex-1" onClick={onRestart} disabled={restarting}>
           {restarting ? "Lädt..." : "Neue Runde"}
         </Button>
-        <Button variant="outline" asChild>
+        <Button variant="outline" className="flex-1" asChild>
           <Link href="/modi/">Andere Modi</Link>
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }
 

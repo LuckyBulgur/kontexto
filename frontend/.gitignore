@@ -42,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Screenshots from the design audit (e2e/design-audit.spec.ts). Evidence for a
+# review, not source: regenerate them, do not commit them.
+.checks/

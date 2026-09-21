@@ -36,12 +36,14 @@ function PostCard({ post }: { post: BlogMeta }) {
         href={`/blog/${post.slug}/`}
         className="group flex h-full flex-col rounded-xl border bg-card p-5 transition-colors hover:bg-accent"
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {post.category} · {post.updated ? "aktualisiert " : "veröffentlicht "}{formatDate(date)} · {readingTimeMinutes(post.slug)} Min. Lesezeit
+        {/* The title leads. The meta line used to sit above it at the same
+            weight, which made the category the first thing read on every card. */}
+        <h3 className="text-h3 text-balance text-foreground">{post.title}</h3>
+        <p className="mt-2 flex-1 text-small text-muted-foreground">{post.description}</p>
+        <p className="mt-3 text-micro text-muted-foreground">
+          {post.category}, {post.updated ? "aktualisiert " : "veröffentlicht "}{formatDate(date)}, {readingTimeMinutes(post.slug)} Min. Lesezeit
         </p>
-        <h3 className="text-base font-semibold text-foreground">{post.title}</h3>
-        <p className="mt-1.5 flex-1 text-sm text-muted-foreground">{post.description}</p>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+        <span className="mt-2 inline-flex items-center gap-1 text-small font-medium text-primary">
           Weiterlesen
           <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
         </span>
@@ -59,7 +61,7 @@ export default function BlogIndex() {
       breadcrumbName="Blog"
       path="/blog/"
     >
-      <p className="-mt-4 text-sm leading-relaxed text-muted-foreground">
+      <p className="-mt-4 text-small leading-relaxed text-muted-foreground">
         Alle Beiträge stammen von{" "}
         <Link
           href={AUTHOR_PROFILE_PATH}
@@ -70,7 +72,7 @@ export default function BlogIndex() {
         , dem Entwickler von Kontexto. Die redaktionellen Grundsätze, Datenquellen und
         Korrekturregeln stehen auf der Seite <Link href="/redaktion/" className="text-primary underline underline-offset-2">Redaktion</Link>.
       </p>
-      <p className="-mt-2 text-sm leading-relaxed text-muted-foreground">
+      <p className="-mt-2 text-small leading-relaxed text-muted-foreground">
         Für gemeinsame Runden gibt es außerdem das{" "}
         <Link href="/wordle/duel/" className="text-primary underline underline-offset-2 hover:no-underline">
           Wördle-Duell
@@ -80,8 +82,8 @@ export default function BlogIndex() {
       {categoryOrder.map((cat) => (
         <Reveal as="section" key={cat} className="space-y-4">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">{cat}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{categoryIntro[cat]}</p>
+            <h2 className="text-h3 font-semibold text-foreground">{cat}</h2>
+            <p className="mt-1 text-small text-muted-foreground">{categoryIntro[cat]}</p>
           </div>
           <ul className="grid list-none gap-4 p-0 sm:grid-cols-2">
             {groups[cat].map((post) => (

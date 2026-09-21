@@ -3,10 +3,10 @@
 type KeyColor = "green" | "yellow" | "gray" | "default";
 
 const KEY_COLOR_MAP: Record<KeyColor, string> = {
-  green: "bg-green-500 text-white border-green-500 dark:bg-[#538d4e] dark:border-[#538d4e]",
-  yellow: "bg-yellow-500 text-white border-yellow-500 dark:text-white dark:border-[#b59f3b] dark:bg-[#b59f3b]",
-  gray: "bg-zinc-400 text-white border-zinc-400 dark:bg-zinc-700 dark:border-zinc-700 dark:text-white",
-  default: "bg-zinc-200 text-zinc-800 border-zinc-300 dark:bg-zinc-500 dark:text-white dark:border-zinc-500",
+  green: "border-tile-correct bg-tile-correct text-tile-foreground",
+  yellow: "border-tile-present bg-tile-present text-tile-foreground",
+  gray: "border-tile-absent bg-tile-absent text-tile-foreground",
+  default: "border-border bg-secondary text-secondary-foreground",
 };
 
 interface KeyProps {
@@ -21,7 +21,7 @@ export default function Key({ label, value, color = "default", wide = false, onC
   return (
     <button
       type="button"
-      className={`${KEY_COLOR_MAP[color]} ${wide ? "flex-[1.5] text-xs sm:text-sm" : "flex-1 text-base"} min-w-0 h-[58px] sm:h-[64px] rounded font-bold uppercase flex items-center justify-center border cursor-pointer active:scale-95 transition-transform select-none`}
+      className={`${KEY_COLOR_MAP[color]} ${wide ? "flex-[1.5] text-micro sm:text-small" : "flex-1 text-body"} min-w-0 h-[58px] sm:h-[64px] rounded-md font-bold uppercase flex items-center justify-center border cursor-pointer active:scale-95 transition-transform select-none`}
       onClick={() => onClick(value)}
     >
       {label}

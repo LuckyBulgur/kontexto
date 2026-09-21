@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { Panel } from "@/components/design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -29,7 +30,7 @@ export function SeoSection({
       aria-label={label}
       className={cn("mt-12 border-t border-border bg-muted/30", className)}
     >
-      <div className="mx-auto max-w-3xl px-4 pb-16 pt-10 text-sm leading-relaxed text-muted-foreground sm:pt-12">
+      <div className="mx-auto max-w-[68ch] px-4 pb-16 pt-10 text-body leading-relaxed text-muted-foreground sm:pt-12">
         {children}
       </div>
     </section>
@@ -47,7 +48,7 @@ export function SeoHeading({
   return (
     <h2
       className={cn(
-        "mb-3 mt-10 text-lg font-semibold text-foreground first:mt-0",
+        "mt-12 mb-3 text-h2 text-foreground first:mt-0",
         className,
       )}
     >
@@ -58,7 +59,11 @@ export function SeoHeading({
 
 /** Responsive grid for FeatureCards. */
 export function FeatureGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
+  return (
+    <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
+      {children}
+    </div>
+  );
 }
 
 /** Benefit card: decorative icon chip + title + short description. */
@@ -72,19 +77,25 @@ export function FeatureCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-foreground">
-        <Icon className="h-5 w-5" aria-hidden="true" />
+    <Panel padding="sm" className="gap-3">
+      <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+      <div className="flex flex-col gap-1">
+        <h3 className="text-h3 text-foreground">{title}</h3>
+        <p className="text-small text-muted-foreground">{children}</p>
       </div>
-      <h3 className="mb-1 text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground">{children}</p>
-    </div>
+    </Panel>
   );
 }
 
 /** Ordered list of steps (semantic <ol> for assistive tech). */
 export function StepList({ children }: { children: React.ReactNode }) {
-  return <ol className="grid gap-4 sm:grid-cols-3">{children}</ol>;
+  // auto-fit, not a fixed three: /anleitung/ has four steps, and a hard
+  // three-column grid left the fourth one stranded alone on its own row.
+  return (
+    <ol className="grid list-none gap-4 [grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))]">
+      {children}
+    </ol>
+  );
 }
 
 /** A single numbered step card. */
@@ -98,13 +109,21 @@ export function Step({
   children: React.ReactNode;
 }) {
   return (
-    <li className="rounded-xl border bg-card p-5">
-      <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-        {index}
-      </div>
-      <h3 className="mb-1 text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground">{children}</p>
-    </li>
+    <Panel asChild padding="sm" className="gap-3">
+      <li>
+        <span
+          data-numeric
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary font-display text-small font-bold text-primary-foreground"
+          aria-hidden="true"
+        >
+          {index}
+        </span>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-h3 text-foreground">{title}</h3>
+          <p className="text-small text-muted-foreground">{children}</p>
+        </div>
+      </li>
+    </Panel>
   );
 }
 
@@ -114,26 +133,27 @@ export function Step({
  */
 export function ColorLegend() {
   const rows = [
-    { dot: "bg-green-500", label: "Grün", range: "Rang 1–300", desc: "sehr nah am Zielwort" },
-    { dot: "bg-yellow-500", label: "Gelb", range: "Rang 301–1500", desc: "auf dem richtigen Weg" },
-    { dot: "bg-red-500", label: "Rot", range: "Rang 1501+", desc: "noch weit entfernt" },
+    { dot: "bg-rank-near", label: "Grün", range: "Rang 1–300", desc: "sehr nah am Zielwort" },
+    { dot: "bg-rank-mid", label: "Gelb", range: "Rang 301–1500", desc: "auf dem richtigen Weg" },
+    { dot: "bg-rank-far", label: "Rot", range: "Rang 1501+", desc: "noch weit entfernt" },
   ] as const;
   return (
-    <ul className="list-none space-y-3 rounded-xl border bg-card p-5">
+    <Panel asChild>
+      <ul className="list-none gap-3">
       {rows.map((r) => (
         <li key={r.label} className="flex items-center gap-3">
           <span
             className={cn("inline-block h-3 w-3 shrink-0 rounded-full", r.dot)}
             aria-hidden="true"
           />
-          <span className="text-sm">
-            <span className="font-medium text-foreground">{r.label}</span>{" "}
-            <span className="text-muted-foreground">({r.range})</span>{" "}
-            <span className="text-muted-foreground">{r.desc}</span>
+          <span className="text-small">
+            <span className="font-semibold text-foreground">{r.label}</span>{" "}
+            <span className="text-muted-foreground">{r.range}, {r.desc}</span>
           </span>
         </li>
       ))}
-    </ul>
+      </ul>
+    </Panel>
   );
 }
 
@@ -154,16 +174,17 @@ export function RelatedLinks({
   label: string;
 }) {
   return (
-    <nav aria-label={label} className="rounded-xl border bg-card p-2">
-      <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {heading}
-      </p>
+    <Panel asChild padding="none" className="gap-0 p-2">
+      <nav aria-label={label}>
+        <p className="px-3 pb-1 pt-2 text-micro font-semibold text-muted-foreground">
+          {heading}
+        </p>
       <ul className="list-none">
         {links.map((l) => (
           <li key={l.href}>
             <Link
               href={l.href}
-              className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-small font-medium text-foreground transition-colors hover:bg-accent"
             >
               <span>{l.label}</span>
               <ChevronRight
@@ -173,7 +194,8 @@ export function RelatedLinks({
             </Link>
           </li>
         ))}
-      </ul>
-    </nav>
+        </ul>
+      </nav>
+    </Panel>
   );
 }

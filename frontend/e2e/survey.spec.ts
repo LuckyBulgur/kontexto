@@ -11,7 +11,7 @@ async function solveDailyGame(page: Page, word: string) {
   await input.fill(word);
   await input.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "Herzlichen Glückwunsch!" }),
+    page.getByRole("heading", { name: word, exact: true }),
   ).toBeVisible({ timeout: 10_000 });
 }
 
@@ -43,7 +43,7 @@ test.describe("source survey", () => {
     // The answer is remembered across reloads, so nothing asks again.
     await page.reload();
     await expect(
-      page.getByRole("heading", { name: "Herzlichen Glückwunsch!" }),
+      page.getByRole("heading", { name: word, exact: true }),
     ).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(1500);
     await expect(page.getByRole("dialog")).toBeHidden();

@@ -17,7 +17,7 @@ test.describe("share text", () => {
     await input.fill(word);
     await input.press("Enter");
     await expect(
-      page.getByRole("heading", { name: "Herzlichen Glückwunsch!" }),
+      page.getByRole("heading", { name: word, exact: true }),
     ).toBeVisible({ timeout: 10_000 });
 
     // The one-time survey modal sits on top of the card; skip it first.

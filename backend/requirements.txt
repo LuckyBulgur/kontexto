@@ -1,8 +1,19 @@
 fastapi==0.141.1
-uvicorn[standard]==0.52.1
-numpy==2.5.1
-pydantic==2.13.4
+uvicorn[standard]==0.53.0
+numpy==2.5.3
+pydantic==2.13.5
 pybloom_live==4.0.0
+# Pinned deliberately. simplemma 2.0.0 keeps the API (is_known, lemmatize,
+# text_lemmatizer all still exist), but it lemmatises lowercase German
+# differently, and prepare.py feeds it nothing but lowercase. Measured over the
+# 144-word test vocabulary: 10 words (7 percent) get a different lemma, in both
+# directions and partly wrong (baum -> baumen, markt -> marken, fluss -> the
+# pre-1996 spelling). Two build steps read that lemma: create_lemma_map, which
+# decides which guesses collapse onto one word and feeds the spellfix surface
+# index, and target selection, which only accepts a word whose lemma equals
+# itself. Upgrading therefore silently reshuffles the solution pool on the next
+# data build (platz would enter, baum would drop out). Any upgrade needs a full
+# prepare.py run plus a diff of target_words.json, not a version bump.
 simplemma==1.2.0
 fasttext-wheel==0.9.2
 # Build-time only (target-word selection in prepare.py): German POS tagging,
@@ -18,4 +29,4 @@ pytest==9.1.1
 # deprecated plain `httpx` here in favour of `httpx2` (the maintained
 # continuation of the project); keeping httpx would emit a deprecation warning
 # on every test run and eventually stop working.
-httpx2==2.9.1
+httpx2==2.13.0

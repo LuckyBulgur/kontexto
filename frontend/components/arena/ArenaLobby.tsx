@@ -45,7 +45,7 @@ export default function ArenaLobby({
           <CardDescription>{meta.tagline}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+          <ul className="list-disc space-y-1.5 pl-5 text-small text-muted-foreground">
             {meta.rules.map((rule) => (
               <li key={rule}>{rule}</li>
             ))}
@@ -55,8 +55,8 @@ export default function ArenaLobby({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            {`Im Raum: ${state.players.length} von ${ARENA_MAX_PLAYERS}`}
+          <CardTitle>
+            {`${state.players.length} von ${ARENA_MAX_PLAYERS} im Raum`}
           </CardTitle>
           <CardDescription>
             {enough
@@ -67,22 +67,22 @@ export default function ArenaLobby({
         <CardContent className="space-y-3">
           <ul className="space-y-1">
             {state.players.map((player) => (
-              <li key={player.nickname} className="text-sm">
+              <li key={player.nickname} className="text-small">
                 {player.nickname}
                 {player.nickname === currentNickname && (
-                  <span className="ml-1 text-xs text-muted-foreground">(du)</span>
+                  <span className="ml-1 text-micro text-muted-foreground">(du)</span>
                 )}
               </li>
             ))}
           </ul>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-small text-destructive">{error}</p>}
 
           <Button onClick={onStart} disabled={!enough || starting} className="w-full">
             {starting ? "Startet..." : enough ? "Runde starten" : "Warte auf Mitspieler"}
           </Button>
           {full && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               {"Der Raum ist voll, mehr passen nicht rein."}
             </p>
           )}

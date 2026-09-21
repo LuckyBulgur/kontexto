@@ -28,7 +28,7 @@ export default function NutzungsbedingungenPage() {
       path="/nutzungsbedingungen/"
     >
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">1. Geltungsbereich</h2>
+        <h2 className="text-body font-semibold text-foreground">1. Geltungsbereich</h2>
         <p>
           Diese Bedingungen gelten für die Nutzung von kontexto.de mit allen Spielmodi und
           Inhaltsseiten. Anbieter ist {legal.name}, die vollständigen Angaben stehen im{" "}
@@ -42,7 +42,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">2. Was das Angebot umfasst</h2>
+        <h2 className="text-body font-semibold text-foreground">2. Was das Angebot umfasst</h2>
         <p>
           Kontexto stellt ein tägliches Wortratespiel, einen Unendlich-Modus, die Mehrspieler-Modi
           Duell und Koop sowie das Buchstabenspiel Wördle samt eigenem Duell bereit, dazu
@@ -62,7 +62,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">3. Regeln für die Nutzung</h2>
+        <h2 className="text-body font-semibold text-foreground">3. Regeln für die Nutzung</h2>
         <p>Beim Spielen und in den Mehrspieler-Modi gilt:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>
@@ -94,7 +94,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">4. Rechte an den Inhalten</h2>
+        <h2 className="text-body font-semibold text-foreground">4. Rechte an den Inhalten</h2>
         <p>
           Die Texte, das Design, der Quellcode und die Auswertungen auf dieser Seite sind
           urheberrechtlich geschützt. Einzelne Absätze dürfen mit Quellenangabe und Link zitiert
@@ -119,7 +119,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">5. Werbung</h2>
+        <h2 className="text-body font-semibold text-foreground">5. Werbung</h2>
         <p>
           Das Angebot ist aktuell werbefrei. Für die Finanzierung ist Werbung vorgesehen, die nach
           einer Freischaltung ausschließlich auf den beiden Einzelspieler-Seiten angezeigt wird.
@@ -136,7 +136,7 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 id="haftungsausschluss" className="scroll-mt-24 text-base font-semibold text-foreground">6. Haftung und Haftungsausschluss</h2>
+        <h2 id="haftungsausschluss" className="scroll-mt-24 text-body font-semibold text-foreground">6. Haftung und Haftungsausschluss</h2>
         <p>
           Die Inhalte werden mit Sorgfalt erstellt, eine Gewähr für Richtigkeit und Vollständigkeit
           kann jedoch nicht übernommen werden. Für Schäden haften wir nur bei Vorsatz und grober
@@ -151,14 +151,14 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">7. Änderungen und anwendbares Recht</h2>
+        <h2 className="text-body font-semibold text-foreground">7. Änderungen und anwendbares Recht</h2>
         <p>
           Diese Bedingungen können angepasst werden, wenn sich das Angebot ändert. Es gilt jeweils
           die auf dieser Seite veröffentlichte Fassung. Anwendbar ist deutsches Recht; zwingende
           Verbraucherschutzvorschriften des Staates, in dem du deinen gewöhnlichen Aufenthalt hast,
           bleiben davon unberührt. {legal.disputeResolution}
         </p>
-        <p className="text-xs">Stand: August 2026</p>
+        <p className="text-micro">Stand: August 2026</p>
       </section>
     </TextPage>
   );

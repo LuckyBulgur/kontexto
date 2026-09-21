@@ -15,7 +15,7 @@ import { duelFaqs } from "@/lib/faqs";
 export default function DuelSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-h2 font-bold text-foreground">
         So funktioniert das Kontexto-Duell
       </h1>
       <p className="max-w-prose">

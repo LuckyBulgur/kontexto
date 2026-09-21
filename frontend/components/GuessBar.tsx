@@ -1,6 +1,6 @@
 "use client";
 import { getRankColor, getBarWidth } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Meter, toneFromRankColor } from "@/components/design";
 
 interface GuessBarProps {
   word: string;
@@ -10,28 +10,21 @@ interface GuessBarProps {
   size?: "default" | "lg";
 }
 
-const COLOR_CLASSES = {
-  green: "bg-green-500 dark:bg-green-700",
-  yellow: "bg-amber-500 dark:bg-amber-700",
-  red: "bg-red-500 dark:bg-red-700",
-};
-
+/**
+ * One row of the guess list. The game-specific part is only the arithmetic;
+ * the bar itself is the shared `Meter`, so arena, duel, koop and the solo modes
+ * draw the same object with the same contrast guarantees.
+ */
 export default function GuessBar({ word, rank, total, isNew, size = "default" }: GuessBarProps) {
-  const color = getRankColor(rank);
-  const width = getBarWidth(rank, total);
-  const isLg = size === "lg";
   return (
-    <div className={cn(
-      "relative flex items-center rounded-lg mb-1 transition-colors bg-black/5 dark:bg-white/10",
-      "h-10",
-      isNew && "animate-slideIn ring-2 ring-white",
-    )}>
-      <div
-        className={cn("absolute inset-y-0 left-0 rounded-lg transition-[width] duration-500", COLOR_CLASSES[color])}
-        style={{ width: `${width}%` }}
-      />
-      <span className={cn("relative z-10 ml-3 font-bold text-foreground dark:text-white", isLg ? "text-base" : "text-sm")}>{word}</span>
-      <span className={cn("relative z-10 ml-auto mr-3 font-mono text-foreground dark:text-white font-bold", isLg ? "text-base" : "text-sm")}>{rank}</span>
-    </div>
+    <Meter
+      label={word}
+      value={rank}
+      fraction={getBarWidth(rank, total)}
+      tone={toneFromRankColor(getRankColor(rank))}
+      isNew={isNew}
+      emphasis={size === "lg"}
+      className="mb-1"
+    />
   );
 }

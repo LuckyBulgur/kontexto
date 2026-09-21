@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ChevronRight,
   Clock,
   Flame,
   Globe,
@@ -92,7 +93,7 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
+          <DialogTitle className="flex items-center gap-2 text-h3">
             {path && (
               <button
                 type="button"
@@ -120,10 +121,11 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
                   className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-accent focus-visible:border-primary"
                 >
                   <Badge icon={entry.icon} />
-                  <span className="min-w-0">
-                    <span className="block text-base font-semibold">{entry.title}</span>
-                    <span className="block text-sm text-muted-foreground">{entry.hint}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-lead font-bold">{entry.title}</span>
+                    <span className="block text-small text-muted-foreground">{entry.hint}</span>
                   </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </button>
               ))
             : modesFor(path).map((mode) => (
@@ -133,14 +135,15 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
                   className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent focus-visible:border-primary"
                 >
                   <Badge icon={MODE_ICONS[mode.id]} />
-                  <span className="min-w-0">
-                    <span className="block text-base font-semibold">{mode.name}</span>
-                    <span className="block text-sm text-muted-foreground">{mode.hook}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-lead font-bold">{mode.name}</span>
+                    <span className="block text-small text-muted-foreground">{mode.hook}</span>
                   </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </Link>
               ))}
 
-          <p className="pt-2 text-center text-xs text-muted-foreground">
+          <p className="pt-2 text-center text-micro text-muted-foreground">
             <Link href="/modi/" className="underline underline-offset-2 hover:no-underline">
               {"Regeln aller Modi nachlesen"}
             </Link>
@@ -153,7 +156,7 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
 
 function Badge({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
       <Icon className="h-5 w-5" aria-hidden="true" />
     </span>
   );

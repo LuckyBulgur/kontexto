@@ -21,7 +21,7 @@ export default function GiveUpDialog({ open, onClose, onConfirm, description }: 
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-xl">Aufgeben</DialogTitle>
+          <DialogTitle className="text-h3">Aufgeben</DialogTitle>
           <DialogDescription>
             {description ?? "Bist du sicher? Das Lösungswort wird angezeigt und du kannst heute nicht mehr weiterspielen."}
           </DialogDescription>

@@ -75,12 +75,12 @@ export default function WordleHeader({
             </Button>
           </a>
         )}
-        <div className="flex items-center gap-1 text-[20px] font-bold tracking-wider">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
-            KONTEXTO
+        <div className="flex items-center gap-1.5 font-display text-h3 font-extrabold tracking-tight">
+          <Link href="/" className="text-muted-foreground transition-colors hover:text-foreground">
+            Kontexto
           </Link>
-          <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <Link href="/wordle/">WÖRDLE</Link>
+          <span className="text-border" aria-hidden="true">/</span>
+          <Link href="/wordle/">Wördle</Link>
         </div>
         {(onCopyLink || hasMenu) && (
           <div className="absolute right-4 flex items-center gap-0.5">
@@ -128,7 +128,7 @@ export default function WordleHeader({
                       <Swords className="h-4 w-4" />
                       Duell erstellen
                       {showDuelHighlight && (
-                        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                           NEU
                         </span>
                       )}
@@ -154,7 +154,7 @@ export default function WordleHeader({
           </div>
         )}
       </div>
-      {subtitle && <div className="text-sm text-muted-foreground mt-1">{subtitle}</div>}
+      {subtitle && <div className="text-small text-muted-foreground mt-1">{subtitle}</div>}
     </header>
   );
 }

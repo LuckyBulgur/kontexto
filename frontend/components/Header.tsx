@@ -130,13 +130,19 @@ export default function Header({
             </Button>
           </a>
         )}
-        <div className="flex items-center gap-1 text-[20px] font-bold tracking-wider">
-          <Link href="/" className={pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
-            KONTEXTO
+        <div className="flex items-center gap-1.5 font-display text-h3 font-extrabold tracking-tight">
+          <Link
+            href="/"
+            className={pathname.startsWith("/wordle") ? "text-muted-foreground transition-colors hover:text-foreground" : ""}
+          >
+            Kontexto
           </Link>
-          <span className="text-zinc-300 dark:text-zinc-600">|</span>
-          <Link href="/wordle/" className={!pathname.startsWith("/wordle") ? "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300" : ""}>
-            WÖRDLE
+          <span className="text-border" aria-hidden="true">/</span>
+          <Link
+            href="/wordle/"
+            className={!pathname.startsWith("/wordle") ? "text-muted-foreground transition-colors hover:text-foreground" : ""}
+          >
+            Wördle
           </Link>
         </div>
       <div className="absolute right-4 flex items-center gap-0.5">
@@ -226,7 +232,7 @@ export default function Header({
                   <Swords className="h-4 w-4" />
                   Duell erstellen
                   {showDuelHighlight && (
-                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                       NEU
                     </span>
                   )}
@@ -239,7 +245,7 @@ export default function Header({
                   <UsersRound className="h-4 w-4" />
                   Koop erstellen
                   {showKoopHighlight && (
-                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                       NEU
                     </span>
                   )}
@@ -253,7 +259,7 @@ export default function Header({
               <LayoutGrid className="h-4 w-4" />
               Weitere Spielmodi
               {showModesHighlight && (
-                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                   NEU
                 </span>
               )}
@@ -269,7 +275,7 @@ export default function Header({
                 <Infinity className="h-4 w-4" />
                 Unendlich-Modus
                 {showInfiniteHighlight && (
-                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
                     NEU
                   </span>
                 )}
@@ -301,10 +307,12 @@ export default function Header({
       </div>
       </div>
       {subtitle && (
-        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+        // The subtitle names what this page is. It used to whisper under the
+        // brand at 14px muted, which put the mode below the wordmark in rank.
+        <p className="mt-1 font-display text-lead font-bold">{subtitle}</p>
       )}
       {showCountdown && (
-        <p className="text-xs text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
+        <p className="text-micro text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
       )}
       <ModePickerDialog open={showModePicker} onClose={() => setShowModePicker(false)} />
     </header>

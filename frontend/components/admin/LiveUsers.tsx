@@ -41,21 +41,21 @@ export function LiveUsers({ token, initial }: { token: string; initial?: LiveDat
   const breakdown = live
     ? Object.entries(live.by_page)
         .map(([page, n]) => `${PAGE_LABELS[page] ?? page}: ${formatNumber(n)}`)
-        .join(" · ")
+        .join(", ")
     : "";
 
   return (
     <div
-      className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm shadow-sm"
+      className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-small shadow-sm"
       title={active && breakdown ? breakdown : undefined}
       aria-label={`${count} Besucher gerade online`}
     >
       <span className="relative inline-flex h-2.5 w-2.5" aria-hidden>
         {active && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/70" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/70" />
         )}
         <span
-          className={`relative inline-flex h-2.5 w-2.5 rounded-full ${active ? "bg-green-500" : "bg-muted-foreground/40"}`}
+          className={`relative inline-flex h-2.5 w-2.5 rounded-full ${active ? "bg-success" : "bg-muted-foreground/40"}`}
         />
       </span>
       <span className="font-semibold tabular-nums">{formatNumber(count)}</span>

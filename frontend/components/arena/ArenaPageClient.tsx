@@ -349,7 +349,7 @@ export default function ArenaPageClient() {
   if (!state) {
     return (
       <div className="max-w-lg mx-auto min-h-screen flex items-center justify-center px-4">
-        <p className="text-sm text-muted-foreground">{error ?? "Runde nicht gefunden"}</p>
+        <p className="text-small text-muted-foreground">{error ?? "Runde nicht gefunden"}</p>
       </div>
     );
   }
@@ -400,13 +400,13 @@ export default function ArenaPageClient() {
           ) : (
             <>
               <div className="flex items-baseline justify-between rounded-xl border bg-card px-4 py-3">
-                <span className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="text-micro font-medium text-muted-foreground">
                   {state.mode === "royale" ? `Runde ${state.phase + 1}` : meta.name}
                 </span>
                 {seconds !== null && (
                   <span
                     className={cn(
-                      "font-mono text-2xl font-bold tabular-nums",
+                      "font-display text-h2 font-bold tabular-nums",
                       seconds <= 10 && "text-destructive"
                     )}
                     aria-live="polite"
@@ -417,7 +417,7 @@ export default function ArenaPageClient() {
               </div>
 
               {me?.eliminated ? (
-                <p className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">
+                <p className="rounded-xl border bg-card px-4 py-3 text-small text-muted-foreground">
                   {"Du bist raus. Die Runde läuft noch, du kannst zusehen."}
                 </p>
               ) : (
@@ -486,20 +486,20 @@ function ArenaLanding() {
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center gap-4 px-4">
       <div className="w-full rounded-xl border bg-card p-6 space-y-3 text-center">
-        <h2 className="text-xl font-bold">{"Hier ist gerade keine Runde"}</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-h3 font-bold">{"Hier ist gerade keine Runde"}</h2>
+        <p className="text-small text-muted-foreground">
           {"Eine Arena-Runde braucht einen Link oder eine Suche nach Mitspielern."}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <a
             href="/modi/"
-            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-lg bg-primary px-4 py-2.5 text-small font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {"Alle Modi ansehen"}
           </a>
           <a
             href="/arena/create/"
-            className="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
+            className="rounded-lg border px-4 py-2.5 text-small font-medium transition-colors hover:bg-accent"
           >
             {"Eigene Runde erstellen"}
           </a>

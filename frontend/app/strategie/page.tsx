@@ -66,15 +66,15 @@ export default function StrategiePage() {
         <ComparisonTable
           columns={["Wort", "Signal unter Rang 1500", "Begründung"]}
           rows={[
-            ["gehen", <span key="1" className="text-green-700 dark:text-green-400">13,2 %</span>, "Stärkstes Einzelwort im Test; es deckt viele Handlungskontexte ab."],
-            ["machen", <span key="2" className="text-green-700 dark:text-green-400">12,8 %</span>, "Ebenfalls ein starkes Verb im getesteten Kandidatenfeld."],
-            ["arbeit", <span key="3" className="text-green-700 dark:text-green-400">11,9 %</span>, "Stärkstes Substantiv im Test; verbindet mehrere Alltagsbereiche."],
-            ["sehen", <span key="4" className="text-green-700 dark:text-green-400">11,0 %</span>, "Verb aus einer anderen Handlungsrichtung."],
-            ["bauen", <span key="5" className="text-green-700 dark:text-green-400">11,0 %</span>, "Weiteres starkes Verb mit eigenem Kontext."],
-            ["zeit", <span key="6" className="text-green-700 dark:text-green-400">10,3 %</span>, "Öffnet die abstrakt-zeitliche Richtung."],
-            ["mensch", <span key="7" className="text-yellow-700 dark:text-yellow-500">5,6 %</span>, "Wirkt breit, ist gemessen aber nur Mittelfeld."],
-            ["wasser", <span key="8" className="text-red-600 dark:text-red-400">2,6 %</span>, "Fühlt sich breit an, liefert im Test aber selten ein frühes Signal."],
-            ["thermodynamik", <span key="9" className="text-red-600 dark:text-red-400">2,2 %</span>, "Sehr enger Kontext, nützt vor allem bei Physik-Wörtern."],
+            ["gehen", <span key="1" className="text-rank-near-ink">13,2 %</span>, "Stärkstes Einzelwort im Test; es deckt viele Handlungskontexte ab."],
+            ["machen", <span key="2" className="text-rank-near-ink">12,8 %</span>, "Ebenfalls ein starkes Verb im getesteten Kandidatenfeld."],
+            ["arbeit", <span key="3" className="text-rank-near-ink">11,9 %</span>, "Stärkstes Substantiv im Test; verbindet mehrere Alltagsbereiche."],
+            ["sehen", <span key="4" className="text-rank-near-ink">11,0 %</span>, "Verb aus einer anderen Handlungsrichtung."],
+            ["bauen", <span key="5" className="text-rank-near-ink">11,0 %</span>, "Weiteres starkes Verb mit eigenem Kontext."],
+            ["zeit", <span key="6" className="text-rank-near-ink">10,3 %</span>, "Öffnet die abstrakt-zeitliche Richtung."],
+            ["mensch", <span key="7" className="text-rank-mid-ink">5,6 %</span>, "Wirkt breit, ist gemessen aber nur Mittelfeld."],
+            ["wasser", <span key="8" className="text-rank-far-ink">2,6 %</span>, "Fühlt sich breit an, liefert im Test aber selten ein frühes Signal."],
+            ["thermodynamik", <span key="9" className="text-rank-far-ink">2,2 %</span>, "Sehr enger Kontext, nützt vor allem bei Physik-Wörtern."],
           ]}
           caption="Gemessen über alle 2.400 Rätsel: Anteil der Rätsel, in denen das Wort einen Rang unter 1500 erreicht"
         />

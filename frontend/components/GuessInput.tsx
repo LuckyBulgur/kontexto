@@ -40,12 +40,14 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="pr-40 py-6 text-lg rounded-xl"
+          className="rounded-xl py-6 pr-24 text-lead sm:pr-40"
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="select-none pointer-events-none text-sm font-medium tracking-wide text-muted-foreground"
+            // Hidden below sm: at 375px it sat on top of the placeholder, and a
+            // watermark that covers the instruction costs more than it earns.
+            className="pointer-events-none hidden select-none text-small font-medium text-muted-foreground sm:inline"
           >
             kontexto.de
           </span>
@@ -58,7 +60,7 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
           </Button>
         </div>
       </div>
-      {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-1 text-small text-destructive">{error}</p>}
     </form>
   );
 }

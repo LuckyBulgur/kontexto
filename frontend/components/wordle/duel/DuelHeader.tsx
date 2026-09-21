@@ -13,19 +13,19 @@ export default function DuelHeader({ players, currentNickname }: DuelHeaderProps
       {players.map((p) => (
         <div
           key={p.nickname}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-small ${
             p.solved
-              ? "bg-green-100 dark:bg-green-900/30"
+              ? "bg-success/12"
               : "bg-muted"
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${p.connected ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+          <span className={`w-2 h-2 rounded-full ${p.connected ? "bg-primary" : "bg-muted-foreground/45"}`} />
           <span className="font-medium">
             {p.nickname}
             {p.nickname === currentNickname && " (du)"}
           </span>
           <span className="text-muted-foreground">{p.guesses_used}x</span>
-          {p.solved && <span className="text-green-700">&#10003;</span>}
+          {p.solved && <span className="text-success-ink">&#10003;</span>}
         </div>
       ))}
     </div>

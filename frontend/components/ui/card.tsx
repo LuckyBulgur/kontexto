@@ -6,7 +6,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        // One elevation rule: a panel is a fill plus a hairline, an overlay is a
+        // shadow without one. shadcn ships `shadow-sm` here; dropping it is what
+        // makes the rule hold. See components/design/Panel.tsx.
+        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground",
         className
       )}
       {...props}
@@ -31,7 +34,13 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      // A title is a title: display face, on the scale. shadcn leaves this
+      // sizeless, which is how every card title on the site ended up at body
+      // size and the card looked like a paragraph with a border.
+      className={cn(
+        "font-display text-h3 leading-tight font-bold tracking-tight",
+        className,
+      )}
       {...props}
     />
   )
@@ -41,7 +50,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-small text-muted-foreground", className)}
       {...props}
     />
   )

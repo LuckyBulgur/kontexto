@@ -36,9 +36,9 @@ function barWidth(rank: number) {
 }
 
 function rankColor(rank: number) {
-  if (rank <= 300) return { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" };
-  if (rank <= 1500) return { bar: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" };
-  return { bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" };
+  if (rank <= 300) return { bar: "bg-rank-near", text: "text-rank-near-ink" };
+  if (rank <= 1500) return { bar: "bg-rank-mid", text: "text-rank-mid-ink" };
+  return { bar: "bg-rank-far", text: "text-rank-far-ink" };
 }
 
 function Row({ guess, animate }: { guess: Guess; animate: boolean }) {
@@ -51,7 +51,7 @@ function Row({ guess, animate }: { guess: Guess; animate: boolean }) {
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={cn(
         "relative flex items-center justify-between gap-3 overflow-hidden rounded-md border px-3 py-2",
-        isHit ? "border-emerald-500/60 bg-emerald-500/10" : "border-border bg-card",
+        isHit ? "border-success/60 bg-success/10" : "border-border bg-card",
       )}
     >
       <span
@@ -59,10 +59,10 @@ function Row({ guess, animate }: { guess: Guess; animate: boolean }) {
         style={{ width: `${barWidth(guess.rank)}%` }}
       />
       <span className="relative z-10 flex items-center gap-2 font-medium text-foreground">
-        {isHit && <Trophy className="size-4 text-emerald-500" aria-hidden="true" />}
+        {isHit && <Trophy className="size-4 text-success-ink" aria-hidden="true" />}
         {guess.word}
       </span>
-      <span className={cn("relative z-10 tabular-nums text-sm font-semibold", color.text)}>
+      <span className={cn("relative z-10 tabular-nums text-small font-semibold", color.text)}>
         {isHit ? "Treffer!" : guess.rank}
       </span>
     </m.div>
@@ -134,8 +134,8 @@ export default function GameDemo({ className }: { className?: string }) {
       )}
     >
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Beispiel · Zielwort „Strand“
+        <span className="text-micro font-medium text-muted-foreground">
+          Beispiel, Zielwort „Strand“
         </span>
         {done && !reduce && (
           <button
@@ -145,7 +145,7 @@ export default function GameDemo({ className }: { className?: string }) {
               setDone(false);
               setRunId((r) => r + 1);
             }}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-micro font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <RotateCcw className="size-3" />
             Erneut abspielen
@@ -153,7 +153,7 @@ export default function GameDemo({ className }: { className?: string }) {
         )}
       </div>
 
-      <div className="mb-3 flex h-10 items-center rounded-md border border-input bg-background px-3 text-sm">
+      <div className="mb-3 flex h-10 items-center rounded-md border border-input bg-background px-3 text-small">
         {typing ? (
           <span className="text-foreground">
             {typing}

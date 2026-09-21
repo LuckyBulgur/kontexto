@@ -80,7 +80,7 @@ export default function ArenaCreatePageClient() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Label className="text-micro font-semibold text-muted-foreground">
                   Modus
                 </Label>
                 <RadioGroup
@@ -95,15 +95,15 @@ export default function ArenaCreatePageClient() {
                         key={id}
                         htmlFor={`modus-${id}`}
                         className={cn(
-                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal transition-colors",
+                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 font-normal transition-colors",
                           mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
                         )}
                       >
-                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-0.5" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-medium">{meta.name}</span>
-                          <span className="block text-xs text-muted-foreground">{meta.tagline}</span>
-                          <span className="mt-1 block text-xs text-muted-foreground">
+                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-1.5" />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="font-display text-lead font-bold">{meta.name}</span>
+                          <span className="text-small text-muted-foreground">{meta.tagline}</span>
+                          <span className="text-micro text-muted-foreground/80">
                             {partySizeLabel(PARTY_RULES[id])}
                           </span>
                         </span>
@@ -125,7 +125,7 @@ export default function ArenaCreatePageClient() {
                 />
               </div>
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p className="text-small text-destructive">{error}</p>}
 
               <Button type="submit" disabled={loading || !nickname.trim()} className="w-full">
                 {loading ? "Wird erstellt..." : "Runde erstellen"}

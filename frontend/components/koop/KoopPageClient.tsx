@@ -457,12 +457,12 @@ export default function KoopPageClient() {
             />
           ) : (
             <>
-              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>Koop</span>
-                <span>Spiel: <span className="text-[18px] font-bold">#{koopState?.game_number}</span></span>
+                <span>Spiel: <span className="text-lead font-bold">#{koopState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
-                  <span className="text-[18px] font-bold">{guesses.length}</span>
+                  <span className="text-lead font-bold">{guesses.length}</span>
                 </span>
               </div>
               <GuessInput onGuess={handleGuess} disabled={roundOver} error={error} />

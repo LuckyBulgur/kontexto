@@ -16,7 +16,7 @@ import { wordleFaqs } from "@/lib/faqs";
 export default function WordleSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">Wördle im Detail</h1>
+      <h1 className="mb-3 text-h2 font-bold text-foreground">Wördle im Detail</h1>
       <p className="max-w-prose">
         Wördle ist die deutsche Wordle-Variante von Kontexto: Errate jeden Tag ein Wort mit fünf
         Buchstaben in höchstens sechs Versuchen. Kostenlos, ohne Anmeldung, direkt im Browser. Alle

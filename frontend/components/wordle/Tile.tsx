@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import type { TileColor } from "@/lib/wordle-types";
 
+// Wordle keeps its own colour grammar: a tile answers "is this letter in the
+// word", not "how close is this guess". Separate tokens from the rank ramp, so
+// tuning one never silently moves the other. Both modes come from the tokens,
+// which also retires the two hard-coded NYT hexes that used to sit here.
 const COLOR_MAP: Record<TileColor, string> = {
-  GREEN: "bg-green-600 border-green-600 text-white dark:bg-[#538d4e] dark:border-[#538d4e]",
-  YELLOW: "bg-yellow-500 border-yellow-500 text-white dark:bg-[#b59f3b] dark:border-[#b59f3b]",
-  GRAY: "bg-zinc-500 border-zinc-500 text-white dark:bg-zinc-600 dark:border-zinc-600",
+  GREEN: "bg-tile-correct border-tile-correct text-tile-foreground",
+  YELLOW: "bg-tile-present border-tile-present text-tile-foreground",
+  GRAY: "bg-tile-absent border-tile-absent text-tile-foreground",
 };
 
 interface TileProps {
@@ -37,13 +41,13 @@ export default function Tile({ letter, color, flipDelay = 0, pop = false, bounce
     };
   }, [color, flipDelay, mountedWithColor]);
 
-  const baseClasses = "aspect-square w-full border-2 flex items-center justify-center text-2xl font-bold uppercase select-none";
+  const baseClasses = "aspect-square w-full border-2 flex items-center justify-center text-h2 font-bold uppercase select-none";
 
   const stateClasses = showColor && color
     ? COLOR_MAP[color]
     : letter
-      ? "border-zinc-400 dark:border-zinc-500 text-zinc-800 dark:text-zinc-100"
-      : "border-zinc-300 dark:border-zinc-700";
+      ? "border-muted-foreground/60 text-foreground"
+      : "border-border";
 
   const animationClasses = [
     pop && !color ? "animate-wordle-pop" : "",

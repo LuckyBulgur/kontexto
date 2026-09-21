@@ -160,7 +160,7 @@ export default function MatchSearchClient() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Label className="text-micro font-semibold text-muted-foreground">
                   Modus
                 </Label>
                 <RadioGroup
@@ -176,15 +176,18 @@ export default function MatchSearchClient() {
                         key={id}
                         htmlFor={`modus-${id}`}
                         className={cn(
-                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal transition-colors",
+                          "flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 font-normal transition-colors",
                           mode === id ? "border-primary bg-primary/5" : "hover:bg-accent"
                         )}
                       >
-                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-0.5" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-medium">{entry.name}</span>
-                          <span className="block text-xs text-muted-foreground">{entry.hook}</span>
-                          <span className="mt-1 block text-xs text-muted-foreground">
+                        <RadioGroupItem value={id} id={`modus-${id}`} className="mt-1.5" />
+                        {/* Three lines at one size is a list nobody scans. The
+                            name leads, the pitch follows, the party rule is the
+                            fine print it actually is. */}
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="font-display text-lead font-bold">{entry.name}</span>
+                          <span className="text-small text-muted-foreground">{entry.hook}</span>
+                          <span className="text-micro text-muted-foreground/80">
                             {partySizeLabel(rule)}
                             {rule.graceSeconds > 0
                               ? `, Start nach spätestens ${rule.graceSeconds} Sekunden`
@@ -209,7 +212,7 @@ export default function MatchSearchClient() {
                 />
               </div>
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p className="text-small text-destructive">{error}</p>}
 
               <Button onClick={handleSearch} disabled={!mode} className="w-full">
                 Mitspieler suchen
@@ -244,15 +247,15 @@ function WaitingCard({
       <CardHeader className="text-center">
         <CardTitle>Suche Mitspieler</CardTitle>
         <CardDescription>
-          {[mode.name, `${waiting} in der Warteschlange`, `${elapsed} Sekunden`].join(" · ")}
+          {[mode.name, `${waiting} in der Warteschlange`, `${elapsed} Sekunden`].join(", ")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
         <Spinner className="mx-auto size-6 text-primary" />
 
-        <p className="text-sm">{waitingSentence(waiting, ticket)}</p>
+        <p className="text-small">{waitingSentence(waiting, ticket)}</p>
 
-        <div className="rounded-lg border bg-muted/40 p-3 text-left text-xs text-muted-foreground">
+        <div className="rounded-lg border bg-muted/40 p-3 text-left text-micro text-muted-foreground">
           <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
             <Info className="h-3.5 w-3.5" aria-hidden="true" />
             Wann startet die Runde?
@@ -262,12 +265,12 @@ function WaitingCard({
           </p>
         </div>
 
-        <p className="text-sm">
+        <p className="text-small">
           {"Du spielst als "}
           <strong>{ticket.nickname}</strong>
         </p>
         {nameWasReplaced && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {"Dein Wunschname geht so nicht. Fremde lesen ihn mit, deshalb dieser hier."}
           </p>
         )}

@@ -82,7 +82,7 @@ export function AdUnit({
     // ueberspringen will, kann das jetzt gezielt tun.
     <aside className={className} aria-label={label}>
       <span
-        className="block text-center text-[10px] uppercase tracking-wide text-muted-foreground mb-1"
+        className="block text-center text-micro text-muted-foreground mb-1"
         aria-hidden="true"
       >
         {label}

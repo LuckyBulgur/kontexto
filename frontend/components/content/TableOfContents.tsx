@@ -18,7 +18,7 @@ export default function TableOfContents({
   return (
     <nav
       aria-label="Inhalt dieser Seite"
-      className={cn("rounded-xl border border-border bg-muted/30 p-4 text-sm", className)}
+      className={cn("rounded-xl border border-border bg-muted/30 p-4 text-small", className)}
     >
       <p className="mb-2 flex items-center gap-2 font-semibold text-foreground">
         <List className="size-4 text-muted-foreground" aria-hidden="true" />

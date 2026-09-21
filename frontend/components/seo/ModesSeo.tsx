@@ -10,6 +10,8 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { Panel } from "@/components/design";
+import { Button } from "@/components/ui/button";
 import Prose from "@/components/content/Prose";
 import Reveal from "@/components/motion/Reveal";
 import SeoFaq from "@/components/seo/SeoFaq";
@@ -168,32 +170,33 @@ function ModeCard({
   actions: { href: string; label: string }[];
 }) {
   return (
-    <li className="flex flex-col rounded-xl border bg-card p-5">
-      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-foreground">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <h3 className="mb-1 text-sm font-semibold text-foreground">{name}</h3>
-      <p className="mb-3 text-sm text-muted-foreground">{tagline}</p>
-      <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-        {rules.map((rule) => (
-          <li key={rule}>{rule}</li>
-        ))}
-      </ul>
-      <div className="mt-auto flex flex-wrap gap-2">
-        {actions.map((action, index) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className={
-              index === 0
-                ? "rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                : "rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-            }
-          >
-            {action.label}
-          </Link>
-        ))}
-      </div>
-    </li>
+    <Panel asChild className="gap-4">
+      <li>
+        <div className="flex items-start gap-3">
+          <Icon className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <h3 className="text-h3 text-foreground">{name}</h3>
+            <p className="text-body text-muted-foreground">{tagline}</p>
+          </div>
+        </div>
+        <ul className="list-disc space-y-1 pl-5 text-small text-muted-foreground">
+          {rules.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+        <div className="mt-auto flex flex-wrap gap-2">
+          {actions.map((action, index) => (
+            <Button
+              key={action.href}
+              asChild
+              size="sm"
+              variant={index === 0 ? "default" : "outline"}
+            >
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
+          ))}
+        </div>
+      </li>
+    </Panel>
   );
 }

@@ -43,15 +43,15 @@ export default function StatsModal({ open, onOpenChange, gameNumber, guesses, ev
 
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <h4 className="text-sm font-semibold">Verteilung</h4>
-            <span className="text-xs text-muted-foreground">Ø {formatDecimal(avgWin)} Versuche</span>
+            <h4 className="text-small font-semibold">Verteilung</h4>
+            <span className="text-micro text-muted-foreground">Ø {formatDecimal(avgWin)} Versuche</span>
           </div>
           <DistributionBars rows={distRows} highlightLabel={highlight} />
         </div>
 
         {datesPlayed.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Gespielte Tage</h4>
+            <h4 className="text-small font-semibold">Gespielte Tage</h4>
             <CalendarHeatmap dates={datesPlayed} />
           </div>
         )}

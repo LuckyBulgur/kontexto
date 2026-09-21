@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { createKoop } from "@/lib/koop-api";
 import { getGameInfo } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
+import { Panel } from "@/components/design";
+import { Wordmark } from "@/components/design";
 
 export default function KoopCreatePageClient() {
   const router = useRouter();
@@ -53,14 +55,14 @@ export default function KoopCreatePageClient() {
               <ArrowLeft className="h-6! w-6!" />
             </Button>
           </a>
-          <span className="text-[24px] font-bold tracking-wider">KONTEXTO</span>
+          <Wordmark />
         </div>
-        <h1 className="text-sm text-muted-foreground mt-1">Koop erstellen</h1>
+        <h1 className="mt-2 text-h1">Koop erstellen</h1>
       </header>
 
       <main className="flex-1 px-4 py-6 flex flex-col gap-5">
-        <div className="rounded-xl border bg-card p-5 space-y-5">
-          <p className="text-sm text-muted-foreground">
+        <Panel className="gap-5">
+          <p className="text-small text-muted-foreground">
             Sucht gemeinsam dasselbe geheime Wort. Teile den Link, jeder Tipp
             ist sofort für alle sichtbar, und ihr gewinnt als Team.
           </p>
@@ -108,7 +110,7 @@ export default function KoopCreatePageClient() {
             />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-small text-destructive">{error}</p>}
 
           <Button
             onClick={handleCreate}
@@ -117,7 +119,7 @@ export default function KoopCreatePageClient() {
           >
             {loading ? "Erstelle..." : "Koop erstellen"}
           </Button>
-        </div>
+        </Panel>
       </main>
     </div>
   );

@@ -43,11 +43,11 @@ export default function ArticleLayout({
         <SiteNav current={path} />
         <Breadcrumbs items={breadcrumbItems ?? [{ name: "Start", path: "/" }, { name: breadcrumbName, path }]} />
         <header className="mb-6 mt-5 max-w-4xl sm:mb-7">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl sm:leading-tight">
+          <h1 className="text-h1 font-bold tracking-tight text-foreground sm:text-display sm:leading-tight">
             {title}
           </h1>
           {lead && (
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{lead}</p>
+            <p className="mt-4 text-lead leading-relaxed text-muted-foreground">{lead}</p>
           )}
           {/*
             Ein sichtbares Ueberarbeitungsdatum unterscheidet eine gepflegte
@@ -55,7 +55,7 @@ export default function ArticleLayout({
             es nicht nur Text ist.
           */}
           {CONTENT_REVISIONS[path] && (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-micro text-muted-foreground">
               Zuletzt überarbeitet am{" "}
               <time dateTime={CONTENT_REVISIONS[path]}>{revisionLabel(path)}</time>
             </p>

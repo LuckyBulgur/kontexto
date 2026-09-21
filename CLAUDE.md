@@ -103,6 +103,26 @@ A single **WebAuthn passkey** protects `/admin`. Login issues an HMAC‑signed s
 ### Frontend
 Static export (`next.config.ts`: `output:"export"`, `trailingSlash:true`). Dynamic room URLs (`/duel/<id>/`, `/koop/<id>/`, `/wordle/duel/<id>/`, `/arena/<id>/`) render the single matching page and read the id from `window.location.pathname`; in prod nginx does the `try_files … /duel/index.html` fallback, in dev `next.config.ts` adds `rewrites()` and `e2e/serve.mjs` mirrors both. One `/arena/` route serves all three arena modes, because the mode comes from the room state and does not need to be in the URL. Solo modes live at `/solo/{leiter,limit,doppelziel,sudden-death}/`, the queue at `/suche/`, the catalogue at `/modi/`; `lib/solo-modes.ts` and `lib/multiplayer-modes.ts` are the single source for a mode's name, pitch and rules. Client state is plain `useState`/`useEffect` + `localStorage` (no SWR/React Query); keys are prefixed `kontexto_*` / `wordle_*`. Theme is read by an inline script in `app/layout.tsx` before hydration to avoid a flash. API access goes through `lib/api.ts` / `lib/duel-api.ts` / `lib/wordle-api.ts` (base = `NEXT_PUBLIC_API_URL`, fallback `/api`; errors thrown as coded strings like `"unauthorized"`), and the two WS hooks `lib/use-duel-websocket.ts` / `lib/use-wordle-duel-ws.ts`. recharts is loaded via `next/dynamic({ ssr:false })` (`app/admin/stats/page.tsx`) so it stays out of the main bundle. Keep dashboard/skeleton code free of static recharts imports. UI text is German throughout; de‑DE formatting helpers live in `lib/format.ts`.
 
+### Designsystem (`app/globals.css` + `components/design/`)
+Seit 2026-09-21 gibt es ein Tokenfundament, und neue Oberfläche wird daraus gebaut, nicht daneben.
+**Typografie:** acht Stufen, `text-micro` bis `text-display`. `text-xs`…`text-4xl` und freie
+Pixelwerte sind raus (Ausnahme: SVG-Diagramme unter `components/content/`, dort ist die Größe
+Geometrie). Zwei Schriften: Figtree (`font-sans`) für alles Laufende, Bricolage Grotesque
+(`font-display`) für `h1`–`h3` und Zahlen-Helden; die Zuweisung an die Überschriften steht einmal
+im `@layer base`. **Farbe:** Tintenblau als `--primary` in beiden Modi (kein shadcn-Grau-Flip),
+dazu drei getrennte Familien, die nie vermischt werden: `--rank-{near,mid,far}` (wie nah ist der
+Tipp, Emoji-kompatibel und deshalb festgelegt), `--success`/`--warning`/`--info` (hat es
+funktioniert) und `--tile-*` (Wördle). Jede hat eine Füllung und eine `-ink`-Variante für Text.
+Rohe Tailwind-Stufen wie `bg-green-500` gehören nicht mehr in `app/` oder `components/`.
+**Fläche:** `components/design/Panel.tsx` ist die eine Karte (`tone`, `padding`, `asChild`), gebaut
+auf `components/ui/card.tsx`. **Erhebung, eine Regel:** Panel = Füllung plus Haarlinie ohne
+Schatten, Overlay = Schatten ohne Kante. Weitere Primitive: `Stat`/`StatRow`, `Meter` (der
+Ratebalken für alle Modi), `ResultHero` und `ResultList`/`ResultRow` (alle fünf Ergebniskarten),
+`Wordmark`. Kontrast ist gemessen, nicht behauptet: `e2e/design-audit.spec.ts` hinter
+`KONTEXTO_DESIGN_AUDIT=1` prüft 19 Farbpaare je Theme gegen 4,5:1 und legt Screenshots in
+`.checks/`. Details und die Begründungen: `.claude/rules/frontend/no-slop.md`, Abschnitt
+„Designsystem“.
+
 ### shadcn/ui: the full set is vendored
 `frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),
 not only the ones in use. They are vendored source, not a dependency, so an unused file

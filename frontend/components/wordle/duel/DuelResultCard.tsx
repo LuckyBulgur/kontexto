@@ -1,8 +1,8 @@
 "use client";
 
 import type { WordleDuelPlayer } from "@/lib/wordle-types";
-import { Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface DuelResultCardProps {
   players: WordleDuelPlayer[];
@@ -17,37 +17,36 @@ export default function DuelResultCard({ players, currentNickname, onNextGame }:
     if (!a.solved && b.solved) return 1;
     return a.guesses_used - b.guesses_used;
   });
+  const winner = sorted[0]?.solved ? sorted[0] : null;
+  const youWon = winner != null && winner.nickname === currentNickname;
 
   return (
-    <div className="max-w-sm mx-auto rounded-xl border bg-card p-6 my-4">
-      <h3 className="text-lg font-bold text-center mb-4">Duell Ergebnis</h3>
-      <div className="space-y-3">
+    <Panel className="animate-result-in mx-auto my-4 max-w-sm">
+      <ResultHero
+        eyebrow="Wördle-Duell"
+        headline={youWon ? "Gewonnen!" : winner ? `${winner.nickname} gewinnt` : "Niemand gewinnt"}
+        lost={!winner}
+        support={winner ? `Mit ${winner.guesses_used} von 6 Versuchen.` : "Kein Wort gefunden."}
+      />
+
+      <ResultList>
         {sorted.map((p, i) => (
-          <div
+          <ResultRow
             key={p.nickname}
-            className={`flex items-center justify-between p-3 rounded ${
-              i === 0 && p.solved ? "bg-green-50 dark:bg-green-900/20" : "bg-muted"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {i === 0 && p.solved && <Trophy className="w-4 h-4 text-yellow-500" />}
-              <span className="font-medium">
-                {p.nickname}
-                {p.nickname === currentNickname && " (du)"}
-              </span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {p.solved ? `${p.guesses_used}/6` : "X/6"}
-            </div>
-          </div>
+            place={i + 1}
+            lead={i === 0 && p.solved}
+            name={p.nickname}
+            you={p.nickname === currentNickname}
+            detail={p.solved ? `${p.guesses_used} von 6` : "nicht gelöst"}
+          />
         ))}
-      </div>
+      </ResultList>
 
       {onNextGame && (
-        <Button size="lg" className="w-full mt-4" onClick={onNextGame}>
+        <Button size="lg" onClick={onNextGame}>
           Nächstes Spiel
         </Button>
       )}
-    </div>
+    </Panel>
   );
 }

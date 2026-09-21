@@ -465,17 +465,17 @@ export default function DuelPageClient() {
             />
           ) : (
             <>
-              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>Duell</span>
-                <span>Spiel: <span className="text-[18px] font-bold">#{duelState?.game_number}</span></span>
+                <span>Spiel: <span className="text-lead font-bold">#{duelState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
-                  <span className="text-[18px] font-bold">{guesses.length}</span>
+                  <span className="text-lead font-bold">{guesses.length}</span>
                 </span>
                 {duelState?.tips_allowed && (
                   <span>
                     Tipps:{" "}
-                    <span className="text-[18px] font-bold">{players.find((p) => p.nickname === nickname)?.tip_count ?? 0}</span>
+                    <span className="text-lead font-bold">{players.find((p) => p.nickname === nickname)?.tip_count ?? 0}</span>
                   </span>
                 )}
               </div>

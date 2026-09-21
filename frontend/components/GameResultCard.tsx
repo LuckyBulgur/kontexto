@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Guess, getRankColor } from "@/lib/types";
 import { loadStreakData } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
+import { Panel, ResultHero } from "@/components/design";
 import ShareButton from "./ShareButton";
 
 interface GameResultCardProps {
@@ -24,17 +25,29 @@ interface GameResultCardProps {
   noMoreGames?: boolean;
 }
 
-function getEmojiBreakdown(guesses: Guess[]) {
-  const colorMap = { green: "\u{1f7e9}", yellow: "\u{1f7e8}", red: "\u{1f7e5}" };
+/**
+ * The card has four zones and one hero, in this order: the word, the tally, the
+ * action, the aftermath. It used to be seven stacked blocks of the same size,
+ * five of them in muted ink, so nothing told the eye where to start.
+ */
+function getBreakdown(guesses: Guess[]) {
   const counts = { green: 0, yellow: 0, red: 0 };
   for (const g of guesses) {
     counts[getRankColor(g.rank)]++;
   }
-  const rows: { emoji: string; count: number }[] = [];
-  if (counts.green > 0) rows.push({ emoji: colorMap.green, count: counts.green });
-  if (counts.yellow > 0) rows.push({ emoji: colorMap.yellow, count: counts.yellow });
-  if (counts.red > 0) rows.push({ emoji: colorMap.red, count: counts.red });
-  return rows;
+  return [
+    // The emoji squares are the share text's alphabet and stay as they are; a
+    // different set would break every result already posted elsewhere.
+    { key: "green", emoji: "\u{1f7e9}", label: "nah", count: counts.green },
+    { key: "yellow", emoji: "\u{1f7e8}", label: "mittel", count: counts.yellow },
+    { key: "red", emoji: "\u{1f7e5}", label: "weit", count: counts.red },
+  ].filter((row) => row.count > 0);
+}
+
+/** German counts: one Versuch, two Versuchen. The dative plural is what the
+ *  sentence needs, so both forms are passed in rather than guessed. */
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
@@ -44,82 +57,82 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
   const solvedWord = guesses.find((g) => g.rank === 1)?.word ?? "";
   const displayGuesses = givenUp ? guesses.filter((g) => g.rank !== 1) : guesses;
   const guessCount = givenUp ? guesses.length - 1 : guesses.length;
-  const breakdown = getEmojiBreakdown(displayGuesses);
+  const breakdown = getBreakdown(displayGuesses);
+  const hasStreak = streak.currentStreak > 0 || streak.longestStreak > 0;
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4 text-center">
-      <h2 className="text-xl font-bold">
-        {isWin ? "Herzlichen Glückwunsch!" : "Viel Glück beim nächsten Mal!"}
-      </h2>
+    <Panel className="animate-result-in gap-6">
+      <ResultHero
+        eyebrow={infinite ? "Das Wort war" : `Spiel #${gameNumber}, das Wort war`}
+        headline={solvedWord}
+        lost={givenUp}
+        support={`${isWin ? "Gelöst in" : "Aufgegeben nach"} ${plural(guessCount, "Versuch", "Versuchen")}${
+          tipCount > 0 ? ` und ${plural(tipCount, "Tipp", "Tipps")}` : " ohne Tipp"
+        }.${isWin ? " Stark!" : ""}`}
+      />
 
-      <div className="text-muted-foreground space-y-0.5">
-        <p>
-          {infinite
-            ? (isWin ? "Du hast das Wort gelöst" : "Du hast das Wort aufgegeben")
-            : (isWin ? `Du hast das Wort #${gameNumber} gelöst` : `Du hast das Wort #${gameNumber} aufgegeben`)}
-        </p>
-        <p>in {guessCount} Versuchen und {tipCount} Tipps.</p>
-      </div>
+      {breakdown.length > 0 && (
+        // A tally, not three stacked stats: with one tone present a stat column
+        // sits alone on the left and reads as a broken layout.
+        <div className="flex flex-wrap items-baseline justify-center gap-x-6 gap-y-2">
+          {breakdown.map((row) => (
+            <span key={row.key} className="flex items-baseline gap-1.5 text-small text-muted-foreground">
+              <span aria-hidden="true">{row.emoji}</span>
+              <span data-numeric className="font-display text-lead font-bold text-foreground">
+                {row.count}
+              </span>
+              {row.label}
+            </span>
+          ))}
+        </div>
+      )}
 
-      <p className="text-muted-foreground">
-        Das Wort war <strong className="text-foreground text-lg uppercase">{solvedWord}</strong>.
-      </p>
-
-      <div className="flex flex-col items-center gap-1">
-        {breakdown.map((row) => (
-          <div key={row.emoji} className="flex items-center gap-2 text-base">
-            <span>{row.emoji.repeat(Math.min(row.count, 10))}</span>
-            <span className="text-muted-foreground text-sm">{row.count}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-center">
+      <div className="flex flex-col gap-3">
         <ShareButton gameNumber={gameNumber} guesses={guesses} tipCount={tipCount} givenUp={givenUp} infinite={infinite} />
+        {infinite ? (
+          noMoreGames ? (
+            <p className="text-center text-small text-muted-foreground">
+              Du hast alle verfügbaren Spiele gespielt. Schau später für neue Rätsel vorbei.
+            </p>
+          ) : (
+            <Button size="lg" variant="outline" onClick={onNextInfinite}>
+              Nächstes Spiel
+            </Button>
+          )
+        ) : null}
       </div>
 
       {survey}
 
-      {infinite ? (
-        <div className="rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
-          <p>Im Unendlich-Modus gelöst: <span className="font-semibold text-foreground">{infiniteSolvedCount ?? 0}</span></p>
-        </div>
-      ) : (
-        (streak.currentStreak > 0 || streak.longestStreak > 0) && (
-          <div className="rounded-lg border bg-muted/50 p-3 space-y-0.5 text-sm text-muted-foreground">
-            <p>Aktuelle Serie: <span className="font-semibold text-foreground">{streak.currentStreak}</span> Tag(e)</p>
-            <p>Längste Serie: <span className="font-semibold text-foreground">{streak.longestStreak}</span> Tag(e)</p>
-          </div>
-        )
-      )}
-
-      {infinite ? (
-        <div className="space-y-3">
-          {noMoreGames ? (
-            <p className="text-sm text-muted-foreground">
-              Du hast alle verfügbaren Spiele gespielt. Schau später für neue Rätsel vorbei!
-            </p>
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <p className="text-micro text-muted-foreground">
+          {infinite ? (
+            <>
+              Im Unendlich-Modus gelöst:{" "}
+              <span data-numeric className="font-semibold text-foreground">{infiniteSolvedCount ?? 0}</span>
+            </>
+          ) : hasStreak ? (
+            <>
+              Aktuelle Serie <span data-numeric className="font-semibold text-foreground">{streak.currentStreak}</span>{" "}
+              {streak.currentStreak === 1 ? "Tag" : "Tage"}, längste{" "}
+              <span data-numeric className="font-semibold text-foreground">{streak.longestStreak}</span>{" "}
+              {streak.longestStreak === 1 ? "Tag" : "Tage"}
+            </>
           ) : (
-            <Button size="lg" className="w-full" onClick={onNextInfinite}>
-              Nächstes Spiel
+            "Komm morgen wieder, dann startet deine Serie."
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {!infinite && (
+            <Button variant="ghost" size="sm" onClick={onOpenPastGames}>
+              Vorherige Spiele
             </Button>
           )}
-          <div className="flex justify-center">
-            <Button variant="outline" onClick={onOpenClosestWords}>
-              Ähnlichste Wörter
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-center gap-3">
-          <Button variant="outline" onClick={onOpenPastGames}>
-            Vorherige Spiele
-          </Button>
-          <Button variant="outline" onClick={onOpenClosestWords}>
+          <Button variant="ghost" size="sm" onClick={onOpenClosestWords}>
             Ähnlichste Wörter
           </Button>
         </div>
-      )}
-    </div>
+      </div>
+    </Panel>
   );
 }

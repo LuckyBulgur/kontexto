@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import ConsentSettingsLink from "@/components/ConsentSettingsLink";
 import { AUTHOR_PROFILES } from "@/lib/author";
 import { SITE_PROFILES } from "@/lib/social";
+import { Wordmark } from "@/components/design";
 
 const socials = [...SITE_PROFILES, ...AUTHOR_PROFILES];
 
@@ -57,8 +58,8 @@ function FooterGroup({
 }) {
   return (
     <div>
-      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm">
+      <h2 className="text-micro font-semibold text-foreground">{title}</h2>
+      <ul className="mt-3 space-y-2 text-small">
         {links.map((link) => (
           <li key={link.href}>
             <Link href={link.href} prefetch={false} className="transition-colors hover:text-foreground">
@@ -82,10 +83,8 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.25fr_repeat(3,1fr)] lg:gap-10">
           <div className="col-span-2 lg:col-span-1">
-            <Link href="/" className="text-sm font-bold tracking-[0.16em] text-foreground">
-              KONTEXTO
-            </Link>
-            <p className="mt-3 max-w-xs text-sm leading-6">
+            <Wordmark size="md" />
+            <p className="mt-3 max-w-xs text-small leading-6">
               Das tägliche deutsche Wort-Ratespiel, direkt im Browser.
             </p>
           </div>
@@ -97,12 +96,12 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 border-t border-border pt-5 text-xs sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-8 flex flex-col gap-4 border-t border-border pt-5 text-micro sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p>© Kontexto, das deutsche Wort-Ratespiel · entwickelt von Ugur Aydogan</p>
+            <p>© Kontexto, das deutsche Wort-Ratespiel, entwickelt von Ugur Aydogan</p>
             <p className="mt-1 inline-flex items-center gap-1">
               Made with
-              <Heart className="h-3 w-3 fill-red-500 text-red-500" aria-hidden="true" />
+              <Heart className="h-3 w-3 fill-destructive text-destructive" aria-hidden="true" />
               <span className="sr-only">Liebe</span>
               in Hannover
             </p>

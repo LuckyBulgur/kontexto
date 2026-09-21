@@ -10,7 +10,7 @@ export default function Error({
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
       <div className="text-center space-y-4 p-8">
-        <h2 className="text-2xl font-bold">Etwas ist schiefgelaufen</h2>
+        <h2 className="text-h2 font-bold">Etwas ist schiefgelaufen</h2>
         <p className="text-muted-foreground">
           Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.
         </p>

@@ -17,11 +17,11 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Spielanleitung</DialogTitle>
+          <DialogTitle className="text-h3">Spielanleitung</DialogTitle>
           <DialogDescription className="sr-only">Wie man Kontexto spielt</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2 text-sm text-muted-foreground">
+        <div className="space-y-4 pt-2 text-small text-muted-foreground">
           <p>
             Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
           </p>
@@ -36,9 +36,9 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
           <div className="space-y-2">
             <h3 className="font-medium text-foreground">Farben</h3>
             <ul className="space-y-1 list-none">
-              <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
-              <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
-              <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot: noch weit entfernt (Rang 1501+)</li>
+              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-near mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
+              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-mid mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
+              <li><span className="inline-block w-3 h-3 rounded-full bg-rank-far mr-2 align-middle" />Rot: noch weit entfernt (Rang 1501+)</li>
             </ul>
           </div>
 

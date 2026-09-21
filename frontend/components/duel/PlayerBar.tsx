@@ -3,6 +3,7 @@
 import { DuelPlayer } from "@/lib/duel-types";
 import { getRankColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Panel } from "@/components/design";
 
 interface PlayerBarProps {
   players: DuelPlayer[];
@@ -17,8 +18,8 @@ export default function PlayerBar({
     <>
       {/* Desktop: sidebar */}
       <div className="hidden md:block w-56 shrink-0">
-        <div className="rounded-xl border bg-card p-3 space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <Panel padding="sm" className="gap-2 p-3">
+          <h3 className="text-micro font-semibold text-muted-foreground">
             Spieler
           </h3>
           {players.map((p) => (
@@ -28,7 +29,7 @@ export default function PlayerBar({
               isYou={p.nickname === currentNickname}
             />
           ))}
-        </div>
+        </Panel>
       </div>
 
       {/* Mobile: horizontal bar */}
@@ -57,17 +58,17 @@ function PlayerEntry({
   const color = player.best_rank ? getRankColor(player.best_rank) : null;
   const colorClass =
     color === "green"
-      ? "text-green-500"
+      ? "text-rank-near-ink"
       : color === "yellow"
-        ? "text-amber-500"
+        ? "text-rank-mid-ink"
         : color === "red"
-          ? "text-red-500"
+          ? "text-rank-far-ink"
           : "text-muted-foreground";
 
   return (
     <div
       className={cn(
-        "flex items-center justify-between py-1.5 px-2 rounded-lg text-sm",
+        "flex items-center justify-between py-1.5 px-2 rounded-lg text-small",
         isYou && "bg-muted/50"
       )}
     >
@@ -75,7 +76,7 @@ function PlayerEntry({
         <span
           className={cn(
             "w-2 h-2 rounded-full shrink-0",
-            player.connected ? "bg-green-500" : "bg-gray-400"
+            player.connected ? "bg-primary" : "bg-muted-foreground/45"
           )}
         />
         <span className="font-medium truncate">
@@ -85,17 +86,17 @@ function PlayerEntry({
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-2">
         {player.solved ? (
-          <span className="text-green-500 font-bold text-xs">Gelöst!</span>
+          <span className="text-small font-bold text-success-ink">Gelöst!</span>
         ) : player.best_rank ? (
-          <span className={cn("font-mono font-bold", colorClass)}>
+          <span className={cn("font-display font-bold tabular-nums", colorClass)}>
             #{player.best_rank}
           </span>
         ) : (
-          <span className="text-muted-foreground text-xs">ohne Rang</span>
+          <span className="text-muted-foreground text-micro">ohne Rang</span>
         )}
-        <span className="text-xs text-muted-foreground">
+        <span className="text-micro text-muted-foreground">
           {player.guess_count}x
-          {player.tip_count > 0 && ` · ${player.tip_count}T`}
+          {player.tip_count > 0 && `, ${player.tip_count}T`}
         </span>
       </div>
     </div>
@@ -112,39 +113,39 @@ function PlayerChip({
   const color = player.best_rank ? getRankColor(player.best_rank) : null;
   const colorClass =
     color === "green"
-      ? "text-green-500"
+      ? "text-rank-near-ink"
       : color === "yellow"
-        ? "text-amber-500"
+        ? "text-rank-mid-ink"
         : color === "red"
-          ? "text-red-500"
+          ? "text-rank-far-ink"
           : "text-muted-foreground";
 
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm shrink-0",
+        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-small shrink-0",
         isYou && "bg-muted/50"
       )}
     >
       <span
         className={cn(
           "w-1.5 h-1.5 rounded-full",
-          player.connected ? "bg-green-500" : "bg-gray-400"
+          player.connected ? "bg-primary" : "bg-muted-foreground/45"
         )}
       />
-      <span className="font-medium text-xs">
+      <span className="font-medium text-micro">
         {player.nickname}
         {isYou ? " (du)" : ""}
       </span>
       {player.solved ? (
-        <span className="text-green-500 font-bold text-[10px]">Gelöst</span>
+        <span className="text-micro font-bold text-success-ink">Gelöst</span>
       ) : player.best_rank ? (
-        <span className={cn("font-mono font-bold text-xs", colorClass)}>
+        <span className={cn("font-display text-micro font-bold tabular-nums", colorClass)}>
           #{player.best_rank}
         </span>
       ) : null}
       {player.tip_count > 0 && (
-        <span className="text-muted-foreground text-[10px]">{player.tip_count}T</span>
+        <span className="text-muted-foreground text-micro">{player.tip_count}T</span>
       )}
     </div>
   );

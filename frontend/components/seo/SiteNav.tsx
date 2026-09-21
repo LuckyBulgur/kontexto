@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { Wordmark } from "@/components/design";
 
 /**
  * Seitenweite Hauptnavigation fuer alle Inhalts- und Blogseiten.
@@ -33,22 +34,17 @@ export default function SiteNav({ current }: { current?: string }) {
   return (
     <div className="mt-3 border-b border-border pb-3 sm:mt-4">
       <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="shrink-0 text-sm font-bold tracking-[0.16em] text-foreground"
-        >
-          KONTEXTO
-        </Link>
+        <Wordmark className="shrink-0" />
         <Link
           href="/"
           prefetch={false}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1 text-small font-medium text-primary transition-colors hover:text-foreground"
         >
           Zum Spiel
           <ArrowRight className="size-3.5" aria-hidden="true" />
         </Link>
       </div>
-      <nav aria-label="Hauptnavigation" className="mt-3 flex flex-wrap gap-1 text-sm">
+      <nav aria-label="Hauptnavigation" className="mt-3 flex flex-wrap gap-1 text-small">
         {items.map((i) => {
           const active = current === i.href;
           return (
@@ -62,7 +58,9 @@ export default function SiteNav({ current }: { current?: string }) {
               aria-current={active ? "page" : undefined}
               className={
                 active
-                  ? "rounded-md bg-foreground px-2.5 py-1.5 font-medium text-background"
+                  // The accent marks the current page, not near-black: the
+                  // brand colour is what ties the nav to the rest of the site.
+                  ? "rounded-md bg-primary px-2.5 py-1.5 font-medium text-primary-foreground"
                   : "rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               }
             >

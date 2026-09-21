@@ -28,13 +28,13 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Einstellungen</DialogTitle>
+          <DialogTitle className="text-h3">Einstellungen</DialogTitle>
           <DialogDescription className="sr-only">Design und Hard Mode anpassen</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 py-2">
-          <Label className="text-sm font-medium">Design</Label>
-          <p className="text-xs text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
+          <Label className="text-small font-medium">Design</Label>
+          <p className="text-micro text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
           <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
             <SelectTrigger className="mt-1">
               <SelectValue />
@@ -49,7 +49,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
         <div className="flex items-center justify-between py-3 border-t border-border">
           <div>
             <Label>Hard Mode</Label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Enthüllte Hinweise müssen in folgenden Versuchen verwendet werden.
             </p>
           </div>
@@ -60,7 +60,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           />
         </div>
         {!canToggleHardMode && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             Hard Mode kann nur vor dem ersten Versuch aktiviert werden.
           </p>
         )}
@@ -69,7 +69,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           <div className="flex items-center justify-between py-3 border-t border-border">
             <div className="pr-4">
               <Label>WM-Design</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt).
               </p>
             </div>

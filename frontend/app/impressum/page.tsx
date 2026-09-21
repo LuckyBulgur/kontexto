@@ -14,7 +14,7 @@ export default function ImpressumPage() {
   return (
     <TextPage title="Impressum" breadcrumbName="Impressum" path="/impressum/">
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">Angaben gemäß § 5 DDG</h2>
+        <h2 className="text-body font-semibold text-foreground">Angaben gemäß § 5 DDG</h2>
         {address.length ? (
           address.map((line) => <p key={line}>{line}</p>)
         ) : (
@@ -24,7 +24,7 @@ export default function ImpressumPage() {
 
       {(legal.email || legal.contactFormUrl) && (
         <section className="space-y-2">
-          <h2 className="text-base font-semibold text-foreground">Kontakt</h2>
+          <h2 className="text-body font-semibold text-foreground">Kontakt</h2>
           {legal.email && (
             <p>
               E-Mail:{" "}
@@ -51,7 +51,7 @@ export default function ImpressumPage() {
 
       {legal.responsiblePerson && (
         <section className="space-y-2">
-          <h2 className="text-base font-semibold text-foreground">
+          <h2 className="text-body font-semibold text-foreground">
             Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
           </h2>
           <p>{legal.responsiblePerson}</p>
@@ -63,7 +63,7 @@ export default function ImpressumPage() {
 
       {legal.disputeResolution && (
         <section className="space-y-2">
-          <h2 className="text-base font-semibold text-foreground">Verbraucherstreitbeilegung</h2>
+          <h2 className="text-body font-semibold text-foreground">Verbraucherstreitbeilegung</h2>
           <p>{legal.disputeResolution}</p>
         </section>
       )}

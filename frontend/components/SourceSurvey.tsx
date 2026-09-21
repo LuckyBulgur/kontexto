@@ -32,7 +32,7 @@ const COPY = {
 // the 44 px touch target the survey sits behind on a phone, and the muted size
 // of the skip link.
 const CHIP_CLASS = "min-h-11 whitespace-normal";
-const LINK_CLASS = "h-auto px-1 py-0 text-xs text-muted-foreground hover:text-foreground";
+const LINK_CLASS = "h-auto px-1 py-0 text-micro text-muted-foreground hover:text-foreground";
 
 export default function SourceSurvey({
   onAnswered,
@@ -77,10 +77,10 @@ export default function SourceSurvey({
     return (
       <div className={cn("rounded-lg border bg-muted/50 p-3 text-left", className)}>
         {detailSent ? (
-          <p className="text-sm text-muted-foreground">{COPY.done}</p>
+          <p className="text-small text-muted-foreground">{COPY.done}</p>
         ) : (
           <>
-            {!hideQuestion && <p className="mb-2 text-sm font-medium">{COPY.detailHeading}</p>}
+            {!hideQuestion && <p className="mb-2 text-small font-medium">{COPY.detailHeading}</p>}
             <form
               className="flex gap-2"
               onSubmit={(event) => {
@@ -101,7 +101,7 @@ export default function SourceSurvey({
               </Button>
             </form>
             {!hideQuestion && (
-              <p className="mt-2 text-xs text-muted-foreground">{COPY.detailHint}</p>
+              <p className="mt-2 text-micro text-muted-foreground">{COPY.detailHint}</p>
             )}
           </>
         )}
@@ -113,7 +113,7 @@ export default function SourceSurvey({
     <fieldset className={cn("rounded-lg border bg-muted/50 p-3 text-left", className)}>
       {/* In the dialog the title already carries the question; a second copy
           would read it twice to a screen reader. */}
-      {!hideQuestion && <legend className="px-1 text-sm font-medium">{COPY.question}</legend>}
+      {!hideQuestion && <legend className="px-1 text-small font-medium">{COPY.question}</legend>}
       <div className="flex flex-wrap gap-2 pt-1">
         {options.map((option) => (
           <Button

@@ -15,7 +15,7 @@ export default function DatenschutzPage() {
     <TextPage title="Datenschutzerklärung" breadcrumbName="Datenschutz" path="/datenschutz/">
       <>
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">1. Überblick</h2>
+            <h2 className="text-body font-semibold text-foreground">1. Überblick</h2>
             <p>
               Der Schutz deiner Daten ist uns wichtig. Diese Datenschutzerklärung informiert dich darüber, welche Daten beim Besuch von Kontexto erhoben werden und wie sie verwendet werden.
             </p>
@@ -25,7 +25,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">2. Verantwortlicher</h2>
+            <h2 className="text-body font-semibold text-foreground">2. Verantwortlicher</h2>
             <p>
               Verantwortlich für die Verarbeitung personenbezogener Daten auf dieser Website im Sinne von Art. 4 Nr. 7 DSGVO ist:
             </p>
@@ -51,7 +51,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">3. Lokale Datenspeicherung (localStorage)</h2>
+            <h2 className="text-body font-semibold text-foreground">3. Lokale Datenspeicherung (localStorage)</h2>
             <p>
               Kontexto speichert folgende Daten ausschließlich lokal in deinem Browser (localStorage):
             </p>
@@ -68,14 +68,14 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">4. Server-Kommunikation</h2>
+            <h2 className="text-body font-semibold text-foreground">4. Server-Kommunikation</h2>
             <p>
               Wenn du ein Wort eingibst, wird dieses Wort an unseren Server gesendet, um den Rang zu berechnen. Dabei werden keine weiteren personenbezogenen Daten übermittelt. Es gibt keine Benutzerkonten, keine Sitzungs-Cookies und keine Authentifizierung.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">5. Mehrspieler-Modi (Duell, Koop, Wördle-Duell)</h2>
+            <h2 className="text-body font-semibold text-foreground">5. Mehrspieler-Modi (Duell, Koop, Wördle-Duell)</h2>
             <p>
               Die Einzelspieler-Modi kommen ohne serverseitige Speicherung aus. In den Mehrspieler-Modi geht das nicht, weil die Mitspielenden deinen Fortschritt sehen sollen. Wenn du eine Runde erstellst oder ihr beitrittst, speichern wir für die Dauer dieser Runde auf unserem Server:
             </p>
@@ -94,7 +94,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">6. Server-Logdaten</h2>
+            <h2 className="text-body font-semibold text-foreground">6. Server-Logdaten</h2>
             <p>
               Beim Zugriff auf die Website werden durch den Webserver automatisch Logdaten erhoben, die dein Browser übermittelt. Dazu gehören:
             </p>
@@ -111,7 +111,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">7. Anonyme Reichweitenmessung (Statistik)</h2>
+            <h2 className="text-body font-semibold text-foreground">7. Anonyme Reichweitenmessung (Statistik)</h2>
             <p>
               Wir messen die Nutzung der Website, um sie zu verbessern. Diese Statistik wird vollständig auf unserem eigenen Server erstellt, es werden <strong className="text-foreground">keine Daten an Dritte</strong> übermittelt und <strong className="text-foreground">keine Cookies</strong> gesetzt.
             </p>
@@ -136,7 +136,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">8. Cookies</h2>
+            <h2 className="text-body font-semibold text-foreground">8. Cookies</h2>
             <p>
               Für den Betrieb des Spiels und die anonyme Reichweitenmessung (Abschnitt „Anonyme Reichweitenmessung“) setzt Kontexto <strong className="text-foreground">keine Cookies</strong>. Dein Spielstand wird ausschließlich im lokalen Speicher (localStorage) deines Browsers abgelegt; dies ist technisch erforderlich und bedarf keiner Einwilligung (§ 25 Abs. 2 Nr. 2 TDDDG).
             </p>
@@ -146,7 +146,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">9. Externe Dienste</h2>
+            <h2 className="text-body font-semibold text-foreground">9. Externe Dienste</h2>
             <p>
               Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
@@ -156,7 +156,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">10. Vorgesehene Werbung durch Google AdSense</h2>
+            <h2 className="text-body font-semibold text-foreground">10. Vorgesehene Werbung durch Google AdSense</h2>
             <p>
               Für die geplante Finanzierung dieses kostenlosen Angebots ist Google AdSense vorgesehen,
               ein Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House,
@@ -220,7 +220,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">11. Minderjährige</h2>
+            <h2 className="text-body font-semibold text-foreground">11. Minderjährige</h2>
             <p>
               Kontexto richtet sich an ein allgemeines Publikum und ist kein Angebot, das sich gezielt an Kinder wendet. Zum Spielen ist keine Anmeldung nötig. Wir fragen weder nach Name, Alter, E-Mail-Adresse noch Anschrift und erheben wissentlich keine personenbezogenen Daten von Kindern unter 16 Jahren.
             </p>
@@ -234,7 +234,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">12. Deine Rechte</h2>
+            <h2 className="text-body font-semibold text-foreground">12. Deine Rechte</h2>
             <p>
               Du hast gemäß DSGVO das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten, das Recht auf Datenübertragbarkeit, das Recht auf Widerruf erteilter Einwilligungen sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde. Gegen Verarbeitungen, die auf einem berechtigten Interesse beruhen (Art. 6 Abs. 1 lit. f DSGVO), steht dir zudem das Widerspruchsrecht nach Art. 21 DSGVO zu.
             </p>
@@ -244,14 +244,14 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-foreground">13. Änderungen</h2>
+            <h2 className="text-body font-semibold text-foreground">13. Änderungen</h2>
             <p>
               Diese Datenschutzerklärung kann gelegentlich aktualisiert werden. Die aktuelle Version ist stets auf dieser Seite abrufbar.
             </p>
           </section>
       </>
 
-      <p className="text-xs">Stand: August 2026</p>
+      <p className="text-micro">Stand: August 2026</p>
     </TextPage>
   );
 }

@@ -38,7 +38,7 @@ export default function VectorSpaceDiagram() {
             y1={cy}
             x2={x}
             y2={y}
-            className={near ? "stroke-emerald-500/50" : "stroke-rose-500/30"}
+            className={near ? "stroke-rank-near/60" : "stroke-rank-far/40"}
             strokeWidth={1}
             strokeDasharray={near ? undefined : "3 3"}
           />
@@ -54,10 +54,10 @@ export default function VectorSpaceDiagram() {
                 r={isTarget ? 7 : 4.5}
                 className={
                   isTarget
-                    ? "fill-emerald-500"
+                    ? "fill-rank-near"
                     : near
-                      ? "fill-emerald-500/70"
-                      : "fill-rose-500/70"
+                      ? "fill-rank-near/70"
+                      : "fill-rank-far/70"
                 }
               />
               <text

@@ -19,6 +19,8 @@ import SourceSurvey from "@/components/SourceSurvey";
 import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { Button } from "@/components/ui/button";
+import { Panel, PanelHeader, Stat, StatRow } from "@/components/design";
+import { cn } from "@/lib/utils";
 import { submitGuess, getTip, getGameInfo, revealAnswer, getInfiniteGame } from "@/lib/api";
 import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, saveDifficulty, loadSortMode, saveSortMode, recordGamePlayed, loadInfiniteSession, saveInfiniteSession } from "@/lib/storage";
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
@@ -28,6 +30,19 @@ import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
 import type { PodestError } from "@/components/GuessList";
+
+/** The three steps of a round, in the order they actually happen. */
+const HOW_IT_WORKS = [
+  { title: "Wort eingeben.", body: "Jedes deutsche Wort zählt, auch eines, das weit daneben liegt." },
+  { title: "Rang ablesen.", body: "Rang 1 ist das gesuchte Wort. Je kleiner die Zahl, desto näher bist du." },
+  { title: "Der Bedeutung folgen.", body: "Denk weiter in die Richtung, in der die Ränge kleiner werden." },
+] as const;
+
+const RANK_LEGEND = [
+  { dot: "bg-rank-near", label: "Grün", range: "Rang 1 bis 300", desc: "sehr nah am Zielwort" },
+  { dot: "bg-rank-mid", label: "Gelb", range: "Rang 301 bis 1500", desc: "auf dem richtigen Weg" },
+  { dot: "bg-rank-far", label: "Rot", range: "ab Rang 1501", desc: "noch weit entfernt" },
+] as const;
 
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
@@ -402,12 +417,12 @@ export default function GameClient() {
       />
       {pastGame !== null && (
         <Button onClick={handleBackToToday} className="mx-4 mt-2">
-          Du spielst Spiel #{pastGame} · Zurück zum heutigen Spiel
+          Spiel #{pastGame}, zurück zum heutigen Spiel
         </Button>
       )}
       {infinite && (
         <Button onClick={handleBackToToday} className="mx-4 mt-2">
-          Unendlich-Modus · {infiniteSolved} gelöst · Zurück zum heutigen Spiel
+          Unendlich-Modus, {infiniteSolved} gelöst, zurück zum heutigen Spiel
         </Button>
       )}
       <div className="flex-1 px-4 py-4 flex flex-col gap-4">
@@ -432,41 +447,57 @@ export default function GameClient() {
           </>
         ) : (
           <>
-            <div className="flex items-center gap-4 -mt-2 -mb-2 text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+            <StatRow className="-mt-1">
               {infinite ? (
-                <span>Modus: <span className="text-[18px] font-bold">Unendlich</span></span>
+                <Stat label="Modus" value="Unendlich" />
               ) : (
-                <span>Spiel: <span className="text-[18px] font-bold">#{gameNumber}</span></span>
+                <Stat label="Spiel" value={`#${gameNumber}`} />
               )}
-              <span>Versuche: <span className="text-[18px] font-bold">{gameState.guesses.length}</span></span>
-              <span>Tipps: <span className="text-[18px] font-bold">{gameState.tips}</span></span>
-            </div>
+              <Stat label="Versuche" value={gameState.guesses.length} />
+              <Stat label="Tipps" value={gameState.tips} />
+            </StatRow>
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
-              <div className="rounded-xl border bg-card p-5 space-y-4 text-sm text-muted-foreground">
-                <h2 className="text-base font-semibold text-foreground">Spielanleitung</h2>
-                <p>
-                  Finde das <strong className="text-foreground">geheime Wort</strong>! Gib ein beliebiges deutsches Wort ein und erfahre, wie nah es am Zielwort ist.
-                </p>
-                <div className="space-y-1">
-                  <h3 className="font-medium text-foreground text-sm">Rang-System</h3>
-                  <p>
-                    Jedes Wort bekommt einen <strong className="text-foreground">Rang</strong> basierend auf seiner Bedeutungsähnlichkeit. Je niedriger der Rang, desto näher bist du dran.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-medium text-foreground text-sm">Farben</h3>
-                  <ul className="space-y-1 list-none">
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" />Grün: sehr nah (Rang 1-300)</li>
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2 align-middle" />Gelb: auf dem richtigen Weg (Rang 301-1500)</li>
-                    <li><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" />Rot: noch weit entfernt (Rang 1501+)</li>
-                  </ul>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-medium text-foreground text-sm">Tipps</h3>
-                  <p>Nutze das Menü, um dir einen Tipp geben zu lassen.</p>
-                </div>
-              </div>
+              <Panel>
+                <PanelHeader
+                  title="So funktioniert's"
+                  description="Gib ein beliebiges deutsches Wort ein. Kontexto sagt dir, wie nah seine Bedeutung am geheimen Wort liegt."
+                />
+                {/* An ordered list because the order is real: you cannot read a
+                    rank before you have guessed, and you cannot follow the
+                    meaning before you have read one. */}
+                <ol className="flex flex-col gap-3">
+                  {HOW_IT_WORKS.map((step, i) => (
+                    <li key={step.title} className="flex gap-3">
+                      <span
+                        data-numeric
+                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-micro font-bold text-primary-foreground"
+                        aria-hidden="true"
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-small text-muted-foreground">
+                        <span className="font-semibold text-foreground">{step.title}</span>{" "}
+                        {step.body}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+                <Panel tone="quiet" padding="sm" className="gap-2">
+                  {RANK_LEGEND.map((row) => (
+                    <div key={row.label} className="flex items-start gap-2.5">
+                      <span
+                        className={cn("mt-[0.45rem] inline-block h-2.5 w-2.5 shrink-0 rounded-full", row.dot)}
+                        aria-hidden="true"
+                      />
+                      <p className="text-small">
+                        <span className="font-semibold">{row.label}</span>{" "}
+                        <span className="text-muted-foreground">{row.range}, {row.desc}</span>
+                      </p>
+                    </div>
+                  ))}
+                </Panel>
+              </Panel>
             )}
           </>
         )}

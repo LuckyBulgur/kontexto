@@ -15,7 +15,7 @@ import { koopFaqs } from "@/lib/faqs";
 export default function KoopSeo() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">
+      <h1 className="mb-3 text-h2 font-bold text-foreground">
         So funktioniert der Kontexto-Koop
       </h1>
       <p className="max-w-prose">

@@ -35,7 +35,7 @@ const snapshotDate = new Date(`${publicStats.generated_on}T12:00:00Z`).toLocaleD
 export default function HomeContent() {
   return (
     <SeoSection>
-      <h1 className="mb-3 text-2xl font-bold text-foreground">Kontexto erklärt</h1>
+      <h1 className="mb-3 text-h2 font-bold text-foreground">Kontexto erklärt</h1>
       <p className="max-w-prose">
         Kontexto ist ein kostenloses, tägliches Wort-Ratespiel ohne Anmeldung.
         Errate das geheime Wort des Tages. Nach jedem Tipp zeigt dir Kontexto, wie
@@ -88,10 +88,10 @@ export default function HomeContent() {
       <ComparisonTable
         columns={["Dein Tipp", "Rang", "Bedeutung"]}
         rows={[
-          ["Computer", "8420", <span key="c" className="text-red-600 dark:text-red-400">weit entfernt</span>],
-          ["Meer", "312", <span key="m" className="text-yellow-700 dark:text-yellow-500">auf dem Weg</span>],
-          ["Küste", "47", <span key="k" className="text-green-700 dark:text-green-400">sehr nah</span>],
-          ["Strand", "1", <span key="s" className="font-semibold text-green-700 dark:text-green-400">Treffer!</span>],
+          ["Computer", "8420", <span key="c" className="text-rank-far-ink">weit entfernt</span>],
+          ["Meer", "312", <span key="m" className="text-rank-mid-ink">auf dem Weg</span>],
+          ["Küste", "47", <span key="k" className="text-rank-near-ink">sehr nah</span>],
+          ["Strand", "1", <span key="s" className="font-semibold text-rank-near-ink">Treffer!</span>],
         ]}
         caption="Beispielhafte Tipps für das Zielwort Strand"
       />
@@ -241,7 +241,7 @@ export default function HomeContent() {
             >
               {post.title}
             </Link>
-            <p className="mt-1 text-sm">{post.description}</p>
+            <p className="mt-1 text-small">{post.description}</p>
           </li>
         ))}
       </ul>
