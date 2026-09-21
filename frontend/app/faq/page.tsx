@@ -105,7 +105,7 @@ export default function FaqPage() {
         links={[
           { href: "/anleitung/", label: "Spielanleitung" },
           { href: "/strategie/", label: "Strategie & Tipps" },
-          { href: "/vergleich/", label: "Kontexto vs. Wordle, Contexto & Semantle" },
+          { href: "/vergleich/", label: "Kontexto, Wördle und andere Wortspiele im Vergleich" },
           { href: "/ueber/", label: "Über Kontexto" },
         ]}
       />

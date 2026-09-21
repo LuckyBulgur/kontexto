@@ -25,7 +25,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Contexto",
     slug: "contexto",
-    definition: `Das englischsprachige Original-Spiel (contexto.me), das 2022 aus dem brasilianischen Termo hervorging. Kontexto überträgt dasselbe Prinzip auf die deutsche Sprache mit deutschen Worteinbettungen, deutschem Vokabular und einer eigenen Lösungsauswahl.`,
+    definition: `Das englischsprachige Wortspiel contexto.me, das 2022 aus dem brasilianischen Termo hervorging und demselben Prinzip folgt, Bedeutung statt Buchstaben. Kontexto verfolgt dasselbe Prinzip auf Deutsch, mit deutschen Worteinbettungen, deutschem Vokabular und eigener Lösungsauswahl.`,
   },
   {
     term: "fastText",

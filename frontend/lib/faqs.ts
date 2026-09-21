@@ -67,7 +67,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Contexto?`,
-    a: `Contexto ist das englischsprachige Spiel, das das Prinzip „Bedeutung statt Buchstaben“ bekannt gemacht hat. Kontexto ist eine eigenständige deutsche Umsetzung dieses Prinzips auf einem deutschen fastText-Modell, mit eigenem Vokabular und eigener Lösungsauswahl. Der Unterschied ist größer als eine Übersetzung, weil Bedeutungsnähe sprachspezifisch ist: „Schloss“ für Gebäude und Türschloss oder „Bank“ für Geldinstitut und Sitzgelegenheit verhalten sich im deutschen Vektorraum anders als ihre englischen Entsprechungen. Dazu kommen Modi, die es dort nicht gibt: Unendlich, Duell und Koop.`,
+    a: `Contexto ist das englischsprachige Spiel, das das Prinzip „Bedeutung statt Buchstaben“ bekannt gemacht hat. Kontexto ist ein eigenes Spiel für das Deutsche: deutsches fastText-Modell, eigenes Vokabular, eigene Lösungsauswahl. Der Unterschied ist keine Übersetzungsfrage, weil Bedeutungsnähe sprachspezifisch ist: „Schloss“ für Gebäude und Türschloss oder „Bank“ für Geldinstitut und Sitzgelegenheit verhalten sich im deutschen Vektorraum anders als ihre englischen Entsprechungen. Dazu kommen Modi, die es dort nicht gibt: Unendlich, Duell und Koop.`,
   },
   {
     q: `Worin unterscheidet sich Kontexto von Semantle?`,

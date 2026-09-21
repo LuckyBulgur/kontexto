@@ -270,7 +270,7 @@ export default function HomeContent() {
             { href: "/modi/", label: "Alle Spielmodi: allein, mit Freunden, gegen Fremde" },
             { href: "/anleitung/", label: "Spielanleitung" },
             { href: "/strategie/", label: "Strategie & Tipps" },
-            { href: "/vergleich/", label: "Kontexto, Wordle, Contexto & Semantle im Vergleich" },
+            { href: "/vergleich/", label: "Kontexto, Wördle und andere Wortspiele im Vergleich" },
             { href: "/glossar/", label: "Glossar der Begriffe" },
             { href: "/faq/", label: "Häufige Fragen (FAQ)" },
             { href: "/ueber/", label: "Über Kontexto" },

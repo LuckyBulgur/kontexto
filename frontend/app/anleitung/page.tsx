@@ -213,7 +213,7 @@ export default function AnleitungPage() {
         label="Verwandte Seiten"
         links={[
           { href: "/strategie/", label: "Strategie und Tipps: schneller gewinnen" },
-          { href: "/vergleich/", label: "Kontexto vs. Wordle, Contexto & Semantle" },
+          { href: "/vergleich/", label: "Kontexto, Wördle und andere Wortspiele im Vergleich" },
           { href: "/faq/", label: "Häufige Fragen (FAQ)" },
           { href: "/blog/", label: "Alle Artikel im Blog" },
         ]}

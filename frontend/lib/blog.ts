@@ -228,7 +228,7 @@ export const posts: BlogMeta[] = [
     slug: "was-ist-contexto-auf-deutsch",
     title: "Was ist Contexto auf Deutsch?",
     description:
-      "Warum eine Übersetzung nicht gereicht hätte, welche zwei Eigenschaften des Deutschen das Spiel prägen und was Kontexto über die englische Vorlage hinaus bietet.",
+      "Warum eine Übersetzung nicht gereicht hätte, welche zwei Eigenschaften des Deutschen das Spiel prägen und welche Modi es auf Deutsch zusätzlich gibt.",
     date: "2026-06-06",
     updated: "2026-09-15",
     category: "Grundlagen",

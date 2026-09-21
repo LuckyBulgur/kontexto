@@ -91,14 +91,14 @@ export default function VergleichPage() {
         <Prose>
           <h2 id="kontexto-contexto">Kontexto vs. Contexto</h2>
           <p>
-            <Link href="/glossar/#contexto">Contexto</Link> (contexto.me) ist das Original, das das
-            Prinzip „Bedeutung statt Buchstaben“ populär gemacht hat. Kontexto übernimmt diese Idee
-            und überträgt sie konsequent auf die deutsche Sprache: deutsche{" "}
+            <Link href="/glossar/#contexto">Contexto</Link> (contexto.me) ist das bekannteste
+            englischsprachige Spiel nach demselben Prinzip, „Bedeutung statt Buchstaben“. Kontexto
+            ist die deutsche Entsprechung, und zwar auf jeder Ebene: deutsche{" "}
             <Link href="/glossar/#worteinbettung">Worteinbettungen</Link>, deutscher Wortschatz,
             deutsche Bedeutungen.
           </p>
           <p>
-            Das ist mehr als eine Übersetzung. Bedeutungsnähe ist sprachspezifisch. „Schloss“
+            Der Unterschied ist keine Übersetzungsfrage. Bedeutungsnähe ist sprachspezifisch. „Schloss“
             (Gebäude und Türschloss) oder „Bank“ (Geldinstitut und Sitzgelegenheit) verhalten sich
             im Deutschen anders als ihre englischen Entsprechungen. Wer auf Deutsch spielt, rät
             deshalb in einem Vektorraum, der die deutsche Sprache abbildet, und nicht in einem aus dem
@@ -150,7 +150,7 @@ export default function VergleichPage() {
           <h2 id="deutsch">Was am deutschen Wortschatz anders ist</h2>
           <p>
             Zwei Eigenschaften des Deutschen wirken sich auf jedes Bedeutungsspiel aus, und beide
-            fehlen den englischen Vorbildern.
+            gibt es im Englischen nicht.
           </p>
           <p>
             <strong>Zusammensetzung.</strong> „Morgendämmerung“ ist ein Wort mit eigenem Vektor, wo

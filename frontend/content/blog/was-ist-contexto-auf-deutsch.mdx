@@ -4,9 +4,9 @@ Contexto ist ein Wortspiel, das 2022 aus dem brasilianischen Termo hervorging un
 über den englischsprachigen Raum verbreitete. Das Prinzip: Errate ein geheimes Wort, indem du
 andere Wörter eingibst und aus einem Ähnlichkeitsrang abliest, wie nah du dran bist.
 
-[Kontexto](/) ist die deutsche Umsetzung dieser Idee. Der Unterschied ist nicht die Übersetzung
-der Oberfläche, sondern das, was darunter liegt: ein deutsches fastText-Modell, ein eigenes
-Vokabular und eine eigene Lösungsauswahl.
+[Kontexto](/) ist das deutsche Spiel dieser Art, und es ist mehr als eine übersetzte
+Oberfläche: ein deutsches fastText-Modell, ein eigenes Vokabular und eine eigene
+Lösungsauswahl.
 
 ## Warum eine Übersetzung nicht gereicht hätte
 
@@ -43,25 +43,25 @@ geht dieses Signal verloren, und Namen rutschen in die Lösungsauswahl. Das ist 
 passiert und musste mit mehreren Prüfungen behoben werden, nachzulesen in
 [Warum keine Namen mehr als Lösungswörter auftauchen](/blog/warum-keine-namen-mehr-als-loesungswoerter/).
 
-Beides sind Probleme, die die englische Vorlage schlicht nicht hat.
+Beides sind Probleme, die es im Englischen schlicht nicht gibt.
 
-## Was gleich geblieben ist
+## Was alle Spiele dieser Art teilen
 
-Das Grundprinzip ist unverändert, weil es gut ist:
+Das Grundprinzip ist überall dasselbe, weil es gut ist:
 
 - Ein geheimes Wort pro Tag, für alle dasselbe.
 - Jede Eingabe bekommt einen Rang. Rang 1 ist die Lösung.
 - Unbegrenzt viele Versuche.
 - Keine Anmeldung, keine Kosten.
 
-Der Rang statt eines Prozentwerts ist dabei die klügste Entscheidung der Vorlage. Ein Kosinuswert
+Der Rang statt eines Prozentwerts ist dabei die klügste Entscheidung dieses Spieltyps. Ein Kosinuswert
 von 0,42 sagt niemandem etwas, weil alle sinnvollen Wortpaare in einem schmalen Band liegen.
 „Von 80.000 Wörtern sind nur 299 näher dran“ kann dagegen jeder einordnen. Warum das so ist,
 erklärt [Kosinus-Ähnlichkeit](/blog/kosinus-aehnlichkeit-einfach-erklaert/).
 
 ## Was Kontexto zusätzlich hat
 
-Über die Vorlage hinaus gibt es auf derselben Seite:
+Dazu kommt auf derselben Seite:
 
 - **[Wördle](/wordle/)**, die deutsche Wordle-Variante mit sechs Versuchen, deren Wortlisten aus
   demselben Vokabular gebaut sind.
@@ -91,16 +91,16 @@ widerrufen.
 Kontexto, Contexto, Cémantix, Semantle: Die Namen ähneln sich, und die Zuordnung ist selbst für
 Stammspieler nicht immer klar.
 
-**Contexto** ist das englischsprachige Original mit Ablegern in mehreren Sprachen. **Semantle**
+**Contexto** ist das englischsprachige Spiel dieser Art. **Semantle**
 war früher da und zeigt statt eines Rangs einen rohen Ähnlichkeitswert. **Cémantix** ist die
-französische Variante desselben Gedankens. **Kontexto** ist die deutsche Umsetzung, und das K am
-Anfang ist kein Tippfehler, sondern die Unterscheidung.
+französische Variante desselben Gedankens. **Kontexto** ist das eigenständige deutsche Spiel, und das
+K am Anfang ist kein Tippfehler, sondern die Unterscheidung.
 
 Allen gemeinsam ist das Grundprinzip. Unterschiedlich sind Sprache, Rückmeldung und die Frage, wie
 streng die Lösungswörter gefiltert werden. Gerade der letzte Punkt entscheidet darüber, ob sich ein
 Rätsel fair anfühlt, und er ist der Punkt, an dem hier die meiste Arbeit steckt.
 
-## Was eine deutsche Umsetzung technisch bedeutet
+## Was „auf Deutsch“ technisch bedeutet
 
 „Auf Deutsch“ klingt nach einer Frage der Oberfläche, betrifft aber jede Ebene des Spiels. Vier
 Stellen mussten eigens gebaut werden, und an keiner davon hätte eine Übersetzung geholfen.

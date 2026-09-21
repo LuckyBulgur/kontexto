@@ -165,7 +165,7 @@ export default function UeberPage() {
             zwischen Wörtern und verstehst nebenbei, woran ein Sprachmodell Bedeutung festmacht.
           </p>
           <p>
-            Dass das deutsche Original nicht bloß eine Übersetzung sein durfte, hat einen sachlichen
+            Dass das Spiel von Grund auf für das Deutsche gebaut ist, hat einen sachlichen
             Grund: Bedeutungsnähe ist sprachspezifisch. Ein englisches Modell weiß, was neben
             „vacation“ steht, nicht was neben „Urlaub“ steht. Dazu kommen deutsche Eigenheiten wie
             die unbegrenzte Wortzusammensetzung und die Großschreibung, die bei der Auswahl der
