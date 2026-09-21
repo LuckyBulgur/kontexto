@@ -32,6 +32,13 @@ in_container() {
     remote "$COMPOSE exec -T $SERVICE $*"
 }
 
+# The image carries no curl, and reaching the app from the host means going
+# through Caddy and its certificate. The API workers listen on 8000 inside the
+# container, which is the shortest honest path to an answer.
+api_get() {
+    in_container "python3 -c \"import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/api/$1').read().decode())\"" | tr -d '\r'
+}
+
 case "${1:-}" in
     --rollback)
         echo "Rolling back to the previous pool ..."
@@ -67,7 +74,7 @@ EXPECTED=$((NEW_TOTAL - CUTOFF))
 echo "Local artifacts: total_games=$NEW_TOTAL cutoff=$CUTOFF npz=$NPZ_COUNT"
 [ "$NPZ_COUNT" -eq "$EXPECTED" ] || { echo "ABORT: expected $EXPECTED npz, found $NPZ_COUNT"; exit 1; }
 
-BEFORE=$(remote "curl -fsS http://localhost/api/game")
+BEFORE=$(api_get game)
 echo "Production before: $BEFORE"
 
 if [ "$DRY_RUN" = "--dry-run" ]; then
@@ -108,7 +115,7 @@ echo "Restarting ..."
 remote "$COMPOSE restart $SERVICE"
 sleep 10
 
-AFTER=$(remote "curl -fsS http://localhost/api/game")
+AFTER=$(api_get game)
 echo "Production after:  $AFTER"
 
 BEFORE_GAME=$(echo "$BEFORE" | python -c "import json,sys;print(json.load(sys.stdin)['gameNumber'])")
@@ -119,7 +126,9 @@ if [ "$BEFORE_GAME" != "$AFTER_GAME" ]; then
 fi
 echo "The daily game number is unchanged ($AFTER_GAME)."
 
-remote "curl -fsS http://localhost/api/collect/token > /dev/null && echo 'health: token endpoint OK'"
+echo "Spot check, a game from the rebuilt range:"
+api_get "closest?game=$((CUTOFF + 1))" | head -c 200
+echo
 in_container "du -sh /app/data"
 echo
 echo "Done. The old pool is kept at /app/data/games.previous."
