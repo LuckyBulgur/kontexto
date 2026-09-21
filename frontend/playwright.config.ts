@@ -61,7 +61,14 @@ export default defineConfig({
       // worker needed for tests.
       command: backendCommand,
       cwd: "../backend",
-      env: { KONTEXTO_DEV: "1", KONTEXTO_DATA_DIR: "../data-e2e" },
+      // The smoke suite runs on the mock dataset. KONTEXTO_E2E_DATA_DIR points
+      // the same stack at another one, which is how the README screenshots are
+      // taken: they need a real dataset, because a mock has no semantics and a
+      // picture of it would show nonsense ranks. See e2e/readme-shots.spec.ts.
+      env: {
+        KONTEXTO_DEV: "1",
+        KONTEXTO_DATA_DIR: process.env.KONTEXTO_E2E_DATA_DIR ?? "../data-e2e",
+      },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
