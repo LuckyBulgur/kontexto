@@ -220,3 +220,49 @@ against a local backend serving the rebuilt pool.
   gate. They are pinned to the pre-2026-09-21 rule and are not run by this work, but the
   gate is known to be passing on luck.
 - Woerdle is untouched, and so is anything about how a guess is validated.
+
+## Reordering the daily series, same day
+
+The rebuilt pool was right about which words are solutions and wrong about when.
+Drawn as one block, the daily series inherited the whole pool's profile, and that is
+where the remaining distance to the reference game sat:
+
+| | Contexto (EN) | whole pool | daily band after reordering |
+|-|-|-|-|
+| word length, median | 6 | 9 | **7** |
+| compounds | a handful | 38 % | **13 %** |
+| Zipf, median | 4.11 | 3.06 | 3.35 |
+| games | 1,462 | 3,917 | 2,500 (6.8 years) |
+
+`scripts/reorder-pool.py` sorts the unplayed pool by `length/3 - zipf`, takes the first
+2,500 as the daily band, and shuffles inside each band so difficulty still varies from day
+to day rather than creeping upward. Nothing is recomputed: each npz is copied to its new
+number, and every one of the 3,917 is then loaded and checked that rank 1 is the word now
+standing there.
+
+What stayed put: the same multiset of words, games 1 to 106 byte-identical, `total_games`
+at 4,023, and today's game number at 106. The random modes still draw from all 4,023, so
+the long compounds beyond the band are not lost, they just stop being tomorrow's puzzle.
+
+### The difficulty tiers are not on the server
+
+`scripts/classify-difficulty.py` writes `docs/data/difficulty.json`: 2,500 easy, 1,000
+middle, 523 hard, estimated at 60, 78 and 90 guesses per solve. The Dockerfile copies
+`backend/` and `scripts/` and not `docs/`, so the file never reaches production. That is
+the point. A player who could read the tier would know before the first guess whether
+today is an easy day, and a file that is not there cannot leak through an endpoint, which
+is a better guarantee than every endpoint remembering not to return it.
+
+How good the estimate is, stated plainly: the concreteness and frequency terms are
+calibrated against production, the neighbourhood term is not. Against 80 played rounds the
+hard tier separates clearly, about 95 guesses against about 55; easy against middle does
+not, on 16 rounds. The top tier is evidence, the rest is an ordering, and
+`analytics_game_stats` will sharpen it on its own once the rebuilt pool has been played
+for a few weeks.
+
+### Verified after the upload
+
+30 of 30 sampled rounds solved locally, median 60 guesses, the daily band and the rest
+indistinguishable at 59 against 60. On production: `/api/game` reports game 106 before and
+after, the sha256 of the first 106 solutions is unchanged at `7b9522bf261449e7`, game 107
+resolves `allee` at rank 1 through kontexto.de, and the volume is back to 873 MB.
