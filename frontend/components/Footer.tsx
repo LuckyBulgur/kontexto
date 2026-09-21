@@ -79,7 +79,7 @@ function FooterGroup({
 
 export default function Footer() {
   return (
-    <footer className="mt-12 border-t border-border text-muted-foreground">
+    <footer className="border-t border-border text-muted-foreground">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.25fr_repeat(3,1fr)] lg:gap-10">
           <div className="col-span-2 lg:col-span-1">
