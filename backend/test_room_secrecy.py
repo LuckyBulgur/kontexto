@@ -225,7 +225,8 @@ class TestNoNumberWhileTheRoundIsOpen:
         cannot be stepped from a test. The durable guard is that the module does
         not read the column at all, which no frame can then contain.
         """
-        source = pathlib.Path("websocket_manager.py").read_text(encoding="utf-8")
+        module = pathlib.Path(__file__).with_name("websocket_manager.py")
+        source = module.read_text(encoding="utf-8")
         assert "game_number" not in source
 
 
