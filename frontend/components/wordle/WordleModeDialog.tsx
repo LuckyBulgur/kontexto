@@ -83,7 +83,7 @@ export default function WordleModeDialog({ open, onClose, onRandom }: WordleMode
               icon={Globe}
               title={duel.name}
               hint="Wir suchen dir einen Gegner"
-              href={duel.queueHref}
+              href={duel.queueHref ?? "/wordle/suche/"}
               reserveNote
               note={loadSentence(live?.modes.wordle_duel)}
             />

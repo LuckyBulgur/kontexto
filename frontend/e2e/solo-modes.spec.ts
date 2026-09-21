@@ -66,25 +66,27 @@ test.describe("Solo-Modi", () => {
 
 /**
  * The picker is the only way into the new modes from inside a running game, so
- * the path menu -> dialog -> round gets a test of its own. It also pins the two
- * decisions behind the dialog: the first question is "with whom", and every
- * choice after it starts a round rather than opening a page.
+ * the path button -> dialog -> round gets a test of its own. It also pins the
+ * two decisions behind the dialog: "with whom" is asked first and stays on the
+ * screen as three tabs, and every choice under it starts a round rather than
+ * opening a page.
  */
 test.describe("Modus-Waehler", () => {
-  test("fragt zuerst nach dem Mitspieler und startet dann die Runde", async ({ page }) => {
+  test("zeigt die drei Wege nebeneinander und startet eine Runde", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
-    // Playing with friends is one of the three first-level choices, not a link
-    // hidden beside a mode.
-    for (const label of ["Ich spiele allein", "Ich spiele mit Freunden", "Ich spiele gegen Fremde"]) {
-      await expect(dialog.getByRole("button", { name: new RegExp(label) })).toBeVisible();
+    // All three ways are on the screen at once, playing with friends among
+    // them, and one of them is already showing its modes.
+    for (const label of ["Allein", "Mit Freunden", "Gegen Fremde"]) {
+      await expect(dialog.getByRole("tab", { name: label })).toBeVisible();
     }
-
-    await dialog.getByRole("button", { name: /Ich spiele allein/ }).click();
-    await expect(dialog.getByRole("heading", { name: "Allein spielen" })).toBeVisible();
+    await expect(dialog.getByRole("tab", { name: "Allein" })).toHaveAttribute(
+      "data-state",
+      "active"
+    );
 
     await dialog.getByRole("link", { name: /Sudden Death/ }).click();
     await expect(page).toHaveURL(/\/solo\/sudden-death\/$/);
@@ -95,7 +97,7 @@ test.describe("Modus-Waehler", () => {
     await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Ich spiele mit Freunden/ }).click();
+    await dialog.getByRole("tab", { name: "Mit Freunden" }).click();
     // Wordle has its own header and its own picker, so a Kontexto board never
     // offers a round of the other game.
     await expect(dialog.getByRole("link", { name: /Wördle/ })).toHaveCount(0);
@@ -129,13 +131,27 @@ test.describe("Modus-Waehler", () => {
     expect(new URL(page.url()).search).toBe("");
   });
 
-  test("zurueck fuehrt wieder zur Frage", async ({ page }) => {
+  test("der Unendlich-Modus steht bei den Solo-Modi", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Ich spiele gegen Fremde/ }).click();
-    await dialog.getByRole("button", { name: "Zurück zur Auswahl" }).click();
-    await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
+    // On the board that runs it, the entry starts the round instead of
+    // navigating, so the dialog closes and the session banner appears.
+    await dialog.getByRole("button", { name: /Unendlich-Modus/ }).click();
+    await expect(page.getByRole("button", { name: /Unendlich-Modus, .* zurück/ })).toBeVisible({
+      timeout: 20_000,
+    });
+  });
+
+  test("ein Wechsel zwischen den Wegen braucht keinen Rueckweg", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Spielmodi" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("tab", { name: "Gegen Fremde" }).click();
+    await expect(dialog.getByRole("link", { name: /Battle Royale/ })).toBeVisible();
+    await dialog.getByRole("tab", { name: "Allein" }).click();
+    await expect(dialog.getByRole("link", { name: /Sudden Death/ })).toBeVisible();
   });
 });

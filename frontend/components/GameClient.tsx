@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import { prefersReducedMotion } from "@/lib/use-reduced-motion";
 import Header from "@/components/Header";
+import { INFINITE_PARAM } from "@/components/ModePickerDialog";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
 import GameSkeleton from "@/components/GameSkeleton";
@@ -344,6 +345,23 @@ export default function GameClient() {
       loadNextInfinite([], null, 0);
     }
   }, [loadNextInfinite]);
+
+  // A picker opened somewhere else links home with this marker, because
+  // endless mode runs on this board and nowhere else. The marker is removed
+  // right away, so a reload is an ordinary visit to today's game.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has(INFINITE_PARAM)) return;
+    params.delete(INFINITE_PARAM);
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (query ? `?${query}` : "") + window.location.hash
+    );
+    handleStartInfinite();
+  }, [handleStartInfinite]);
 
   const handleNextInfinite = useCallback(() => {
     const finished = gameState.gameNumber;

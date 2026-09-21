@@ -260,7 +260,11 @@ export default function Header({
       {showCountdown && (
         <p className="text-micro text-muted-foreground mt-1">Nächstes Rätsel in: {countdown}</p>
       )}
-      <ModePickerDialog open={showModePicker} onClose={() => setShowModePicker(false)} />
+      <ModePickerDialog
+        open={showModePicker}
+        onClose={() => setShowModePicker(false)}
+        onInfiniteStart={onInfiniteStart}
+      />
     </header>
   );
 }
