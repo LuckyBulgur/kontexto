@@ -170,7 +170,30 @@ against new rank arrays, so the upload stages everything and swaps it in one mov
 - [x] 7. Every gate: `pytest` 726 passed, `pnpm build`, `pnpm test` 189, `pnpm seo:check`,
       `pnpm verify:slop --all` 0 findings over 309 files, `pnpm verify:dashes` 459 files,
       `pnpm test:e2e` 36 passed
-- [ ] 8. Ask, then upload
+- [x] 8. Uploaded and live, 2026-09-21
+
+## The upload
+
+`scripts/upload-concrete-pool.sh .regen-work/concrete-final`, after the user approved it.
+Staged into the volume, swapped in three moves, restarted. Verified on production
+afterwards:
+
+| check | result |
+|-|-|
+| `/api/game` before and after | `gameNumber: 106` both times |
+| `total_games` | 9,537 to 4,023 |
+| npz in `games/` | 4,023, with 9,537 kept as `games.previous` |
+| sha256 of the first 106 solutions | `7b9522bf261449e7`, the same value as the local reference |
+| a played round through kontexto.de | game 3,572, `tier` 24,542, `hund` 30,041, `katze` 1,019, `banane` rank 1 |
+
+Two things the upload found:
+
+- The script's spot check asked for `closest` on the first rebuilt game, which the date
+  gate refuses with a 400 because that game is tomorrow's. The swap and both health
+  checks had already passed; the check itself was wrong and is the only thing that failed.
+- `/app/data` now holds 2.9 GB, because the previous pool is deliberately still there.
+  Once tomorrow's puzzle has been played, `scripts/upload-concrete-pool.sh
+  --drop-previous` frees about 2 GB. Until then a rollback is `--rollback` and a restart.
 
 ## Final numbers
 

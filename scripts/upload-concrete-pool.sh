@@ -126,8 +126,11 @@ if [ "$BEFORE_GAME" != "$AFTER_GAME" ]; then
 fi
 echo "The daily game number is unchanged ($AFTER_GAME)."
 
-echo "Spot check, a game from the rebuilt range:"
-api_get "closest?game=$((CUTOFF + 1))" | head -c 200
+# A game from the rebuilt range, asked for the way the random modes ask for it.
+# Asking without infinite=true hits the date gate, because every rebuilt game is
+# by definition still in the future, and that is a 400 rather than a problem.
+echo "Spot check, the pool size the random modes see:"
+api_get "infinite/next" | head -c 200
 echo
 in_container "du -sh /app/data"
 echo
