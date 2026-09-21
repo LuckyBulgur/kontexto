@@ -187,6 +187,18 @@ CREATE TABLE IF NOT EXISTS wordle_duel_guesses (
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- The live figures in the matchmaking picker count connected players across all
+-- four room types on every cache miss. Partial indexes, because the interesting
+-- rows are the few that are currently connected, not the whole table.
+CREATE INDEX IF NOT EXISTS idx_duel_players_connected
+    ON duel_players(connected) WHERE connected = 1;
+CREATE INDEX IF NOT EXISTS idx_koop_players_connected
+    ON koop_players(connected) WHERE connected = 1;
+CREATE INDEX IF NOT EXISTS idx_arena_players_connected
+    ON arena_players(connected) WHERE connected = 1;
+CREATE INDEX IF NOT EXISTS idx_wordle_duel_players_connected
+    ON wordle_duel_players(connected) WHERE connected = 1;
+
 -- Analytics: raw pageview/beacon events (short retention, pruned by background job)
 CREATE TABLE IF NOT EXISTS analytics_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

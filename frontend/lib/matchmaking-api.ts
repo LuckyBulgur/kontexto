@@ -1,4 +1,9 @@
-import { MatchmakingStatus, MatchmakingTicket, QueueModeId } from "./matchmaking-types";
+import {
+  MatchmakingLive,
+  MatchmakingStatus,
+  MatchmakingTicket,
+  QueueModeId,
+} from "./matchmaking-types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -34,4 +39,14 @@ export async function cancelMatch(ticket: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticket }),
   });
+}
+
+/**
+ * How busy every mode is right now. No ticket needed: this is what the picker
+ * asks before the player commits to a queue.
+ */
+export async function getLiveCounts(): Promise<MatchmakingLive> {
+  const res = await fetch(`${API_BASE}/matchmaking/live`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }

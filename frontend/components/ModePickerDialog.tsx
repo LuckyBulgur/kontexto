@@ -25,8 +25,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { loadSentence, totalSentence } from "@/lib/matchmaking-rules";
+import { QueueModeId } from "@/lib/matchmaking-types";
 import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER } from "@/lib/multiplayer-modes";
 import { SOLO_MODES, SOLO_MODE_ORDER } from "@/lib/solo-modes";
+import { useMatchmakingLive } from "@/lib/use-matchmaking-live";
 
 /**
  * The mode picker.
@@ -83,6 +86,10 @@ interface ModePickerDialogProps {
 export default function ModePickerDialog({ open, onClose }: ModePickerDialogProps) {
   const [path, setPath] = useState<Path | null>(null);
 
+  // "Gegen Fremde" is the only path whose answer depends on who else is here,
+  // so the dialog asks while it is open and stops when it closes.
+  const live = useMatchmakingLive(open);
+
   // Reopening starts at the question again. Landing back on the list from three
   // sessions ago would be a small mystery every time.
   useEffect(() => {
@@ -123,7 +130,9 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
                   <Badge icon={entry.icon} />
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-lead font-bold">{entry.title}</span>
-                    <span className="block text-small text-muted-foreground">{entry.hint}</span>
+                    <span className="block text-small text-muted-foreground">
+                      {entry.id === "strangers" && live ? totalSentence(live) : entry.hint}
+                    </span>
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </button>
@@ -138,6 +147,13 @@ export default function ModePickerDialog({ open, onClose }: ModePickerDialogProp
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-lead font-bold">{mode.name}</span>
                     <span className="block text-small text-muted-foreground">{mode.hook}</span>
+                    {mode.queueId && (
+                      // Same reserved line as on /suche/: the figure arrives a
+                      // moment after the list and must not move it.
+                      <span className="block min-h-[1lh] text-micro text-muted-foreground/80">
+                        {loadSentence(live?.modes[mode.queueId])}
+                      </span>
+                    )}
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </Link>
@@ -162,8 +178,17 @@ function Badge({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
+interface PickerEntry {
+  id: string;
+  name: string;
+  hook: string;
+  href: string;
+  /** Set only where a load figure means anything, so on the strangers path. */
+  queueId?: QueueModeId;
+}
+
 /** The modes this path offers, and where each one leads. */
-function modesFor(path: Path): { id: string; name: string; hook: string; href: string }[] {
+function modesFor(path: Path): PickerEntry[] {
   if (path === "solo") {
     return SOLO_MODE_ORDER.map((id) => {
       const mode = SOLO_MODES[id];
@@ -174,6 +199,9 @@ function modesFor(path: Path): { id: string; name: string; hook: string; href: s
     const mode = MULTIPLAYER_MODES[id];
     const href = path === "friends" ? mode.createHref : `/suche/?modus=${mode.id}`;
     // A mode without an invite form simply does not appear under "with friends".
-    return href ? [{ id, name: mode.name, hook: mode.hook, href }] : [];
+    if (!href) return [];
+    // An invite link needs no queue, and a friend who has the link is coming
+    // regardless of how many strangers are around.
+    return [{ id, name: mode.name, hook: mode.hook, href, queueId: path === "strangers" ? id : undefined }];
   });
 }

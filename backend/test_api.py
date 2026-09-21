@@ -226,3 +226,49 @@ class TestAdminStatsGameDifficulty:
         assert e["mode"] == "kontexto"
         assert e["solves"] == 2 and e["reveals"] == 1 and e["finished"] == 3
         assert e["guesses"] == 2
+
+
+class TestMatchmakingLive:
+    """The picker's load figures, the one matchmaking endpoint without a ticket."""
+
+    def test_every_queue_mode_is_present_with_zeros(self, client):
+        import main as main_module
+        from matchmaking import QUEUE_MODES
+
+        # The payload is cached per process, so a run that touched it earlier
+        # would otherwise leak into this assertion.
+        main_module._live_cache = None
+
+        resp = client.get("/api/matchmaking/live")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert set(data["modes"]) == set(QUEUE_MODES)
+        assert all(
+            entry == {"waiting": 0, "playing": 0} for entry in data["modes"].values()
+        )
+        assert data["waiting_total"] == 0 and data["playing_total"] == 0
+
+    def test_a_queued_player_shows_up_in_the_totals(self, client):
+        import main as main_module
+
+        main_module._live_cache = None
+        client.post("/api/matchmaking/enqueue", json={"mode": "koop", "nickname": "Ada"})
+
+        main_module._live_cache = None
+        data = client.get("/api/matchmaking/live").json()
+        assert data["modes"]["koop"]["waiting"] == 1
+        assert data["waiting_total"] == 1
+        assert data["modes"]["duel"]["waiting"] == 0
+
+    def test_the_answer_is_cached_for_a_few_seconds(self, client):
+        import main as main_module
+
+        main_module._live_cache = None
+        first = client.get("/api/matchmaking/live").json()
+        client.post("/api/matchmaking/enqueue", json={"mode": "duel", "nickname": "Bob"})
+        second = client.get("/api/matchmaking/live").json()
+        assert first == second, "a new ticket must not invalidate the cache early"
+
+        main_module._live_cache = None
+        assert client.get("/api/matchmaking/live").json()["modes"]["duel"]["waiting"] == 1
+

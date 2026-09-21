@@ -20,7 +20,10 @@ from matchmaking import (
     enqueue,
     generate_nickname,
     is_nickname_acceptable,
+    live_counts,
+    playing_counts,
     prune_queue,
+    reset_connected_flags,
     resolve_nickname,
     run_matchmaking,
     ticket_status,
@@ -327,3 +330,170 @@ class TestPruning:
         removed, status = run(scenario())
         assert removed == 0
         assert status is not None
+
+
+# --- Live figures -----------------------------------------------------------
+
+# Room table, player table and the column linking them, per queue mode. The
+# seed helper writes rows directly so the counting can be tested without the
+# duel, koop, arena and Wordle modules in the way.
+_SEED_TABLES = {
+    "duel": ("duels", "duel_players", "duel_id"),
+    "koop": ("koops", "koop_players", "koop_id"),
+    "wordle_duel": ("wordle_duels", "wordle_duel_players", "duel_id"),
+}
+
+
+async def seed_room(db, mode: str, players: int, connected: int, *, stale=False, status="running"):
+    """Build one room of this mode with a given number of connected players."""
+    room_id = f"{mode}-{status}-{'stale' if stale else 'fresh'}-{players}-{connected}"
+    activity = "datetime('now', '-2 hours')" if stale else "CURRENT_TIMESTAMP"
+
+    if mode in _SEED_TABLES:
+        rooms, player_table, fk = _SEED_TABLES[mode]
+        await db.execute(
+            f"INSERT INTO {rooms} (id, game_number, created_by, last_activity) "
+            f"VALUES (?, 1, 'Ada', {activity})",
+            (room_id,),
+        )
+    else:
+        rooms, player_table, fk = "arenas", "arena_players", "arena_id"
+        await db.execute(
+            "INSERT INTO arenas (id, mode, game_number, status, created_by, last_activity) "
+            f"VALUES (?, ?, 1, ?, 'Ada', {activity})",
+            (room_id, mode, status),
+        )
+
+    for i in range(players):
+        await db.execute(
+            f"INSERT INTO {player_table} ({fk}, nickname, player_token, connected) "
+            "VALUES (?, ?, ?, ?)",
+            (room_id, f"P{i}", f"{room_id}-token-{i}", 1 if i < connected else 0),
+        )
+    await db.commit()
+    return room_id
+
+
+class TestLiveCounts:
+    def test_an_empty_database_reports_every_mode_as_zero(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            counts = await live_counts(db)
+            await db.close()
+            return counts
+
+        counts = run(scenario())
+        assert set(counts) == set(QUEUE_MODES)
+        assert all(c == {"waiting": 0, "playing": 0} for c in counts.values())
+
+    def test_a_queued_ticket_is_waiting_and_a_matched_one_is_not(self, db_path):
+        factory = RecordingFactory()
+
+        async def scenario():
+            db = await get_db(db_path)
+            await enqueue(db, "koop", "Ada", now=T0)
+            before = await live_counts(db)
+            await enqueue(db, "duel", "Bob", now=T0)
+            await enqueue(db, "duel", "Cem", now=T0)
+            await run_matchmaking(db, factory, now=T0)
+            after = await live_counts(db)
+            await db.close()
+            return before, after
+
+        before, after = run(scenario())
+        assert before["koop"]["waiting"] == 1
+        assert after["koop"]["waiting"] == 1
+        assert after["duel"]["waiting"] == 0, "a matched ticket has left the queue"
+
+    def test_connected_players_count_as_playing_per_mode(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            for mode in QUEUE_MODES:
+                await seed_room(db, mode, players=3, connected=2)
+            counts = await live_counts(db)
+            await db.close()
+            return counts
+
+        counts = run(scenario())
+        for mode in QUEUE_MODES:
+            assert counts[mode]["playing"] == 2, mode
+
+    def test_a_disconnected_player_stops_counting(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            room = await seed_room(db, "duel", players=2, connected=2)
+            before = await playing_counts(db)
+            await db.execute(
+                "UPDATE duel_players SET connected = 0 WHERE duel_id = ?", (room,)
+            )
+            await db.commit()
+            after = await playing_counts(db)
+            await db.close()
+            return before, after
+
+        before, after = run(scenario())
+        assert before["duel"] == 2
+        assert after["duel"] == 0
+
+    def test_a_room_without_recent_activity_does_not_count(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            await seed_room(db, "duel", players=2, connected=2, stale=True)
+            counts = await playing_counts(db)
+            await db.close()
+            return counts
+
+        assert run(scenario())["duel"] == 0, "a flag nobody cleared is not a player"
+
+    def test_a_finished_arena_does_not_count(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            await seed_room(db, "royale", players=4, connected=4, status="finished")
+            await seed_room(db, "royale", players=3, connected=3, status="lobby")
+            counts = await playing_counts(db)
+            await db.close()
+            return counts
+
+        assert run(scenario())["royale"] == 3, "the result screen is not a round"
+
+    def test_a_mode_counts_only_its_own_arenas(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            await seed_room(db, "blitz", players=2, connected=2)
+            await seed_room(db, "timerush", players=5, connected=5)
+            counts = await playing_counts(db)
+            await db.close()
+            return counts
+
+        counts = run(scenario())
+        assert counts["blitz"] == 2
+        assert counts["timerush"] == 5
+        assert counts["royale"] == 0
+
+
+class TestConnectionFlagReset:
+    def test_every_table_is_cleared(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            for mode in QUEUE_MODES:
+                await seed_room(db, mode, players=2, connected=2)
+            cleared = await reset_connected_flags(db)
+            counts = await playing_counts(db)
+            await db.close()
+            return cleared, counts
+
+        cleared, counts = run(scenario())
+        assert cleared == 12, "six modes with two connected players each"
+        assert all(value == 0 for value in counts.values())
+
+    def test_a_second_pass_changes_nothing(self, db_path):
+        async def scenario():
+            db = await get_db(db_path)
+            await seed_room(db, "duel", players=2, connected=2)
+            first = await reset_connected_flags(db)
+            second = await reset_connected_flags(db)
+            await db.close()
+            return first, second
+
+        first, second = run(scenario())
+        assert (first, second) == (2, 0)

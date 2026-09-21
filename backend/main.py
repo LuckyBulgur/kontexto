@@ -44,7 +44,9 @@ from arena import get_player_info as get_arena_player_info
 from matchmaking import (
     cancel as cancel_match_ticket,
     enqueue as enqueue_for_match,
+    live_counts as matchmaking_live_counts,
     prune_queue,
+    reset_connected_flags,
     run_matchmaking,
     ticket_status,
     waiting_counts as matchmaking_waiting,
@@ -64,7 +66,7 @@ from models import (
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
     ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
     MatchmakingEnqueueRequest, MatchmakingTicketResponse,
-    MatchmakingStatusResponse, MatchmakingCancelRequest,
+    MatchmakingStatusResponse, MatchmakingCancelRequest, MatchmakingLiveResponse,
 )
 from websocket_manager import (
     manager as ws_manager,
@@ -198,6 +200,17 @@ async def lifespan(app: FastAPI):
     is_ws_mode = os.environ.get("KONTEXTO_WS_MODE")
     is_dev = os.environ.get("KONTEXTO_DEV")
     if is_ws_mode or is_dev:
+        # No socket survives a restart, so every connection flag still set in
+        # the database is a ghost from the process that died. Clear them before
+        # the broadcast loops start, or the first diff they push is wrong.
+        db = await get_db(_db_path)
+        try:
+            cleared = await reset_connected_flags(db)
+        finally:
+            await db.close()
+        if cleared:
+            logger.info("cleared %d stale connection flags at startup", cleared)
+
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(koop_ws_manager.poll_and_broadcast(_db_path)))
@@ -1365,6 +1378,51 @@ async def matchmaking_status(ticket: str = Query(..., min_length=8, max_length=2
         return {**status, "waiting": (await matchmaking_waiting(db)).get(status["mode"], 0)}
     finally:
         await db.close()
+
+
+# The picker opens out of every running game and then polls, so this endpoint
+# sees far more traffic than the queue itself. Five seconds of staleness costs
+# nothing on a figure that exists for orientation, and it caps the five
+# aggregate queries at one round per second across all API workers.
+LIVE_CACHE_TTL = 5.0
+_live_cache: tuple[float, dict] | None = None
+_live_cache_lock = asyncio.Lock()
+
+
+async def _live_payload() -> dict:
+    global _live_cache
+    now = time.monotonic()
+    cached = _live_cache
+    if cached and now - cached[0] < LIVE_CACHE_TTL:
+        return cached[1]
+
+    async with _live_cache_lock:
+        # A second waiter arrives after the holder refilled the cache; without
+        # this check every request queued behind an expiry would count again.
+        cached = _live_cache
+        now = time.monotonic()
+        if cached and now - cached[0] < LIVE_CACHE_TTL:
+            return cached[1]
+
+        db = await get_db(_db_path)
+        try:
+            modes = await matchmaking_live_counts(db)
+        finally:
+            await db.close()
+
+        payload = {
+            "modes": modes,
+            "waiting_total": sum(m["waiting"] for m in modes.values()),
+            "playing_total": sum(m["playing"] for m in modes.values()),
+        }
+        _live_cache = (time.monotonic(), payload)
+        return payload
+
+
+@app.get("/api/matchmaking/live", response_model=MatchmakingLiveResponse)
+async def matchmaking_live():
+    """How busy every mode is, for the picker before a ticket exists."""
+    return await _live_payload()
 
 
 @app.post("/api/matchmaking/cancel", response_model=BeaconResponse)

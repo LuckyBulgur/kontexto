@@ -1,4 +1,4 @@
-import { QueueModeId } from "./matchmaking-types";
+import { MatchmakingLive, ModeLoad, QueueModeId } from "./matchmaking-types";
 
 /**
  * When a round of each mode starts, mirrored from `PARTY_RULES` in
@@ -45,4 +45,39 @@ export function waitingSentence(
     return `Genug Leute da. Wir warten noch kurz auf mehr, höchstens ${rule.grace_seconds} Sekunden.`;
   }
   return "Genug Leute da, es geht gleich los.";
+}
+
+/**
+ * How busy one mode is, in one short line for the mode list.
+ *
+ * Nobody is around is said plainly. A queue that hides its emptiness sends the
+ * player into a wait they were not warned about, and the second time they do
+ * not come back. Saying it costs one sentence and keeps the number credible
+ * when it is not zero.
+ */
+export function loadSentence(load: ModeLoad | undefined): string {
+  if (!load) return "";
+
+  const { waiting, playing } = load;
+  if (waiting === 0 && playing === 0) return "Gerade niemand da, du wärst der Erste";
+
+  const queued = waiting === 1 ? "1 wartet" : `${waiting} warten`;
+  const active = playing === 1 ? "1 spielt gerade" : `${playing} spielen gerade`;
+
+  if (playing === 0) return `${queued} gerade`;
+  if (waiting === 0) return active;
+  return `${queued}, ${active}`;
+}
+
+/**
+ * The same figure as one number, for the entry card of the mode picker.
+ *
+ * Takes a loaded value only. What the card says while nothing is loaded is the
+ * card's own text, and repeating it here would be a second place to change it.
+ */
+export function totalSentence(live: MatchmakingLive): string {
+  const total = live.waiting_total + live.playing_total;
+  if (total === 0) return "Gerade ist niemand unterwegs";
+  if (total === 1) return "1 Person gerade unterwegs";
+  return `${total} Leute gerade unterwegs`;
 }

@@ -10,9 +10,15 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { cancelMatch, enqueueForMatch, getMatchStatus } from "@/lib/matchmaking-api";
-import { PARTY_RULES, partySizeLabel, waitingSentence } from "@/lib/matchmaking-rules";
+import {
+  PARTY_RULES,
+  loadSentence,
+  partySizeLabel,
+  waitingSentence,
+} from "@/lib/matchmaking-rules";
 import { MatchmakingTicket, QueueModeId, roomPath } from "@/lib/matchmaking-types";
 import { MULTIPLAYER_MODES, MULTIPLAYER_MODE_ORDER, isQueueMode } from "@/lib/multiplayer-modes";
+import { useMatchmakingLive } from "@/lib/use-matchmaking-live";
 import { cn } from "@/lib/utils";
 
 /** How often the waiting screen asks whether a room has been built. */
@@ -44,6 +50,10 @@ export default function MatchSearchClient() {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const searchingSince = useRef<number | null>(null);
+
+  // Only while choosing. Once a ticket exists the waiting screen has the real
+  // number from its own poll, and a second one would contradict it.
+  const live = useMatchmakingLive(ticket === null);
 
   useEffect(() => {
     setMode(modeFromQuery());
@@ -192,6 +202,12 @@ export default function MatchSearchClient() {
                             {rule.graceSeconds > 0
                               ? `, Start nach spätestens ${rule.graceSeconds} Sekunden`
                               : ", Start sofort zu zweit"}
+                          </span>
+                          {/* The line keeps its height before the figure
+                              arrives, so the list does not jump under the
+                              finger that is about to tap it. */}
+                          <span className="min-h-[1lh] text-micro text-muted-foreground/80">
+                            {loadSentence(live?.modes[id])}
                           </span>
                         </span>
                       </Label>

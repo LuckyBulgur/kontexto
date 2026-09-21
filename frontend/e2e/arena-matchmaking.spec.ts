@@ -56,6 +56,40 @@ test.describe("Arena über die Mitspielersuche", () => {
   });
 });
 
+test.describe("Auslastung vor dem Einreihen", () => {
+  // Any sentence loadSentence() can produce. The exact wording is covered by
+  // lib/matchmaking-rules.test.ts; what only a real run can show is that the
+  // line reaches the page at all, with a figure the server actually sent.
+  const LOAD_LINE = /Gerade niemand da|\d+ (wartet|warten|spielt|spielen)/;
+
+  test("jeder Modus nennt, wie viel gerade los ist", async ({ page }) => {
+    await page.goto("/suche/");
+
+    for (const mode of ["duel", "koop", "wordle_duel", "royale", "blitz", "timerush"]) {
+      const row = page.locator(`label[for="modus-${mode}"]`);
+      await expect(row.getByText(LOAD_LINE)).toBeVisible({ timeout: 20_000 });
+    }
+  });
+
+  test("ein wartender Spieler taucht in der Liste auf", async ({ browser }) => {
+    const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+    for (const context of contexts) await blockThirdParty(context);
+    const [waiter, watcher] = await Promise.all(contexts.map((c) => c.newPage()));
+
+    // Royale needs three players, so a single ticket stays in the queue long
+    // enough for a second tab to read it.
+    await waiter.goto("/suche/?modus=royale");
+    await waiter.getByRole("button", { name: "Mitspieler suchen" }).click();
+    await expect(waiter.getByText("Suche Mitspieler")).toBeVisible({ timeout: 20_000 });
+
+    await watcher.goto("/suche/");
+    const royale = watcher.locator('label[for="modus-royale"]');
+    await expect(royale.getByText(/1 wartet/)).toBeVisible({ timeout: 20_000 });
+
+    for (const context of contexts) await context.close();
+  });
+});
+
 /**
  * The other two room shapes the queue can build. `_matchmaking_room` in main.py
  * has one branch per family (duel, koop, wordle-duel, arena) and the Blitz test

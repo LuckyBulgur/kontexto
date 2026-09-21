@@ -356,3 +356,22 @@ class MatchmakingStatusResponse(PartyRuleFields):
 
 class MatchmakingCancelRequest(BaseModel):
     ticket: str = Field(..., min_length=8, max_length=200)
+
+
+class ModeLoad(BaseModel):
+    """How busy one mode is right now."""
+    # Players queued for this mode and not yet matched.
+    waiting: int
+    # Players connected to a live room of this mode, invite links included.
+    playing: int
+
+
+class MatchmakingLiveResponse(BaseModel):
+    """The picker's answer to "is anybody there", before a ticket exists.
+
+    Every queue mode is a key, so a mode nobody is playing reads as a zero
+    rather than as a gap the client has to interpret.
+    """
+    modes: dict[str, ModeLoad]
+    waiting_total: int
+    playing_total: int

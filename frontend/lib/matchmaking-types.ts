@@ -34,6 +34,26 @@ export interface MatchmakingStatus extends PartyRule {
   waiting: number;
 }
 
+/** How busy one mode is right now. */
+export interface ModeLoad {
+  /** Players queued for this mode and not yet matched. */
+  waiting: number;
+  /** Players in a live room of this mode, rooms from invite links included. */
+  playing: number;
+}
+
+/**
+ * The load figures the picker shows before a ticket exists.
+ *
+ * Every queue mode is a key, so a mode nobody is playing reads as a zero and
+ * the caller never has to decide what a missing one means.
+ */
+export interface MatchmakingLive {
+  modes: Record<QueueModeId, ModeLoad>;
+  waiting_total: number;
+  playing_total: number;
+}
+
 /** Where a matched room of this mode lives. */
 export function roomPath(mode: QueueModeId, roomId: string): string {
   switch (mode) {

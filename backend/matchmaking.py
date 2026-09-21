@@ -187,6 +187,94 @@ async def waiting_counts(db: aiosqlite.Connection) -> dict[str, int]:
     return {row["mode"]: row["cnt"] for row in await cursor.fetchall()}
 
 
+# How long a room without activity still counts as being played. `last_activity`
+# is written on every guess, so a running round stays well inside this window;
+# the bound exists for the opposite case, a room whose players are flagged as
+# connected although their socket is long gone.
+ACTIVE_ROOM_WINDOW = "-30 minutes"
+
+# Every room table paired with its player table, so the playing count is one
+# loop instead of four near-identical blocks. Arena is not in here: it carries
+# three queue modes in one table and needs its own grouped query.
+_ROOM_TABLES: tuple[tuple[str, str, str, str], ...] = (
+    ("duel", "duels", "duel_players", "duel_id"),
+    ("koop", "koops", "koop_players", "koop_id"),
+    ("wordle_duel", "wordle_duels", "wordle_duel_players", "duel_id"),
+)
+
+
+async def playing_counts(db: aiosqlite.Connection) -> dict[str, int]:
+    """How many players are in a live room per mode.
+
+    Two signals, because neither is enough on its own. ``connected`` is exact
+    while the WS worker is alive, and it is the only thing that knows a tab was
+    closed. A recent ``last_activity`` bounds what a crashed or restarted worker
+    leaves behind, since nothing clears the flag on the way out.
+
+    Rooms from invite links count as well. The question this answers is how busy
+    a mode is, not how many players came through the queue.
+    """
+    counts: dict[str, int] = {mode: 0 for mode in QUEUE_MODES}
+
+    for mode, rooms, players, fk in _ROOM_TABLES:
+        cursor = await db.execute(
+            f"SELECT COUNT(*) AS cnt FROM {players} p "
+            f"JOIN {rooms} r ON r.id = p.{fk} "
+            "WHERE p.connected = 1 AND r.last_activity > datetime('now', ?)",
+            (ACTIVE_ROOM_WINDOW,),
+        )
+        row = await cursor.fetchone()
+        counts[mode] = row["cnt"] if row else 0
+
+    # A finished arena keeps its players connected on the result screen. They
+    # are not playing, and counting them would inflate the number for as long as
+    # the last tab stays open.
+    cursor = await db.execute(
+        "SELECT a.mode AS mode, COUNT(*) AS cnt FROM arena_players p "
+        "JOIN arenas a ON a.id = p.arena_id "
+        "WHERE p.connected = 1 AND a.status != 'finished' "
+        "AND a.last_activity > datetime('now', ?) GROUP BY a.mode",
+        (ACTIVE_ROOM_WINDOW,),
+    )
+    for row in await cursor.fetchall():
+        if row["mode"] in counts:
+            counts[row["mode"]] = row["cnt"]
+
+    return counts
+
+
+async def live_counts(db: aiosqlite.Connection) -> dict[str, dict[str, int]]:
+    """Queued and playing players per mode, for the picker before the queue.
+
+    Every mode is present with a zero rather than omitted, so the caller never
+    has to decide what a missing key means.
+    """
+    waiting = await waiting_counts(db)
+    playing = await playing_counts(db)
+    return {
+        mode: {"waiting": waiting.get(mode, 0), "playing": playing.get(mode, 0)}
+        for mode in QUEUE_MODES
+    }
+
+
+async def reset_connected_flags(db: aiosqlite.Connection) -> int:
+    """Clear every connection flag. Runs once when the WS worker starts.
+
+    No socket survives a process restart, so a flag that is still set is a
+    ghost: it inflates the live figures and puts a player who left hours ago
+    into the room's player list. Nothing else clears it, because the disconnect
+    handler is exactly what a crash or a deploy skips.
+    """
+    cleared = 0
+    for players in ("duel_players", "koop_players", "arena_players", "wordle_duel_players"):
+        cursor = await db.execute(
+            f"UPDATE {players} SET connected = 0 WHERE connected = 1"
+        )
+        cleared += cursor.rowcount
+    await db.commit()
+    return cleared
+
+
 async def run_matchmaking(
     db: aiosqlite.Connection, create_room, now: datetime | None = None
 ) -> list[dict]:
