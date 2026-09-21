@@ -361,7 +361,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         hideGiveUp
         hidePastGames
         subtitle={`Modus: ${meta.name}`}
-        backHref="/modi/"
+        backOpensModes
       />
 
       <div className="flex-1 px-4 py-4 flex flex-col gap-4">

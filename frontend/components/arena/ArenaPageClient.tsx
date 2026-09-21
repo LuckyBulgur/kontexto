@@ -380,7 +380,7 @@ export default function ArenaPageClient() {
         hideGiveUp
         hidePastGames
         subtitle={`Modus: ${meta.name}`}
-        backHref="/modi/"
+        backOpensModes
       />
 
       <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row">

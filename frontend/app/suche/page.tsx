@@ -17,7 +17,6 @@ export default function MatchSearchPage() {
         game="kontexto"
         title="Gegen Fremde spielen"
         description="Kein Link, keine Verabredung. Modus wählen, kurz warten, losspielen."
-        backHref="/modi/"
       />
     </main>
   );

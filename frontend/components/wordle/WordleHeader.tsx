@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   EllipsisVertical,
@@ -19,8 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ShareLinkButton from "@/components/ShareLinkButton";
+import ModesButton from "@/components/ModesButton";
 import WordleModeDialog from "@/components/wordle/WordleModeDialog";
-import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import { WordmarkName } from "@/components/design";
 
 interface WordleHeaderProps {
@@ -60,50 +61,40 @@ export default function WordleHeader({
   subtitle,
   backHref,
 }: WordleHeaderProps) {
+  const pathname = usePathname();
   const [showModes, setShowModes] = useState(false);
-  // The badge used to sit on the duel entry. That entry is now one of three in
-  // the dialog, so the hint moves to the door in front of it.
-  const { highlight: modesHighlight, dismiss: dismissModesHighlight } =
-    useFeatureDiscovery("wordle_duel_discovered");
 
   return (
     <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
-      <div className="relative flex items-center justify-center w-full">
-        {backHref && (
-          <a href={backHref} className="absolute left-4">
-            <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
-              <ArrowLeft className="h-6! w-6!" />
-            </Button>
-          </a>
-        )}
-        <div className="flex items-center gap-1.5 font-display text-h3 font-extrabold tracking-tight">
+      {/* Same three slots as components/Header.tsx, and for the same reason. */}
+      <div className="flex w-full items-center gap-1">
+        <div className="flex flex-1 basis-0 items-center">
+          {backHref && (
+            <a href={backHref}>
+              <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
+                <ArrowLeft className="h-6! w-6!" />
+              </Button>
+            </a>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 font-display text-lead font-extrabold tracking-tight sm:text-h3">
           <Link href="/" className="text-muted-foreground transition-colors hover:text-foreground">
             <WordmarkName name="Kontexto" />
           </Link>
           <span className="text-border" aria-hidden="true">/</span>
           <Link href="/wordle/">Wördle</Link>
         </div>
-        <div className="absolute right-4 flex items-center gap-0.5">
+        <div className="flex flex-1 basis-0 items-center justify-end gap-0.5">
           {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
-          <DropdownMenu onOpenChange={(open) => {
-            if (!open && modesHighlight) dismissModesHighlight();
-          }}>
+          <ModesButton
+            onOpen={() => setShowModes(true)}
+            hintKey="wordle_modes_button_discovered"
+            hintEnabled={pathname === "/wordle/"}
+          />
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-10 w-10"
-                aria-label={
-                  modesHighlight ? "Menü, neue Funktion: weitere Spielmodi" : "Menü"
-                }
-              >
+              <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Menü">
                 <EllipsisVertical className="h-6! w-6!" />
-                {modesHighlight && (
-                  <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                  </span>
-                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -113,17 +104,9 @@ export default function WordleHeader({
                   Spielanleitung
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                onClick={() => setShowModes(true)}
-                className={modesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}
-              >
+              <DropdownMenuItem onClick={() => setShowModes(true)}>
                 <LayoutGrid className="h-4 w-4" />
                 Spielmodi
-                {modesHighlight && (
-                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
-                    NEU
-                  </span>
-                )}
               </DropdownMenuItem>
               {onStats && (
                 <DropdownMenuItem onClick={onStats}>

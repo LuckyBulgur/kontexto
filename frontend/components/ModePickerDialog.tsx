@@ -56,9 +56,22 @@ const PATHS: {
   title: string;
   hint: string;
 }[] = [
-  { id: "solo", icon: User, title: "Allein", hint: "Vier Modi, sofort los" },
-  { id: "friends", icon: Link2, title: "Mit Freunden", hint: "Link teilen, zusammen spielen" },
-  { id: "strangers", icon: Globe, title: "Gegen Fremde", hint: "Wir suchen dir Mitspieler" },
+  // Full sentences, because "Allein" alone was read as a label and not as a
+  // choice: players opened the dialog and did not see that these three are the
+  // question. The answer stands in the first person, the way it is thought.
+  { id: "solo", icon: User, title: "Ich spiele allein", hint: "Vier Modi, sofort los" },
+  {
+    id: "friends",
+    icon: Link2,
+    title: "Ich spiele mit Freunden",
+    hint: "Link teilen, zusammen spielen",
+  },
+  {
+    id: "strangers",
+    icon: Globe,
+    title: "Ich spiele gegen Fremde",
+    hint: "Wir suchen dir Mitspieler",
+  },
 ];
 
 const MODE_ICONS: Record<string, LucideIcon> = {

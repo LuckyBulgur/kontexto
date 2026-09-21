@@ -73,18 +73,17 @@ test.describe("Solo-Modi", () => {
 test.describe("Modus-Waehler", () => {
   test("fragt zuerst nach dem Mitspieler und startet dann die Runde", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
+    await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
     // Playing with friends is one of the three first-level choices, not a link
     // hidden beside a mode.
-    for (const label of ["Allein", "Mit Freunden", "Gegen Fremde"]) {
+    for (const label of ["Ich spiele allein", "Ich spiele mit Freunden", "Ich spiele gegen Fremde"]) {
       await expect(dialog.getByRole("button", { name: new RegExp(label) })).toBeVisible();
     }
 
-    await dialog.getByRole("button", { name: /Allein/ }).click();
+    await dialog.getByRole("button", { name: /Ich spiele allein/ }).click();
     await expect(dialog.getByRole("heading", { name: "Allein spielen" })).toBeVisible();
 
     await dialog.getByRole("link", { name: /Sudden Death/ }).click();
@@ -93,11 +92,10 @@ test.describe("Modus-Waehler", () => {
 
   test("der Weg mit Freunden fuehrt zum Einladungsformular", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
+    await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Mit Freunden/ }).click();
+    await dialog.getByRole("button", { name: /Ich spiele mit Freunden/ }).click();
     // Wordle has its own header and its own picker, so a Kontexto board never
     // offers a round of the other game.
     await expect(dialog.getByRole("link", { name: /Wördle/ })).toHaveCount(0);
@@ -105,13 +103,38 @@ test.describe("Modus-Waehler", () => {
     await expect(page).toHaveURL(/\/arena\/create\/\?modus=royale$/);
   });
 
+  test("beim ersten Besuch erklaert sich der Knopf einmal", async ({ page }) => {
+    await page.goto("/");
+    const hint = page.getByRole("tooltip");
+    await expect(hint).toBeVisible({ timeout: 10_000 });
+
+    // Any first touch counts as read, and it is read for good.
+    await page.mouse.click(10, 400);
+    await expect(hint).toBeHidden();
+
+    await page.reload();
+    await page.waitForTimeout(2_000);
+    await expect(hint).toBeHidden();
+  });
+
+  test("der Zurueck-Pfeil bringt das Spiel und die Frage zurueck", async ({ page }) => {
+    await page.goto("/solo/limit/");
+    await page.getByRole("button", { name: "Zurück zur Modusauswahl" }).click();
+
+    // Home, with the question open and the marker gone from the address.
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("dialog").getByRole("heading", { name: "Wie willst du spielen?" })
+    ).toBeVisible({ timeout: 20_000 });
+    expect(new URL(page.url()).search).toBe("");
+  });
+
   test("zurueck fuehrt wieder zur Frage", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
+    await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Gegen Fremde/ }).click();
+    await dialog.getByRole("button", { name: /Ich spiele gegen Fremde/ }).click();
     await dialog.getByRole("button", { name: "Zurück zur Auswahl" }).click();
     await expect(dialog.getByRole("heading", { name: "Wie willst du spielen?" })).toBeVisible();
   });

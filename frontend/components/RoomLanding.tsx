@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import ModesDialogButton from "@/components/ModesDialogButton";
 import { Panel, ResultHero } from "@/components/design";
 import { Button } from "@/components/ui/button";
 
@@ -33,9 +34,7 @@ export default function RoomLanding({
           <Button className="flex-1" asChild>
             <Link href={createHref}>{createLabel}</Link>
           </Button>
-          <Button variant="outline" className="flex-1" asChild>
-            <Link href="/modi/">Alle Modi ansehen</Link>
-          </Button>
+          <ModesDialogButton className="flex-1">Alle Modi ansehen</ModesDialogButton>
         </div>
       </Panel>
     </div>

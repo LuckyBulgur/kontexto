@@ -30,7 +30,9 @@ interface MatchSearchClientProps {
   game: "kontexto" | "wordle";
   title: string;
   description: string;
-  backHref: string;
+  /** Only Wordle has a page to go back to. The Kontexto queue goes back to the
+   *  question it came from, which is the dialog, not the catalogue page. */
+  backHref?: string;
 }
 
 /** How often the waiting screen asks whether a room has been built. */
@@ -173,7 +175,7 @@ export default function MatchSearchClient({
           hideTip
           hideGiveUp
           hidePastGames
-          backHref={backHref}
+          backOpensModes
         />
       )}
 

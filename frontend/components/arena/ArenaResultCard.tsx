@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArenaState } from "@/lib/arena-types";
 import { MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
+import ModesDialogButton from "@/components/ModesDialogButton";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface ArenaResultCardProps {
@@ -58,9 +58,7 @@ export default function ArenaResultCard({
         <Button className="flex-1" onClick={onNextRound} disabled={nextLoading}>
           {nextLoading ? "Lädt..." : "Neue Runde"}
         </Button>
-        <Button variant="outline" className="flex-1" asChild>
-          <Link href="/modi/">Andere Modi</Link>
-        </Button>
+        <ModesDialogButton className="flex-1">Andere Modi</ModesDialogButton>
       </div>
     </Panel>
   );

@@ -9,8 +9,7 @@ import { test, expect } from "./fixtures";
 test.describe("Wördle-Modi", () => {
   test("das Menü führt über einen Eintrag zu allen Wördle-Modi", async ({ page }) => {
     await page.goto("/wordle/");
-    await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
+    await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
     for (const group of ["Allein", "Mit Freunden", "Gegen Fremde"]) {
@@ -22,8 +21,7 @@ test.describe("Wördle-Modi", () => {
 
   test("der Weg gegen Fremde führt zur eigenen Wördle-Suche", async ({ page }) => {
     await page.goto("/wordle/");
-    await page.getByRole("button", { name: /^Menü/ }).click();
-    await page.getByRole("menuitem", { name: /Spielmodi/ }).click();
+    await page.getByRole("button", { name: "Spielmodi" }).click();
 
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("link", { name: /Wördle-Duell/ }).last().click();

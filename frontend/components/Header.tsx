@@ -25,6 +25,7 @@ import {
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
 import ShareLinkButton from "@/components/ShareLinkButton";
 import ModePickerDialog from "@/components/ModePickerDialog";
+import ModesButton from "@/components/ModesButton";
 import { WordmarkName } from "@/components/design";
 
 interface HeaderProps {
@@ -45,7 +46,14 @@ interface HeaderProps {
   hideGiveUp?: boolean;
   hidePastGames?: boolean;
   backHref?: string;
+  /** The back arrow leads home and opens the mode question there, instead of
+   *  leaving for the article that describes the modes. Used where "back" means
+   *  "somewhere else in the game", which is a choice and not a text. */
+  backOpensModes?: boolean;
 }
+
+/** Marker on the home URL that opens the mode question on arrival. */
+const MODES_PARAM = "modi";
 
 function getTimeUntilMidnight(): string {
   const now = new Date();
@@ -75,29 +83,40 @@ export default function Header({
   hideGiveUp,
   hidePastGames,
   backHref,
+  backOpensModes,
 }: HeaderProps) {
   const pathname = usePathname();
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   // The picker is owned here rather than passed in: every client that renders
   // the menu would otherwise have to carry the same three lines of state.
   const [showModePicker, setShowModePicker] = useState(false);
+  // Set when the home page was opened by a back arrow that carried the
+  // question with it, so the hint does not talk over the open dialog.
+  const [pickerFromLink, setPickerFromLink] = useState(false);
   const { highlight: infiniteHighlight, dismiss: dismissInfiniteHighlight } =
     useFeatureDiscovery("kontexto_infinite_discovered");
+  // Endless mode lost its own icon button to the modes button and is a menu
+  // entry now, so its hint has one place instead of two.
   const showInfiniteHighlight = !!onInfiniteStart && infiniteHighlight;
-  // Duel and koop used to sit in this menu as their own entries with their own
-  // badge. They are modes, so they live behind the one door that shows every
-  // mode, and the badge moved to that door with them.
-  const { highlight: modesHighlight, dismiss: dismissModesHighlight } =
-    useFeatureDiscovery("kontexto_modes_discovered");
-  const showModesHighlight = modesHighlight;
-  // Ping am Kebab, falls ein neuer Menüpunkt hervorgehoben werden soll.
-  const showPing = showModesHighlight;
-  // Der Unendlich-Button ist unter sm ausgeblendet, sein Hinweis wandert dort an den Kebab.
-  const pingClass = showPing
-    ? "flex"
-    : showInfiniteHighlight
-      ? "flex sm:hidden"
-      : null;
+
+  // A back arrow elsewhere in the game links to /?modi=1: the player lands on
+  // the board, which is where they came from, and the question is already
+  // open. The marker is removed right away so a reload is an ordinary visit
+  // and the address stays the canonical one.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has(MODES_PARAM)) return;
+    setShowModePicker(true);
+    setPickerFromLink(true);
+    params.delete(MODES_PARAM);
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (query ? `?${query}` : "") + window.location.hash
+    );
+  }, []);
 
   useEffect(() => {
     if (!showCountdown) return;
@@ -107,15 +126,34 @@ export default function Header({
 
   return (
     <header className="relative flex flex-col items-center px-4 pt-5 pb-1">
-      <div className="relative flex items-center justify-center w-full">
-        {backHref && (
-          <a href={backHref} className="absolute left-4">
-            <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
-              <ArrowLeft className="h-6! w-6!" />
-            </Button>
-          </a>
-        )}
-        <div className="flex items-center gap-1.5 font-display text-h3 font-extrabold tracking-tight">
+      {/* Three slots, not a centred block with two absolute islands: the right
+          cluster grew a second button, and at 360 pixels an absolute one sat on
+          top of the wordmark. Equal flex basis keeps the name centred while
+          there is room and lets it give way before it is overlapped. */}
+      <div className="flex w-full items-center gap-1">
+        <div className="flex flex-1 basis-0 items-center">
+          {backOpensModes ? (
+            <a href={`/?${MODES_PARAM}=1`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                aria-label="Zurück zur Modusauswahl"
+              >
+                <ArrowLeft className="h-6! w-6!" />
+              </Button>
+            </a>
+          ) : (
+            backHref && (
+              <a href={backHref}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Zurück">
+                  <ArrowLeft className="h-6! w-6!" />
+                </Button>
+              </a>
+            )
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 font-display text-lead font-extrabold tracking-tight sm:text-h3">
           <Link
             href="/"
             className={pathname.startsWith("/wordle") ? "text-muted-foreground transition-colors hover:text-foreground" : ""}
@@ -130,33 +168,17 @@ export default function Header({
             Wördle
           </Link>
         </div>
-      <div className="absolute right-4 flex items-center gap-0.5">
+      <div className="flex flex-1 basis-0 items-center justify-end gap-0.5">
         {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
-        {onInfiniteStart && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hidden h-10 w-10 sm:inline-flex"
-            aria-label={showInfiniteHighlight ? "Unendlich-Modus, neue Funktion" : "Unendlich-Modus"}
-            onClick={() => {
-              if (showInfiniteHighlight) dismissInfiniteHighlight();
-              onInfiniteStart();
-            }}
-          >
-            <Infinity className="h-6! w-6!" />
-            {showInfiniteHighlight && (
-              <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-              </span>
-            )}
-          </Button>
-        )}
+        <ModesButton
+          onOpen={() => setShowModePicker(true)}
+          hintKey="kontexto_modes_button_discovered"
+          // Only where a player arrives, never in a room or in a running solo
+          // round, where a bubble would talk over the game.
+          hintEnabled={pathname === "/" && !pickerFromLink}
+        />
         <DropdownMenu onOpenChange={(open) => {
-          if (!open) {
-            if (showInfiniteHighlight) dismissInfiniteHighlight();
-            if (showModesHighlight) dismissModesHighlight();
-          }
+          if (!open && showInfiniteHighlight) dismissInfiniteHighlight();
         }}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -164,19 +186,12 @@ export default function Header({
               size="icon"
               className="relative h-10 w-10"
               aria-label={
-                showModesHighlight
-                  ? "Menü, neue Funktion: weitere Spielmodi"
-                  : showInfiniteHighlight
-                    ? "Menü, neue Funktion: Unendlich-Modus"
-                    : "Menü"
+                showInfiniteHighlight ? "Menü, neue Funktion: Unendlich-Modus" : "Menü"
               }
             >
               <EllipsisVertical className="h-6! w-6!" />
-              {pingClass && (
-                <span
-                  className={`absolute right-1.5 top-1.5 ${pingClass} h-2.5 w-2.5`}
-                  aria-hidden
-                >
+              {showInfiniteHighlight && (
+                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75 motion-reduce:hidden" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                 </span>
@@ -201,17 +216,9 @@ export default function Header({
               <BookOpen className="h-4 w-4" />
               Spielanleitung
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setShowModePicker(true)}
-              className={showModesHighlight ? "bg-primary/5 focus:bg-primary/10" : undefined}
-            >
+            <DropdownMenuItem onClick={() => setShowModePicker(true)}>
               <LayoutGrid className="h-4 w-4" />
               Spielmodi
-              {showModesHighlight && (
-                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-micro font-semibold leading-none text-primary-foreground">
-                  NEU
-                </span>
-              )}
             </DropdownMenuItem>
             {!hidePastGames && (
               <DropdownMenuItem onClick={onPastGamesOpen}>

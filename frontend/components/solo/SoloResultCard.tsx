@@ -1,6 +1,6 @@
 "use client";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import ModesDialogButton from "@/components/ModesDialogButton";
 import { Panel, ResultHero } from "@/components/design";
 import {
   SoloModeMeta,
@@ -51,9 +51,7 @@ export default function SoloResultCard({
         <Button className="flex-1" onClick={onRestart} disabled={restarting}>
           {restarting ? "Lädt..." : "Neue Runde"}
         </Button>
-        <Button variant="outline" className="flex-1" asChild>
-          <Link href="/modi/">Andere Modi</Link>
-        </Button>
+        <ModesDialogButton className="flex-1">Andere Modi</ModesDialogButton>
       </div>
     </Panel>
   );
