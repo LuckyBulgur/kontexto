@@ -66,7 +66,7 @@ from prepare import (  # noqa: E402
     orthographic_twins,
     postprocess_vectors,
     select_target_words,
-    vocab_word_ok,
+    stream_vocab_vectors,
 )
 from target_selection import TargetWordFilter  # noqa: E402
 
@@ -88,31 +88,6 @@ def log(msg: str) -> None:
 def load_json(path: str):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
-
-
-def stream_vocab_vectors(vec_path: str, vocab_size: int) -> tuple[dict[str, np.ndarray], list[str]]:
-    """Reproduce prod's vocabulary and raw vectors from a fastText ``.vec`` file.
-
-    Same semantics as ``prepare.filter_vocabulary`` (first-seen cased variant per
-    lowercased word, in frequency order) without holding all ~2M vectors in
-    memory. Shares the membership predicate, and the caller still asserts the
-    result against prod's vocabulary.json.
-    """
-    filtered: dict[str, np.ndarray] = {}
-    frequency_order: list[str] = []
-    with open(vec_path, "r", encoding="utf-8") as f:
-        f.readline()  # header: "<count> <dim>"
-        for line in f:
-            parts = line.rstrip("\n").split(" ")
-            word = parts[0].lower()
-            if not vocab_word_ok(word):
-                continue
-            if word not in filtered:
-                filtered[word] = np.asarray(parts[1:], dtype=np.float32)
-                frequency_order.append(word)
-            if len(filtered) >= vocab_size:
-                break
-    return filtered, frequency_order
 
 
 def human_size(num_bytes: float) -> str:
@@ -202,7 +177,9 @@ def main() -> int:
     log("  fidelity gate OK (existing npz reproduced bit-for-bit)")
 
     # ---- Pick the appended targets -----------------------------------------
-    filt = TargetWordFilter()
+    # Same pinning as regenerate-future-games.py: this grew the pre-2026-09-21
+    # pool under the old "any content word" rule and stays reproducible.
+    filt = TargetWordFilter(nouns_only=False, require_concrete=False)
     twins = orthographic_twins(vocab_list)
     used = set(prod_targets)
 

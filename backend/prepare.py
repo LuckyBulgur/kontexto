@@ -109,6 +109,35 @@ def filter_vocabulary(words: dict[str, np.ndarray], min_length: int = 2, max_len
     return filtered, frequency_order
 
 
+def stream_vocab_vectors(
+    vec_path: str, vocab_size: int, min_length: int = 2, max_length: int = 25,
+) -> tuple[dict[str, np.ndarray], list[str]]:
+    """Reproduce a built vocabulary and its raw vectors from a fastText ``.vec``.
+
+    Streams the file in frequency (file) order and keeps the first-seen cased
+    variant of each lowercased word, exactly :func:`filter_vocabulary`'s
+    semantics, but without holding all ~2M vectors in memory. It shares the
+    membership predicate, so the result is identical; the maintenance scripts
+    still assert equality against the deployed ``vocabulary.json`` before they
+    touch anything, because "should be identical" is not a gate.
+    """
+    filtered: dict[str, np.ndarray] = {}
+    frequency_order: list[str] = []
+    with open(vec_path, "r", encoding="utf-8") as f:
+        f.readline()  # header: "<count> <dim>"
+        for line in f:
+            parts = line.rstrip("\n").split(" ")
+            w = parts[0].lower()
+            if not vocab_word_ok(w, min_length, max_length):
+                continue
+            if w not in filtered:
+                filtered[w] = np.asarray(parts[1:], dtype=np.float32)
+                frequency_order.append(w)
+            if len(filtered) >= vocab_size:
+                break
+    return filtered, frequency_order
+
+
 def postprocess_vectors(vectors: dict[str, np.ndarray], n_components: int = 3) -> dict[str, np.ndarray]:
     """Remove mean and top principal components from vectors (All-but-the-Top)."""
     words = list(vectors.keys())
@@ -198,15 +227,20 @@ def select_target_words(
     n: int = 2000,
     frequency_order: list[str] | None = None,
     target_filter: "TargetWordFilter | None" = None,
-    min_solution_zipf: float = 4.0,
+    min_solution_zipf: float = 2.5,
 ) -> list[str]:
     """Pick the *n* most frequent words that are sensible German solutions.
 
     Candidates are walked in descending frequency and kept only if they pass the
-    semantic :class:`TargetWordFilter` (a guessable German content word: a common
-    noun, verb or adjective, never a proper noun, foreign or religious word, or
-    fragment) *and* are common enough that essentially everyone knows them
-    (German Zipf frequency ≥ ``min_solution_zipf``; 4.0 ≈ a few per million).
+    semantic :class:`TargetWordFilter` (a concrete common noun, never a proper
+    noun, foreign or religious word, or fragment) *and* clear a frequency floor
+    (German Zipf ≥ ``min_solution_zipf``).
+
+    The floor is deliberately low. Concreteness, not frequency, is what makes a
+    solution guessable: measured on production, a target rated below 4.0 costs
+    118 guesses per solve and one at 7.0 or above costs 48, while whole
+    frequency bands differ by barely a third. A high floor would drop exactly
+    the words this game wants, the rare-in-the-news but everyday-in-life kind.
     The top *n* survivors are then shuffled so daily difficulty varies.
     """
     if target_filter is None:
@@ -233,9 +267,11 @@ def select_target_words(
         # Common enough that virtually everyone knows the word.
         if zipf_frequency(w, "de") < min_solution_zipf:
             continue
-        # Only allow base forms as targets (skip inflected forms).
-        if simplemma.lemmatize(w, lang="de").lower() != w:
-            continue
+        # The base-form check lives in the filter, which uses HanTa and knows
+        # the part of speech. simplemma used to do it here as well and was
+        # removed on 2026-09-21: it lemmatises short German nouns onto a verb
+        # infinitive, so it silently dropped 352 of the best candidates, among
+        # them the words for ball, bed, book, boat, roof, beer and blood.
         if not target_filter.is_valid_target(w):
             continue
         seen.add(w)

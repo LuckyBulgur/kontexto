@@ -1,0 +1,394 @@
+# Words that pass every automatic gate but must not be a Kontexto solution.
+#
+# This file is the result of reading all 4,304 proposed solutions by hand on
+# 2026-09-21. Everything here was rejected for a reason a machine could not
+# reach on its own: a word class the tagger misreads, a brand, a place, a
+# nationality, or content a word game should not put in front of a player.
+#
+# It is a blocklist, not a taste list. A word is only here if it fails one of
+# the headings below. "I would not have picked it" is not a heading.
+
+# --- Verbs, participles and adjectives the tagger reads as nouns -------------
+# A capitalised infinitive is tagged NN, so these reach the noun path. Rejecting
+# every verb-tagged word was tried and dropped: it also takes out 180 genuine
+# nouns, the words for frying pan, ferry, cave and hut among them.
+abseilen
+fahrradfahren
+gewichtheben
+kauen
+klatschen
+kleben
+kitten
+kochen
+mahlen
+paddeln
+radfahren
+rauchen
+reiben
+reiten
+schaben
+schmieren
+schwimmen
+schütten
+stechen
+sägen
+trocknen
+waschen
+wischen
+# Adjectives, and adjectives used as nouns in a declined form. Their citation
+# form is not the word, so a player has no way to land on exactly this spelling.
+blinde
+brünett
+dreiviertel
+einheimische
+erwachsene
+freistil
+geistliche
+jugendliche
+landesinnere
+rund
+schlafende
+strafgefangene
+studierende
+tote
+verlobte
+verwundete
+wasserfest
+
+# --- Brands, products and named works ---------------------------------------
+blackberry
+bluetooth
+breitling
+kantonalbank
+maggi
+mustang
+tagesschau
+uhu
+waldorfschule
+silbermond
+rapunzel
+hobbit
+kasperl
+promi
+popstar
+
+# --- Places, landmarks and buildings with a name -----------------------------
+# Ordinary words that merely happen to also be a town stay: the words for stone,
+# farmstead, rain and castle are words first.
+bosporus
+broadway
+dachstein
+donauinsel
+drachenfels
+ehrenbreitstein
+eiffelturm
+euphrat
+freiheitsstatue
+havanna
+kapitol
+lenzburg
+lindenstraße
+linden
+loreley
+madeira
+mittelmeer
+moldau
+mondsee
+neumarkt
+nordseeküste
+oktoberfest
+pazifik
+pazifikküste
+reeperbahn
+rheinbrücke
+rheinufer
+riemenschneider
+rosenmontagszug
+sandberg
+schlossberg
+seidenstraße
+siegessäule
+sirius
+stephansplatz
+taubertal
+tegel
+viktualienmarkt
+wolfgangsee
+zugspitze
+ärmelkanal
+
+# --- Nationalities, origins and ethnic terms --------------------------------
+# A person's origin is not a thing to guess at, and the semantic neighbourhood
+# of one is a list of other nationalities, which makes for a poor round anyway.
+afrikaner
+appenzeller
+asiatin
+australier
+brandenburger
+chinesin
+eskimo
+hongkonger
+indianer
+indio
+iraker
+kanadier
+kenianer
+mexikaner
+mischling
+neuseeländer
+saarbrücker
+schotte
+thailänder
+tibeter
+türkin
+ureinwohner
+
+# --- Weapons, atrocity and death --------------------------------------------
+# Historical blades stay (sword, spear, crossbow, catapult): they read as
+# museum pieces. Modern firearms, explosives, the Nazi vocabulary and the
+# machinery of dying do not belong in a daily puzzle.
+brandopfer
+bürgerwehr
+enthauptung
+flak
+flammenwerfer
+fliegerbombe
+galgen
+gefangenenlager
+gefängniszelle
+geiselnehmer
+geschütz
+gewehr
+granatwerfer
+guillotine
+haftanstalt
+hakenkreuz
+handgranate
+häftling
+infanterie
+kadaver
+kalaschnikow
+kampfflugzeug
+kampfpanzer
+kanone
+kavallerie
+kleinkaliber
+knarre
+knast
+krematorium
+kriegsmarine
+kriegsschiff
+landser
+leiche
+leichenhalle
+leichenwagen
+leichnam
+luftgewehr
+luftpistole
+machete
+maschinengewehr
+mordopfer
+napalm
+nationalgarde
+panzerdivision
+panzerfaust
+pistole
+projektil
+raketenwerfer
+reichsadler
+reichskanzlei
+reichstag
+revolver
+scharfrichter
+scharfschütze
+schießpulver
+schlachthaus
+schlachthof
+schleudersitz
+schützenpanzer
+schwarzpulver
+söldner
+spezialeinheit
+sprengsatz
+sprengstoff
+stacheldraht
+stahlhelm
+strafanstalt
+sturmgewehr
+tatwaffe
+todesanzeige
+totenkopf
+trauerzug
+tränengas
+trägerrakete
+unfallopfer
+waffenlager
+wasserwerfer
+zeughaus
+zielscheibe
+zünder
+fußfessel
+
+# --- Drugs -------------------------------------------------------------------
+heroin
+junkie
+kokain
+marihuana
+methadon
+dynamit
+
+# --- Sexual and anatomical content ------------------------------------------
+analsex
+analverkehr
+anus
+blondine
+brustwarze
+gesäß
+gewichst
+gleitgel
+gleitmittel
+hodensack
+intimbereich
+kitzler
+kondom
+mieze
+oralsex
+oralverkehr
+popo
+rotlichtviertel
+scheide
+sexspielzeug
+slip
+tampon
+zuhälter
+
+# --- Dated or demeaning terms for people ------------------------------------
+dienstmädchen
+hausmädchen
+schulmädchen
+zimmermädchen
+
+# --- Broken neighbourhoods ---------------------------------------------------
+# Found by scripts/audit-neighbourhoods.py: the embedding reads these as names
+# or as an English word, so their hundred nearest neighbours are other names and
+# there is no semantic path to climb. The word for vine scores 100 out of 100
+# given names, which makes that round unwinnable by meaning.
+#
+# Being a surname is not enough to be listed here. The words for wolf, fox,
+# forester, bush, cook and farmer all sit in a third of a page of surnames and
+# still keep a real ladder of their own, so they stay.
+liane
+eichhorn
+löscher
+zander
+ganter
+amber
+mark
+schilling
+# The word for olive was on this list and came back off it: its neighbours are
+# English colour words, which looked fatal, and then a played round found it in
+# 94 guesses. A round beats a metric.
+
+# --- Unwinnable in play ------------------------------------------------------
+# Found by scripts/playtest-pool.py, which plays sampled rounds with a solver
+# that thinks in the same vector space the game scores with. It is an
+# optimistic player, so a round it cannot finish is a round nobody finishes.
+# 38 of 40 came out at a median of 60 guesses; these are the other two.
+brüstung        # best rank 262; the neighbourhood is verbs of motion
+brillenträger   # best rank 58; the neighbourhood is categories of people
+
+# --- Too obscure, too technical, or not a thing a player can picture ---------
+# The bar is not "rare". Rare and picturable is exactly what this game wants,
+# which is why the words for corn cob, pelican and match stick stayed. The bar
+# is whether a player who does not already know the word could ever converge on
+# it from its neighbours.
+amigo
+bark
+bast
+bitumen
+bommel
+brösel
+doppelvierer
+doppelzweier
+endzone
+erstsemester
+fachschaft
+fender
+fibel
+fock
+folio
+furt
+garbe
+gaze
+getto
+gockel
+greif
+griffel
+groschen
+gulden
+halfter
+harmonium
+harnisch
+herold
+hocke
+keiler
+kelter
+kippe
+kirsch
+klöppel
+kopp
+kuhle
+laib
+lauer
+leu
+majo
+marstall
+mez
+mull
+nabe
+nennwert
+niet
+ork
+ork
+putz
+quarterback
+revers
+rondell
+rotunde
+schoner
+schurz
+schweif
+schwinger
+sigma
+silicium
+skat
+soda
+span
+steig
+stick
+stuntman
+tape
+taler
+talg
+taxe
+tenne
+thorax
+ticker
+tiegel
+torf
+totholz
+trafo
+tuff
+unruh
+unze
+velo
+vierer
+viertel
+vlies
+vorhand
+wallach
+wendel
+yuan
+zobel
+zuber
+zwirn

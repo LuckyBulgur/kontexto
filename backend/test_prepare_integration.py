@@ -66,8 +66,11 @@ def test_run_pipeline_game_ranks_are_valid():
         with open(os.path.join(tmpdir, "vocabulary.json")) as f:
             vocab = json.load(f)
         n_words = len(vocab)
-        data = np.load(os.path.join(tmpdir, "games", "0001.npz"))
-        ranks = data["ranks"]
+        # Close the archive before the temp directory is removed: numpy keeps
+        # the file open behind the lazy member access, and on Windows that
+        # makes the cleanup fail with a sharing violation.
+        with np.load(os.path.join(tmpdir, "games", "0001.npz")) as data:
+            ranks = data["ranks"]
         assert ranks.dtype == np.uint32
         assert len(ranks) == n_words
         assert ranks.min() == 1

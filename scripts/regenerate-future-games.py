@@ -61,7 +61,7 @@ from prepare import (  # noqa: E402
     orthographic_twins,
     postprocess_vectors,
     select_target_words,
-    vocab_word_ok,
+    stream_vocab_vectors,
 )
 from target_selection import TargetWordFilter  # noqa: E402
 
@@ -85,32 +85,6 @@ def log(msg: str) -> None:
 def load_json(path: str):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
-
-
-def stream_vocab_vectors(vec_path: str, vocab_size: int) -> tuple[dict[str, np.ndarray], list[str]]:
-    """Reproduce prod's vocabulary + raw vectors from a fastText ``.vec`` file.
-
-    Streams the file in frequency (file) order and keeps the first-seen cased
-    variant of each lowercased word, exactly ``filter_vocabulary``'s semantics,
-    but without loading all ~2M vectors into memory. Shares the membership
-    predicate (``vocab_word_ok``) with ``filter_vocabulary`` so the result is
-    identical; the caller still asserts equality against prod's vocabulary.json.
-    """
-    filtered: dict[str, np.ndarray] = {}
-    frequency_order: list[str] = []
-    with open(vec_path, "r", encoding="utf-8") as f:
-        f.readline()  # header: "<count> <dim>"
-        for line in f:
-            parts = line.rstrip("\n").split(" ")
-            w = parts[0].lower()
-            if not vocab_word_ok(w):
-                continue
-            if w not in filtered:
-                filtered[w] = np.asarray(parts[1:], dtype=np.float32)
-                frequency_order.append(w)
-            if len(filtered) >= vocab_size:
-                break
-    return filtered, frequency_order
 
 
 def kontexto_game_number(today: date, start_date: date, total_games: int) -> int:
@@ -183,7 +157,10 @@ def main() -> int:
     log(f"Kontexto cutoff: preserve games 1..{k_cutoff}, rewrite {k_cutoff + 1}..{total_games}")
     log(f"Wördle cutoff:   preserve indices 0..{w_today}, rewrite {w_today + 1}..{len(prod_wordle) - 1}")
 
-    filt = TargetWordFilter()
+    # This script maintains the pre-2026-09-21 pool, whose rule was "any content
+    # word". It is pinned to that rule so a re-run reproduces what it did then;
+    # the concrete-noun rebuild lives in scripts/rebuild-concrete-pool.py.
+    filt = TargetWordFilter(nouns_only=False, require_concrete=False)
 
     # ---- B2: merged Kontexto target list -----------------------------------
     twins = orthographic_twins(vocab_list)

@@ -136,10 +136,12 @@ def test_filter_vocabulary_removes_english_words():
 
 def test_select_target_words_prefers_frequent():
     from prepare import select_target_words
-    # Use words whose lemma == word (simplemma keeps these unchanged)
-    vocab = ["laufen", "schnell", "offen", "warm", "kalt", "lang"]
+    # Concrete common nouns in base form: the only thing that is a solution
+    # since 2026-09-21. Verbs and adjectives would all be rejected here and the
+    # test would prove nothing about frequency ordering.
+    vocab = ["hund", "katze", "tisch", "apfel", "haus", "löffel"]
     vectors = {w: np.random.rand(300) for w in vocab}
-    frequency_order = ["schnell", "laufen", "warm", "kalt", "offen", "lang"]
+    frequency_order = ["hund", "katze", "tisch", "apfel", "haus", "löffel"]
     result = select_target_words(vocab, vectors, n=3, frequency_order=frequency_order)
     assert len(result) == 3
     # Most frequent words should be selected

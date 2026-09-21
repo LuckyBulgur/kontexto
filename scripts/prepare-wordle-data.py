@@ -74,7 +74,11 @@ def main() -> None:
 
     # Daily solutions, common, sensible and base-form: no names, foreign
     # words, fragments or function words.
-    target_filter = TargetWordFilter()
+    # Woerdle deliberately keeps the older, wider rule. Its answers are deduced
+    # from letter feedback, not from meaning, so a verb or an adjective is a
+    # perfectly fair solution there. The noun and concreteness gates exist for
+    # Kontexto, where the whole game is the semantic neighbourhood.
+    target_filter = TargetWordFilter(nouns_only=False, require_concrete=False)
     solutions = [
         w
         for w in five_vocab
