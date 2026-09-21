@@ -24,6 +24,50 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-21",
+    kind: "Verbessert",
+    title: "Neues Erscheinungsbild",
+    body:
+      "Das Spiel hat ein neues Gesicht: eine feste Schriftskala statt gewachsener Größen, eine Karte, die überall gleich aussieht, und Tintenblau als Grundfarbe in hell und dunkel. Die Farben der Rangleiste bleiben unangetastet, weil der geteilte Ergebnistext sie als Quadrate buchstabiert. Wem das alte Grau lieber ist, findet es in den Einstellungen als Farbwelt „Klassisch“.",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Neu",
+    title: "Fünf Farbwelten in den Einstellungen",
+    body:
+      "Die Akzentfarbe ist jetzt wählbar, unabhängig von hell und dunkel: Tinte, Beere, Indigo, Petrol und Klassisch. Eine Farbwelt ändert nur die Farbe, Schrift, Abstände und Aufbau bleiben in allen gleich. Die Wahl steht in den Einstellungen von Kontexto und Wördle und gilt auch beim nächsten Laden.",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Verbessert",
+    title: "Jede Lösung ist jetzt ein greifbares Ding",
+    body:
+      "Lösungswörter sind ab jetzt ausschließlich konkrete Gattungswörter, also Dinge, die man sich vorstellen kann. Verben und Adjektive darfst du weiter raten, sie sind nur keine Lösung mehr. Der Grund ist gemessen und nicht behauptet: auf den beendeten Partien dieser Seite kostete ein abstraktes Lösungswort im Schnitt 118 Rateversuche, ein greifbares 48.",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Verbessert",
+    title: "Die Tagesrätsel werden kürzer und alltäglicher",
+    body:
+      "Die Reihe der Tagesrätsel zieht jetzt aus einem Band alltäglicher Wörter: im Mittel sieben Buchstaben statt neun und deutlich seltener ein zusammengesetztes Wort, damit die Schwierigkeit von Tag zu Tag streut, statt langsam anzusteigen. Deine Spielnummer und alle bisherigen Lösungen bleiben unverändert, es gibt also keinen Neustart bei Tag 1. In den Zufallsmodi kommen die langen Komposita weiterhin vor.",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Neu",
+    title: "Die Mitspielersuche zeigt, wo gerade jemand ist",
+    body:
+      "Vor dem Anstellen steht bei jedem Modus, wie viele gerade warten und wie viele gerade spielen. Bisher war die Suche eine Entscheidung ins Blaue, weil die Zahl der Wartenden erst hinter dem eigenen Ticket auftauchte.",
+    href: "/suche/",
+    hrefLabel: "Mitspieler suchen",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Behoben",
+    title: "Karteileichen in den Spielerlisten",
+    body:
+      "Nach einer Aktualisierung des Servers blieben Mitspielende, die längst weg waren, im Raum als verbunden stehen, bis die stündliche Aufräumung sie entfernte. Der Verbindungsstand wird jetzt beim Start einmal zurückgesetzt, sodass Duell, Koop und Arena nur noch zeigen, wer wirklich da ist.",
+  },
+  {
     date: "2026-09-20",
     kind: "Neu",
     title: "Mitspielersuche: spielen, ohne jemanden einladen zu müssen",
