@@ -6,20 +6,39 @@ import {
   JoinArenaResponse,
 } from "./arena-types";
 import { DuelGuessHistoryEntry, NextGameResult } from "./duel-types";
+import type { RoomGameSource, RoomRevealResult } from "./types";
 import { throwGuessNotFound } from "./guess-error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function createArena(
   mode: ArenaModeId,
-  gameNumber: number,
+  gameSource: RoomGameSource,
   nickname: string
 ): Promise<CreateArenaResponse> {
   const res = await fetch(`${API_BASE}/arena`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, game_number: gameNumber, nickname }),
+    body: JSON.stringify({ mode, game_source: gameSource, nickname }),
   });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** The solution of an arena round, once the arena is finished.
+ *
+ *  409 means it is still running. The open /api/reveal used to serve this and
+ *  would serve it to a player who is still guessing just as readily. */
+export async function revealArena(
+  arenaId: string,
+  playerToken: string
+): Promise<RoomRevealResult> {
+  const res = await fetch(`${API_BASE}/arena/${arenaId}/reveal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 409) throw new Error("round_open");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

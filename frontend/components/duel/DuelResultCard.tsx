@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface DuelResultCardProps {
-  gameNumber: number;
+  /** Null until the reveal answers, and after a reveal that failed: the round
+   *  is worth showing without its number, so the card reads either way. */
+  gameNumber: number | null;
   guesses: Guess[];
   players: DuelPlayer[];
   currentNickname: string;
@@ -32,7 +34,11 @@ export default function DuelResultCard({
   return (
     <Panel className="animate-result-in">
       <ResultHero
-        eyebrow={`Duell, Spiel #${gameNumber}, das Wort war`}
+        eyebrow={
+          gameNumber === null
+            ? "Duell, das Wort war"
+            : `Duell, Spiel #${gameNumber}, das Wort war`
+        }
         headline={solvedWord}
       />
 

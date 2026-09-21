@@ -112,7 +112,7 @@ class DuelConnectionManager:
                         # to a fresh game. Tell everyone and re-seed the baseline so
                         # the stat-reset wipe isn't mis-read as rank/solve diffs.
                         cursor = await db.execute(
-                            "SELECT game_number, round FROM duels WHERE id = ?",
+                            "SELECT round FROM duels WHERE id = ?",
                             (duel_id,),
                         )
                         duel_row = await cursor.fetchone()
@@ -131,7 +131,7 @@ class DuelConnectionManager:
                         if prev_round is not None and new_round > prev_round:
                             await self.broadcast(
                                 duel_id,
-                                {"type": "next_game", "game_number": duel_row["game_number"]},
+                                {"type": "next_round", "round": new_round},
                             )
                             self._known_state[duel_id] = {
                                 p["player_token"]: {
@@ -279,7 +279,7 @@ class WordleDuelConnectionManager:
                         # to a fresh game. Tell everyone and re-seed the baseline so
                         # the board wipe isn't mis-read as guesses/solves.
                         cursor = await db.execute(
-                            "SELECT game_number, round FROM wordle_duels WHERE id = ?",
+                            "SELECT round FROM wordle_duels WHERE id = ?",
                             (duel_id,),
                         )
                         duel_row = await cursor.fetchone()
@@ -298,7 +298,7 @@ class WordleDuelConnectionManager:
                         if prev_round is not None and new_round > prev_round:
                             await self.broadcast(
                                 duel_id,
-                                {"type": "next_game", "game_number": duel_row["game_number"]},
+                                {"type": "next_round", "round": new_round},
                             )
                             self._known_state[duel_id] = {
                                 p["player_token"]: {
@@ -492,7 +492,7 @@ class KoopConnectionManager:
         prev = self._known_state.get(koop_id)
 
         cursor = await db.execute(
-            "SELECT solved, solved_by, gave_up, round, game_number FROM koops WHERE id = ?",
+            "SELECT solved, solved_by, gave_up, round FROM koops WHERE id = ?",
             (koop_id,),
         )
         koop = await cursor.fetchone()
@@ -509,7 +509,7 @@ class KoopConnectionManager:
         if koop["round"] > prev["round"]:
             await self.broadcast(
                 koop_id,
-                {"type": "next_game", "game_number": koop["game_number"]},
+                {"type": "next_round", "round": koop["round"]},
             )
             self._known_state[koop_id] = await self._seed_state(db, koop_id, koop)
             return
@@ -677,7 +677,7 @@ class ArenaConnectionManager:
 
     async def _diff_room(self, db, arena_id: str) -> None:
         cursor = await db.execute(
-            "SELECT game_number, round, status, phase, deadline_at FROM arenas WHERE id = ?",
+            "SELECT round, status, phase, deadline_at FROM arenas WHERE id = ?",
             (arena_id,),
         )
         arena = await cursor.fetchone()
@@ -710,7 +710,7 @@ class ArenaConnectionManager:
             # A rematch wipes every player's stats. Re-seeding the baseline keeps
             # that wipe from being read as a room full of rank changes.
             await self.broadcast(
-                arena_id, {"type": "next_game", "game_number": arena["game_number"]}
+                arena_id, {"type": "next_round", "round": new_round}
             )
             self._known_state[arena_id] = current
             self._known_round[arena_id] = new_round

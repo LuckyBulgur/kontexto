@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
@@ -25,6 +25,7 @@ import {
   getDuelTip,
   getPlayerInfo,
   duelNextGame,
+  revealDuel,
 } from "@/lib/duel-api";
 import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
@@ -74,6 +75,11 @@ export default function DuelPageClient() {
   const [showFAQ, setShowFAQ] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  // Which game this round was played on. It arrives with the reveal once this
+  // player has solved, not with the room state, because the number is the
+  // answer while the opponent is still guessing (lib/types RoomRevealResult).
+  const [solvedGame, setSolvedGame] = useState<number | null>(null);
+  const revealedRound = useRef<number | null>(null);
 
   const solved = guesses.some((g) => g.rank === 1);
   // Extract duel ID from URL
@@ -148,25 +154,37 @@ export default function DuelPageClient() {
   }, [duelId, playerToken]);
 
   // Reset all local round state for a freshly advanced duel game (triggered by
-  // "Nächstes Spiel" locally or via the next_game broadcast for the opponent).
-  const resetForNextGame = useCallback((gameNumber: number) => {
+  // the rematch button locally or via the next_round broadcast for the opponent).
+  const resetForNextGame = useCallback((round: number) => {
     setGuesses([]);
     setLatestWord(undefined);
     setPendingWord(undefined);
     setPodestError(undefined);
     setError(null);
-    setDuelState((prev) => (prev ? { ...prev, game_number: gameNumber } : prev));
+    setSolvedGame(null);
+    setDuelState((prev) => (prev ? { ...prev, round } : prev));
     setPlayers((prev) =>
       prev.map((p) => ({ ...p, best_rank: null, guess_count: 0, tip_count: 0, solved: false }))
     );
   }, []);
 
+  // Ask for the game number once this player's own round is over, once per
+  // round. Before that the server refuses, which is the point of the endpoint.
+  useEffect(() => {
+    if (!solved || !duelId || !playerToken || !duelState) return;
+    if (revealedRound.current === duelState.round) return;
+    revealedRound.current = duelState.round;
+    revealDuel(duelId, playerToken)
+      .then((result) => setSolvedGame(result.game_number))
+      .catch(() => setSolvedGame(null));
+  }, [solved, duelId, playerToken, duelState]);
+
   // WebSocket
   const handleWsMessage = useCallback((msg: DuelWsMessage) => {
     if (msg.type === "state") {
       setPlayers(msg.players);
-    } else if (msg.type === "next_game") {
-      resetForNextGame(msg.game_number);
+    } else if (msg.type === "next_round") {
+      resetForNextGame(msg.round);
     } else if (msg.type === "rank_update") {
       setPlayers((prev) =>
         prev.map((p) =>
@@ -369,7 +387,7 @@ export default function DuelPageClient() {
     if (!duelId || !playerToken) return;
     try {
       const result = await duelNextGame(duelId, playerToken);
-      resetForNextGame(result.game_number);
+      resetForNextGame(result.round);
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "no_games") {
         toast.error("Keine weiteren Spiele verfügbar");
@@ -458,7 +476,7 @@ export default function DuelPageClient() {
 
           {solved ? (
             <DuelResultCard
-              gameNumber={duelState?.game_number ?? 0}
+              gameNumber={solvedGame}
               guesses={guesses}
               players={players}
               currentNickname={nickname ?? ""}
@@ -468,7 +486,6 @@ export default function DuelPageClient() {
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>Duell</span>
-                <span>Spiel: <span className="text-lead font-bold">#{duelState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
                   <span className="text-lead font-bold">{guesses.length}</span>

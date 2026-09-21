@@ -26,6 +26,7 @@ import {
   getKoopTip,
   getKoopPlayerInfo,
   giveUpKoop,
+  revealKoop,
   koopNextGame,
 } from "@/lib/koop-api";
 import { KoopPlayer, KoopWsMessage, KoopState } from "@/lib/koop-types";
@@ -79,6 +80,11 @@ export default function KoopPageClient() {
   const [showCredits, setShowCredits] = useState(false);
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
+  // Which game this round was played on. It arrives with the reveal once the
+  // round is over, never with the room state, because the number is the answer
+  // while the team is still guessing (lib/types RoomRevealResult).
+  const [roundGame, setRoundGame] = useState<number | null>(null);
+  const revealedRound = useRef<number | null>(null);
   // Mirrors `gaveUp` for the guess-append path so confetti is suppressed for the
   // reveal word without waiting on the async state update.
   const gaveUpRef = useRef(false);
@@ -170,8 +176,8 @@ export default function KoopPageClient() {
   }, []);
 
   // Reset all local round state for a freshly advanced koop game (triggered by
-  // "Nächstes Spiel" locally or via the next_game broadcast for other players).
-  const resetForNextGame = useCallback((gameNumber: number) => {
+  // the rematch button locally or via the next_round broadcast for the others).
+  const resetForNextGame = useCallback((round: number) => {
     gaveUpRef.current = false;
     setGaveUp(false);
     setSolvedBy(null);
@@ -180,13 +186,25 @@ export default function KoopPageClient() {
     setPendingWord(undefined);
     setPodestError(undefined);
     setError(null);
+    setRoundGame(null);
     setKoopState((prev) =>
       prev
-        ? { ...prev, game_number: gameNumber, solved: false, solved_by: null, gave_up: false, best_rank: null }
+        ? { ...prev, round, solved: false, solved_by: null, gave_up: false, best_rank: null }
         : prev
     );
     setPlayers((prev) => prev.map((p) => ({ ...p, contribution_count: 0 })));
   }, []);
+
+  // Ask for the game number once the round is over, once per round. While it
+  // runs the server refuses, which is the whole reason this endpoint exists.
+  useEffect(() => {
+    if (!roundOver || !koopId || !playerToken || !koopState) return;
+    if (revealedRound.current === koopState.round) return;
+    revealedRound.current = koopState.round;
+    revealKoop(koopId, playerToken)
+      .then((result) => setRoundGame(result.game_number))
+      .catch(() => setRoundGame(null));
+  }, [roundOver, koopId, playerToken, koopState]);
 
   // WebSocket: live shared-list and team updates.
   const handleWsMessage = useCallback(
@@ -212,8 +230,8 @@ export default function KoopPageClient() {
         setGaveUp(true);
         setKoopState((prev) => (prev ? { ...prev, gave_up: true } : prev));
         if (msg.word) appendGuess(msg.word, 1, false);
-      } else if (msg.type === "next_game") {
-        resetForNextGame(msg.game_number);
+      } else if (msg.type === "next_round") {
+        resetForNextGame(msg.round);
       } else if (msg.type === "player_joined") {
         setPlayers((prev) => {
           if (prev.some((p) => p.nickname === msg.nickname)) return prev;
@@ -350,6 +368,7 @@ export default function KoopPageClient() {
       setGaveUp(true);
       setKoopState((prev) => (prev ? { ...prev, gave_up: true } : prev));
       appendGuess(result.word, 1, false);
+      setRoundGame(result.game_number);
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
@@ -360,7 +379,7 @@ export default function KoopPageClient() {
     if (!koopId || !playerToken) return;
     try {
       const result = await koopNextGame(koopId, playerToken);
-      resetForNextGame(result.game_number);
+      resetForNextGame(result.round);
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "no_games") {
         toast.error("Keine weiteren Spiele verfügbar");
@@ -448,7 +467,7 @@ export default function KoopPageClient() {
 
           {roundOver ? (
             <KoopResultCard
-              gameNumber={koopState?.game_number ?? 0}
+              gameNumber={roundGame}
               guesses={guesses}
               players={players}
               solvedBy={solvedBy}
@@ -460,7 +479,6 @@ export default function KoopPageClient() {
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>Koop</span>
-                <span>Spiel: <span className="text-lead font-bold">#{koopState?.game_number}</span></span>
                 <span>
                   Versuche:{" "}
                   <span className="text-lead font-bold">{guesses.length}</span>

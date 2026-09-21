@@ -9,7 +9,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Header from "@/components/Header";
 import { createArena } from "@/lib/arena-api";
 import { ArenaModeId } from "@/lib/arena-types";
-import { getInfiniteGame } from "@/lib/api";
 import { ARENA_MODE_ORDER, MULTIPLAYER_MODES, isArenaMode } from "@/lib/multiplayer-modes";
 import { PARTY_RULES, partySizeLabel } from "@/lib/matchmaking-rules";
 import { cn } from "@/lib/utils";
@@ -41,8 +40,8 @@ export default function ArenaCreatePageClient() {
     try {
       // A private arena draws a random game from the pool, never today's daily,
       // so an invited friend who has not played the daily yet is not spoiled.
-      const next = await getInfiniteGame([]);
-      const created = await createArena(mode, next.gameNumber, name);
+      // The server draws it: a number in the client is a lookup of the answer.
+      const created = await createArena(mode, "random", name);
       localStorage.setItem(`kontexto_arena_${created.arena_id}`, created.player_token);
       window.location.href = `/arena/${created.arena_id}/`;
     } catch {

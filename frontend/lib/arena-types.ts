@@ -18,7 +18,6 @@ export interface ArenaPlayer {
 export interface ArenaState {
   arena_id: string;
   mode: ArenaModeId;
-  game_number: number;
   status: ArenaStatus;
   /** Battle Royale: how many elimination phases have passed. */
   phase: number;
@@ -68,6 +67,6 @@ export type ArenaWsMessage =
   | { type: "player_solved"; nickname: string; guess_count: number }
   | { type: "player_eliminated"; nickname: string; place: number | null }
   | { type: "arena_finished"; winner: string | null }
-  | { type: "next_game"; game_number: number }
+  | { type: "next_round"; round: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string };

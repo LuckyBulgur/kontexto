@@ -6,6 +6,7 @@ import string
 import aiosqlite
 
 from nicknames import sanitize_nickname
+from rooms import RoomRevealRefused
 
 
 def _generate_id(length: int = 6) -> str:
@@ -92,12 +93,44 @@ async def get_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict | None:
         for row in await cursor.fetchall()
     ]
 
+    # game_number is in here for the handlers, which need it to score a guess.
+    # It is stripped at the HTTP boundary by DuelStateResponse and must be
+    # stripped by hand in anything that builds a socket frame. See rooms.py.
     return {
         "duel_id": duel_id,
         "game_number": duel["game_number"],
+        "round": duel["round"],
         "tips_allowed": bool(duel["tips_allowed"]),
         "players": players,
     }
+
+
+async def reveal_context(
+    db: aiosqlite.Connection, duel_id: str, player_token: str
+) -> dict:
+    """What this player may be told about the puzzle, or a refusal.
+
+    A duel has no give-up, so a player's round ends exactly when they land rank
+    1. An opponent still guessing gets nothing, which is the whole point.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, round FROM duels WHERE id = ?", (duel_id,)
+    )
+    duel = await cursor.fetchone()
+    if not duel:
+        raise RoomRevealRefused("room_not_found")
+
+    cursor = await db.execute(
+        "SELECT solved FROM duel_players WHERE duel_id = ? AND player_token = ?",
+        (duel_id, player_token),
+    )
+    player = await cursor.fetchone()
+    if not player:
+        raise RoomRevealRefused("player_not_found")
+    if not player["solved"]:
+        raise RoomRevealRefused("round_open")
+
+    return {"game_number": duel["game_number"], "round": duel["round"]}
 
 
 async def record_guess(

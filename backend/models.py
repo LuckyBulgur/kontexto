@@ -1,4 +1,11 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+# Which puzzle a new room is opened on. The client picks the kind, never the
+# number: handing the number in would hand the creator the answer, because
+# /api/reveal serves it to anybody who asks. See rooms.py.
+RoomGameSource = Literal["today", "random"]
 
 
 class GuessRequest(BaseModel):
@@ -110,12 +117,33 @@ class NextGameRequest(BaseModel):
 
 
 class NextGameResponse(BaseModel):
-    game_number: int
+    """The answer to the rematch button. It names the round, not the puzzle.
+
+    The client needs a signal to wipe its board on, and the round counter is
+    that signal. The new game number stays on the server until the round is
+    over, for the reason in rooms.py.
+    """
+    round: int
     total: int
 
 
+class RoomRevealRequest(BaseModel):
+    player_token: str
+
+
+class RoomRevealResponse(BaseModel):
+    """The solution of a finished round, plus the number it was played on."""
+    word: str
+    game_number: int
+    round: int
+
+
 class CreateDuelRequest(BaseModel):
-    game_number: int = Field(..., ge=1)
+    # extra="forbid" so a stale client that still sends game_number is told no,
+    # rather than being quietly served a server-picked game it cannot explain.
+    model_config = ConfigDict(extra="forbid")
+
+    game_source: RoomGameSource = "random"
     nickname: str = Field(..., min_length=1, max_length=20)
     tips_allowed: bool = True
 
@@ -140,7 +168,9 @@ class DuelPlayerInfo(BaseModel):
 
 class DuelStateResponse(BaseModel):
     duel_id: str
-    game_number: int
+    # No game_number: see rooms.py. The round counter is what the client keys
+    # its board resets on.
+    round: int
     tips_allowed: bool
     players: list[DuelPlayerInfo]
 
@@ -148,7 +178,7 @@ class DuelStateResponse(BaseModel):
 class JoinDuelResponse(BaseModel):
     player_token: str
     duel_id: str
-    game_number: int
+    round: int
     tips_allowed: bool
     players: list[DuelPlayerInfo]
 
@@ -172,7 +202,9 @@ class DuelGuessHistoryResponse(BaseModel):
 
 
 class CreateKoopRequest(BaseModel):
-    game_number: int = Field(..., ge=1)
+    model_config = ConfigDict(extra="forbid")
+
+    game_source: RoomGameSource = "random"
     nickname: str = Field(..., min_length=1, max_length=20)
     tips_allowed: bool = True
 
@@ -194,7 +226,8 @@ class KoopPlayerInfo(BaseModel):
 
 class KoopStateResponse(BaseModel):
     koop_id: str
-    game_number: int
+    # No game_number while the round is open: see rooms.py.
+    round: int
     tips_allowed: bool
     solved: bool
     solved_by: str | None
@@ -219,7 +252,10 @@ class KoopGiveUpRequest(BaseModel):
 
 
 class KoopGiveUpResponse(BaseModel):
+    """Giving up ends the round for the whole team, so the number comes too."""
     word: str
+    game_number: int
+    round: int
 
 
 class KoopGuessResponse(BaseModel):
@@ -250,8 +286,12 @@ class KoopGuessesResponse(BaseModel):
 
 
 class CreateArenaRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     mode: str = Field(..., pattern="^(royale|blitz|timerush)$")
-    game_number: int = Field(..., ge=1)
+    # An arena has always drawn a random game rather than the daily, so that an
+    # invited friend is not spoiled. The selector keeps that the default.
+    game_source: RoomGameSource = "random"
     nickname: str = Field(..., min_length=1, max_length=20)
 
 
@@ -280,7 +320,7 @@ class ArenaPlayerInfo(BaseModel):
 class ArenaStateResponse(BaseModel):
     arena_id: str
     mode: str
-    game_number: int
+    # No game_number while the round is open: see rooms.py.
     status: str
     phase: int
     # Absolute UTC deadline of the shared clock, or null when there is none.

@@ -30,6 +30,21 @@ export interface RevealResult {
   word: string;
 }
 
+/** What a room hands back once the caller's own round is over.
+ *
+ *  The game number is not a caption, it is the answer: /api/reveal serves the
+ *  word for any number to anybody. So a room ships it only here, together with
+ *  the word it no longer protects. */
+export interface RoomRevealResult {
+  word: string;
+  game_number: number;
+  round: number;
+}
+
+/** Which puzzle a new room opens on. The kind is the client's choice, the
+ *  number is the server's, for the reason above. */
+export type RoomGameSource = "today" | "random";
+
 export interface GameState {
   gameNumber: number;
   guesses: Guess[];

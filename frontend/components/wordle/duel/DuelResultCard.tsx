@@ -7,11 +7,14 @@ import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 interface DuelResultCardProps {
   players: WordleDuelPlayer[];
   currentNickname: string | null;
+  /** The word, when nobody in the duel found it. Null while it is still on its
+   *  way, and whenever the winner's own board already spells it out. */
+  solution?: string | null;
   /** When set, shows a prominent "Nächstes Spiel" button (rematch). */
   onNextGame?: () => void;
 }
 
-export default function DuelResultCard({ players, currentNickname, onNextGame }: DuelResultCardProps) {
+export default function DuelResultCard({ players, currentNickname, solution, onNextGame }: DuelResultCardProps) {
   const sorted = [...players].sort((a, b) => {
     if (a.solved && !b.solved) return -1;
     if (!a.solved && b.solved) return 1;
@@ -26,7 +29,13 @@ export default function DuelResultCard({ players, currentNickname, onNextGame }:
         eyebrow="Wördle-Duell"
         headline={youWon ? "Gewonnen!" : winner ? `${winner.nickname} gewinnt` : "Niemand gewinnt"}
         lost={!winner}
-        support={winner ? `Mit ${winner.guesses_used} von 6 Versuchen.` : "Kein Wort gefunden."}
+        support={
+          winner
+            ? `Mit ${winner.guesses_used} von 6 Versuchen.`
+            : solution
+              ? `Niemand hat es gefunden. Das Wort war ${solution}.`
+              : "Kein Wort gefunden."
+        }
       />
 
       <ResultList>

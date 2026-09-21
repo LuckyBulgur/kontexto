@@ -1,6 +1,8 @@
 """Pydantic request/response models for Wordle API."""
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 
 class PreviousGuess(BaseModel):
@@ -33,8 +35,14 @@ class WordleRevealResponse(BaseModel):
 
 
 class WordleCreateDuelRequest(BaseModel):
+    # The client picks the kind of puzzle, never its number: the number is the
+    # answer, because /api/wordle/reveal serves it to anybody. See rooms.py.
+    model_config = ConfigDict(extra="forbid")
+
     nickname: str
-    game_number: int
+    # "random" as the default for the same reason the Kontexto rooms use it: a
+    # request that omits the field must not spoil the daily for the guest.
+    game_source: Literal["today", "random"] = "random"
 
 
 class WordleCreateDuelResponse(BaseModel):
@@ -58,7 +66,7 @@ class WordleJoinDuelResponse(BaseModel):
     player_token: str
     nickname: str
     players: list[WordleDuelPlayerInfo]
-    game_number: int
+    round: int
 
 
 class WordleDuelGuessRequest(BaseModel):
@@ -77,5 +85,6 @@ class WordleDuelHistoryResponse(BaseModel):
 
 
 class WordleDuelStateResponse(BaseModel):
-    game_number: int
+    # No game_number while the round is open: see rooms.py.
+    round: int
     players: list[WordleDuelPlayerInfo]

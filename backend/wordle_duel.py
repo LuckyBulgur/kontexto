@@ -7,6 +7,11 @@ import string
 import aiosqlite
 
 from nicknames import sanitize_nickname
+from rooms import RoomRevealRefused
+
+# A Wordle board is six rows. Past the sixth guess a player has no move left,
+# which is what makes their round over.
+MAX_GUESSES = 6
 
 
 def _generate_id(length: int = 6) -> str:
@@ -55,12 +60,12 @@ async def join_wordle_duel(
     nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     cursor = await db.execute(
-        "SELECT game_number FROM wordle_duels WHERE id = ?", (duel_id,)
+        "SELECT round FROM wordle_duels WHERE id = ?", (duel_id,)
     )
     row = await cursor.fetchone()
     if not row:
         raise ValueError("Duel not found")
-    game_number = row["game_number"]
+    duel_round = row["round"]
 
     # Ensure the nickname is unique within the duel: identity (self/opponent
     # boards) is keyed by nickname on the client, so collisions break the game.
@@ -84,7 +89,7 @@ async def join_wordle_duel(
         "player_token": player_token,
         "nickname": unique_nickname,
         "players": state["players"],
-        "game_number": game_number,
+        "round": duel_round,
     }
 
 
@@ -121,7 +126,7 @@ async def record_wordle_guess(
 
 async def get_wordle_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict:
     cursor = await db.execute(
-        "SELECT game_number FROM wordle_duels WHERE id = ?", (duel_id,)
+        "SELECT game_number, round FROM wordle_duels WHERE id = ?", (duel_id,)
     )
     duel = await cursor.fetchone()
     if not duel:
@@ -149,7 +154,42 @@ async def get_wordle_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict:
                 "results": [json.loads(g["result"]) for g in guess_rows],
             }
         )
-    return {"game_number": duel["game_number"], "players": players}
+    # game_number rides along for the guess handler and is stripped at the HTTP
+    # boundary by WordleDuelStateResponse. See rooms.py.
+    return {
+        "game_number": duel["game_number"],
+        "round": duel["round"],
+        "players": players,
+    }
+
+
+async def reveal_context(
+    db: aiosqlite.Connection, duel_id: str, player_token: str
+) -> dict:
+    """What a Wordle duel player may be told, or a refusal.
+
+    Six guesses or a solve: either way this player has no move left, and the
+    board is per player, so the opponent's round is none of this decision.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, round FROM wordle_duels WHERE id = ?", (duel_id,)
+    )
+    duel = await cursor.fetchone()
+    if not duel:
+        raise RoomRevealRefused("room_not_found")
+
+    cursor = await db.execute(
+        "SELECT guesses_used, solved FROM wordle_duel_players "
+        "WHERE duel_id = ? AND player_token = ?",
+        (duel_id, player_token),
+    )
+    player = await cursor.fetchone()
+    if not player:
+        raise RoomRevealRefused("player_not_found")
+    if not player["solved"] and (player["guesses_used"] or 0) < MAX_GUESSES:
+        raise RoomRevealRefused("round_open")
+
+    return {"game_number": duel["game_number"], "round": duel["round"]}
 
 
 async def is_wordle_duel_member(

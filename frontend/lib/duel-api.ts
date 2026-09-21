@@ -1,4 +1,4 @@
-import { GuessResult, TipResult } from "./types";
+import { GuessResult, RoomGameSource, RoomRevealResult, TipResult } from "./types";
 import {
   DuelState,
   CreateDuelResponse,
@@ -11,7 +11,7 @@ import { throwGuessNotFound } from "./guess-error";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function createDuel(
-  gameNumber: number,
+  gameSource: RoomGameSource,
   nickname: string,
   tipsAllowed: boolean
 ): Promise<CreateDuelResponse> {
@@ -19,7 +19,7 @@ export async function createDuel(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      game_number: gameNumber,
+      game_source: gameSource,
       nickname,
       tips_allowed: tipsAllowed,
     }),
@@ -103,6 +103,24 @@ export async function duelNextGame(
     body: JSON.stringify({ player_token: playerToken }),
   });
   if (res.status === 404) throw new Error("no_games");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** The solution of a duel round, for a player who has solved it.
+ *
+ *  409 means the round is still open, which is the case this endpoint exists
+ *  for: the open /api/reveal would answer it for the opponent's game too. */
+export async function revealDuel(
+  duelId: string,
+  playerToken: string
+): Promise<RoomRevealResult> {
+  const res = await fetch(`${API_BASE}/duel/${duelId}/reveal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 409) throw new Error("round_open");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

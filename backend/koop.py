@@ -12,6 +12,7 @@ import string
 import aiosqlite
 
 from nicknames import sanitize_nickname
+from rooms import RoomRevealRefused
 
 
 def _generate_id(length: int = 6) -> str:
@@ -118,9 +119,12 @@ async def get_koop_state(db: aiosqlite.Connection, koop_id: str) -> dict | None:
         for row in await cursor.fetchall()
     ]
 
+    # game_number rides along for the handlers and is stripped at the HTTP
+    # boundary by KoopStateResponse. See rooms.py.
     return {
         "koop_id": koop_id,
         "game_number": koop["game_number"],
+        "round": koop["round"],
         "tips_allowed": bool(koop["tips_allowed"]),
         "solved": bool(koop["solved"]),
         "solved_by": koop["solved_by"],
@@ -264,8 +268,46 @@ async def give_up_koop(
         "(koop_id, player_token, nickname, word, rank, is_tip) VALUES (?, ?, ?, ?, 1, 0)",
         (koop_id, player_token, player["nickname"], target_word),
     )
+    cursor = await db.execute(
+        "SELECT game_number, round FROM koops WHERE id = ?", (koop_id,)
+    )
+    koop = await cursor.fetchone()
     await db.commit()
-    return {"word": target_word, "nickname": player["nickname"], "gave_up": True}
+    return {
+        "word": target_word,
+        "nickname": player["nickname"],
+        "gave_up": True,
+        "game_number": koop["game_number"],
+        "round": koop["round"],
+    }
+
+
+async def reveal_context(
+    db: aiosqlite.Connection, koop_id: str, player_token: str
+) -> dict:
+    """What a koop member may be told about the puzzle, or a refusal.
+
+    A koop is one team on one board, so the round is over for everybody at the
+    same moment: solved by anyone, or given up by anyone.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, round, solved, gave_up FROM koops WHERE id = ?",
+        (koop_id,),
+    )
+    koop = await cursor.fetchone()
+    if not koop:
+        raise RoomRevealRefused("room_not_found")
+
+    cursor = await db.execute(
+        "SELECT 1 FROM koop_players WHERE koop_id = ? AND player_token = ?",
+        (koop_id, player_token),
+    )
+    if not await cursor.fetchone():
+        raise RoomRevealRefused("player_not_found")
+    if not (koop["solved"] or koop["gave_up"]):
+        raise RoomRevealRefused("round_open")
+
+    return {"game_number": koop["game_number"], "round": koop["round"]}
 
 
 async def advance_koop_game(db: aiosqlite.Connection, koop_id: str, pick_next) -> int | None:

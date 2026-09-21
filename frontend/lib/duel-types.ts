@@ -9,7 +9,9 @@ export interface DuelPlayer {
 
 export interface DuelState {
   duel_id: string;
-  game_number: number;
+  /** The round counter, which is what a board reset keys on. The game number
+   *  stays on the server while the round is open (see RoomRevealResult). */
+  round: number;
   tips_allowed: boolean;
   players: DuelPlayer[];
 }
@@ -30,7 +32,7 @@ export interface DuelGuessHistoryEntry {
 }
 
 export interface NextGameResult {
-  game_number: number;
+  round: number;
   total: number;
 }
 
@@ -38,7 +40,7 @@ export type DuelWsMessage =
   | { type: "player_joined"; nickname: string }
   | { type: "rank_update"; nickname: string; best_rank: number; guess_count: number; tip_count: number }
   | { type: "player_solved"; nickname: string; guess_count: number; tip_count: number }
-  | { type: "next_game"; game_number: number }
+  | { type: "next_round"; round: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string }
   | { type: "state"; players: DuelPlayer[] };

@@ -296,7 +296,7 @@ def api_client(game_data_dir):
 class TestDuelEndpoints:
     def test_create_duel(self, api_client):
         resp = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         })
         assert resp.status_code == 200
         data = resp.json()
@@ -305,7 +305,7 @@ class TestDuelEndpoints:
 
     def test_join_duel(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.post(f"/api/duel/{created['duel_id']}/join", json={"nickname": "Bob"})
         assert resp.status_code == 200
@@ -319,17 +319,19 @@ class TestDuelEndpoints:
 
     def test_get_duel_state(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.get(f"/api/duel/{created['duel_id']}")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["game_number"] == 1
+        # The round, not the game: the number is the answer while the round runs.
+        assert data["round"] == 1
+        assert "game_number" not in data
         assert len(data["players"]) == 1
 
     def test_duel_guess(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.post(f"/api/duel/{created['duel_id']}/guess", json={
             "word": "birne", "player_token": created["player_token"],
@@ -341,7 +343,7 @@ class TestDuelEndpoints:
 
     def test_duel_guess_unknown_word(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.post(f"/api/duel/{created['duel_id']}/guess", json={
             "word": "xyz123", "player_token": created["player_token"],
@@ -350,7 +352,7 @@ class TestDuelEndpoints:
 
     def test_duel_history(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         api_client.post(f"/api/duel/{created['duel_id']}/guess", json={
             "word": "birne", "player_token": created["player_token"],
@@ -365,7 +367,7 @@ class TestDuelEndpoints:
 
     def test_duel_tip_allowed(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.get(
             f"/api/duel/{created['duel_id']}/tip?token={created['player_token']}&difficulty=easy&best_rank=5"
@@ -374,7 +376,7 @@ class TestDuelEndpoints:
 
     def test_duel_tip_not_allowed(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": False,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": False,
         }).json()
         resp = api_client.get(
             f"/api/duel/{created['duel_id']}/tip?token={created['player_token']}&difficulty=easy&best_rank=5"
@@ -383,7 +385,7 @@ class TestDuelEndpoints:
 
     def test_player_info(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.get(f"/api/duel/player-info?token={created['player_token']}")
         assert resp.status_code == 200
@@ -393,7 +395,7 @@ class TestDuelEndpoints:
 
     def test_duel_next_game(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         api_client.post(f"/api/duel/{created['duel_id']}/guess", json={
             "word": "birne", "player_token": created["player_token"],
@@ -403,10 +405,10 @@ class TestDuelEndpoints:
             json={"player_token": created["player_token"]},
         )
         assert resp.status_code == 200
-        # Daily (game 1) is excluded, so the only other game in the pool is 2.
-        assert resp.json()["game_number"] == 2
+        # The rematch answers with the round it advanced to, not with the game.
+        assert resp.json()["round"] == 2
         state = api_client.get(f"/api/duel/{created['duel_id']}").json()
-        assert state["game_number"] == 2
+        assert state["round"] == 2
         history = api_client.get(
             f"/api/duel/{created['duel_id']}/history?token={created['player_token']}"
         ).json()
@@ -414,7 +416,7 @@ class TestDuelEndpoints:
 
     def test_duel_next_game_unknown_player(self, api_client):
         created = api_client.post("/api/duel", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         }).json()
         resp = api_client.post(
             f"/api/duel/{created['duel_id']}/next-game", json={"player_token": "bogus"}

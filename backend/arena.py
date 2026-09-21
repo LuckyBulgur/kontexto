@@ -28,6 +28,7 @@ from datetime import datetime, timedelta, timezone
 import aiosqlite
 
 from nicknames import sanitize_nickname
+from rooms import RoomRevealRefused
 
 # --- Rules ------------------------------------------------------------------
 
@@ -187,6 +188,9 @@ async def get_arena_state(db: aiosqlite.Connection, arena_id: str) -> dict | Non
         for row in await cursor.fetchall()
     ]
 
+    # game_number rides along for the handlers, which need it to score a guess.
+    # ArenaStateResponse strips it from the HTTP answer, and the socket frame in
+    # main.py strips it by hand. See rooms.py.
     return {
         "arena_id": arena_id,
         "mode": arena["mode"],
@@ -203,6 +207,36 @@ async def get_arena_state(db: aiosqlite.Connection, arena_id: str) -> dict | Non
         "server_time": iso_timestamp(_now()),
         "players": players,
     }
+
+
+async def reveal_context(
+    db: aiosqlite.Connection, arena_id: str, player_token: str
+) -> dict:
+    """What an arena player may be told about the puzzle, or a refusal.
+
+    An arena is still running for the others while one player is out, and an
+    eliminated player sits in the same room as the survivors. So the word is
+    served once the arena itself is finished, or to a player who has already
+    landed rank 1 and therefore knows it anyway.
+    """
+    cursor = await db.execute(
+        "SELECT game_number, round, status FROM arenas WHERE id = ?", (arena_id,)
+    )
+    arena = await cursor.fetchone()
+    if not arena:
+        raise RoomRevealRefused("room_not_found")
+
+    cursor = await db.execute(
+        "SELECT solved FROM arena_players WHERE arena_id = ? AND player_token = ?",
+        (arena_id, player_token),
+    )
+    player = await cursor.fetchone()
+    if not player:
+        raise RoomRevealRefused("player_not_found")
+    if arena["status"] != "finished" and not player["solved"]:
+        raise RoomRevealRefused("round_open")
+
+    return {"game_number": arena["game_number"], "round": arena["round"]}
 
 
 async def get_player_info(db: aiosqlite.Connection, player_token: str) -> dict | None:

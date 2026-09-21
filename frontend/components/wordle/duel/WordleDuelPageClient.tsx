@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import Board from "@/components/wordle/Board";
 import Keyboard from "@/components/wordle/Keyboard";
@@ -12,7 +12,7 @@ import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
 import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
 import {
   getWordleDuelState, submitWordleDuelGuess, getWordleDuelHistory, joinWordleDuel,
-  wordleDuelNextGame,
+  wordleDuelNextGame, revealWordleDuel,
 } from "@/lib/wordle-api";
 import { loadDuelToken, saveDuelToken, loadDuelNickname, saveDuelNickname } from "@/lib/wordle-storage";
 import type { TileColor, WordleDuelPlayer, WordleDuelWsMessage, GameStatus } from "@/lib/wordle-types";
@@ -28,7 +28,14 @@ export default function WordleDuelPageClient() {
   const [playerToken, setPlayerToken] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [players, setPlayers] = useState<WordleDuelPlayer[]>([]);
-  const [gameNumber, setGameNumber] = useState<number | null>(null);
+  // The round counter, which also doubles as the "state has loaded" signal.
+  // The game number is not here: /api/wordle/reveal serves the solution for
+  // any number, so a running duel does not hand its number to the client
+  // (lib/types RoomRevealResult).
+  const [round, setRound] = useState<number | null>(null);
+  // The word, once this player has no move left and nobody solved it.
+  const [solution, setSolution] = useState<string | null>(null);
+  const revealedRound = useRef<number | null>(null);
   const [loadError, setLoadError] = useState(false);
 
   // Own game state
@@ -90,7 +97,7 @@ export default function WordleDuelPageClient() {
     const load = async () => {
       const state = await getWordleDuelState(duelId);
       setPlayers(state.players);
-      setGameNumber(state.game_number);
+      setRound(state.round);
 
       // Seed opponent boards with their already-played rows (colours only).
       // Merge instead of replace: a guess_made may have arrived over the WS
@@ -140,8 +147,8 @@ export default function WordleDuelPageClient() {
   }, [duelId, playerToken]);
 
   // Reset all local round state for a freshly advanced duel game (triggered by
-  // "Nächstes Spiel" locally or via the next_game broadcast for the opponent).
-  const resetForNextGame = useCallback((newGameNumber: number) => {
+  // the rematch button locally or via the next_round broadcast for the opponent).
+  const resetForNextGame = useCallback((newRound: number) => {
     setGuesses([]);
     setEvaluations([]);
     setCurrentGuess("");
@@ -150,14 +157,15 @@ export default function WordleDuelPageClient() {
     setShakeRow(null);
     setWonRow(null);
     setOpponentGuesses(new Map());
-    setGameNumber(newGameNumber);
+    setSolution(null);
+    setRound(newRound);
     setPlayers((prev) => prev.map((p) => ({ ...p, guesses_used: 0, solved: false, results: [] })));
   }, []);
 
   // WebSocket handler
   const handleWsMessage = useCallback((msg: WordleDuelWsMessage) => {
-    if (msg.type === "next_game") {
-      resetForNextGame(msg.game_number);
+    if (msg.type === "next_round") {
+      resetForNextGame(msg.round);
       return;
     }
     if (msg.type === "state") {
@@ -228,7 +236,7 @@ export default function WordleDuelPageClient() {
       setPlayerToken(resp.player_token);
       setNickname(resp.nickname);
       setPlayers(resp.players);
-      setGameNumber(resp.game_number);
+      setRound(resp.round);
       setNeedsJoin(false);
     } catch {
       setJoinError("Fehler beim Beitreten");
@@ -323,13 +331,25 @@ export default function WordleDuelPageClient() {
     if (!duelId || !playerToken) return;
     try {
       const result = await wordleDuelNextGame(duelId, playerToken);
-      resetForNextGame(result.game_number);
+      resetForNextGame(result.round);
     } catch {
       toast("Nächstes Spiel konnte nicht gestartet werden");
     }
   }, [duelId, playerToken, resetForNextGame]);
 
   const allFinished = players.length > 1 && players.every((p) => p.solved || p.guesses_used >= 6);
+  const nobodySolved = allFinished && players.every((p) => !p.solved);
+
+  // Ask for the word only when nobody found it, and only once per round. The
+  // server refuses while this player still has a guess left.
+  useEffect(() => {
+    if (!nobodySolved || !duelId || !playerToken || round === null) return;
+    if (revealedRound.current === round) return;
+    revealedRound.current = round;
+    revealWordleDuel(duelId, playerToken)
+      .then((result) => setSolution(result.word))
+      .catch(() => setSolution(null));
+  }, [nobodySolved, duelId, playerToken, round]);
 
   if (needsJoin) {
     return <JoinForm onJoin={handleJoin} loading={joinLoading} error={joinError} />;
@@ -343,7 +363,7 @@ export default function WordleDuelPageClient() {
     );
   }
 
-  if (gameNumber === null) {
+  if (round === null) {
     return (
       <div className="max-w-4xl mx-auto min-h-screen flex flex-col" aria-busy="true" aria-label="Duell wird geladen">
         <WordleHeader backHref="/wordle/" subtitle="Duell" onCopyLink={copyLink} hideDuelCreate />
@@ -403,7 +423,14 @@ export default function WordleDuelPageClient() {
 
       <Keyboard letterStates={letterStates} onKey={handleKey} />
 
-      {allFinished && <DuelResultCard players={players} currentNickname={nickname} onNextGame={handleNextGame} />}
+      {allFinished && (
+        <DuelResultCard
+          players={players}
+          currentNickname={nickname}
+          solution={solution}
+          onNextGame={handleNextGame}
+        />
+      )}
     </div>
   );
 }

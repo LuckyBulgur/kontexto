@@ -6,7 +6,8 @@ export interface KoopPlayer {
 
 export interface KoopState {
   koop_id: string;
-  game_number: number;
+  /** See DuelState.round. */
+  round: number;
   tips_allowed: boolean;
   solved: boolean;
   solved_by: string | null;
@@ -17,7 +18,7 @@ export interface KoopState {
 }
 
 export interface NextGameResult {
-  game_number: number;
+  round: number;
   total: number;
 }
 
@@ -54,7 +55,7 @@ export type KoopWsMessage =
   | { type: "guess_added"; nickname: string; word: string; rank: number; is_tip: boolean }
   | { type: "koop_solved"; nickname: string | null; word: string | null }
   | { type: "koop_gave_up"; word: string | null }
-  | { type: "next_game"; game_number: number }
+  | { type: "next_round"; round: number }
   | { type: "player_joined"; nickname: string }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string };

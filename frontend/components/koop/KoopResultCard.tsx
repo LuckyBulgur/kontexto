@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 
 interface KoopResultCardProps {
-  gameNumber: number;
+  /** Null until the reveal answers: the number only leaves the server once the
+   *  round is over (see lib/types RoomRevealResult). */
+  gameNumber: number | null;
   guesses: Guess[];
   players: KoopPlayer[];
   solvedBy: string | null;
@@ -37,7 +39,11 @@ export default function KoopResultCard({
   return (
     <Panel className="animate-result-in">
       <ResultHero
-        eyebrow={`Koop, Spiel #${gameNumber}, das Wort war`}
+        eyebrow={
+          gameNumber === null
+            ? "Koop, das Wort war"
+            : `Koop, Spiel #${gameNumber}, das Wort war`
+        }
         headline={solvedWord}
         lost={gaveUp}
         support={gaveUp ? `Aufgegeben nach ${guesses.length} Versuchen im Team.` : finder}

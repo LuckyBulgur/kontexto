@@ -77,7 +77,10 @@ class TestJoinDuel:
                 assert "player_token" in joined
                 assert joined["nickname"] == "Anna"
                 assert len(joined["players"]) == 2
-                assert joined["game_number"] == 42
+                # The round, not the game: a joining player must not learn the
+                # number, because /api/wordle/reveal answers for any number.
+                assert joined["round"] == 1
+                assert "game_number" not in joined
             finally:
                 await conn.close()
         asyncio.run(_test())

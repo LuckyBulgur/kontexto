@@ -10,7 +10,9 @@ test.describe("Kontexto-Duell (WebSocket-Echtzeit)", () => {
   }) => {
     // 1. Alice erstellt das Duell über die API und erhält ihr Spieler-Token.
     const res = await request.post("/api/duel", {
-      data: { game_number: 1, nickname: "Alice", tips_allowed: true },
+      // The server picks the puzzle; a client that names a game number is
+      // refused, because the number is enough to look the answer up.
+      data: { game_source: "today", nickname: "Alice", tips_allowed: true },
     });
     expect(res.ok()).toBeTruthy();
     const { duel_id, player_token } = await res.json();

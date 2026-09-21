@@ -84,12 +84,15 @@ There is **no live embedding inference at request time**. `prepare.py` (offline 
 ### API surface (all under `/api`, defined in `main.py`, logic in `game.py`/`duel.py`/`koop.py`/`arena.py`/`matchmaking.py`/`wordle.py`/`wordle_duel.py`)
 - Kontexto: `guess`, `tip`, `game`, `games`, `reveal`, `closest`. `guess`/`tip`/`reveal` take an optional `mode` (validated against `analytics.SOLO_MODES`) so the solo modes are counted apart.
 - Solo modes: `word-at-rank` (Leiter's opening word, never rank 1), `dual/next` + `dual/guess` (Doppelziel, both ranks in one request), `sudden-death` (a game plus its runners‑up).
-- Duel: `duel` (create), `duel/{id}/join|guess|history|tip`, `duel/player-info`, `GET duel/{id}` (state); realtime `WS /ws/duel/{id}?token=…`.
-- Arena (Battle Royale, Blitz‑Duell, Zeitbonus‑Jagd): `arena` (create), `arena/{id}/join|start|guess|history|next-game`, `arena/player-info`, `GET arena/{id}`; realtime `WS /ws/arena/{id}?token=…`.
+- Duel: `duel` (create), `duel/{id}/join|guess|history|tip|reveal`, `duel/player-info`, `GET duel/{id}` (state); realtime `WS /ws/duel/{id}?token=…`.
+- Arena (Battle Royale, Blitz‑Duell, Zeitbonus‑Jagd): `arena` (create), `arena/{id}/join|start|guess|history|next-game|reveal`, `arena/player-info`, `GET arena/{id}`; realtime `WS /ws/arena/{id}?token=…`.
 - Matchmaking: `matchmaking/enqueue|status|cancel`. One queue for duel, koop, wordle‑duel and the three arenas.
 - Wordle + Wordle duel: mirror of the above under `/api/wordle/…` and `WS /ws/wordle/duel/{id}`.
 - Analytics: `collect/token`, `collect` (pageview, optional `share` marker), `collect/heartbeat` (presence + attention when the tab is visible), `collect/share` (share button pressed), `stats/complete` (client completion histograms), `survey/answer` (attribution survey, one answer per fingerprint).
 - Admin: `admin/webauthn/{login,register}/{options,verify}`, `GET admin/stats`.
+
+### The room boundary: a game number is the answer (`rooms.py`)
+`reveal`, `closest` and `wordle/reveal` serve the target word for **any** game number to **anybody**, and that stays so: a solo player may spoil their own game. In a room the same number is the opponent's puzzle, so one number plus one open endpoint is a working cheat. Hence, since 2026-09-21: a room is created with a **selector** (`game_source: "today" | "random"`, `extra="forbid"` so a client-supplied `game_number` is a 422) and the server picks; **no room response and no socket frame carries `game_number` or the target while the round is open** (the state models strip it, `_public_arena_state` strips the arena frame by hand, the `next_game` frames became `next_round` + `round`); clients key their board resets on `round`. The number comes back with the word from `POST {mode}/{id}/reveal`, token-checked, once the **caller's own** round is over: duel = this player solved, koop = team solved or gave up, arena = arena finished, wordle duel = solved or six guesses used. A refusal is 409 `round_open` (404 for an unknown room or a foreign token) and says nothing more, because a message that distinguished "not yet" from "not you" would be a probe. Held by `backend/test_room_secrecy.py` and `frontend/lib/room-secrecy.test.ts`.
 
 Duel realtime is **DB‑polling broadcast** (`websocket_manager.py`): the WS worker polls the players table every second and pushes diffs (`player_joined`/`rank_update`/`player_solved`/connect‑state) to all sockets in that duel.
 

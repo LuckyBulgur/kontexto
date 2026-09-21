@@ -230,7 +230,7 @@ class TestKoopCRUD:
                 new_game = await advance_koop_game(conn, koop_id, lambda current, played: 2)
                 assert new_game == 2
                 state = await get_koop_state(conn, koop_id)
-                assert state["game_number"] == 2
+                assert state["round"] == 2
                 assert state["solved"] is False
                 assert state["gave_up"] is False
                 assert state["best_rank"] is None
@@ -360,12 +360,12 @@ def api_client(game_data_dir):
 class TestKoopEndpoints:
     def _create(self, api_client, tips_allowed=True):
         return api_client.post("/api/koop", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": tips_allowed,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": tips_allowed,
         }).json()
 
     def test_create_koop(self, api_client):
         resp = api_client.post("/api/koop", json={
-            "game_number": 1, "nickname": "Alice", "tips_allowed": True,
+            "game_source": "today", "nickname": "Alice", "tips_allowed": True,
         })
         assert resp.status_code == 200
         data = resp.json()
@@ -389,7 +389,8 @@ class TestKoopEndpoints:
         resp = api_client.get(f"/api/koop/{created['koop_id']}")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["game_number"] == 1
+        assert data["round"] == 1
+        assert "game_number" not in data
         assert data["solved"] is False
         assert data["total"] == 5
         assert len(data["players"]) == 1
@@ -495,9 +496,9 @@ class TestKoopEndpoints:
         )
         assert resp.status_code == 200
         # Daily (game 1) is excluded, so the only other game in the pool is 2.
-        assert resp.json()["game_number"] == 2
+        assert resp.json()["round"] == 2
         state = api_client.get(f"/api/koop/{created['koop_id']}").json()
-        assert state["game_number"] == 2
+        assert state["round"] == 2
         assert state["solved"] is False
         assert state["gave_up"] is False
         guesses = api_client.get(f"/api/koop/{created['koop_id']}/guesses").json()["guesses"]

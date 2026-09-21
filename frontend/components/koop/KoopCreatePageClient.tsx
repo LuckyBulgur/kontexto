@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createKoop } from "@/lib/koop-api";
-import { getGameInfo } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
 import { Panel } from "@/components/design";
 import { Wordmark } from "@/components/design";
@@ -18,25 +17,16 @@ export default function KoopCreatePageClient() {
   const [gameMode, setGameMode] = useState<"today" | "random">("today");
   const [tipsAllowed, setTipsAllowed] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [todayGame, setTodayGame] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getGameInfo().then((info) => {
-      setTodayGame(info.gameNumber);
-    });
-  }, []);
-
   const handleCreate = async () => {
-    if (!nickname.trim() || !todayGame) return;
+    if (!nickname.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const gameNumber =
-        gameMode === "today"
-          ? todayGame
-          : Math.floor(Math.random() * 5000) + 1;
-      const result = await createKoop(gameNumber, nickname.trim(), tipsAllowed);
+      // Only the kind of game, never its number: the server picks, because
+      // the number is enough to look the answer up. See lib/types RoomRevealResult.
+      const result = await createKoop(gameMode, nickname.trim(), tipsAllowed);
       localStorage.setItem(`kontexto_koop_${result.koop_id}`, result.player_token);
       router.push(`/koop/${result.koop_id}/`);
     } catch {
@@ -114,7 +104,7 @@ export default function KoopCreatePageClient() {
 
           <Button
             onClick={handleCreate}
-            disabled={loading || !nickname.trim() || !todayGame}
+            disabled={loading || !nickname.trim()}
             className="w-full"
           >
             {loading ? "Erstelle..." : "Koop erstellen"}

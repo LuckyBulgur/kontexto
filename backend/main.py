@@ -29,18 +29,21 @@ from duel import (
     get_player_history, get_player_info, cleanup_stale_duels,
     set_player_connected, advance_duel_game,
 )
+from duel import reveal_context as reveal_duel_context
 from koop import (
     create_koop, join_koop, get_koop_state, get_koop_guesses,
     record_koop_guess, record_koop_tip, cleanup_stale_koops,
     give_up_koop, advance_koop_game,
 )
 from koop import get_player_info as get_koop_player_info
+from koop import reveal_context as reveal_koop_context
 from arena import (
     ArenaGuessRefused, advance_arena_game, cleanup_stale_arenas, create_arena,
     get_arena_state, join_arena, record_arena_guess, start_arena,
 )
 from arena import get_player_history as get_arena_player_history
 from arena import get_player_info as get_arena_player_info
+from arena import reveal_context as reveal_arena_context
 from matchmaking import (
     cancel as cancel_match_ticket,
     enqueue as enqueue_for_match,
@@ -63,6 +66,7 @@ from models import (
     CreateKoopRequest, CreateKoopResponse, JoinKoopRequest, JoinKoopResponse,
     KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
     KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
+    RoomRevealRequest, RoomRevealResponse,
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
     ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
     MatchmakingEnqueueRequest, MatchmakingTicketResponse,
@@ -87,6 +91,8 @@ from wordle_duel import (
     cleanup_stale_wordle_duels, advance_wordle_duel_game,
     is_wordle_duel_member,
 )
+from wordle_duel import reveal_context as reveal_wordle_duel_context
+from rooms import ROOM_REVEAL_MESSAGES, RoomRevealRefused
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +164,36 @@ def _unknown_word_response(gs: GameState, word: str) -> JSONResponse:
     )
 
 
+def _room_game_number(source: str) -> int:
+    """Pick the game a new Kontexto room is opened on.
+
+    The client sends the kind, the server picks the number, because the number
+    is the answer (rooms.py). "random" is never today's daily, so an invited
+    friend who has not played it yet is not spoiled; if the pool cannot supply
+    anything else, the daily is the only remaining option.
+    """
+    gs = _get_game_state()
+    daily = _get_current_game_number()
+    if source == "today":
+        return daily
+    chosen = gs.random_game_number({daily})
+    return chosen if chosen is not None else daily
+
+
+def _wordle_room_game_number(ws: WordleState, source: str) -> int:
+    """The same server-side pick for a Wordle duel.
+
+    It also removes a bug the client had: it drew from 1..5000 while the
+    solution list is shorter, so a random duel could point at a game that does
+    not exist.
+    """
+    daily = ws.get_game_number()
+    if source == "today":
+        return daily
+    chosen = ws.random_game_number({daily})
+    return chosen if chosen is not None else daily
+
+
 def _pick_next_kontexto_game(current: int, played: set[int]) -> int | None:
     """Choose the next game for a multiplayer room's "Nächstes Spiel".
 
@@ -172,6 +208,44 @@ def _pick_next_kontexto_game(current: int, played: set[int]) -> int | None:
     if chosen is None:
         chosen = gs.random_game_number(base)
     return chosen
+
+
+def _room_reveal_refusal(refused: RoomRevealRefused) -> JSONResponse:
+    """One answer shape for every refused room reveal.
+
+    404 for an unknown room or a token that is not a member, 409 while the round
+    is still open. The player is told the round is running and nothing else: a
+    message that distinguished "not yet" from "not you" would be a probe.
+    """
+    status = 409 if refused.code == "round_open" else 404
+    return JSONResponse(
+        status_code=status,
+        content={
+            "error": refused.code,
+            "message": ROOM_REVEAL_MESSAGES.get(refused.code, "Kein Zugriff"),
+        },
+    )
+
+
+def _room_reveal_payload(ctx: dict) -> dict:
+    """Turn a granted Kontexto room reveal into its response.
+
+    No analytics here on purpose. The authoritative reveal counter belongs to
+    the player action that ends a round (koop give-up, the solo reveal button);
+    a round that ends on a deadline or a solve is not a reveal, and counting it
+    as one is what the arena client used to do through the solo endpoint.
+    """
+    gs = _get_game_state()
+    return {
+        "word": gs.get_target_word(ctx["game_number"]),
+        "game_number": ctx["game_number"],
+        "round": ctx["round"],
+    }
+
+
+def _public_arena_state(state: dict) -> dict:
+    """The arena state as the players may see it, without the game number."""
+    return {k: v for k, v in state.items() if k != "game_number"}
 
 
 @asynccontextmanager
@@ -614,16 +688,10 @@ async def sudden_death(exclude: str = Query("")):
 
 @app.post("/api/duel", response_model=CreateDuelResponse)
 async def create_duel_endpoint(req: CreateDuelRequest):
-    gs = _get_game_state()
-    total = gs.metadata.get("total_games", len(gs.target_words))
-    if req.game_number < 1 or req.game_number > total:
-        return JSONResponse(
-            status_code=400,
-            content={"error": "invalid_game", "message": f"Spiel {req.game_number} existiert nicht"},
-        )
+    game_number = _room_game_number(req.game_source)
     db = await get_db(_db_path)
     try:
-        result = await create_duel(db, req.game_number, req.nickname, req.tips_allowed)
+        result = await create_duel(db, game_number, req.nickname, req.tips_allowed)
         await analytics.record_action(_db_path, "duels_created", "kontexto")
         return result
     finally:
@@ -780,7 +848,22 @@ async def duel_next_game_endpoint(duel_id: str, req: NextGameRequest):
                 content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
             )
         await analytics.record_action(_db_path, "rounds", "duel")
-        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+        fresh = await get_duel_state(db, duel_id)
+        return {"round": fresh["round"], "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
+@app.post("/api/duel/{duel_id}/reveal", response_model=RoomRevealResponse)
+async def duel_reveal_endpoint(duel_id: str, req: RoomRevealRequest):
+    """The solution of a duel round, for a player whose own round is over."""
+    db = await get_db(_db_path)
+    try:
+        try:
+            ctx = await reveal_duel_context(db, duel_id, req.player_token)
+        except RoomRevealRefused as refused:
+            return _room_reveal_refusal(refused)
+        return _room_reveal_payload(ctx)
     finally:
         await db.close()
 
@@ -811,16 +894,10 @@ async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(
 
 @app.post("/api/koop", response_model=CreateKoopResponse)
 async def create_koop_endpoint(req: CreateKoopRequest):
-    gs = _get_game_state()
-    total = gs.metadata.get("total_games", len(gs.target_words))
-    if req.game_number < 1 or req.game_number > total:
-        return JSONResponse(
-            status_code=400,
-            content={"error": "invalid_game", "message": f"Spiel {req.game_number} existiert nicht"},
-        )
+    game_number = _room_game_number(req.game_source)
     db = await get_db(_db_path)
     try:
-        result = await create_koop(db, req.game_number, req.nickname, req.tips_allowed)
+        result = await create_koop(db, game_number, req.nickname, req.tips_allowed)
         await analytics.record_action(_db_path, "koops_created", "kontexto")
         return result
     finally:
@@ -997,7 +1074,11 @@ async def koop_give_up_endpoint(koop_id: str, req: KoopGiveUpRequest):
             )
         await analytics.record_action(_db_path, "reveals", "koop")
         await analytics.record_game_stat(_db_path, "koop", game_num, "reveals")
-        return {"word": result["word"]}
+        return {
+            "word": result["word"],
+            "game_number": result["game_number"],
+            "round": result["round"],
+        }
     finally:
         await db.close()
 
@@ -1026,7 +1107,22 @@ async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
                 content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
             )
         await analytics.record_action(_db_path, "rounds", "koop")
-        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+        fresh = await get_koop_state(db, koop_id)
+        return {"round": fresh["round"], "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
+@app.post("/api/koop/{koop_id}/reveal", response_model=RoomRevealResponse)
+async def koop_reveal_endpoint(koop_id: str, req: RoomRevealRequest):
+    """The solution of a koop round, once the team has solved or given up."""
+    db = await get_db(_db_path)
+    try:
+        try:
+            ctx = await reveal_koop_context(db, koop_id, req.player_token)
+        except RoomRevealRefused as refused:
+            return _room_reveal_refusal(refused)
+        return _room_reveal_payload(ctx)
     finally:
         await db.close()
 
@@ -1073,15 +1169,10 @@ _ARENA_REFUSAL_MESSAGES = {
 
 @app.post("/api/arena", response_model=CreateArenaResponse)
 async def create_arena_endpoint(req: CreateArenaRequest):
-    gs = _get_game_state()
-    if req.game_number < 1 or req.game_number > gs.total_games():
-        return JSONResponse(
-            status_code=400,
-            content={"error": "invalid_game", "message": f"Spiel {req.game_number} existiert nicht"},
-        )
+    game_number = _room_game_number(req.game_source)
     db = await get_db(_db_path)
     try:
-        result = await create_arena(db, req.mode, req.game_number, req.nickname)
+        result = await create_arena(db, req.mode, game_number, req.nickname)
         if result is None:
             return JSONResponse(
                 status_code=400,
@@ -1249,7 +1340,21 @@ async def arena_next_game_endpoint(arena_id: str, req: NextGameRequest):
             )
         state = await get_arena_state(db, arena_id)
         await analytics.record_action(_db_path, "rounds", state["mode"] if state else "royale")
-        return {"game_number": new_game, "total": gs.metadata["vocab_size"]}
+        return {"round": state["round"], "total": gs.metadata["vocab_size"]}
+    finally:
+        await db.close()
+
+
+@app.post("/api/arena/{arena_id}/reveal", response_model=RoomRevealResponse)
+async def arena_reveal_endpoint(arena_id: str, req: RoomRevealRequest):
+    """The solution of an arena round, once the arena is finished."""
+    db = await get_db(_db_path)
+    try:
+        try:
+            ctx = await reveal_arena_context(db, arena_id, req.player_token)
+        except RoomRevealRefused as refused:
+            return _room_reveal_refusal(refused)
+        return _room_reveal_payload(ctx)
     finally:
         await db.close()
 
@@ -1267,7 +1372,9 @@ async def arena_websocket(websocket: WebSocket, arena_id: str, token: str = Quer
         return
 
     await arena_ws_manager.connect(arena_id, token, websocket, _db_path)
-    await websocket.send_json({"type": "state", **state})
+    # Not **state: the room state carries the game number for the handlers, and
+    # a socket frame is exactly the kind of place it must not appear (rooms.py).
+    await websocket.send_json({"type": "state", **_public_arena_state(state)})
 
     try:
         while True:
@@ -1485,10 +1592,12 @@ async def wordle_reveal(
 
 @app.post("/api/wordle/duel")
 async def wordle_create_duel(req: WordleCreateDuelRequest) -> WordleCreateDuelResponse:
+    ws = get_wordle_state()
+    game_number = _wordle_room_game_number(ws, req.game_source)
     async with aiosqlite.connect(_db_path) as db:
         db.row_factory = aiosqlite.Row
         result = await create_wordle_duel(
-            db, nickname=req.nickname, game_number=req.game_number
+            db, nickname=req.nickname, game_number=game_number
         )
     # "wordle_duel", not "wordle": the plain Wordle and the duel are separate
     # modes everywhere else now (the queue, the mode catalogue, the dashboard),
@@ -1575,13 +1684,33 @@ async def wordle_duel_next_game(
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
         new_game = await advance_wordle_duel_game(db, duel_id, pick_next)
-    if new_game is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
-        )
+        if new_game is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "no_games", "message": "Keine weiteren Spiele verfügbar"},
+            )
+        fresh = await get_wordle_duel_state(db, duel_id)
     await analytics.record_action(_db_path, "rounds", "duel")
-    return NextGameResponse(game_number=new_game, total=len(ws.solutions))
+    return NextGameResponse(round=fresh["round"], total=len(ws.solutions))
+
+
+@app.post("/api/wordle/duel/{duel_id}/reveal", response_model=RoomRevealResponse)
+async def wordle_duel_reveal(
+    duel_id: str, req: RoomRevealRequest, ws: WordleState = Depends(get_wordle_state)
+):
+    """The solution of a Wordle duel round, for a player who has no move left."""
+    async with aiosqlite.connect(_db_path) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            ctx = await reveal_wordle_duel_context(db, duel_id, req.player_token)
+        except RoomRevealRefused as refused:
+            return _room_reveal_refusal(refused)
+    # No reveals counter here; see _room_reveal_payload.
+    return RoomRevealResponse(
+        word=ws.get_solution(ctx["game_number"]),
+        game_number=ctx["game_number"],
+        round=ctx["round"],
+    )
 
 
 @app.websocket("/ws/wordle/duel/{duel_id}")

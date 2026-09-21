@@ -20,13 +20,14 @@ import {
   getArenaPlayerInfo,
   getArenaState,
   joinArena,
+  revealArena,
   startArena,
   submitArenaGuess,
 } from "@/lib/arena-api";
 import { ArenaState, ArenaWsMessage } from "@/lib/arena-types";
 import { useArenaWebSocket } from "@/lib/use-arena-websocket";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import { revealAnswer } from "@/lib/api";
+
 import { UnknownWordError } from "@/lib/guess-error";
 import { MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
 import { formatCountdown, useClockOffset, useCountdown } from "@/lib/use-server-countdown";
@@ -62,6 +63,10 @@ export default function ArenaPageClient() {
   const [guesses, setGuesses] = useState<Guess[]>([]);
   const [total, setTotal] = useState(0);
   const [solution, setSolution] = useState<string | null>(null);
+  // The game this round was played on. It comes with the reveal, not with the
+  // room state: while the arena runs, the number is the answer for everyone
+  // still guessing (lib/types RoomRevealResult).
+  const [roundGame, setRoundGame] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [needsJoin, setNeedsJoin] = useState(false);
@@ -181,9 +186,10 @@ export default function ArenaPageClient() {
             : `${msg.nickname} ist raus`
         );
       }
-      if (msg.type === "next_game") {
+      if (msg.type === "next_round") {
         setGuesses([]);
         setSolution(null);
+        setRoundGame(null);
         setLatestWord(undefined);
         revealedRound.current = null;
       }
@@ -200,18 +206,23 @@ export default function ArenaPageClient() {
   // Reveal the word once the round is over, once per round.
   useEffect(() => {
     if (!state || state.status !== "finished") return;
+    if (!arenaId || !playerToken) return;
     if (revealedRound.current === state.round) return;
     revealedRound.current = state.round;
 
-    const hit = guesses.find((g) => g.rank === 1);
-    if (hit) {
-      setSolution(hit.word);
-      return;
-    }
-    revealAnswer(state.game_number, true)
-      .then((result) => setSolution(result.word))
-      .catch(() => setSolution(null));
-  }, [state, guesses]);
+    // One request for both, even when this player solved it themselves: the
+    // number is only served here, and the word that comes with it is the same.
+    revealArena(arenaId, playerToken)
+      .then((result) => {
+        setSolution(result.word);
+        setRoundGame(result.game_number);
+      })
+      .catch(() => {
+        const hit = guesses.find((g) => g.rank === 1);
+        setSolution(hit ? hit.word : null);
+        setRoundGame(null);
+      });
+  }, [state, guesses, arenaId, playerToken]);
 
   const handleJoin = useCallback(
     async (name: string) => {
@@ -309,6 +320,7 @@ export default function ArenaPageClient() {
       await arenaNextGame(arenaId, playerToken);
       setGuesses([]);
       setSolution(null);
+      setRoundGame(null);
       setLatestWord(undefined);
       revealedRound.current = null;
       await refresh(arenaId);
@@ -394,6 +406,7 @@ export default function ArenaPageClient() {
             <ArenaResultCard
               state={state}
               currentNickname={nickname}
+              gameNumber={roundGame}
               solution={solution}
               onNextRound={handleNextRound}
               nextLoading={nextLoading}

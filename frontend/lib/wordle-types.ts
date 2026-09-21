@@ -26,7 +26,9 @@ export interface WordleDuelPlayer {
 }
 
 export interface WordleDuelState {
-  game_number: number;
+  /** The round counter. The game number stays on the server while the round is
+   *  open, because /api/wordle/reveal serves the word for any number. */
+  round: number;
   players: WordleDuelPlayer[];
 }
 
@@ -59,6 +61,6 @@ export type WordleDuelWsMessage =
   | { type: "guess_made"; nickname: string; guess_number: number; result: TileColor[] }
   | { type: "player_solved"; nickname: string; guesses_used: number }
   | { type: "player_failed"; nickname: string }
-  | { type: "next_game"; game_number: number }
+  | { type: "next_round"; round: number }
   | { type: "player_disconnected"; nickname: string }
   | { type: "player_reconnected"; nickname: string };

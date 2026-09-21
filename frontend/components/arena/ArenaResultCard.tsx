@@ -9,6 +9,9 @@ import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
 interface ArenaResultCardProps {
   state: ArenaState;
   currentNickname: string | null;
+  /** The game this round was played on, once the reveal has answered. Null
+   *  before that, and after a reveal that failed. */
+  gameNumber: number | null;
   /** The target word, once the round is over. */
   solution: string | null;
   onNextRound: () => void;
@@ -18,6 +21,7 @@ interface ArenaResultCardProps {
 export default function ArenaResultCard({
   state,
   currentNickname,
+  gameNumber,
   solution,
   onNextRound,
   nextLoading,
@@ -29,7 +33,9 @@ export default function ArenaResultCard({
   return (
     <Panel className="animate-result-in">
       <ResultHero
-        eyebrow={`${meta.name}, Spiel #${state.game_number}`}
+        eyebrow={
+          gameNumber === null ? meta.name : `${meta.name}, Spiel #${gameNumber}`
+        }
         headline={youWon ? "Gewonnen!" : state.winner ? `${state.winner} gewinnt` : "Niemand gewinnt"}
         lost={!youWon && !state.winner}
         support={solution ? `Das Wort war ${solution}.` : undefined}

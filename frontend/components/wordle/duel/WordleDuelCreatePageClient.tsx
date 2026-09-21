@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getWordleGame, createWordleDuel } from "@/lib/wordle-api";
+import { createWordleDuel } from "@/lib/wordle-api";
 import { saveDuelToken, saveDuelNickname } from "@/lib/wordle-storage";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { ArrowLeft } from "lucide-react";
@@ -15,20 +15,17 @@ import { Panel, Wordmark } from "@/components/design";
 export default function WordleDuelCreatePageClient() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
-  const [gameNumber, setGameNumber] = useState<number | null>(null);
   const [gameMode, setGameMode] = useState<"today" | "random">("today");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    getWordleGame().then(({ game_number }) => setGameNumber(game_number));
-  }, []);
-
   const handleCreate = async () => {
-    if (!nickname.trim() || gameNumber === null) return;
+    if (!nickname.trim()) return;
     setCreating(true);
     try {
-      const gn = gameMode === "today" ? gameNumber : Math.floor(Math.random() * 5000) + 1;
-      const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gn);
+      // The server picks the puzzle. The old client drew from 1..5000, which
+      // is wider than the solution list, and any number it knows is a lookup of
+      // the answer through /api/wordle/reveal.
+      const { duel_id, player_token } = await createWordleDuel(nickname.trim(), gameMode);
       saveDuelToken(duel_id, player_token);
       saveDuelNickname(duel_id, nickname.trim());
       const url = `${window.location.origin}/wordle/duel/${duel_id}/`;
@@ -91,7 +88,7 @@ export default function WordleDuelCreatePageClient() {
             </div>
             <p className="text-small text-muted-foreground">
               {gameMode === "today"
-                ? `Spiel #${gameNumber ?? "..."} (heutiges Wördle)`
+                ? "Das heutige Wördle, für beide Spieler gleich"
                 : "Zufälliges Wördle, für beide Spieler gleich"}
             </p>
           </div>

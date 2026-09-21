@@ -1,4 +1,4 @@
-import { TipResult } from "./types";
+import { RoomGameSource, RoomRevealResult, TipResult } from "./types";
 import {
   KoopState,
   CreateKoopResponse,
@@ -12,7 +12,7 @@ import { throwGuessNotFound } from "./guess-error";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function createKoop(
-  gameNumber: number,
+  gameSource: RoomGameSource,
   nickname: string,
   tipsAllowed: boolean
 ): Promise<CreateKoopResponse> {
@@ -20,7 +20,7 @@ export async function createKoop(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      game_number: gameNumber,
+      game_source: gameSource,
       nickname,
       tips_allowed: tipsAllowed,
     }),
@@ -39,6 +39,24 @@ export async function joinKoop(
     body: JSON.stringify({ nickname }),
   });
   if (res.status === 404) throw new Error("koop_not_found");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/** The solution of a koop round, once the team has solved or given up.
+ *
+ *  409 means the round is still open. The open /api/reveal is not a substitute,
+ *  because it answers for any game number without asking who is calling. */
+export async function revealKoop(
+  koopId: string,
+  playerToken: string
+): Promise<RoomRevealResult> {
+  const res = await fetch(`${API_BASE}/koop/${koopId}/reveal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken }),
+  });
+  if (res.status === 409) throw new Error("round_open");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -90,7 +108,7 @@ export async function getKoopTip(
 export async function giveUpKoop(
   koopId: string,
   playerToken: string
-): Promise<{ word: string }> {
+): Promise<RoomRevealResult> {
   const res = await fetch(`${API_BASE}/koop/${koopId}/give-up`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
