@@ -27,10 +27,24 @@ test.describe("design audit", () => {
     mkdirSync(SHOTS, { recursive: true });
   });
 
+  // Every Farbwelt, both modes. A palette is a colour change and therefore the
+  // one kind of change that can silently break contrast, so none of them ships
+  // on a look.
+  const PALETTES = ["tinte", "beere", "indigo", "petrol", "klassisch"] as const;
+
+  for (const palette of PALETTES)
   for (const theme of ["light", "dark"] as const) {
-    test(`contrast, ${theme}`, async ({ page }) => {
+    test(`contrast, ${palette}, ${theme}`, async ({ page }) => {
       await setTheme(page, theme);
+      await page.addInitScript((p) => {
+        try {
+          localStorage.setItem("kontexto_palette", p);
+        } catch {
+          /* private mode */
+        }
+      }, palette);
       await page.goto("/");
+      await expect(page.locator("html")).toHaveAttribute("data-palette", palette);
       await page.getByPlaceholder(/Wort/i).fill("Haus");
       await page.getByPlaceholder(/Wort/i).press("Enter");
       await expect(page.locator("[data-slot='card'], .animate-slideIn").first()).toBeVisible();

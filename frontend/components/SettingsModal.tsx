@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useEventTheme } from "@/lib/use-event-theme";
+import PalettePicker from "@/components/PalettePicker";
 
 interface SettingsModalProps {
   open: boolean;
@@ -60,7 +61,7 @@ export default function SettingsModal({
               <Label className="text-small font-medium">Design</Label>
               <p className="text-micro text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
               <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -68,6 +69,15 @@ export default function SettingsModal({
                   <SelectItem value="dark">Dunkel</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-small font-medium">Farbwelt</Label>
+              <p className="text-micro text-muted-foreground">
+                Die Akzentfarbe der Seite. Gr&uuml;n, Gelb und Rot der Ratebalken bleiben in jeder
+                Farbwelt gleich, damit ein geteiltes Ergebnis lesbar bleibt.
+              </p>
+              <PalettePicker />
             </div>
           </section>
 
@@ -82,7 +92,7 @@ export default function SettingsModal({
               <Label className="text-small font-medium">Sortierung</Label>
               <p className="text-micro text-muted-foreground">Reihenfolge der geratenen W&ouml;rter in der Liste</p>
               <Select value={sortMode} onValueChange={(v) => onSortModeChange(v as SortMode)}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,7 +106,7 @@ export default function SettingsModal({
               <Label className="text-small font-medium">Schwierigkeitsgrad</Label>
               <p className="text-micro text-muted-foreground">Bestimmt wie nah die Tipps am Zielwort sind</p>
               <Select value={difficulty} onValueChange={(v) => onDifficultyChange(v as Difficulty)}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

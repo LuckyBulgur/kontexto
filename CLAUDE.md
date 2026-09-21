@@ -123,6 +123,19 @@ Ratebalken für alle Modi), `ResultHero` und `ResultList`/`ResultRow` (alle fün
 `.checks/`. Details und die Begründungen: `.claude/rules/frontend/no-slop.md`, Abschnitt
 „Designsystem“.
 
+**Farbwelten** (`lib/palette.ts`, `lib/use-palette.ts`, `components/PalettePicker.tsx`): die
+Akzentfarbe ist einstellbar, unabhängig von hell und dunkel. Fünf Stück, `tinte` (Vorgabe),
+`beere`, `indigo`, `petrol` und `klassisch` (das Grau von vor dem Redesign). Eine Farbwelt
+ändert **nur Farbe**: Radius, Skala, Schrift und Aufbau sind in allen gleich, sonst wäre es ein
+zweites Frontend. Die Werte stehen in `app/globals.css` unter `[data-palette="…"]` plus
+`.dark[data-palette="…"]`; das Attribut setzt `PALETTE_SCRIPT` inline im `<head>`, sonst blitzt
+beim Laden die Vorgabe auf. **Die Rang-Rampe wird nie überschrieben**, weil der geteilte
+Ergebnistext sie als Emoji-Quadrate buchstabiert; nur `--rank-track` und `--rank-foreground`
+wandern mit. Achtung bei neuen Farbwelten: `.dark` und `[data-palette]` haben dieselbe
+Spezifität, eine Farbwelt braucht deshalb **immer beide Blöcke**, auch die Vorgabe. Geprüft von
+`e2e/palette.spec.ts` und vom Kontrastlauf in `e2e/design-audit.spec.ts`, der alle fünf in beiden
+Modi misst.
+
 ### shadcn/ui: the full set is vendored
 `frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),
 not only the ones in use. They are vendored source, not a dependency, so an unused file

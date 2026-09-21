@@ -13,6 +13,7 @@ import MotionProvider from "@/components/motion/MotionProvider";
 import EventBackdrop from "@/components/event/EventBackdrop";
 import EventBanner from "@/components/event/EventBanner";
 import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
+import { PALETTE_SCRIPT } from "@/lib/palette";
 import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var t=localStorage.getItem("kontexto_theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: PALETTE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: EVENT_THEME_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">

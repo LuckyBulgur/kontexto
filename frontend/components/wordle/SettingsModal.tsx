@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEventTheme } from "@/lib/use-event-theme";
+import PalettePicker from "@/components/PalettePicker";
 
 interface SettingsModalProps {
   open: boolean;
@@ -36,7 +37,7 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           <Label className="text-small font-medium">Design</Label>
           <p className="text-micro text-muted-foreground">Wechsle zwischen hellem und dunklem Design</p>
           <Select value={theme} onValueChange={(v) => onThemeChange(v as "light" | "dark")}>
-            <SelectTrigger className="mt-1">
+            <SelectTrigger className="mt-1 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -44,6 +45,14 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
               <SelectItem value="dark">Dunkel</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2 py-2">
+          <Label className="text-small font-medium">Farbwelt</Label>
+          <p className="text-micro text-muted-foreground">
+            Die Akzentfarbe der Seite. Die W&ouml;rdle-Kacheln bleiben in jeder Farbwelt gleich.
+          </p>
+          <PalettePicker />
         </div>
 
         <div className="flex items-center justify-between py-3 border-t border-border">
