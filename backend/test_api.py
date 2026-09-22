@@ -301,3 +301,53 @@ class TestPopularModesEndpoint:
         # The dialog asks which mode is popular. How much traffic this site has
         # is a different question and is not answered here.
         assert set(body) == {"solo", "friends", "strangers", "window_days"}
+
+
+class TestWordRatingEndpoint:
+    """The tally endpoint, and the one gate that reads differently from reveal.
+
+    ``_resolve_game_number`` refuses a game named by number once its date is
+    today or later, which is right for reveal: naming today would hand out the
+    answer the daily player is still looking for. A tally of three numbers hands
+    out nothing, and today's puzzle is the one everybody is voting on, so it has
+    to be readable. It was not, and the first local run found it.
+    """
+
+    def test_todays_game_is_readable_by_number(self, client):
+        # KONTEXTO_FORCE_GAME pins the daily to 1, so this is today's puzzle.
+        resp = client.get("/api/rating?game=1")
+        assert resp.status_code == 200
+        assert resp.json()["game_number"] == 1
+
+    def test_todays_game_is_readable_without_a_number(self, client):
+        resp = client.get("/api/rating")
+        assert resp.status_code == 200
+        assert resp.json()["game_number"] == 1
+
+    def test_a_game_the_resolver_refuses_is_refused_here_too(self, client):
+        """Everything except today still goes through _resolve_game_number.
+
+        The fixture pool starts on 2026-01-01 and holds two games, so it cannot
+        produce a game whose date is in the future; the out-of-range case is the
+        one this fixture can state. The date gate itself belongs to
+        _resolve_game_number and is held where that is tested.
+        """
+        resp = client.get("/api/rating?game=9999")
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "invalid_game"
+
+    def test_the_tally_starts_silent(self, client):
+        data = client.get("/api/rating").json()
+        assert data["total"] == 0
+        assert data["enough"] is False
+
+    def test_a_vote_without_a_token_is_not_an_error(self, client):
+        resp = client.post("/api/rating",
+                           json={"token": "garbage", "game_number": 1, "verdict": "hard"})
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": False}
+
+    def test_an_unknown_verdict_is_a_validation_error(self, client):
+        resp = client.post("/api/rating",
+                           json={"token": "x", "game_number": 1, "verdict": "grandios"})
+        assert resp.status_code == 422

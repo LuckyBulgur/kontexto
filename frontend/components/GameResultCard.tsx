@@ -16,6 +16,11 @@ interface GameResultCardProps {
   /** Attribution survey, rendered below the share button. The page decides
    * whether it may ask at all (`useSourceSurvey`), the card only places it. */
   survey?: ReactNode;
+  /** Word rating, rendered above the survey. Same division of labour: the page
+   * decides whether it may ask (`useWordRating`), the card only places it. It
+   * stands first because it is about the round that just ended, while the
+   * survey is about the visitor. */
+  rating?: ReactNode;
   /** Endless-mode props. When `infinite` is set the card swaps the daily-streak
    * block + "Vorherige Spiele" button for a session counter and a prominent
    * "Nächstes Spiel" action. */
@@ -50,7 +55,7 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
+export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, rating, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
   const streak = loadStreakData();
 
   const givenUp = !isWin;
@@ -105,6 +110,7 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         ) : null}
       </div>
 
+      {rating}
       {survey}
 
       <div className="flex flex-col gap-3 border-t border-border pt-4">

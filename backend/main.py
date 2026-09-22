@@ -21,7 +21,7 @@ from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
     RegisterOptionsRequest, RegisterVerifyRequest, ShareClickRequest,
-    SurveyAnswerRequest, WebAuthnVerifyRequest,
+    SurveyAnswerRequest, WebAuthnVerifyRequest, WordRatingRequest, WordRatingSummary,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -1768,6 +1768,96 @@ async def popular_modes_endpoint():
         return payload
 
 
+
+# The tally moves with a day of play, so a five minute cache keeps a page
+# reloaded ten times off the database. Per worker and per game number, like the
+# popular-modes cache above: four copies of a read-only answer cost nothing and
+# share no state.
+RATING_CACHE_TTL = 300.0
+_rating_cache: dict[int, tuple[float, dict]] = {}
+_rating_cache_lock = asyncio.Lock()
+
+
+@app.post("/api/rating", response_model=BeaconResponse)
+async def word_rating(req: WordRatingRequest, request: Request):
+    """Record one vote on how a solution word played.
+
+    The only metric this project takes from the player rather than from a
+    handler, and the posture is the one the distribution histograms use: a
+    fingerprint-bound token, a bot filter, a validated enum payload and a dedup
+    ledger. It touches no authoritative counter.
+
+    A rejected vote returns ok=false rather than an error, exactly like the
+    survey: a duplicate or an expired token is nothing the visitor could act on,
+    and an error would tell a prober which of the two it was.
+    """
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_word_rating(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            token=req.token,
+            game_number=req.game_number,
+            verdict=req.verdict,
+            reason=req.reason,
+            detail=req.detail,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.get("/api/rating", response_model=WordRatingSummary)
+async def word_rating_summary(
+    game: int | None = Query(None),
+    infinite: bool = Query(False),
+):
+    """How the others voted on this word.
+
+    The game number goes through the same gate as reveal, so a future puzzle is
+    refused here too. The tally is the answer to a round that is over, and a
+    round that has not happened has no tally worth probing for.
+    """
+    daily = _get_current_game_number()
+    if game is None or game == daily:
+        # Today's puzzle is the one everybody is voting on, and _resolve_game_number
+        # refuses it by number: its date gate stops a caller naming today or later,
+        # which is right for reveal and wrong here. A tally of three numbers says
+        # nothing about the word, so today is let through and the future is not.
+        game_num = daily
+    else:
+        try:
+            game_num = _resolve_game_number(game, infinite=infinite)
+        except ValueError as e:
+            return JSONResponse(status_code=400,
+                                content={"error": "invalid_game", "message": str(e)})
+
+    now = time.monotonic()
+    cached = _rating_cache.get(game_num)
+    if cached and now - cached[0] < RATING_CACHE_TTL:
+        return cached[1]
+
+    async with _rating_cache_lock:
+        cached = _rating_cache.get(game_num)
+        now = time.monotonic()
+        if cached and now - cached[0] < RATING_CACHE_TTL:
+            return cached[1]
+
+        db = await get_db(_db_path)
+        try:
+            payload = await analytics.get_rating_summary(db, game_num)
+        finally:
+            await db.close()
+
+        # Bounded so a crawler walking every game number cannot grow it without
+        # limit; the daily word is the only one anybody asks for twice.
+        if len(_rating_cache) > 512:
+            _rating_cache.clear()
+        _rating_cache[game_num] = (time.monotonic(), payload)
+        return payload
+
 @app.post("/api/matchmaking/cancel", response_model=BeaconResponse)
 async def matchmaking_cancel(req: MatchmakingCancelRequest):
     db = await get_db(_db_path)
@@ -2225,7 +2315,8 @@ async def admin_stats(authorization: str = Header(default="")):
     await analytics.flush_counters()
     db = await get_db(_db_path)
     try:
-        stats = await analytics.get_stats(db, _now())
+        stats = await analytics.get_stats(
+            db, _now(), target_words=_get_game_state().target_words)
         # Live chat mode keeps its own per-channel book, because the unit its
         # figures are about is a channel and not a day.
         stats["live_streams"] = {

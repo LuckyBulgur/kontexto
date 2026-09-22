@@ -407,6 +407,39 @@ CREATE TABLE IF NOT EXISTS analytics_survey_details (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_survey_details_ts ON analytics_survey_details(ts);
 
+-- Analytics: dedup ledger for the post-round word rating. One vote per visitor
+-- per game number, which is what makes the tally a count of people rather than
+-- a count of rounds: the random modes let the same person meet the same word
+-- again, and a second opinion on the same word from the same person is not new
+-- evidence. Retention matches the survey ledger for the same reason
+-- (RATING_SEEN_RETENTION_DAYS): by then the monthly fingerprint salt has
+-- rotated so often that the row cannot match anybody anyway.
+CREATE TABLE IF NOT EXISTS analytics_rating_seen (
+    fp_hash TEXT NOT NULL,
+    game_number INTEGER NOT NULL,
+    detail_done INTEGER NOT NULL DEFAULT 0,
+    ts TIMESTAMP NOT NULL,
+    PRIMARY KEY (fp_hash, game_number)
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_rating_seen_ts ON analytics_rating_seen(ts);
+
+-- Analytics: the optional free text of a word rating, stored without fp_hash so
+-- a comment can never be linked back to a visitor, exactly like the survey
+-- details above. The countable vote lives in analytics_counters (metric
+-- word_rating_v1), so this table is purely qualitative and read by a human when
+-- a word looks wrong in the dashboard. Permanent, never pruned.
+CREATE TABLE IF NOT EXISTS analytics_rating_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_number INTEGER NOT NULL,
+    verdict TEXT NOT NULL,
+    reason TEXT,
+    detail TEXT NOT NULL,
+    date TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_rating_details_game
+    ON analytics_rating_details(game_number);
+
 -- Analytics: live-presence heartbeats (one row per active visitor fingerprint).
 -- Each open page upserts its fp_hash + last_seen on a short interval; the live
 -- "currently online" count is COUNT(*) of rows whose last_seen is within the

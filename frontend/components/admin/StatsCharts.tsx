@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb,
-  MessageCircleQuestion, PartyPopper, Repeat, Share2, Sparkles, Target, TrendingUp,
+  MessageCircleQuestion, PartyPopper, Repeat, Share2, Sparkles, Target, ThumbsUp, TrendingUp,
   Trophy, Type, Users, Wrench, type LucideIcon,
 } from "lucide-react";
 import {
@@ -21,6 +21,7 @@ import {
   sliceTimeline, sumTimeline, type RangeKey,
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
+import WordQuality from "@/components/admin/WordQuality";
 import {
   formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, fullDate, greeting,
   shortMonth, trend,
@@ -608,6 +609,10 @@ function WordsSection({ stats }: SectionProps) {
   );
 }
 
+function WordQualitySection({ stats }: SectionProps) {
+  return <WordQuality stats={stats} />;
+}
+
 /** Milestone progress bars. */
 function MilestonesSection({ stats }: SectionProps) {
   return <Milestones stats={stats} />;
@@ -708,6 +713,12 @@ const SECTIONS: SectionDef[] = [
   {
     id: "words", group: "SPIEL", label: "Wörter", icon: Type,
     description: "Was geraten wird und welche Lösungswörter schwerfallen", Component: WordsSection,
+  },
+  {
+    id: "word-quality", group: "SPIEL", label: "Wortqualität", icon: ThumbsUp,
+    title: "Was die Spieler über die Wörter sagen",
+    description: "Freiwillige Bewertung nach jeder Runde, ohne Besucherbezug",
+    Component: WordQualitySection,
   },
   {
     id: "milestones", group: "SYSTEM", label: "Meilensteine", icon: PartyPopper,

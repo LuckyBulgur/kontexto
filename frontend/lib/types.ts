@@ -157,6 +157,53 @@ export interface SurveyStats {
   total: number;
 }
 
+/** One rated solution word, as the dashboard reads it. */
+export interface WordRatingEntry {
+  game_number: number;
+  /** The played solution, or null when the payload carried no word list. */
+  word: string | null;
+  votes: number;
+  verdicts: Record<"easy" | "right" | "hard", number>;
+  reasons: Record<"unknown_word" | "no_idea" | "bad_neighbours", number>;
+  share_hard: number;
+  share_easy: number;
+  share_right: number;
+  /** The share that said they did not know the word at all. This is the figure
+   *  that decides whether a word leaves the pool; a high share_hard on its own
+   *  only says the round was long, which the guess count already says. */
+  share_unknown: number;
+  played_guesses?: number;
+  played_solves?: number;
+  played_reveals?: number;
+  played_hints?: number;
+}
+
+export interface WordRatingDetailEntry {
+  game_number: number;
+  word: string | null;
+  verdict: string;
+  reason: string | null;
+  detail: string;
+  date: string;
+}
+
+export interface WordRatingStats {
+  /** Votes a word needs before it appears in a ranking here. */
+  min_votes: number;
+  /** The higher threshold the player-facing tally uses. */
+  player_min_votes: number;
+  pool_size: number;
+  games_with_any_vote: number;
+  games_rated: number;
+  votes_total: number;
+  verdicts: Record<"easy" | "right" | "hard", number>;
+  reasons: Record<"unknown_word" | "no_idea" | "bad_neighbours", number>;
+  removal_candidates: WordRatingEntry[];
+  too_easy: WordRatingEntry[];
+  rated: WordRatingEntry[];
+  details: WordRatingDetailEntry[];
+}
+
 /** Started versus finished games (modes that report a start). */
 export interface FunnelStats {
   starts_by_mode: Record<string, number>;
@@ -239,6 +286,7 @@ export interface StatsData {
   monthly: MonthlyPoint[];
   /** Self-reported attribution ("Woher kennst du Kontexto?"). */
   survey: SurveyStats;
+  word_ratings: WordRatingStats;
   funnel: FunnelStats;
   sharing: SharingStats;
   attention: AttentionStats;

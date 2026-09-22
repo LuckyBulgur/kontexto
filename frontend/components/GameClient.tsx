@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import { prefersReducedMotion } from "@/lib/use-reduced-motion";
 import Header from "@/components/Header";
@@ -16,6 +16,7 @@ import GameResultCard from "@/components/GameResultCard";
 import ClosestWordsDialog from "@/components/ClosestWordsDialog";
 import StatsDialog from "@/components/StatsDialog";
 import SourceSurvey from "@/components/SourceSurvey";
+import WordRating from "@/components/WordRating";
 import SourceSurveyDialog from "@/components/SourceSurveyDialog";
 import { AdUnit } from "@/components/AdUnit";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ import { loadGameState, saveGameState, loadTheme, saveTheme, loadDifficulty, sav
 import { updateKontextoStatsAfterGame } from "@/lib/kontexto-stats";
 import { reportCompletion } from "@/lib/analytics";
 import { useSourceSurvey } from "@/lib/survey";
+import { useWordRating } from "@/lib/word-rating";
+import { submitWordRating, fetchWordRatingSummary } from "@/lib/analytics";
 import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
@@ -411,6 +414,21 @@ export default function GameClient() {
   // one-time modal or the quiet inline fallback may ask; this is just the trigger.
   const survey = useSourceSurvey(gameOver && showResult && pastGame === null);
 
+  // One transport object, kept stable, because the hook depends on it and a new
+  // object every render would restart its effects.
+  const ratingTransport = useMemo(
+    () => ({
+      submit: submitWordRating,
+      summary: (game: number) => fetchWordRatingSummary(game, infinite),
+    }),
+    [infinite],
+  );
+  // Asked on every finished round, the daily puzzle and the random modes alike,
+  // and after a give-up as much as after a solve: a word nobody solved is the
+  // strongest evidence there is, and leaving those votes out would bias the
+  // data towards the words that already work.
+  const rating = useWordRating(gameOver && showResult, gameNumber, ratingTransport);
+
   // Both the loading skeleton and the game container share a viewport-height
   // reserve so the "Laden…" → game swap doesn't cause a Cumulative Layout Shift
   // (CLS), and the editorial content stays below the first game viewport.
@@ -452,6 +470,7 @@ export default function GameClient() {
               isWin={isWin}
               onOpenPastGames={() => setShowPastGames(true)}
               onOpenClosestWords={() => setShowClosestWords(true)}
+              rating={<WordRating prompt={rating} />}
               survey={survey.showInline ? (
                 <SourceSurvey onAnswered={survey.onAnswered} onSkipped={survey.onSkipped} />
               ) : undefined}

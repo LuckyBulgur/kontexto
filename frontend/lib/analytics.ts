@@ -66,6 +66,7 @@ export async function sendHeartbeat(page: string, visible = false): Promise<void
 
 import type { CompletionPayload } from "./types";
 import type { SurveySource } from "./survey";
+import type { RatingReason, RatingSummary, RatingVerdict } from "./word-rating";
 
 // Reports a finished game (solved or given up) to feed the server-side
 // distribution histograms (attempts, time-to-solve, give-up rank). Only
@@ -127,5 +128,52 @@ export async function reportShare(mode: "kontexto" | "infinite" | "wordle"): Pro
     });
   } catch {
     // Analytics must never disrupt the user experience.
+  }
+}
+
+// One vote on how a solution word played. Called up to three times for the same
+// round: the verdict, the reason behind a "too hard", and the optional free
+// text. The server dedups per fingerprint and game, so only the first call
+// counts and the later ones can only add the reason and the comment.
+export async function submitWordRating(vote: {
+  gameNumber: number;
+  verdict: RatingVerdict;
+  reason?: RatingReason;
+  detail?: string;
+}): Promise<void> {
+  try {
+    const t = await ensureToken();
+    if (!t) return;
+    await fetch(`${API_BASE}/rating`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: t,
+        game_number: vote.gameNumber,
+        verdict: vote.verdict,
+        reason: vote.reason ?? null,
+        detail: vote.detail?.trim() ? vote.detail.trim().slice(0, 80) : null,
+      }),
+      keepalive: true,
+    });
+  } catch {
+    // Analytics must never disrupt the user experience.
+  }
+}
+
+// How the others voted. Returns null when the round is unknown or the server is
+// unreachable; the card then shows nothing rather than an empty bar chart.
+export async function fetchWordRatingSummary(
+  gameNumber: number,
+  infinite = false,
+): Promise<RatingSummary | null> {
+  try {
+    const query = new URLSearchParams({ game: String(gameNumber) });
+    if (infinite) query.set("infinite", "true");
+    const res = await fetch(`${API_BASE}/rating?${query.toString()}`);
+    if (!res.ok) return null;
+    return (await res.json()) as RatingSummary;
+  } catch {
+    return null;
   }
 }

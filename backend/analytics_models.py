@@ -82,6 +82,38 @@ class SurveyAnswerRequest(BaseModel):
     detail: str | None = Field(default=None, max_length=80)
 
 
+class WordRatingRequest(BaseModel):
+    """One vote on how a solution word played.
+
+    Sent twice at most, exactly like the attribution survey: once on the tap, and
+    once more if the optional free text gets filled in afterwards. The server
+    dedups both halves per fingerprint and game, so a replay adds nothing.
+
+    `reason` only means anything next to the "hard" verdict; sent with any other
+    it is dropped server-side rather than rejected, because a client that sends
+    it is confused and not hostile.
+    """
+
+    token: str = Field(..., max_length=64)
+    game_number: int = Field(..., ge=1, le=1_000_000)
+    verdict: Literal["easy", "right", "hard"]
+    reason: Literal["unknown_word", "no_idea", "bad_neighbours"] | None = None
+    detail: str | None = Field(default=None, max_length=80)
+
+
+class WordRatingSummary(BaseModel):
+    """The tally handed back after a vote.
+
+    `enough` is false below the threshold and the counts are then all zero, so a
+    client cannot render a percentage out of four votes even by mistake.
+    """
+
+    game_number: int
+    total: int
+    enough: bool
+    counts: dict[str, int]
+
+
 class AdminSessionResponse(BaseModel):
     token: str
 
