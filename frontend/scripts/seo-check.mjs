@@ -180,7 +180,7 @@ for (const path of ["/", "/faq/", "/wordle/", "/blog/"]) {
 // nicht dazu, weil sie noindex sind.
 const expectedStaticSitemapPaths = [
   "/", "/wordle/", "/duel/", "/koop/", "/wordle/duel/",
-  "/modi/", "/arena/",
+  "/modi/", "/arena/", "/live/",
   "/solo/leiter/", "/solo/limit/", "/solo/doppelziel/", "/solo/sudden-death/",
   "/faq/", "/anleitung/", "/strategie/", "/vergleich/", "/glossar/",
   "/ueber/", "/redaktion/", "/blog/", "/zahlen/", "/changelog/",
@@ -232,6 +232,7 @@ const contentPages = [
   { file: "koop/index.html", path: "/koop/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "modi/index.html", path: "/modi/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "arena/index.html", path: "/arena/", minWords: 600, schema: '"@type":"FAQPage"' },
+  { file: "live/index.html", path: "/live/", minWords: 600, schema: '"@type":"FAQPage"' },
 ];
 for (const p of contentPages) {
   const html = await read(p.file);
@@ -358,6 +359,9 @@ const functionalPages = [
   ["duel/create/index.html", "/duel/create/"],
   ["koop/create/index.html", "/koop/create/"],
   ["wordle/duel/create/index.html", "/wordle/duel/create/"],
+  // Die OBS-Einblendung ist keine Seite zum Lesen: sie traegt ein Raum-Token in
+  // der Query und zeigt genau ein Brett.
+  ["live/overlay/index.html", "/live/overlay/"],
 ];
 for (const [file, path] of functionalPages) {
   const html = await read(file);

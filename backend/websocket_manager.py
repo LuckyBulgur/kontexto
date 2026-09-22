@@ -424,6 +424,20 @@ class KoopConnectionManager:
         db = await get_db(db_path)
         try:
             await set_koop_player_connected(db, player_token, True)
+            # Seed here rather than on the first poll tick. The loop only looks
+            # at rooms that have a connection, so a room seeded on the next tick
+            # takes its high-water mark up to a second AFTER this socket opened,
+            # and anything written in that second is marked as already known and
+            # never broadcast. For a koop that is a rare lost row; for the stream
+            # chat, where guesses arrive constantly, it is the first word the
+            # chat typed after the host opened the page.
+            if koop_id not in self._known_state:
+                cursor = await db.execute(
+                    "SELECT solved, solved_by, gave_up, round FROM koops WHERE id = ?",
+                    (koop_id,),
+                )
+                koop = await cursor.fetchone()
+                self._known_state[koop_id] = await self._seed_state(db, koop_id, koop)
         finally:
             await db.close()
 
@@ -447,6 +461,34 @@ class KoopConnectionManager:
         if not conns:
             return
         await _send_to_all(conns, message, exclude_token)
+
+    async def push_guess(self, koop_id: str, guess: dict) -> None:
+        """Send one freshly written guess now, instead of at the next tick.
+
+        The poll loop is a second wide, which is fine when a guess arrives with
+        the HTTP response that also caused it: the player who typed already has
+        it. A guess from a stream chat has no such response anywhere, so that
+        second is the whole latency, and on a stream it reads as a board that
+        lags behind the chat it is showing.
+
+        Only a writer in this process can use this, which today means the chat
+        ingest, and that runs in this very worker. The high-water mark is moved
+        along with it so the poll does not send the same row a second time.
+        """
+        state = self._known_state.get(koop_id)
+        if state is not None and guess["id"] > state["last_guess_id"]:
+            state["last_guess_id"] = guess["id"]
+        await self.broadcast(
+            koop_id,
+            {
+                "type": "guess_added",
+                "nickname": guess["nickname"],
+                "word": guess["word"],
+                "rank": guess["rank"],
+                "is_tip": bool(guess["is_tip"]),
+            },
+            exclude_token=guess.get("player_token"),
+        )
 
     async def poll_and_broadcast(self, db_path: str) -> None:
         """Poll SQLite for changes and broadcast updates. Runs as background task."""

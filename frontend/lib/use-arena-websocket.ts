@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArenaWsMessage } from "./arena-types";
-
-const WS_BASE =
-  typeof window !== "undefined"
-    ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`
-    : "";
+import { wsBase } from "./ws-base";
 
 interface UseArenaWebSocketOptions {
   arenaId: string | null;
@@ -27,7 +23,7 @@ export function useArenaWebSocket({ arenaId, token, onMessage }: UseArenaWebSock
   useEffect(() => {
     if (!arenaId || !token) return;
 
-    const url = `${WS_BASE}/arena/${arenaId}?token=${token}`;
+    const url = `${wsBase()}/arena/${arenaId}?token=${token}`;
     let ws: WebSocket;
     let reconnectTimeout: ReturnType<typeof setTimeout>;
     let unmounted = false;

@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DuelWsMessage } from "./duel-types";
-
-const WS_BASE =
-  typeof window !== "undefined"
-    ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`
-    : "";
+import { wsBase } from "./ws-base";
 
 interface UseDuelWebSocketOptions {
   duelId: string | null;
@@ -27,7 +23,7 @@ export function useDuelWebSocket({
   useEffect(() => {
     if (!duelId || !token) return;
 
-    const url = `${WS_BASE}/duel/${duelId}?token=${token}`;
+    const url = `${wsBase()}/duel/${duelId}?token=${token}`;
     let ws: WebSocket;
     let reconnectTimeout: ReturnType<typeof setTimeout>;
     let unmounted = false;

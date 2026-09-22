@@ -280,6 +280,93 @@ class KoopGuessesResponse(BaseModel):
     guesses: list[KoopGuessEntry]
 
 
+# --- Live chat (a stream chat plays a koop round) ---
+
+
+class CreateLiveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    platform: Literal["twitch"] = "twitch"
+    # A channel name, a handle or a pasted URL; the server normalises it and
+    # refuses anything the platform could not have as a login.
+    channel: str = Field(..., min_length=1, max_length=120)
+    game_source: RoomGameSource = "random"
+    # Optional, and normally absent. The streamer already has a name on screen,
+    # their channel, and asking for a second one would be a field that exists
+    # only to be filled in. It stays available for the rare host who wants to
+    # appear under something else than the channel they are streaming to.
+    nickname: str | None = Field(default=None, min_length=1, max_length=20)
+    tips_allowed: bool = True
+    # Free guessing is the default: a single word in chat counts. A streamer with
+    # a busy chat turns this on and only `!k wort` counts.
+    require_prefix: bool = False
+
+
+class LiveViewer(BaseModel):
+    nickname: str
+    hits: int
+    best_rank: int | None
+
+
+class LiveRoomResponse(BaseModel):
+    """What the host sees about the chat connection. No puzzle data at all."""
+
+    koop_id: str
+    platform: str
+    channel: str
+    require_prefix: bool
+    chat_state: str
+    chat_error: str | None = None
+    overlay_token: str
+    top: list[LiveViewer] = []
+
+
+class CreateLiveResponse(LiveRoomResponse):
+    player_token: str
+
+
+class LiveStopRequest(BaseModel):
+    player_token: str
+
+
+class LiveStopResponse(BaseModel):
+    stopped: bool
+
+
+class LiveOverlayGuess(BaseModel):
+    nickname: str
+    word: str
+    rank: int
+    is_tip: bool
+
+
+class LiveOverlayResponse(BaseModel):
+    """The OBS overlay's whole world.
+
+    Deliberately without `game_number` and without the target word: this view is
+    on a public stream, and the number is the answer (see rooms.py).
+    """
+
+    round: int
+    best_rank: int | None
+    total: int
+    solved: bool
+    solved_by: str | None
+    gave_up: bool
+    chat_state: str
+    channel: str | None
+    recent: list[LiveOverlayGuess]
+    top: list[LiveViewer]
+
+
+class LiveDebugMessageRequest(BaseModel):
+    """One faked chat line, for the end-to-end suite. See main.py."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    external_id: str = Field(..., min_length=1, max_length=64)
+    display_name: str = Field(..., min_length=1, max_length=64)
+    text: str = Field(..., min_length=1, max_length=500)
 
 
 # --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
@@ -404,6 +491,19 @@ class ModeLoad(BaseModel):
     waiting: int
     # Players connected to a live room of this mode, invite links included.
     playing: int
+
+
+class PopularModesResponse(BaseModel):
+    """Which mode leads each tab of the picker over the last `window_days`.
+
+    A group is null while too few people have picked anything there, and while
+    its leader is tied with the runner-up. The client shows no badge then, which
+    is the whole point of the field being nullable rather than a best guess.
+    """
+    solo: str | None = None
+    friends: str | None = None
+    strangers: str | None = None
+    window_days: int
 
 
 class MatchmakingLiveResponse(BaseModel):

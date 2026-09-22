@@ -88,6 +88,17 @@ test.describe("design audit", () => {
           { pair: "primary-foreground on primary", ratio: ratio(v("--primary-foreground"), v("--primary")) },
           { pair: "primary-ink on background", ratio: ratio(v("--primary-ink"), bg) },
           { pair: "primary-ink on card", ratio: ratio(v("--primary-ink"), card) },
+          {
+            // The "Beliebt" badge in the mode picker: accent ink on a ten
+            // percent accent tint, which itself sits on the card. The tint has
+            // to be flattened against the card before the ratio means anything,
+            // exactly as the guess bar's track is below.
+            pair: "primary-ink on primary tint",
+            ratio: ratio(
+              v("--primary-ink"),
+              `color-mix(in srgb, ${v("--primary")} 10%, ${card})`,
+            ),
+          },
         ];
         for (const tone of ["near", "mid", "far"]) {
           out.push({

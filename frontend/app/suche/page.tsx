@@ -1,5 +1,5 @@
 import MatchSearchClient from "@/components/matchmaking/MatchSearchClient";
-import { KONTEXTO_MULTIPLAYER_ORDER } from "@/lib/multiplayer-modes";
+import { KONTEXTO_QUEUE_ORDER } from "@/lib/multiplayer-modes";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
@@ -13,7 +13,7 @@ export default function MatchSearchPage() {
   return (
     <main>
       <MatchSearchClient
-        modes={KONTEXTO_MULTIPLAYER_ORDER}
+        modes={KONTEXTO_QUEUE_ORDER}
         game="kontexto"
         title="Gegen Fremde spielen"
         description="Kein Link, keine Verabredung. Modus wählen, kurz warten, losspielen."

@@ -8,7 +8,7 @@
  */
 
 import { ArenaModeId } from "./arena-types";
-import { QueueModeId } from "./matchmaking-types";
+import { MultiplayerModeId, QueueModeId } from "./matchmaking-types";
 import {
   BLITZ_SECONDS,
   ROYALE_MAX_PLAYERS,
@@ -18,7 +18,7 @@ import {
 } from "./arena-rules";
 
 export interface MultiplayerModeMeta {
-  id: QueueModeId;
+  id: MultiplayerModeId;
   /** Which of the two games this mode belongs to. Kontexto and Wordle have
    *  their own header, their own menu and their own way in, so a picker that
    *  mixed them would offer a round of a game the player is not in. */
@@ -35,12 +35,17 @@ export interface MultiplayerModeMeta {
   createHref: string | null;
   /** Whether this mode is one of the three timed arenas. */
   arena: boolean;
+  /** Whether the random queue serves this mode. False for the stream chat:
+   *  the streamer opens the room and the audience is already in it, so there
+   *  is no second party to wait for. */
+  queueable: boolean;
   /** Where the random queue for this mode is asked for. Wordle has its own
-   *  queue page, so the path is stored rather than assembled by each caller. */
-  queueHref: string;
+   *  queue page, so the path is stored rather than assembled by each caller.
+   *  Null for a mode the queue does not serve. */
+  queueHref: string | null;
 }
 
-export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
+export const MULTIPLAYER_MODES: Record<MultiplayerModeId, MultiplayerModeMeta> = {
   duel: {
     id: "duel",
     game: "kontexto",
@@ -54,6 +59,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/duel/create/",
     arena: false,
+    queueable: true,
     queueHref: "/suche/?modus=duel",
   },
   koop: {
@@ -69,6 +75,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/koop/create/",
     arena: false,
+    queueable: true,
     queueHref: "/suche/?modus=koop",
   },
   wordle_duel: {
@@ -84,6 +91,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/wordle/duel/create/",
     arena: false,
+    queueable: true,
     queueHref: "/wordle/suche/",
   },
   royale: {
@@ -100,6 +108,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=royale",
     arena: true,
+    queueable: true,
     queueHref: "/suche/?modus=royale",
   },
   blitz: {
@@ -115,6 +124,7 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=blitz",
     arena: true,
+    queueable: true,
     queueHref: "/suche/?modus=blitz",
   },
   timerush: {
@@ -131,30 +141,57 @@ export const MULTIPLAYER_MODES: Record<QueueModeId, MultiplayerModeMeta> = {
     ],
     createHref: "/arena/create/?modus=timerush",
     arena: true,
+    queueable: true,
     queueHref: "/suche/?modus=timerush",
+  },
+  live: {
+    id: "live",
+    game: "kontexto",
+    name: "Stream-Chat",
+    hook: "Dein Chat rät mit",
+    tagline: "Dein Twitch-Chat rät mit, ohne Anmeldung und ohne Link.",
+    rules: [
+      "Du trägst deinen Kanal ein, wir lesen den Chat mit.",
+      "Jede Nachricht aus einem einzigen Wort ist ein Versuch.",
+      "Alle raten auf einer gemeinsamen Liste, wie im Koop.",
+      "Für OBS gibt es eine eigene Einblendung.",
+    ],
+    createHref: "/live/",
+    arena: false,
+    queueable: false,
+    queueHref: null,
   },
 };
 
 /** Display order on the mode page: the established ones first. */
-export const MULTIPLAYER_MODE_ORDER: QueueModeId[] = [
+export const MULTIPLAYER_MODE_ORDER: MultiplayerModeId[] = [
   "duel",
   "koop",
   "wordle_duel",
   "royale",
   "blitz",
   "timerush",
+  "live",
 ];
 
 /** The modes Kontexto offers, so its picker and its create form never lead
  *  into the other game. Derived from the full order, because a second
  *  hand-written list is a list that drifts. */
-export const KONTEXTO_MULTIPLAYER_ORDER: QueueModeId[] = MULTIPLAYER_MODE_ORDER.filter(
+export const KONTEXTO_MULTIPLAYER_ORDER: MultiplayerModeId[] = MULTIPLAYER_MODE_ORDER.filter(
   (id) => MULTIPLAYER_MODES[id].game === "kontexto"
+);
+
+/** The Kontexto modes the random queue actually serves. The search page asks
+ *  for this one: a mode without a queue would sit there waiting for a partner
+ *  who is not coming. */
+export const KONTEXTO_QUEUE_ORDER: QueueModeId[] = KONTEXTO_MULTIPLAYER_ORDER.filter(
+  (id): id is QueueModeId => MULTIPLAYER_MODES[id].queueable
 );
 
 /** The same for Wordle, which today is the one duel. */
 export const WORDLE_MULTIPLAYER_ORDER: QueueModeId[] = MULTIPLAYER_MODE_ORDER.filter(
-  (id) => MULTIPLAYER_MODES[id].game === "wordle"
+  (id): id is QueueModeId =>
+    MULTIPLAYER_MODES[id].game === "wordle" && MULTIPLAYER_MODES[id].queueable
 );
 
 export const ARENA_MODE_ORDER: ArenaModeId[] = ["royale", "blitz", "timerush"];
@@ -164,5 +201,10 @@ export function isArenaMode(mode: string): mode is ArenaModeId {
 }
 
 export function isQueueMode(mode: string): mode is QueueModeId {
+  return mode in MULTIPLAYER_MODES && MULTIPLAYER_MODES[mode as MultiplayerModeId].queueable;
+}
+
+/** Whether the catalogue knows this mode at all, queue or no queue. */
+export function isMultiplayerMode(mode: string): mode is MultiplayerModeId {
   return mode in MULTIPLAYER_MODES;
 }

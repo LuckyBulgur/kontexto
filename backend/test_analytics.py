@@ -1561,3 +1561,100 @@ class TestGrowthFunnel:
         assert stats["sharing"]["arrivals_total"] == 1
         assert stats["sharing"]["arrivals_per_share"] == 1.0
         assert stats["attention"]["seconds_by_page"] == {"/": analytics.HEARTBEAT_SECONDS}
+
+
+class TestPopularModes:
+    """The badge in the mode picker: who leads each tab, and when nobody does."""
+
+    UA = "Mozilla/5.0 Chrome/120"
+
+    async def _pick(self, db_path, group, mode, times=1, now=JAN):
+        for _ in range(times):
+            await analytics.record_mode_pick(db_path, group, mode, now=now)
+
+    def _leaders(self, db_path, now=JAN, **kwargs):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                return await analytics.popular_modes(db, now=now, **kwargs)
+            finally:
+                await db.close()
+        return run(go())
+
+    def test_leader_per_group_is_named(self, db_path):
+        async def go():
+            await self._pick(db_path, "solo", "leiter", 30)
+            await self._pick(db_path, "solo", "limit", 5)
+            await self._pick(db_path, "friends", "koop", 25)
+            await self._pick(db_path, "friends", "duel", 24)
+            await self._pick(db_path, "strangers", "royale", 21)
+        run(go())
+        leaders = self._leaders(db_path)
+        assert leaders == {"solo": "leiter", "friends": "koop", "strangers": "royale"}
+
+    def test_same_mode_on_two_tabs_is_counted_apart(self, db_path):
+        # A duel against a friend and a duel against a stranger are different
+        # decisions; one tab must never decide the other's badge.
+        async def go():
+            await self._pick(db_path, "friends", "duel", 30)
+            await self._pick(db_path, "strangers", "koop", 30)
+        run(go())
+        leaders = self._leaders(db_path)
+        assert leaders["friends"] == "duel"
+        assert leaders["strangers"] == "koop"
+
+    def test_too_little_data_names_nobody(self, db_path):
+        run(self._pick(db_path, "solo", "leiter", analytics.POPULAR_MIN_PICKS - 1))
+        assert self._leaders(db_path)["solo"] is None
+
+    def test_a_tie_names_nobody(self, db_path):
+        async def go():
+            await self._pick(db_path, "solo", "leiter", 15)
+            await self._pick(db_path, "solo", "limit", 15)
+        run(go())
+        assert self._leaders(db_path)["solo"] is None
+
+    def test_picks_outside_the_window_do_not_count(self, db_path):
+        async def go():
+            await self._pick(db_path, "solo", "leiter", 40, now=JAN)
+            await self._pick(db_path, "solo", "limit", 25, now=FEB)
+        run(go())
+        # Read from FEB: January is more than POPULAR_WINDOW_DAYS ago.
+        assert self._leaders(db_path, now=FEB)["solo"] == "limit"
+
+    def test_unknown_group_or_mode_is_refused(self, db_path):
+        async def go():
+            bad_group = await analytics.record_mode_pick(db_path, "everyone", "duel", now=JAN)
+            bad_mode = await analytics.record_mode_pick(db_path, "solo", "duel", now=JAN)
+            # The daily game is the board, not a row in the picker.
+            board = await analytics.record_mode_pick(db_path, "solo", "kontexto", now=JAN)
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT COUNT(*) FROM analytics_counters WHERE metric = ?",
+                    (analytics.MODE_PICK_METRIC,))
+                return bad_group, bad_mode, board, (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == (False, False, False, 0)
+
+    def test_a_solo_start_is_a_solo_pick(self, db_path):
+        async def go():
+            await analytics.record_game_start(
+                db_path, ip="1.2.3.4", user_agent=self.UA,
+                mode="leiter", game_number=42, now=JAN)
+            # Same visitor, same game, twice more: the ledger caps it at one.
+            for _ in range(2):
+                await analytics.record_game_start(
+                    db_path, ip="1.2.3.4", user_agent=self.UA,
+                    mode="leiter", game_number=42, now=JAN)
+            db = await get_db(db_path)
+            try:
+                cur = await db.execute(
+                    "SELECT SUM(value) FROM analytics_counters "
+                    "WHERE metric = ? AND dimension = ?",
+                    (analytics.MODE_PICK_METRIC, "solo:leiter"))
+                return (await cur.fetchone())[0]
+            finally:
+                await db.close()
+        assert run(go()) == 1

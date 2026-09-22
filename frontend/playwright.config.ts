@@ -68,6 +68,10 @@ export default defineConfig({
       env: {
         KONTEXTO_DEV: "1",
         KONTEXTO_DATA_DIR: process.env.KONTEXTO_E2E_DATA_DIR ?? "../data-e2e",
+        // Live chat mode must not dial Twitch from a test run. The ingest still
+        // reconciles rooms and accepts messages, they just come from the
+        // dev-only debug endpoint instead of a socket. See backend/twitch_chat.py.
+        KONTEXTO_LIVE_OFFLINE: "1",
       },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,

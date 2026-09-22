@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -37,6 +38,8 @@ from koop import (
 )
 from koop import get_player_info as get_koop_player_info
 from koop import reveal_context as reveal_koop_context
+import live_chat
+from twitch_chat import current_ingest as current_live_ingest, run_live_chat
 from arena import (
     ArenaGuessRefused, advance_arena_game, cleanup_stale_arenas, create_arena,
     get_arena_state, join_arena, record_arena_guess, start_arena,
@@ -67,10 +70,14 @@ from models import (
     KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
     KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
     RoomRevealRequest, RoomRevealResponse,
+    CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
+    LiveStopRequest, LiveStopResponse, LiveOverlayResponse,
+    LiveDebugMessageRequest,
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
     ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
     MatchmakingEnqueueRequest, MatchmakingTicketResponse,
     MatchmakingStatusResponse, MatchmakingCancelRequest, MatchmakingLiveResponse,
+    PopularModesResponse,
 )
 from websocket_manager import (
     manager as ws_manager,
@@ -291,6 +298,10 @@ async def lifespan(app: FastAPI):
         tasks.append(asyncio.create_task(arena_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_matchmaking_loop()))
         tasks.append(asyncio.create_task(_cleanup_loop()))
+        # Live chat mode. Here and only here, like every other loop: four API
+        # workers would open four connections to the same chat and count every
+        # message four times.
+        tasks.append(asyncio.create_task(run_live_chat(_db_path, _resolve_room_guess)))
         # Exactly one worker (KONTEXTO_WS_MODE) runs analytics aggregation/pruning.
         # Log it so a misconfiguration where it runs nowhere is immediately visible
         # at startup: rollups never built, raw events never pruned.
@@ -693,6 +704,7 @@ async def create_duel_endpoint(req: CreateDuelRequest):
     try:
         result = await create_duel(db, game_number, req.nickname, req.tips_allowed)
         await analytics.record_action(_db_path, "duels_created", "kontexto")
+        await analytics.record_mode_pick(_db_path, "friends", "duel")
         return result
     finally:
         await db.close()
@@ -899,6 +911,7 @@ async def create_koop_endpoint(req: CreateKoopRequest):
     try:
         result = await create_koop(db, game_number, req.nickname, req.tips_allowed)
         await analytics.record_action(_db_path, "koops_created", "kontexto")
+        await analytics.record_mode_pick(_db_path, "friends", "koop")
         return result
     finally:
         await db.close()
@@ -1154,6 +1167,184 @@ async def koop_websocket(websocket: WebSocket, koop_id: str, token: str = Query(
         await koop_ws_manager.disconnect(koop_id, token, _db_path)
 
 
+# --- Live chat endpoints (a stream chat plays a koop round) ---
+#
+# Deliberately four endpoints and not a second set of game endpoints: a live room
+# IS a koop room, so playing, tipping, giving up, the next round and the reveal
+# all go through /api/koop/... with the host's token. What is here is the binding
+# of a room to a channel and the read the OBS overlay polls.
+
+
+def _resolve_room_guess(game_number: int, word: str) -> dict | None:
+    """The word-to-rank path a room guess takes, for callers without a request.
+
+    The chat ingest has no HTTP response to shape, so the three outcomes the koop
+    handler distinguishes (stopword, unknown word, a rank) collapse into two:
+    a result, or nothing. Keeping it next to that handler is the point, so the
+    two cannot drift apart.
+    """
+    gs = _get_game_state()
+    gs.load_game(game_number)
+    if gs.is_stopword(word):
+        return None
+    return gs.guess(word, game_number)
+
+
+def _live_room_payload(room: dict, top: list[dict]) -> dict:
+    return {
+        "koop_id": room["koop_id"],
+        "platform": room["platform"],
+        "channel": room["channel"],
+        "require_prefix": room["require_prefix"],
+        "chat_state": room["chat_state"],
+        "chat_error": room["chat_error"],
+        "overlay_token": room["overlay_token"],
+        "top": top,
+    }
+
+
+@app.post("/api/live", response_model=CreateLiveResponse)
+async def create_live_endpoint(req: CreateLiveRequest):
+    channel = live_chat.normalise_channel(req.channel)
+    if channel is None:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "bad_channel",
+                "message": "Diesen Kanalnamen gibt es auf Twitch nicht",
+            },
+        )
+
+    game_number = _room_game_number(req.game_source)
+    db = await get_db(_db_path)
+    try:
+        # The host plays under their channel name unless they asked for another.
+        # sanitize_nickname runs inside create_koop, so a channel name that is
+        # itself abusive is masked like any other.
+        host_name = req.nickname or channel
+        room = await create_koop(db, game_number, host_name, req.tips_allowed)
+        try:
+            live = await live_chat.create_live_room(
+                db,
+                koop_id=room["koop_id"],
+                platform=req.platform,
+                channel=channel,
+                host_token=room["player_token"],
+                require_prefix=req.require_prefix,
+            )
+        except live_chat.ChannelBusy:
+            # Roll the empty koop room back rather than leaving an orphan that
+            # the cleanup loop would carry for an hour.
+            await db.execute("DELETE FROM koop_players WHERE koop_id = ?", (room["koop_id"],))
+            await db.execute("DELETE FROM koops WHERE id = ?", (room["koop_id"],))
+            await db.commit()
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "channel_busy",
+                    "message": "Für diesen Kanal läuft schon eine Runde",
+                },
+            )
+
+        await analytics.record_action(_db_path, "live_rooms_created", "kontexto")
+        await analytics.record_mode_pick(_db_path, "friends", "live")
+        await live_chat.record_stream_event(db, req.platform, channel, "sessions")
+        await live_chat.record_stream_event(db, req.platform, channel, "rounds")
+        full = await live_chat.get_live_room(db, room["koop_id"])
+        return {**_live_room_payload(full, []), "player_token": room["player_token"]}
+    finally:
+        await db.close()
+
+
+@app.get("/api/live/{koop_id}", response_model=LiveRoomResponse)
+async def get_live_endpoint(koop_id: str, token: str = Query(...)):
+    db = await get_db(_db_path)
+    try:
+        room = await live_chat.get_live_room(db, koop_id)
+        # A foreign token gets the same 404 as an unknown room: telling the two
+        # apart would let anybody check whether a channel is playing right now.
+        if room is None or not secrets.compare_digest(room["host_token"], token):
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
+            )
+        return _live_room_payload(room, await live_chat.top_viewers(db, koop_id))
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/stop", response_model=LiveStopResponse)
+async def stop_live_endpoint(koop_id: str, req: LiveStopRequest):
+    """Unbind the chat. The koop room stays, so the host can still reveal."""
+    db = await get_db(_db_path)
+    try:
+        stopped = await live_chat.stop_live_room(db, koop_id, req.player_token)
+        if not stopped:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
+            )
+        return {"stopped": True}
+    finally:
+        await db.close()
+
+
+@app.get("/api/live/overlay/state", response_model=LiveOverlayResponse)
+async def live_overlay_endpoint(token: str = Query(...)):
+    """What the OBS browser source polls, once a second.
+
+    Its own token, so the room id alone does not open it, and no game number and
+    no target word, because this view is pointed at an audience.
+    """
+    gs = _get_game_state()
+    db = await get_db(_db_path)
+    try:
+        room = await live_chat.get_live_room_by_overlay(db, token)
+        if room is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
+            )
+        snap = await live_chat.overlay_snapshot(db, room["koop_id"])
+        if snap is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
+            )
+        return {**snap, "total": gs.display_total()}
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/debug-message")
+async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
+    """Feed one chat line into a room without a chat. Development only.
+
+    The end-to-end suite has to prove that a message from a viewer reaches the
+    board and the overlay, and it cannot do that by talking to Twitch. This is
+    the seam. It is closed unless KONTEXTO_DEV is set, so it does not exist in
+    production, and it takes the same path a real message takes rather than a
+    shortcut into the database.
+    """
+    if not os.environ.get("KONTEXTO_DEV"):
+        return JSONResponse(status_code=404, content={"error": "not_found"})
+    ingest = current_live_ingest()
+    if ingest is None:
+        return JSONResponse(
+            status_code=503, content={"error": "ingest_not_running"}
+        )
+    await ingest.reconcile()
+    await ingest.handle_message(
+        koop_id,
+        live_chat.ChatMessage(
+            external_id=req.external_id,
+            display_name=req.display_name,
+            text=req.text,
+        ),
+    )
+    return {"delivered": True}
+
+
 # --- Arena endpoints (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
 
 # What the player is told when a guess is refused. The codes come from
@@ -1179,6 +1370,7 @@ async def create_arena_endpoint(req: CreateArenaRequest):
                 content={"error": "invalid_mode", "message": "Unbekannter Modus"},
             )
         await analytics.record_action(_db_path, "duels_created", req.mode)
+        await analytics.record_mode_pick(_db_path, "friends", req.mode)
         return result
     finally:
         await db.close()
@@ -1465,6 +1657,11 @@ async def matchmaking_enqueue(req: MatchmakingEnqueueRequest):
                 status_code=400,
                 content={"error": "invalid_mode", "message": "Unbekannter Modus"},
             )
+        # Taking a ticket is the pick on the strangers tab. Counted here and not
+        # where the party forms, because a player who gave up waiting still
+        # chose this mode, and because the room itself is built by the
+        # matchmaking loop through the module, not through the create endpoint.
+        await analytics.record_mode_pick(_db_path, "strangers", req.mode)
         return result
     finally:
         await db.close()
@@ -1530,6 +1727,45 @@ async def _live_payload() -> dict:
 async def matchmaking_live():
     """How busy every mode is, for the picker before a ticket exists."""
     return await _live_payload()
+
+
+# The badge in the picker moves at the pace of a month of play, so a five
+# minute cache is generous and still keeps a dialog opened ten times in a row
+# off the database. Per worker, like the live cache above: four copies of a
+# read-only answer cost nothing and share no state.
+POPULAR_CACHE_TTL = 300.0
+_popular_cache: tuple[float, dict] | None = None
+_popular_cache_lock = asyncio.Lock()
+
+
+@app.get("/api/modes/popular", response_model=PopularModesResponse)
+async def popular_modes_endpoint():
+    """The most-picked mode per tab of the picker, or null where it is unclear.
+
+    Names only, never counts: the dialog asks which mode is popular, and how
+    much traffic this site has is nobody else's business.
+    """
+    global _popular_cache
+    now = time.monotonic()
+    cached = _popular_cache
+    if cached and now - cached[0] < POPULAR_CACHE_TTL:
+        return cached[1]
+
+    async with _popular_cache_lock:
+        cached = _popular_cache
+        now = time.monotonic()
+        if cached and now - cached[0] < POPULAR_CACHE_TTL:
+            return cached[1]
+
+        db = await get_db(_db_path)
+        try:
+            leaders = await analytics.popular_modes(db)
+        finally:
+            await db.close()
+
+        payload = {**leaders, "window_days": analytics.POPULAR_WINDOW_DAYS}
+        _popular_cache = (time.monotonic(), payload)
+        return payload
 
 
 @app.post("/api/matchmaking/cancel", response_model=BeaconResponse)
@@ -1604,6 +1840,7 @@ async def wordle_create_duel(req: WordleCreateDuelRequest) -> WordleCreateDuelRe
     # and counting them together made the duel invisible. Rows written before
     # this stay under their old dimension; the split starts here.
     await analytics.record_action(_db_path, "duels_created", "wordle_duel")
+    await analytics.record_mode_pick(_db_path, "friends", "wordle_duel")
     return WordleCreateDuelResponse(**result)
 
 
@@ -1989,6 +2226,13 @@ async def admin_stats(authorization: str = Header(default="")):
     db = await get_db(_db_path)
     try:
         stats = await analytics.get_stats(db, _now())
+        # Live chat mode keeps its own per-channel book, because the unit its
+        # figures are about is a channel and not a day.
+        stats["live_streams"] = {
+            "totals": await live_chat.stream_totals(db),
+            "channels": await live_chat.stream_stats(db),
+            "active": await live_chat.active_streams(db),
+        }
     finally:
         await db.close()
 

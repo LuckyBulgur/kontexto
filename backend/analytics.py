@@ -88,8 +88,43 @@ SOLO_MODES: tuple[str, ...] = (
 )
 MULTI_MODES: tuple[str, ...] = (
     "duel", "koop", "wordle", "wordle_duel", "royale", "blitz", "timerush",
+    # A stream chat playing a koop round. Its own dimension, because one room can
+    # produce thousands of guesses in an evening and would otherwise drown the
+    # koop figures it has nothing to do with.
+    "live",
 )
 GAME_MODES: tuple[str, ...] = SOLO_MODES + MULTI_MODES
+
+# --- "Beliebt" in the mode picker -------------------------------------------
+# One metric, dimension "<group>:<mode>", counted where a player commits to a
+# mode: the first guess of a solo round, a created room, a queue ticket. The
+# group is part of the dimension because the same mode is offered on two tabs
+# (a duel against a friend and a duel against a stranger are different
+# decisions), and a single ranking over both would let one tab decide the
+# other's badge.
+MODE_PICK_METRIC = "mode_picks"
+# The daily Kontexto game is not in the list: it is the board the dialog opens
+# on, not a row a player can pick, and its starts would outrank every other
+# solo mode by an order of magnitude.
+SOLO_PICK_MODES: tuple[str, ...] = ("infinite", "leiter", "limit", "doppel", "suddendeath")
+FRIENDS_PICK_MODES: tuple[str, ...] = (
+    "duel", "koop", "royale", "blitz", "timerush", "wordle_duel", "live",
+)
+STRANGERS_PICK_MODES: tuple[str, ...] = (
+    "duel", "koop", "royale", "blitz", "timerush", "wordle_duel",
+)
+PICK_GROUPS: dict[str, tuple[str, ...]] = {
+    "solo": SOLO_PICK_MODES,
+    "friends": FRIENDS_PICK_MODES,
+    "strangers": STRANGERS_PICK_MODES,
+}
+# A month is long enough to survive a quiet week and short enough that the badge
+# follows what people do now rather than what they did after a launch post.
+POPULAR_WINDOW_DAYS = 30
+# Below this many picks in the window a group has no leader. Without the floor
+# the badge would name whichever mode happened to be chosen three times on a
+# Tuesday, which is a claim the data does not carry.
+POPULAR_MIN_PICKS = 20
 # Marker appended to a shared link (`?s=412`, `?s=u` for the endless mode).
 _SHARE_MARKER = re.compile(r"^(?:[0-9]{1,6}|u)$")
 
@@ -867,7 +902,63 @@ async def record_game_start(
         return False
 
     await record_action(db_path, START_METRIC, mode, now=now)
+    # The same event answers "which solo mode do people choose": it is deduped
+    # per fingerprint, mode and game, so a long round counts once, exactly like
+    # a created room or a queue ticket does on the other two tabs.
+    await record_mode_pick(db_path, "solo", mode, now=now)
     return True
+
+
+async def record_mode_pick(db_path: str, group: str, mode: str, now: datetime | None = None) -> bool:
+    """Count that a player chose this mode on this tab of the picker.
+
+    Returns False for a group or mode this project does not offer, so a handler
+    can pass whatever it has without the counter growing a dimension nobody
+    reads. Like every counter here it must never break the request it hangs off,
+    which `record_action` already guarantees.
+    """
+    modes = PICK_GROUPS.get(group)
+    if modes is None or mode not in modes:
+        return False
+    await record_action(db_path, MODE_PICK_METRIC, f"{group}:{mode}", now=now)
+    return True
+
+
+async def popular_modes(
+    db: aiosqlite.Connection,
+    now: datetime | None = None,
+    window_days: int = POPULAR_WINDOW_DAYS,
+    min_picks: int = POPULAR_MIN_PICKS,
+) -> dict[str, str | None]:
+    """The most-picked mode per group over the window, or None where unclear.
+
+    None is the honest answer twice over: while a group has fewer than
+    `min_picks` behind it, and when its leader is tied with the runner-up. The
+    picker shows no badge then rather than a badge that means nothing. No
+    absolute figures leave this function; the caller gets a name, because the
+    dialog asks which mode is popular and not how busy the site is.
+    """
+    now = now or datetime.now(timezone.utc)
+    since = (now - timedelta(days=window_days)).strftime("%Y-%m-%d")
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric = ? AND date >= ? GROUP BY dimension",
+        (MODE_PICK_METRIC, since),
+    )
+    totals = {dim: int(value or 0) for dim, value in await cur.fetchall()}
+
+    leaders: dict[str, str | None] = {}
+    for group, modes in PICK_GROUPS.items():
+        counts = sorted(
+            ((mode, totals.get(f"{group}:{mode}", 0)) for mode in modes),
+            key=lambda pair: (-pair[1], pair[0]),
+        )
+        if sum(count for _, count in counts) < min_picks:
+            leaders[group] = None
+            continue
+        best, runner_up = counts[0], counts[1] if len(counts) > 1 else (None, 0)
+        leaders[group] = best[0] if best[1] > runner_up[1] else None
+    return leaders
 
 
 async def record_share_click(

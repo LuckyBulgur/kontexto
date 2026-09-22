@@ -8,6 +8,8 @@ interface GuessBarProps {
   total: number;
   isNew?: boolean;
   size?: "default" | "lg";
+  /** Who played this word, where the mode shows that. */
+  by?: string;
 }
 
 /**
@@ -15,11 +17,12 @@ interface GuessBarProps {
  * the bar itself is the shared `Meter`, so arena, duel, koop and the solo modes
  * draw the same object with the same contrast guarantees.
  */
-export default function GuessBar({ word, rank, total, isNew, size = "default" }: GuessBarProps) {
+export default function GuessBar({ word, rank, total, isNew, size = "default", by }: GuessBarProps) {
   return (
     <Meter
       label={word}
       value={rank}
+      meta={by}
       fraction={getBarWidth(rank, total)}
       tone={toneFromRankColor(getRankColor(rank))}
       isNew={isNew}

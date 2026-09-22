@@ -16,7 +16,7 @@ import { createKoop } from "@/lib/koop-api";
 import { PARTY_RULES, partySizeLabel } from "@/lib/matchmaking-rules";
 import { QueueModeId } from "@/lib/matchmaking-types";
 import {
-  KONTEXTO_MULTIPLAYER_ORDER,
+  KONTEXTO_QUEUE_ORDER,
   MULTIPLAYER_MODES,
   isQueueMode,
 } from "@/lib/multiplayer-modes";
@@ -60,7 +60,7 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const requested = new URLSearchParams(window.location.search).get("modus");
-    if (requested && isQueueMode(requested) && KONTEXTO_MULTIPLAYER_ORDER.includes(requested)) {
+    if (requested && isQueueMode(requested) && KONTEXTO_QUEUE_ORDER.includes(requested)) {
       setMode(requested);
     }
   }, []);
@@ -131,7 +131,7 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
                 onValueChange={(value) => setMode(value as QueueModeId)}
                 className="gap-2"
               >
-                {KONTEXTO_MULTIPLAYER_ORDER.map((id) => {
+                {KONTEXTO_QUEUE_ORDER.map((id) => {
                   const entry = MULTIPLAYER_MODES[id];
                   return (
                     <Label

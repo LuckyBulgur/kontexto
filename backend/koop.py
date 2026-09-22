@@ -160,11 +160,18 @@ async def _record_shared(
     word: str,
     rank: int,
     is_tip: bool,
+    display_name: str | None = None,
 ) -> dict | None:
     """Insert a word into the shared list (idempotent on word) and roll up team state.
 
     Returns None if the token is not a member of this koop. On a duplicate word
     nothing is mutated and ``already_guessed`` is True.
+
+    ``display_name`` overrides the name written next to the word and into
+    ``solved_by``. It exists for the live chat mode, where one room has a single
+    player row (the host) but the guesses come from thousands of viewers who must
+    not each become a player row. Everywhere else it stays None and the player's
+    own nickname is used, which is what every other caller wants.
     """
     cursor = await db.execute(
         "SELECT id, nickname FROM koop_players "
@@ -175,11 +182,13 @@ async def _record_shared(
     if not player:
         return None
 
+    shown_name = display_name or player["nickname"]
+
     # Idempotent on (koop_id, word): a duplicate word from any member is ignored.
     cursor = await db.execute(
         "INSERT OR IGNORE INTO koop_guesses "
         "(koop_id, player_token, nickname, word, rank, is_tip) VALUES (?, ?, ?, ?, ?, ?)",
-        (koop_id, player_token, player["nickname"], word, rank, int(is_tip)),
+        (koop_id, player_token, shown_name, word, rank, int(is_tip)),
     )
     is_new = cursor.rowcount == 1
 
@@ -200,7 +209,7 @@ async def _record_shared(
             # First solver wins solved_by; idempotent once solved.
             await db.execute(
                 "UPDATE koops SET solved = 1, solved_by = COALESCE(solved_by, ?) WHERE id = ?",
-                (player["nickname"], koop_id),
+                (shown_name, koop_id),
             )
 
     await db.commit()
@@ -209,11 +218,22 @@ async def _record_shared(
         "SELECT solved, best_rank FROM koops WHERE id = ?", (koop_id,)
     )
     koop = await cursor.fetchone()
+    # The row id lets an in-process writer push this guess to the sockets at
+    # once and move the broadcast loop's high-water mark past it.
+    guess_id = None
+    if is_new:
+        cursor = await db.execute(
+            "SELECT id FROM koop_guesses WHERE koop_id = ? AND word = ?",
+            (koop_id, word),
+        )
+        row = await cursor.fetchone()
+        guess_id = row["id"] if row else None
     return {
-        "nickname": player["nickname"],
+        "nickname": shown_name,
         "already_guessed": not is_new,
         "best_rank": koop["best_rank"],
         "solved": bool(koop["solved"]),
+        "guess_id": guess_id,
     }
 
 
@@ -223,8 +243,11 @@ async def record_koop_guess(
     player_token: str,
     word: str,
     rank: int,
+    display_name: str | None = None,
 ) -> dict | None:
-    return await _record_shared(db, koop_id, player_token, word, rank, is_tip=False)
+    return await _record_shared(
+        db, koop_id, player_token, word, rank, is_tip=False, display_name=display_name
+    )
 
 
 async def record_koop_tip(
@@ -401,6 +424,11 @@ async def cleanup_stale_koops(db: aiosqlite.Connection) -> int:
     for koop_id in stale_ids:
         await db.execute("DELETE FROM koop_guesses WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koop_players WHERE koop_id = ?", (koop_id,))
+        # Live chat mode hangs two more child tables off a koop room. Deleted by
+        # hand like the others, because this routine does not rely on the foreign
+        # keys: an older database file may predate a table's REFERENCES clause.
+        await db.execute("DELETE FROM live_viewers WHERE koop_id = ?", (koop_id,))
+        await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koops WHERE id = ?", (koop_id,))
 
     await db.commit()

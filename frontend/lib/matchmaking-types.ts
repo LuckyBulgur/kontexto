@@ -7,6 +7,16 @@ export type QueueModeId =
   | "blitz"
   | "timerush";
 
+/**
+ * Every multiplayer mode in the catalogue, queue or no queue.
+ *
+ * The stream-chat mode is in the catalogue but not in the queue: there is
+ * nothing to pair, the streamer opens the room and the chat is already there.
+ * Keeping the two types apart is what stops it from appearing on the search
+ * page, waiting forever for a second streamer who is never coming.
+ */
+export type MultiplayerModeId = QueueModeId | "live";
+
 /** When a round of a mode starts, as the server states it. */
 export interface PartyRule {
   /** Below this many players nothing starts. */

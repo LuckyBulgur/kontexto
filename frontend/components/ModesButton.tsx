@@ -20,6 +20,17 @@ import { useFeatureDiscovery } from "@/lib/feature-discovery";
  * see without opening something first. Endless mode kept its menu entry: it is
  * one mode, and one mode does not need the most visible control on the page.
  *
+ * It is a labelled pill, not a lone glyph, because a glyph next to a glyph
+ * reads as a pair of tools rather than as an invitation. Colour alone did not
+ * fix that: the button was still the third icon in a row of icons. So it gets
+ * two things that make a control its own object, a filled surface and a word.
+ *
+ * The word disappears below 380 pixels, not below `sm:`. A phone is where the
+ * modes were hardest to find, so the label has to survive one; 640 would have
+ * hidden it on every phone there is. 380 is where the widest header still fits,
+ * the one carrying a back arrow, the wordmark, the share button and the kebab
+ * next to the pill.
+ *
  * On a first visit the button explains itself once. A grid of four squares is a
  * shape, not a sentence, and the modes were the part players did not find. The
  * hint is the project's tooltip, arrow included, rather than a bubble of its
@@ -76,15 +87,14 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
     <TooltipProvider>
       <Tooltip open={hintOpen || undefined}>
         <TooltipTrigger asChild>
-          {/* Ghost, like every other lone glyph in this header, but in the
-              accent ink rather than in the text colour: it sits next to a kebab
-              of the same size, and two grey glyphs read as a pair rather than
-              as an invitation. The ink and not `--primary`, which is a fill and
-              measures 2,9:1 against the dark page. */}
+          {/* A tinted surface in the accent, and the glyph in the accent ink
+              rather than in `--primary`, which is a fill and measures 2,9:1
+              against the dark page. The tint is faint enough that the header
+              stays quiet, and it is the shape, not the colour, that does the
+              work. */}
           <Button
             variant="ghost"
-            size="icon"
-            className="relative h-10 w-10 text-primary-ink hover:text-primary-ink"
+            className="relative h-10 gap-1.5 rounded-full bg-primary/10 px-2.5 text-primary-ink hover:bg-primary/15 hover:text-primary-ink dark:hover:bg-primary/20 min-[380px]:px-3.5"
             aria-label="Spielmodi"
             onClick={() => {
               setHintOpen(false);
@@ -92,9 +102,10 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
               onOpen();
             }}
           >
-            <LayoutGrid className="h-6! w-6!" />
+            <LayoutGrid className="h-5! w-5!" />
+            <span className="hidden font-semibold min-[380px]:inline">Modi</span>
             {highlight && (
-              <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5" aria-hidden>
+              <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden>
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-ink opacity-75 motion-reduce:hidden" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-ink" />
               </span>

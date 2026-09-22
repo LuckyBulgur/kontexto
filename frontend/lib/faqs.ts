@@ -23,7 +23,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Wie wird die Ähnlichkeit berechnet?`,
-    a: `Grundlage ist das deutsche fastText-Modell cc.de.300, trainiert auf Common Crawl und der deutschen Wikipedia. Jedes Wort ist darin ein Vektor aus 300 Zahlen, der festhält, in welchen Kontexten das Wort auftritt. Vor dem Spiel werden diese Vektoren entzerrt: Der Mittelwert aller Vektoren und die drei stärksten Hauptkomponenten werden entfernt, weil sie vor allem Worthäufigkeit abbilden und sonst jedes häufige Wort zu allem ähnlich wirken ließen. Danach wird für jedes Zielwort die Kosinus-Ähnlichkeit zu rund 80.000 Vokabeleinträgen berechnet und in eine feste Rangliste sortiert. Beim Raten wird nur noch nachgeschlagen, nicht gerechnet.`,
+    a: `Grundlage ist das deutsche fastText-Modell cc.de.300, trainiert auf Common Crawl und der deutschen Wikipedia. Jedes Wort ist darin ein Vektor aus 300 Zahlen, der festhält, in welchen Kontexten das Wort auftritt. Vor dem Spiel werden diese Vektoren entzerrt: Der Mittelwert aller Vektoren und die drei stärksten Hauptkomponenten werden entfernt, weil sie vor allem Worthäufigkeit abbilden und sonst jedes häufige Wort zu allem ähnlich wirken ließen. Entzerrt wird dabei auf dem Kernwortschatz, also den rund 16.000 Alltagswörtern, damit die Nachbarschaft eines Lösungsworts von gebräuchlichen Wörtern bestimmt wird und nicht von seltenen Komposita. Danach wird für jedes Zielwort die Kosinus-Ähnlichkeit zu rund 80.000 Vokabeleinträgen berechnet und in eine feste Rangliste sortiert. Angezeigt wird der Rang innerhalb des Kernwortschatzes. Beim Raten wird nur noch nachgeschlagen, nicht gerechnet.`,
   },
   {
     q: `Wann gibt es ein neues Wort?`,
@@ -244,6 +244,42 @@ export const koopFaqs: Faq[] = [
   {
     q: `Eignet sich Koop, um jemandem das Spiel beizubringen?`,
     a: `Ja, besser als jeder andere Modus. Man sieht die Ränge der anderen, kann fragen, warum jemand ein bestimmtes Wort gewählt hat, und lernt am fremden Zug oft mehr als am eigenen.`,
+  },
+];
+
+/**
+ * Questions for the stream-chat page /live/. They answer what a streamer wants
+ * to know before typing their channel name into a stranger's form: what the
+ * server does with the chat, and what it does not.
+ */
+export const liveFaqs: Faq[] = [
+  {
+    q: `Wie spielt mein Twitch-Chat mit?`,
+    a: `Du trägst deinen Kanalnamen ein, dann liest der Server deinen Chat mit. Jede Nachricht, die aus einem einzigen Wort besteht, zählt als Versuch auf einer gemeinsamen Rateliste. Dein Publikum braucht kein Konto, keinen Link und keinen zweiten Tab.`,
+  },
+  {
+    q: `Muss ich Kontexto Rechte an meinem Kanal geben?`,
+    a: `Nein. Der Chat wird anonym gelesen, so wie ihn jeder Zuschauer sieht. Es gibt keine Anmeldung, keinen Bot in deinem Chat und keine Möglichkeit, in deinem Namen zu schreiben.`,
+  },
+  {
+    q: `Was passiert, wenn mein Chat zu voll wird?`,
+    a: `Jeder Zuschauer rät höchstens alle zwei Sekunden, und eine Runde nimmt nur so viele Versuche an, wie auf dem Bildschirm lesbar bleiben. Wird es trotzdem zu viel, stellst du die Runde auf Nachrichten mit dem Kürzel !k um, dann zählt nur noch, wer es ausdrücklich will.`,
+  },
+  {
+    q: `Wie bekomme ich das Spiel in meinen Stream?`,
+    a: `Die Runde hat eine eigene Einblendung mit transparentem Hintergrund. Den Link kopierst du und fügst ihn in OBS als Browserquelle ein. Sie zeigt die letzten Wörter mit ihrem Rang und den Namen, der gelöst hat.`,
+  },
+  {
+    q: `Können zwei Leute denselben Kanal benutzen?`,
+    a: `Nein, ein Kanal hat immer höchstens eine laufende Runde. Sonst würde jede Chatnachricht in zwei verschiedenen Spielen landen und niemand wüsste, welches auf dem Bildschirm steht.`,
+  },
+  {
+    q: `Werden die Namen aus meinem Chat gespeichert?`,
+    a: `Nur solange die Runde läuft, für die Rateliste und die Rangliste im Stream. Danach werden sie mit der Runde gelöscht. Dauerhaft gespeichert wird nur, wie viel auf einem Kanal gespielt wurde, nicht von wem.`,
+  },
+  {
+    q: `Gibt es das auch für YouTube und TikTok?`,
+    a: `Noch nicht. YouTube braucht eine Anmeldung pro Kanal und hat ein Tageslimit für das Mitlesen, TikTok bietet gar keinen offiziellen Weg an den Chat. Twitch ist der einzige, bei dem ein Kanalname genügt.`,
   },
 ];
 

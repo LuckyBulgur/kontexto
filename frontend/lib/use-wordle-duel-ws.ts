@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { WordleDuelWsMessage } from "./wordle-types";
+import { wsBase } from "./ws-base";
 
 interface UseWordleDuelWsOptions {
   duelId: string | null;
@@ -21,8 +22,7 @@ export function useWordleDuelWs({ duelId, token, onMessage }: UseWordleDuelWsOpt
     let closed = false;
 
     function connect() {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const url = `${protocol}//${window.location.host}/ws/wordle/duel/${duelId}?token=${token}`;
+      const url = `${wsBase()}/wordle/duel/${duelId}?token=${token}`;
       ws = new WebSocket(url);
 
       ws.onmessage = (event) => {

@@ -24,6 +24,10 @@ const config = (phase: string): NextConfig => {
           { source: "/arena/:id*/", destination: "/arena/" },
           { source: "/duel/:id*/", destination: "/duel/" },
           { source: "/koop/:id*/", destination: "/koop/" },
+          // /live/overlay/ is a real page, so it must not be swallowed here; the
+          // negative lookahead does for the dev server what the longer nginx
+          // prefix does in production.
+          { source: "/live/:id((?!overlay)[^/]+)/", destination: "/live/" },
           { source: "/wordle/duel/:id*/", destination: "/wordle/duel/" },
         ];
       },

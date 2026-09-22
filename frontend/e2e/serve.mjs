@@ -19,7 +19,15 @@ const BACKEND_HOST = process.env.E2E_BACKEND_HOST || "127.0.0.1";
 const BACKEND_PORT = Number(process.env.E2E_BACKEND_PORT || 8000);
 
 // Longest-prefix first, mirroring nginx (/wordle/duel/ before /wordle/).
-const SECTION_FALLBACKS = ["/wordle/duel/", "/wordle/", "/arena/", "/duel/", "/koop/"];
+const SECTION_FALLBACKS = [
+  "/wordle/duel/",
+  "/wordle/",
+  "/arena/",
+  "/duel/",
+  "/koop/",
+  "/live/overlay/",
+  "/live/",
+];
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -109,7 +117,7 @@ async function hasCanonicalDirectory(pathname) {
 
 function robotsHeader(pathname) {
   if (
-    /^\/(?:arena|duel|koop)\/[^/?]+(?:\/|$)/.test(pathname) ||
+    /^\/(?:arena|duel|koop|live)\/[^/?]+(?:\/|$)/.test(pathname) ||
     /^\/wordle\/duel\/[^/?]+(?:\/|$)/.test(pathname) ||
     pathname.startsWith("/admin/") ||
     /\/[^?]*index\.txt$/.test(pathname) ||

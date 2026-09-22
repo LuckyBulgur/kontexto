@@ -50,6 +50,11 @@ export interface MeterProps {
   label: React.ReactNode;
   /** The rank, shown right-aligned. */
   value: React.ReactNode;
+  /** Who played this row, set between the word and the rank. In the row and
+   *  not above it: a line of its own doubles the height of every bar and turns
+   *  a list that scans in one column into two, which on a stream is the
+   *  difference between glancing at it and reading it. */
+  meta?: React.ReactNode;
   /** Fill width in percent, 0 to 100. */
   fraction: number;
   tone: MeterTone;
@@ -68,6 +73,7 @@ export interface MeterProps {
 export function Meter({
   label,
   value,
+  meta,
   fraction,
   tone,
   isNew,
@@ -110,6 +116,18 @@ export function Meter({
       >
         {label}
       </span>
+      {meta && (
+        <span
+          className={cn(
+            "relative z-10 ml-2 max-w-[45%] shrink truncate text-rank-foreground/75",
+            emphasis ? "text-small" : "text-micro",
+          )}
+        >
+          {"("}
+          {meta}
+          {")"}
+        </span>
+      )}
       <span
         data-numeric
         className={cn(

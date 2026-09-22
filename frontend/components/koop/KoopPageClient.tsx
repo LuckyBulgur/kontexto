@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
@@ -33,20 +33,74 @@ import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, sav
 import { toast } from "sonner";
 import RoomLanding from "@/components/RoomLanding";
 
-function getKoopIdFromPath(): string | null {
+function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
   const segments = window.location.pathname.split("/").filter(Boolean);
   if (
     segments.length >= 2 &&
-    segments[0] === "koop" &&
-    segments[1] !== "create"
+    segments[0] === basePath &&
+    segments[1] !== "create" &&
+    segments[1] !== "overlay"
   ) {
     return segments[1];
   }
   return null;
 }
 
-export default function KoopPageClient() {
+export interface KoopPageClientProps {
+  /** Which route this board lives under. The stream-chat mode serves the same
+   *  koop room at /live/<id>/, so the id is read from that segment instead. */
+  basePath?: string;
+  /** The word above the guess input, where the koop board says "Koop". */
+  label?: string;
+  /** Replaces the player list on both breakpoints. The stream chat puts its
+   *  chat status and its viewer leaderboard there, because a live room has one
+   *  player row and a player list of one is not worth the space. */
+  sidebar?: ReactNode;
+  /** Whether to offer the invite link while the room is still alone. A stream
+   *  chat needs no invite: the audience is already there. */
+  showInvite?: boolean;
+  /** What to show when the path carries no room id. */
+  landing?: ReactNode;
+  /** Where the "open a new one" links point. */
+  createHref?: string;
+  /** Whether this room can be handed to somebody as a link. False for the
+   *  stream chat: there is a channel, not an invite, and a copied room URL
+   *  would only take a viewer to a page that turns them away. */
+  shareable?: boolean;
+  /** Passed straight to the result card, so a mode can name what the round was
+   *  and who took part without forking the card. */
+  resultLabel?: string;
+  resultGroupNoun?: string;
+  resultRows?: { name: string; detail: string }[];
+  /** Prints who played each word above its bar. On for the stream chat, where a
+   *  viewer seeing their own name next to a good rank is the whole reward. */
+  showNames?: boolean;
+  /** The sentences that name the room. A stream-chat round is not a koop and
+   *  must not call itself one anywhere the host can read it. German needs whole
+   *  sentences here rather than a noun to splice in, because the article
+   *  changes with the gender of the word. */
+  notFoundMessage?: string;
+  tipsDisabledMessage?: string;
+  giveUpDescription?: string;
+}
+
+export default function KoopPageClient({
+  basePath = "koop",
+  label = "Koop",
+  sidebar,
+  showInvite = true,
+  landing,
+  createHref = "/koop/create/",
+  shareable = true,
+  resultLabel,
+  resultGroupNoun,
+  resultRows,
+  showNames,
+  notFoundMessage = "Koop nicht gefunden",
+  tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
+  giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
+}: KoopPageClientProps = {}) {
   const [koopId, setKoopId] = useState<string | null>(null);
   const [koopState, setKoopState] = useState<KoopState | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
@@ -90,7 +144,7 @@ export default function KoopPageClient() {
 
   // Extract koop ID from URL.
   useEffect(() => {
-    const id = getKoopIdFromPath();
+    const id = getKoopIdFromPath(basePath);
     if (!id) {
       setLoading(false);
       return;
@@ -101,21 +155,22 @@ export default function KoopPageClient() {
     if (storedToken) {
       setPlayerToken(storedToken);
     }
-  }, []);
+  }, [basePath]);
 
   // Inject noindex for ephemeral koop-id pages so they don't bloat the search
   // index; the static /koop/ landing page stays indexable.
   useEffect(() => {
     if (typeof document === "undefined") return;
     const seg = window.location.pathname.split("/").filter(Boolean);
-    const hasId = seg[0] === "koop" && seg[1] && seg[1] !== "create";
+    const hasId =
+      seg[0] === basePath && seg[1] && seg[1] !== "create" && seg[1] !== "overlay";
     if (!hasId) return;
     const m = document.createElement("meta");
     m.name = "robots";
     m.content = "noindex,follow";
     document.head.appendChild(m);
     return () => { document.head.removeChild(m); };
-  }, []);
+  }, [basePath]);
 
   // Load koop state + the shared guess list.
   useEffect(() => {
@@ -133,6 +188,7 @@ export default function KoopPageClient() {
           word: g.word,
           rank: g.rank,
           isTip: g.is_tip,
+          by: g.nickname,
         }));
         setGuesses(loaded);
 
@@ -155,16 +211,16 @@ export default function KoopPageClient() {
         }
       })
       .catch(() => {
-        setError("Koop nicht gefunden");
+        setError(notFoundMessage);
         setLoading(false);
       });
   }, [koopId, playerToken]);
 
   // Append a word to the shared list, de-duplicating by word.
-  const appendGuess = useCallback((word: string, rank: number, isTip: boolean, correctedFrom?: string) => {
+  const appendGuess = useCallback((word: string, rank: number, isTip: boolean, correctedFrom?: string, by?: string) => {
     setGuesses((prev) => {
       if (prev.some((g) => g.word === word)) return prev;
-      return [...prev, { word, rank, isTip, correctedFrom }];
+      return [...prev, { word, rank, isTip, correctedFrom, by }];
     });
     setLatestWord(word);
     // No win-confetti for a revealed (gave-up) word.
@@ -208,7 +264,7 @@ export default function KoopPageClient() {
       if (msg.type === "state") {
         setPlayers(msg.players);
       } else if (msg.type === "guess_added") {
-        appendGuess(msg.word, msg.rank, msg.is_tip);
+        appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname);
         // Reflect the contribution in the player list.
         setPlayers((prev) =>
           prev.map((p) =>
@@ -249,11 +305,40 @@ export default function KoopPageClient() {
     [appendGuess, resetForNextGame]
   );
 
-  useKoopWebSocket({
+  const { connected: wsConnected } = useKoopWebSocket({
     koopId,
     token: playerToken,
     onMessage: handleWsMessage,
   });
+
+  // Catch up on whatever landed between the first fetch and the socket.
+  //
+  // The board loads its list over REST and then listens; the broadcast loop
+  // seeds its own high-water mark when it first sees the room. A guess written
+  // in that gap is in neither, and the list is silently one row short until the
+  // page is reloaded. For a koop of four that is a rare second; for a stream
+  // chat, where guesses arrive constantly, it is the first word the chat typed.
+  const caughtUp = useRef(false);
+  useEffect(() => {
+    if (!wsConnected || !koopId || caughtUp.current) return;
+    caughtUp.current = true;
+    getKoopGuesses(koopId)
+      .then((list) => {
+        setGuesses((prev) => {
+          if (list.length <= prev.length) return prev;
+          return list.map((g) => ({
+            word: g.word,
+            rank: g.rank,
+            isTip: g.is_tip,
+            by: g.nickname,
+          }));
+        });
+      })
+      .catch(() => {
+        // A failed catch-up is not worth an error on screen: the socket is
+        // connected, so the next guess arrives either way.
+      });
+  }, [wsConnected, koopId]);
 
   // Join.
   const handleJoin = useCallback(
@@ -346,7 +431,7 @@ export default function KoopPageClient() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "tips_disabled") {
-        setError("Tipps sind in diesem Koop deaktiviert");
+        setError(tipsDisabledMessage);
       } else {
         setError("Tipp konnte nicht geladen werden");
       }
@@ -388,11 +473,11 @@ export default function KoopPageClient() {
   // Copy link.
   const handleCopyLink = useCallback(async () => {
     if (!koopId) return;
-    const url = `${window.location.origin}/koop/${koopId}/`;
+    const url = `${window.location.origin}/${basePath}/${koopId}/`;
     const ok = await copyTextToClipboard(url);
     if (ok) toast.success("Link kopiert!");
     else prompt("Link kopieren:", url);
-  }, [koopId]);
+  }, [koopId, basePath]);
 
   if (loading) {
     return <KoopSkeleton />;
@@ -400,12 +485,14 @@ export default function KoopPageClient() {
 
   if (!koopId) {
     return (
-      <RoomLanding
-        title="Kein Koop offen"
-        description="Ein Koop braucht einen Einladungslink. Erstell einen, dann bekommst du ihn."
-        createHref="/koop/create/"
-        createLabel="Koop erstellen"
-      />
+      landing ?? (
+        <RoomLanding
+          title="Kein Koop offen"
+          description="Ein Koop braucht einen Einladungslink. Erstell einen, dann bekommst du ihn."
+          createHref={createHref}
+          createLabel="Koop erstellen"
+        />
+      )
     );
   }
 
@@ -413,8 +500,8 @@ export default function KoopPageClient() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-destructive">{error}</p>
-        <a href="/koop/create/" className="text-primary underline">
-          Neuen Koop erstellen
+        <a href={createHref} className="text-primary underline">
+          Neu starten
         </a>
       </div>
     );
@@ -436,7 +523,7 @@ export default function KoopPageClient() {
         onPastGamesOpen={() => {}}
         tipDisabled={roundOver || !koopState?.tips_allowed}
         giveUpDisabled={roundOver}
-        onCopyLink={handleCopyLink}
+        onCopyLink={shareable ? handleCopyLink : undefined}
         hideTip={!koopState?.tips_allowed}
         hidePastGames
         backHref="/"
@@ -444,12 +531,12 @@ export default function KoopPageClient() {
 
       <div className="flex flex-col md:flex-row flex-1 px-4 py-4 gap-4">
         <div className="flex-1 flex flex-col gap-4">
-          {/* Mobile player bar */}
+          {/* Mobile sidebar */}
           <div className="md:hidden">
-            <PlayerBar players={players} currentNickname={nickname ?? ""} />
+            {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
           </div>
 
-          {!roundOver && players.length < 2 && (
+          {showInvite && !roundOver && players.length < 2 && (
             <ShareInviteBar
               title="Warte auf Mitspieler …"
               description="Teile den Link, jeder der beitritt rät am selben Wort mit."
@@ -466,11 +553,14 @@ export default function KoopPageClient() {
               currentNickname={nickname ?? ""}
               gaveUp={gaveUp}
               onNextGame={handleNextGame}
+              label={resultLabel}
+              groupNoun={resultGroupNoun}
+              rows={resultRows}
             />
           ) : (
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
-                <span>Koop</span>
+                <span>{label}</span>
                 <span>
                   Versuche:{" "}
                   <span className="text-lead font-bold">{guesses.length}</span>
@@ -488,12 +578,13 @@ export default function KoopPageClient() {
             podestError={podestError}
             onSuggestion={handleGuess}
             sortMode={sortMode}
+            showNames={showNames}
           />
         </div>
 
         {/* Desktop sidebar */}
         <div className="hidden md:block">
-          <PlayerBar players={players} currentNickname={nickname ?? ""} />
+          {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
         </div>
       </div>
 
@@ -512,7 +603,7 @@ export default function KoopPageClient() {
         open={showGiveUp}
         onClose={() => setShowGiveUp(false)}
         onConfirm={handleGiveUp}
-        description="Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten."
+        description={giveUpDescription}
       />
     </div>
   );

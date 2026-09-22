@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { KoopWsMessage } from "./koop-types";
-
-const WS_BASE =
-  typeof window !== "undefined"
-    ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`
-    : "";
+import { wsBase } from "./ws-base";
 
 interface UseKoopWebSocketOptions {
   koopId: string | null;
@@ -27,7 +23,7 @@ export function useKoopWebSocket({
   useEffect(() => {
     if (!koopId || !token) return;
 
-    const url = `${WS_BASE}/koop/${koopId}?token=${token}`;
+    const url = `${wsBase()}/koop/${koopId}?token=${token}`;
     let ws: WebSocket;
     let reconnectTimeout: ReturnType<typeof setTimeout>;
     let unmounted = false;

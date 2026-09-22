@@ -272,3 +272,32 @@ class TestMatchmakingLive:
         main_module._live_cache = None
         assert client.get("/api/matchmaking/live").json()["modes"]["duel"]["waiting"] == 1
 
+
+
+class TestPopularModesEndpoint:
+    """The picker's badge, as the client sees it."""
+
+    def test_an_empty_site_names_nobody(self, client):
+        import main as main_module
+        # The answer is cached per worker for five minutes, which would
+        # otherwise carry an answer from a previous test into this one.
+        main_module._popular_cache = None
+
+        res = client.get("/api/modes/popular")
+        assert res.status_code == 200
+        body = res.json()
+        # Every group is a key, so the client never has to tell "no leader"
+        # apart from "this tab was forgotten".
+        assert body["solo"] is None
+        assert body["friends"] is None
+        assert body["strangers"] is None
+        assert body["window_days"] > 0
+
+    def test_no_figures_leave_the_server(self, client):
+        import main as main_module
+        main_module._popular_cache = None
+
+        body = client.get("/api/modes/popular").json()
+        # The dialog asks which mode is popular. How much traffic this site has
+        # is a different question and is not answered here.
+        assert set(body) == {"solo", "friends", "strangers", "window_days"}

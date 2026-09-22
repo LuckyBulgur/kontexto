@@ -81,6 +81,81 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
     UNIQUE(koop_id, word)
 );
 
+-- Live chat mode: a koop room whose second input channel is a livestream chat.
+-- Deliberately a binding table next to `koops` rather than a fourth table
+-- triple, because the round, the shared guess list and the whole broadcast path
+-- are koop's and stay koop's. What is new is only the binding of one room to one
+-- channel.
+--
+-- A live room has two koop_players rows and never more: the host, and one that
+-- stands for the whole chat. Viewers do not become players, because a chat with
+-- a few thousand people would produce a few thousand rows and a player_joined
+-- frame per row out of the koop poll loop. Their guesses are written under the
+-- chat's token with the chatter's display name, and their standing lives in
+-- live_viewers.
+CREATE TABLE IF NOT EXISTS live_rooms (
+    koop_id TEXT PRIMARY KEY REFERENCES koops(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    -- Lowercased channel login, never the display name.
+    channel TEXT NOT NULL,
+    host_token TEXT NOT NULL,
+    -- The chat writes its guesses as its own koop player, not as the host.
+    -- The koop broadcast excludes the author of a guess from the frame it
+    -- sends, so a guess written with the host's token would reach every socket
+    -- except the host's, which is the only one there is.
+    chat_token TEXT NOT NULL DEFAULT '',
+    overlay_token TEXT NOT NULL UNIQUE,
+    require_prefix BOOLEAN NOT NULL DEFAULT 0,
+    -- connecting | live | error, written by the reader task in the WS worker.
+    chat_state TEXT NOT NULL DEFAULT 'connecting',
+    chat_error TEXT,
+    last_chat_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- One room per channel at a time. Anybody may open a room by typing a channel
+-- name, so without this two people could bind two rooms to one chat and every
+-- message would be counted twice, in two different games.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_live_rooms_channel
+    ON live_rooms(platform, channel);
+
+-- Permanent, per-channel rollup: which streams played, how much, how well. This
+-- is the one part of live chat mode that outlives the room.
+--
+-- The streamer's channel name is kept, because the channel is the unit the
+-- figures are about and it is a public broadcast name. The chatters' names are
+-- not: they live in live_viewers for the length of the round and go with it.
+-- What survives of a chat is a count, which is the same posture the rest of the
+-- analytics takes (see analytics.py: permanent rollups, no raw identities).
+CREATE TABLE IF NOT EXISTS live_stream_stats (
+    platform TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    first_seen TEXT NOT NULL,
+    last_seen TEXT NOT NULL,
+    -- Rooms opened for this channel, all time.
+    sessions INTEGER NOT NULL DEFAULT 0,
+    rounds INTEGER NOT NULL DEFAULT 0,
+    guesses INTEGER NOT NULL DEFAULT 0,
+    solves INTEGER NOT NULL DEFAULT 0,
+    -- Distinct chatters who ever landed a guess here, counted at the moment a
+    -- new one appears. A number, never a list.
+    viewers INTEGER NOT NULL DEFAULT 0,
+    best_rank INTEGER,
+    PRIMARY KEY (platform, channel)
+);
+
+CREATE TABLE IF NOT EXISTS live_viewers (
+    koop_id TEXT NOT NULL REFERENCES koops(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    -- The platform's immutable user id (Twitch: the `user-id` tag), not the
+    -- display name, which the viewer can change between two messages.
+    external_id TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    hits INTEGER NOT NULL DEFAULT 0,
+    best_rank INTEGER,
+    PRIMARY KEY (koop_id, platform, external_id)
+);
+
 -- Arenas: the three timed multiplayer modes (Battle Royale, Blitz-Duell,
 -- Zeitbonus-Jagd). One table triple for all three rather than a fourth copy of
 -- the duel tables: they differ only in how a deadline is set and what happens
@@ -417,6 +492,15 @@ async def init_db(db_path: str) -> None:
                 await db.execute(f"ALTER TABLE {table} ADD COLUMN played_games TEXT NOT NULL DEFAULT ''")
             except Exception:
                 pass  # column already exists
+        # Migration live chat: the chat's own player token. A room created before
+        # this column existed wrote its guesses as the host, which meant the koop
+        # broadcast excluded the one socket that needed them.
+        try:
+            await db.execute(
+                "ALTER TABLE live_rooms ADD COLUMN chat_token TEXT NOT NULL DEFAULT ''"
+            )
+        except Exception:
+            pass  # column already exists
         # Migration koop "Aufgeben": team-wide give-up flag.
         try:
             await db.execute("ALTER TABLE koops ADD COLUMN gave_up BOOLEAN NOT NULL DEFAULT 0")

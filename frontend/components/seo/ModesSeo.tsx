@@ -3,6 +3,7 @@ import {
   Clock,
   Flame,
   Layers,
+  Radio,
   Shuffle,
   Swords,
   Target,
@@ -37,9 +38,10 @@ export default function ModesSeo() {
       <Prose>
         <h2 id="mehrspieler">{"Zu zweit oder zu acht"}</h2>
         <p>
-          {`Jeder Mehrspielermodus geht auf zwei Wegen. Mit einem Einladungslink, wenn du
-          weißt, mit wem du spielen willst. Oder über die Mitspielersuche, die dich mit
-          Fremden zusammenstellt, ohne dass du jemanden fragen musst.`}
+          {`Die meisten Mehrspielermodi gehen auf zwei Wegen. Mit einem Einladungslink, wenn
+          du weißt, mit wem du spielen willst. Oder über die Mitspielersuche, die dich mit
+          Fremden zusammenstellt, ohne dass du jemanden fragen musst. Der Stream-Chat-Modus
+          braucht keinen von beiden: dort rät dein Publikum mit, wo es ohnehin schon ist.`}
         </p>
       </Prose>
 
@@ -56,9 +58,21 @@ export default function ModesSeo() {
                 rules={mode.rules}
                 actions={[
                   ...(mode.createHref
-                    ? [{ href: mode.createHref, label: "Mit Freunden spielen" }]
+                    ? [
+                        {
+                          href: mode.createHref,
+                          // The stream chat is the one mode whose create link
+                          // does not hand out an invite: the audience is
+                          // already there, so "with friends" would misname it.
+                          label: mode.queueable
+                            ? "Mit Freunden spielen"
+                            : "Mit deinem Chat spielen",
+                        },
+                      ]
                     : []),
-                  { href: mode.queueHref, label: "Gegen Fremde spielen" },
+                  ...(mode.queueHref
+                    ? [{ href: mode.queueHref, label: "Gegen Fremde spielen" }]
+                    : []),
                 ]}
               />
             );
@@ -146,6 +160,7 @@ const MULTIPLAYER_ICONS: Record<string, LucideIcon> = {
   royale: Flame,
   blitz: Timer,
   timerush: Clock,
+  live: Radio,
 };
 
 const SOLO_ICONS: Record<string, LucideIcon> = {

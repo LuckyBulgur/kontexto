@@ -21,9 +21,12 @@ interface GuessListProps {
   /** Submits a suggestion as the next guess. Without it no suggestions show. */
   onSuggestion?: (word: string) => void;
   sortMode: SortMode;
+  /** Prints the name of whoever played each row above its bar. Off by default,
+   *  because in every other mode the answer is "you". */
+  showNames?: boolean;
 }
 
-export default function GuessList({ guesses, total, latestWord, pendingWord, podestError, onSuggestion, sortMode }: GuessListProps) {
+export default function GuessList({ guesses, total, latestWord, pendingWord, podestError, onSuggestion, sortMode, showNames }: GuessListProps) {
   const sorted = sortMode === "rank"
     ? [...guesses].sort((a, b) => a.rank - b.rank)
     : [...guesses];
@@ -44,7 +47,14 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
             </>
           ) : latest ? (
             <>
-              <GuessBar word={latest.word} rank={latest.rank} total={total} isNew size="lg" />
+              <GuessBar
+                word={latest.word}
+                rank={latest.rank}
+                total={total}
+                isNew
+                size="lg"
+                by={showNames ? latest.by : undefined}
+              />
               {latest.correctedFrom && (
                 <p className="mt-1 text-small text-muted-foreground">
                   „{latest.correctedFrom}“ wurde als „{latest.word}“ gewertet
@@ -55,7 +65,14 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
         </div>
       )}
       {sorted.map((guess, i) => (
-        <GuessBar key={`${guess.word}-${i}`} word={guess.word} rank={guess.rank} total={total} isNew={guess.word === latestWord} />
+        <GuessBar
+          key={`${guess.word}-${i}`}
+          word={guess.word}
+          rank={guess.rank}
+          total={total}
+          isNew={guess.word === latestWord}
+          by={showNames ? guess.by : undefined}
+        />
       ))}
     </div>
   );
