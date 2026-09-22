@@ -27,10 +27,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      # test_prepare_integration runs the real data pipeline, which reads word
+      # classes with spaCy. The production build uses de_core_news_lg (570 MB,
+      # installed by scripts/prepare-data.sh); this job asserts that the
+      # pipeline writes its files, not how well it reads German, so it takes
+      # the small model and says so through KONTEXTO_SPACY_MODEL below.
+      - name: Install the small spaCy model
+        run: python -m spacy download de_core_news_sm
+
       - name: Run tests
         run: python -m pytest backend/ -v
         env:
           PYTHONPATH: backend
+          KONTEXTO_SPACY_MODEL: de_core_news_sm
 
   frontend:
     runs-on: ubuntu-latest

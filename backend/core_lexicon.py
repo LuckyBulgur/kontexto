@@ -109,7 +109,17 @@ PROTECTED_POS = frozenset({"VERB", "ADJ", "ADV"})
 ADJECTIVE_ENDINGS = ("en", "em", "er", "es", "e")
 STRIP_TARGET_POS = frozenset({"ADJ", "ADV"})
 
-SPACY_MODEL = "de_core_news_lg"
+#: The word class model. ``de_core_news_lg`` is the one every figure in this
+#: file was measured with and the one the data build installs.
+#:
+#: ``KONTEXTO_SPACY_MODEL`` overrides it, and exists for exactly one caller: the
+#: CI test job, which runs the whole pipeline end to end and would otherwise
+#: have to download 570 MB to assert that a file was written. It sets the small
+#: model, 15 MB, which reads word classes worse and writes the same files. It is
+#: an environment variable and not a silent fallback on purpose: a data build
+#: whose model failed to download has to fail, not quietly ship a scale built
+#: from a weaker reading.
+SPACY_MODEL = os.environ.get("KONTEXTO_SPACY_MODEL") or "de_core_news_lg"
 
 CORE_FILE = "core_words.json"
 FOLD_FILE = "fold_map.json"
