@@ -14,7 +14,7 @@ treatment inside a field became visible: the cluster that holds the word for
 lynx also holds the ones for racoon and rhinoceros, and an alphabetical list
 never puts them next to each other.
 
-Every rejected word carries one of eight codes. The codes are the rubric:
+Every rejected word carries one of these codes. The codes are the rubric:
 
     P  proper name, place or brand
     V  a variant of a word that is already in the pool
@@ -26,6 +26,11 @@ Every rejected word carries one of eight codes. The codes are the rubric:
     W  not the base form of a noun
     Z  thirteen letters or more and no everyday thing behind them
     F  no opening word gets near it, measured and validated against play
+    A  so general that it sits next to every word and gives no direction
+    T  wrong in tone for a daily puzzle (violence, illness, excretion)
+
+A and T were added on 2026-09-22 by a reading pass with the player, after the
+eight above had let through ``ding``, ``sache``, ``tumor`` and ``urin``.
 
 The reasons that survived from the earlier passes are mapped onto the same
 codes, mechanically, so that the whole list speaks one language. Where the old
@@ -53,6 +58,8 @@ CODES = {
     "W": "keine Nennform eines Substantivs",
     "F": "von den Startwoertern aus nicht erreichbar, gemessen",
     "Z": "ab 13 Zeichen und kein Alltagsding, das jeder selbst erlebt",
+    "A": "so allgemein, dass es neben jedem Wort steht und keine Richtung gibt",
+    "T": "als Tagesraetsel unpassend im Ton (Gewalt, Krankheit, Ausscheidung)",
 }
 
 #: From this length on, a word has to earn the typing. Below it, length is no

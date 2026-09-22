@@ -208,7 +208,7 @@ def is_showable_guess(typed: str, scored: str, rank: int) -> bool:
     so a word the user-text filter flags is dropped there, silently, like any
     other line that does not count.
 
-    The solution always counts. ``Idiot``, ``Depp`` and ``Kamel`` are solutions
+    The solution always counts. ``Idiot`` and ``Kamel`` are solutions
     and flagged words at once, and a chat that could never enter the answer
     could never finish the round. Both spellings are checked, because the scored
     form is the folded lemma and the typed one may be the worse of the two.
