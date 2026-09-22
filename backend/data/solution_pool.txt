@@ -34,7 +34,7 @@
 # The list is data, not output. Edit it by hand, keep it sorted, one word per
 # line. scripts/recode-pool.py applies a reviewed pass to both files.
 #
-# 2.697 words, about 7,4 years of daily puzzles.
+# 2.803 words, about 7,7 years of daily puzzles.
 
 abbild
 abbildung
@@ -83,11 +83,13 @@ altpapier
 altstadt
 aluminium
 amateur
+ambiente
 ameise
 ampel
 amsel
 amt
 analyse
+anatomie
 anerkennung
 angebot
 angler
@@ -97,6 +99,8 @@ anker
 ankunft
 anlage
 anliegen
+anregung
+anschaffung
 anstrich
 antikörper
 anzahl
@@ -110,12 +114,14 @@ aquarium
 arbeit
 arbeiter
 arbeitsplatz
+arbeitstag
 arbeitsweg
 arbeitszeit
 arbeitszimmer
 arche
 architektur
 archiv
+archäologie
 areal
 arena
 arm
@@ -150,14 +156,17 @@ aufgabe
 aufkleber
 aufmerksamkeit
 aufnahme
+aufteilung
 auftrag
 aufwand
 aufzug
 auge
 aula
 aura
+ausbilder
 ausbildung
 ausdauer
+ausdehnung
 ausdruck
 ausfahrt
 ausflugsziel
@@ -229,13 +238,17 @@ baumhaus
 baumwolle
 baustein
 baustelle
+bauweise
 bauwerk
+bebauung
 becher
 becken
+bedienung
 bedürfnis
 beere
 beet
 begegnung
+begeisterung
 behandlung
 behälter
 beifahrer
@@ -243,7 +256,9 @@ beifahrersitz
 beige
 beilage
 bein
+bekleidung
 belag
+belagerung
 beleuchtung
 belohnung
 benzin
@@ -254,6 +269,7 @@ berg
 bergbau
 bergwerk
 beruf
+berufsleben
 berufsschule
 berührung
 besatzung
@@ -296,6 +312,7 @@ bildhauer
 bildschirm
 bildung
 billard
+biografie
 biologie
 birke
 birne
@@ -376,6 +393,7 @@ bühne
 bündel
 bürger
 bürgermeister
+bürgerschaft
 bürgersteig
 büro
 bürste
@@ -417,8 +435,10 @@ dachgeschoss
 dackel
 damm
 dampf
+dankbarkeit
 darm
 darstellung
+dasein
 datenbank
 datum
 dauerregen
@@ -429,6 +449,7 @@ deich
 dekoration
 delfin
 demenz
+denker
 denkmal
 depp
 dessert
@@ -437,7 +458,9 @@ diagramm
 dialog
 dichter
 dienst
+dienstleistung
 diesel
+diktator
 dill
 ding
 dinosaurier
@@ -540,6 +563,7 @@ energie
 engagement
 engel
 enkel
+ensemble
 ente
 entlassung
 entspannung
@@ -564,8 +588,11 @@ erlebnis
 erlöser
 ernte
 ernährung
+erreger
 ersatzbank
 erstklässler
+ertrag
+erwärmung
 erzieher
 erziehung
 erzähler
@@ -578,6 +605,7 @@ esstisch
 esszimmer
 etage
 etappe
+ethik
 etikett
 etui
 eule
@@ -588,6 +616,7 @@ existenz
 experte
 fabrik
 fach
+fachhochschule
 fackel
 faden
 fahranfänger
@@ -663,6 +692,7 @@ fisch
 fischerei
 fitnessstudio
 flagge
+flair
 flamme
 flasche
 flaschenpost
@@ -706,6 +736,7 @@ freibad
 freiheit
 freizeit
 fremdsprache
+frequenz
 freude
 freundeskreis
 freundin
@@ -731,6 +762,7 @@ fußgänger
 fußgängerzone
 fußweg
 fähre
+färbung
 föhn
 förderung
 förster
@@ -810,6 +842,7 @@ gemüse
 gemüt
 generation
 generator
+genesung
 genie
 genre
 geographie
@@ -822,6 +855,7 @@ geruch
 gerät
 geräusch
 gerüst
+gesamtheit
 gesamtschule
 gesang
 geschenk
@@ -841,6 +875,7 @@ gespann
 gespenst
 gespräch
 gestalt
+gestein
 gestell
 gestrüpp
 gesundheit
@@ -850,6 +885,7 @@ getränk
 gewand
 gewebe
 geweih
+gewerbe
 gewerkschaft
 gewicht
 gewitter
@@ -887,6 +923,7 @@ grammatik
 granit
 gras
 grau
+gremium
 grieche
 griff
 grill
@@ -959,8 +996,10 @@ haube
 hauch
 haufen
 hauptgericht
+hauptschule
 hauptstadt
 haus
+hausarbeit
 hausarzt
 hausaufgabe
 hausboot
@@ -1012,6 +1051,7 @@ herzschlag
 heu
 hexe
 hilfe
+hilfsmittel
 himbeere
 himmel
 himmelfahrt
@@ -1056,6 +1096,7 @@ hygiene
 hymne
 hypnose
 hähnchen
+häufigkeit
 höhe
 höhle
 hörbuch
@@ -1075,6 +1116,7 @@ immunsystem
 impfung
 individuum
 informatik
+informatiker
 ingenieur
 ingwer
 innenhof
@@ -1087,6 +1129,7 @@ instinkt
 institut
 instrument
 intelligenz
+intensität
 internat
 internet
 jacke
@@ -1206,6 +1249,7 @@ klasse
 klassenfahrt
 klassenzimmer
 klassik
+klausur
 klavier
 klebeband
 klebstoff
@@ -1252,6 +1296,7 @@ kommando
 kommode
 kommunikation
 komponist
+komposition
 komödie
 konfetti
 konsole
@@ -1264,6 +1309,7 @@ kontrast
 kontur
 konversation
 konzert
+koordination
 kopf
 kopfhörer
 kopftuch
@@ -1321,6 +1367,7 @@ kuli
 kulisse
 kultur
 kunde
+kundschaft
 kunst
 kunststoff
 kunstwerk
@@ -1390,7 +1437,11 @@ lebensfreude
 lebensgefahr
 lebensmittel
 lebensraum
+lebensstil
+lebensunterhalt
 lebensweg
+lebensweise
+lebenszeit
 leber
 lebewesen
 leck
@@ -1398,10 +1449,13 @@ leder
 lehm
 lehrer
 lehrerzimmer
+lehrgang
 lehrling
 leib
+leichtigkeit
 leidenschaft
 leine
+leinen
 leinwand
 leistung
 leitplanke
@@ -1450,6 +1504,7 @@ luftfahrt
 lunge
 lust
 luxus
+lyrik
 lärm
 läufer
 löffel
@@ -1490,6 +1545,7 @@ maus
 maut
 mechanik
 mechaniker
+mechanismus
 medikament
 meditation
 medizin
@@ -1544,6 +1600,7 @@ mobiliar
 mode
 modell
 modenschau
+moderation
 mofa
 mohn
 molekül
@@ -1571,6 +1628,7 @@ musical
 musik
 musiker
 musikschule
+musikvideo
 muskel
 muskulatur
 muster
@@ -1579,6 +1637,7 @@ muttermilch
 muttersprache
 muttertag
 mutti
+mythologie
 mädchen
 mädel
 mähdrescher
@@ -1626,6 +1685,7 @@ natur
 naturschutz
 nebel
 neffe
+neigung
 nelke
 nerv
 nervensystem
@@ -1664,6 +1724,7 @@ oberschenkel
 oberseite
 oberstufe
 oberteil
+obhut
 objekt
 obst
 obstsalat
@@ -1760,6 +1821,7 @@ pflug
 pfosten
 pfote
 pfütze
+phantasie
 philosoph
 philosophie
 physik
@@ -1785,6 +1847,7 @@ platz
 plätzchen
 podcast
 podium
+poesie
 poker
 politik
 polizei
@@ -1811,24 +1874,30 @@ praxis
 preisschild
 presse
 prinzessin
+privatleben
 privileg
 produkt
 produktion
 produzent
 prognose
 programm
+programmierung
 projekt
 projektor
 promenade
 propeller
+prosa
 prospekt
 protein
 prothese
 protokoll
+prototyp
 provinz
 prärie
+präzision
 prüfung
 psyche
+psychologe
 psychologie
 pubertät
 publikum
@@ -1888,6 +1957,7 @@ realschule
 rechner
 rechnung
 recycling
+reflexion
 refrain
 regal
 regen
@@ -1900,6 +1970,7 @@ regierung
 region
 reh
 reifen
+reihenfolge
 reinigung
 reis
 reisepass
@@ -1912,6 +1983,7 @@ rennrad
 rennwagen
 rente
 reparatur
+repertoire
 reportage
 reptil
 republik
@@ -1955,6 +2027,7 @@ rücksitz
 rückspiegel
 rührei
 rüssel
+rüstung
 saal
 sache
 sack
@@ -2013,6 +2086,7 @@ schlaf
 schlafanzug
 schlafsack
 schlafzimmer
+schlager
 schlagzeug
 schlagzeuger
 schlamm
@@ -2054,6 +2128,7 @@ schriftsteller
 schublade
 schuh
 schuhwerk
+schulabschluss
 schulbank
 schule
 schulfach
@@ -2067,6 +2142,7 @@ schulranzen
 schultag
 schulter
 schultüte
+schulung
 schulweg
 schulzeit
 schuppen
@@ -2090,6 +2166,7 @@ schwimmer
 schädel
 schäferhund
 schönheit
+schöpfer
 schüler
 schürze
 schüssel
@@ -2119,6 +2196,7 @@ siedlung
 siegel
 silber
 silvester
+simulation
 sinfonie
 sirup
 sitte
@@ -2146,9 +2224,11 @@ sofa
 sohle
 sohn
 soldat
+solidarität
 sommer
 sommerfest
 sommerzeit
+sonde
 song
 songtext
 sonne
@@ -2168,6 +2248,7 @@ sound
 soundtrack
 soße
 spaghetti
+sparkasse
 sparschwein
 spaten
 spatz
@@ -2282,6 +2363,7 @@ stromnetz
 struktur
 strumpf
 strumpfhose
+strömung
 student
 studie
 studio
@@ -2291,9 +2373,11 @@ stundenplan
 sturm
 stute
 styropor
+städtchen
 stängel
 stätte
 stück
+subjekt
 substanz
 suchmaschine
 sumpf
@@ -2303,6 +2387,7 @@ sushi
 sweatshirt
 symbol
 symphonie
+szenario
 szene
 sänger
 säugetier
@@ -2351,6 +2436,7 @@ teebeutel
 teelöffel
 teenager
 teich
+teilhabe
 telefon
 telefonat
 telegramm
@@ -2361,7 +2447,9 @@ tempolimit
 tendenz
 tennis
 tennisspieler
+tenor
 teppich
+terrain
 terrasse
 terrorismus
 testament
@@ -2408,6 +2496,7 @@ tornado
 tour
 tourismus
 tourist
+tournee
 tracht
 tradition
 trainer
@@ -2420,6 +2509,7 @@ transport
 transporter
 traube
 traubensaft
+trauer
 traum
 trauma
 treibhaus
@@ -2493,6 +2583,7 @@ unterwäsche
 unwetter
 uran
 urgroßvater
+urheber
 urin
 urkunde
 urlaub
@@ -2520,9 +2611,11 @@ verkehr
 verkehrszeichen
 verkleidung
 vermieter
+vermittler
 vermögen
 vernunft
 verpackung
+verpflegung
 versicherung
 versorgung
 versteck
@@ -2562,7 +2655,9 @@ vormittag
 vorname
 vorort
 vorrat
+vorsatz
 vorschlag
+vorsorge
 vorspeise
 vorwort
 waage
@@ -2587,6 +2682,7 @@ wange
 wanne
 wappen
 ware
+wartung
 waschanlage
 waschbecken
 waschbär
@@ -2614,12 +2710,15 @@ weizen
 welpe
 welt
 weltall
+weltanschauung
 weltmeister
 weltraum
 werbung
+werdegang
 werk
 werkstatt
 werkzeug
+wertschätzung
 wesen
 westen
 wetter
@@ -2646,9 +2745,11 @@ wirt
 wirtschaft
 wissenschaft
 wissenschaftler
+witterung
 witwe
 wochenende
 wodka
+wohlbefinden
 wohnheim
 wohnmobil
 wohnort
@@ -2694,6 +2795,7 @@ zelle
 zelt
 zement
 zentrum
+zertifikat
 zettel
 zeugnis
 ziege
@@ -2712,6 +2814,7 @@ zone
 zoo
 zubehör
 zubereitung
+zucht
 zucker
 zuckerguss
 zufall
@@ -2725,11 +2828,14 @@ zustand
 zweig
 zwerg
 zwilling
+zyklus
 zylinder
 züchter
 zündung
 ärmel
+ökologie
 ökosystem
 übergewicht
+überlegung
 übernachtung
 übung

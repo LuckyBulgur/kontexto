@@ -119,12 +119,18 @@ def read_decisions() -> tuple[set[str], dict[str, str]]:
         if not line or line.startswith("#"):
             continue
         cells = line.split("\t")
+        # The file is an append-only log of a reading pass, so a later line
+        # is a later reading and overrides an earlier one. Without this a word
+        # struck in one pass and taken back in the next lands in both sets, and
+        # the strike silently wins.
         if cells[1] == "keep":
             keep.add(cells[0])
+            drop.pop(cells[0], None)
         else:
             if cells[2] not in CODES:
                 raise SystemExit(f"unknown code {cells[2]!r} for {cells[0]}")
             drop[cells[0]] = cells[2]
+            keep.discard(cells[0])
     return keep, drop
 
 
