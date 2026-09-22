@@ -32,7 +32,7 @@ export const changelog: ChangelogEntry[] = [
       "unter 80.000 Wortformen. Dadurch stehen in der Nähe des Lösungsworts keine seltenen " +
       "Komposita und keine Beugungsformen mehr, und die angezeigte Zahl ist etwa sechsmal " +
       "kleiner. Raten darfst du weiterhin alles, was das Spiel vorher angenommen hat. Dazu " +
-      "wurden die Lösungswörter neu ausgewählt: 2.803 alltagsnahe Substantive, jedes einzeln " +
+      "wurden die Lösungswörter neu ausgewählt: 2.710 alltagsnahe Substantive, jedes einzeln " +
       "durchgespielt und von Hand geprüft.",
     href: "/blog/wie-das-loesungswort-entsteht/",
     hrefLabel: "Wie das Lösungswort entsteht",

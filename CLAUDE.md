@@ -81,7 +81,7 @@ There is **no live embedding inference at request time**. `prepare.py` (offline 
 
 **The core lexicon decides what a rank counts (`core_lexicon.py`, since 2026-09-21).** The vocabulary is a frequency cut of 80.000 word forms and only a fifth of it is language anybody uses; measured over 200 games, just 78 of the 500 nearest words were everyday words and the 50th best everyday word sat at displayed rank 302. So a second, smaller list ships next to it: **15.517 core lemmas**, Zipf ≥ 3.2, one base form per word (three gates: `lemma_map`, simplemma, and HanTa for the participles the other two miss), name tokens kept because they are ordinary nouns too. Two consequences, both in `game.py._display_scale`: the **debias is fitted on the core** and then applied to the whole vocabulary (`prepare.postprocess_vectors(fit_words=…)`), and the **displayed rank counts core words only**, so `guess`, `tip` and `closest` all run on that scale and `total` is the core size, not `vocab_size`. **Nothing is refused**: a word outside the core still scores, sharing the number of the nearest core word ahead of it plus one, capped at the core size, which also keeps rank 1 unique to the solution. A data directory without `core_words.json` (an older volume, the Wordle data, a test fixture) ranks over the whole vocabulary exactly as before. **The solution always counts**, whatever the core list says, because otherwise the nearest core word would take displayed rank 1 and a client would call the round solved on the wrong word; the pool builder keeps every solution in the core and aborts if one is missing, and `_display_scale` guards it a second time. Measured against the deployed scale on 80 identical solutions: median 45,5 guesses → 35,0, all 80 solved instead of 78, rounds over 80 guesses 12% → 4%.
 
-**What may be a solution**: the live pool is the hand-curated list in **`backend/data/solution_pool.txt`** (2.803 words, about 7,7 years of daily puzzles), and `scripts/rebuild-core-pool.py` builds the data from it. Two automatic gates and one human one. Automatic and reproducible: the word is a core lemma, and `TargetWordFilter` accepts it as a common noun that the dictionary lists as a lemma, with no proper name, no inflected form and nothing from the profanity list. Human and not reproducible: every candidate was read against a written rubric, and `backend/data/solution_rejects.txt` records what was struck and under which code.
+**What may be a solution**: the live pool is the hand-curated list in **`backend/data/solution_pool.txt`** (2.710 words, about 7,4 years of daily puzzles), and `scripts/rebuild-core-pool.py` builds the data from it. Two automatic gates and one human one. Automatic and reproducible: the word is a core lemma, and `TargetWordFilter` accepts it as a common noun that the dictionary lists as a lemma, with no proper name, no inflected form and nothing from the profanity list. Human and not reproducible: every candidate was read against a written rubric, and `backend/data/solution_rejects.txt` records what was struck and under which code.
 
 **The original's selection curve, reconstructed (2026-09-22).** Sorted into
 frequency bands of the English word list, the 1.461 published Contexto answers
@@ -152,8 +152,8 @@ ruled on by hand, restored after all automatic gates, because a measured gate
 is wrong often enough that a human ruling has to outrank it.
 
 **Every game is played before a pool ships**, not a sample: `playtest-pool.py`
-with `--rounds` set to the whole range. On the current pool that is 2.771
-rounds at 99,5% solved, median 40 guesses and 5,1% over 80. The 14 the player
+with `--rounds` set to the whole range. On the current pool that is 2.678
+rounds at 99,5% solved, median 40 guesses and 5,3% over 80. The 14 the player
 never solves are its blind spot and stay in: short, polysemous words such as
 the ones for hammer, sack and wool, which a person types in the first minute.
 
