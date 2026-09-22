@@ -229,12 +229,37 @@ class GameState:
             return None
 
         ranks, rank_to_index = self._get_game(game_number)
+        rank = int(ranks[index])
         return {
             "word": normalized,
-            "rank": int(ranks[index]),
+            "rank": rank,
             "total": len(rank_to_index) - 1,
             "corrected_from": corrected_from,
+            # The solution holds rank 1 whatever the core list says, the same
+            # guard `_display_scale` applies, so the winning row is never shown
+            # as an approximation.
+            "counted": rank == 1 or self.is_counted(normalized),
         }
+
+    def is_counted(self, word: str) -> bool:
+        """Whether this word occupies a place on the displayed scale.
+
+        64.483 of the 80.000 guessable words are not core words, and they all
+        have to be shown a rank on a scale of 15.517 places. Any whole number
+        therefore collides: a guess outside the core shares the number of the
+        core word it stands behind, and two rows then read as a tie that is not
+        one. The player found it on the day the solution was a verb, where half
+        the neighbourhood is that verb's own inflections: the words for "to
+        contact" and "reports" both showed rank 3.
+
+        The collision cannot be arithmetic'd away, so the answer is to say
+        which of the two rows is actually on the list. A client renders an
+        uncounted rank as an approximation.
+        """
+        if self.core_mask is None:
+            return True
+        index = self.vocabulary.get(word)
+        return index is not None and bool(self.core_mask[index])
 
     def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
         """Get a hint word based on difficulty level.
@@ -312,11 +337,35 @@ class GameState:
         """Number of pre-computed games available (the full infinite-mode pool)."""
         return self.metadata.get("total_games", len(self.target_words))
 
+    def first_curated_game(self) -> int:
+        """Lowest game number the random modes may draw.
+
+        Games below it kept the words the old pool gave them when the data was
+        rebuilt around the core lexicon, so they never passed the rule that a
+        solution is a concrete common noun: game 107 was the verb for "to
+        report". The daily series has walked past them and never returns before
+        the pool wraps; the random modes draw over the whole range and would
+        keep handing them out.
+
+        **The archive is deliberately not filtered.** ``/api/games`` walks back
+        one day at a time and reads the game number off the date, so every
+        puzzle that was ever a daily stays playable there. A player who missed
+        a day is entitled to it; what they are not entitled to is meeting it
+        again by accident in the endless mode.
+
+        A data directory without the key behaves as it always did.
+        """
+        return max(1, int(self.metadata.get("first_curated_game", 1)))
+
     def random_game_number(self, exclude: set[int]) -> int | None:
-        """Pick a uniformly random game number in 1..total_games, skipping
-        ``exclude``. Returns None when every game is excluded (caller decides
-        whether to relax the exclusion set and retry)."""
-        candidates = [n for n in range(1, self.total_games() + 1) if n not in exclude]
+        """Pick a uniformly random game number, skipping ``exclude``.
+
+        The range starts at :meth:`first_curated_game`. Returns None when every
+        game is excluded (caller decides whether to relax the exclusion set and
+        retry).
+        """
+        candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
+                      if n not in exclude]
         if not candidates:
             return None
         return random.choice(candidates)
@@ -326,8 +375,10 @@ class GameState:
 
         Returns None when the pool cannot supply that many, so the caller can
         relax its exclusion set instead of silently handing out a shorter list.
+        The range starts at :meth:`first_curated_game`.
         """
-        candidates = [n for n in range(1, self.total_games() + 1) if n not in exclude]
+        candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
+                      if n not in exclude]
         if len(candidates) < count:
             return None
         return random.sample(candidates, count)

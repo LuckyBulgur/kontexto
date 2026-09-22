@@ -54,6 +54,7 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
                 isNew
                 size="lg"
                 by={showNames ? latest.by : undefined}
+                counted={latest.counted}
               />
               {latest.correctedFrom && (
                 <p className="mt-1 text-small text-muted-foreground">
@@ -72,6 +73,7 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
           total={total}
           isNew={guess.word === latestWord}
           by={showNames ? guess.by : undefined}
+          counted={guess.counted}
         />
       ))}
     </div>

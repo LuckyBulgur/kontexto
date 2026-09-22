@@ -183,6 +183,25 @@ class TestRandomGameNumber:
     def test_total_games(self, gs):
         assert gs.total_games() == 3
 
+    def test_legacy_games_are_not_drawn(self, data_dir):
+        # Games below first_curated_game kept the words the old pool gave them
+        # and never passed the rule that a solution is a concrete common noun.
+        # The daily series walked past them; the random modes must not hand
+        # them out again.
+        meta = json.load(open(os.path.join(data_dir, "metadata.json"), encoding="utf-8"))
+        meta["first_curated_game"] = 3
+        with open(os.path.join(data_dir, "metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f)
+        state = GameState(data_dir)
+        assert state.first_curated_game() == 3
+        assert {state.random_game_number(set()) for _ in range(50)} == {3}
+        assert state.random_game_numbers(2, set()) is None
+        assert state.random_game_number({3}) is None
+
+    def test_without_the_key_every_game_is_drawn(self, gs):
+        assert gs.first_curated_game() == 1
+        assert {gs.random_game_number(set()) for _ in range(80)} == {1, 2, 3}
+
 
 class TestCoreLexicon:
     """The scale a rank is read against.
@@ -256,6 +275,26 @@ class TestCoreLexicon:
         assert state.guess("kirsche", 1)["rank"] == 2
         assert state.guess("haus", 1)["rank"] == 3
         assert state.guess("birne", 1)["rank"] == 2      # outside the core
+
+    def test_a_word_outside_the_core_is_marked_as_not_counted(self, data_dir):
+        # Two words sharing a displayed number read as a tie, and on the day
+        # the solution was a verb the rows for two different words both said 3.
+        # The number cannot be made unique, 64.483 guessable words share 15.517
+        # places, so the answer is to say which row actually holds the place.
+        core_lexicon.write_core_words(data_dir, ["kirsche", "haus"])
+        state = GameState(data_dir)
+        assert state.guess("kirsche", 1)["counted"] is True
+        assert state.guess("birne", 1)["counted"] is False
+        # Both stand at 2, and only one of them is on the list.
+        assert state.guess("kirsche", 1)["rank"] == state.guess("birne", 1)["rank"]
+        # The solution counts whatever the core says, so the winning row is
+        # never shown as an approximation.
+        assert state.guess("apfel", 1)["rank"] == 1
+        assert state.guess("apfel", 1)["counted"] is True
+
+    def test_without_a_core_every_rank_is_its_own_place(self, data_dir):
+        state = GameState(data_dir)
+        assert state.guess("haus", 1)["counted"] is True
 
     def test_without_a_core_the_whole_vocabulary_counts(self, data_dir):
         state = GameState(data_dir)
@@ -372,5 +411,6 @@ class TestGameCacheLru:
         assert set(state._game_cache) == {2}
         # Game 1 was evicted; a guess against it must reload from disk.
         result = state.guess("birne", 1)
-        assert result == {"word": "birne", "rank": 2, "total": 5, "corrected_from": None}
+        assert result == {"word": "birne", "rank": 2, "total": 5,
+                          "corrected_from": None, "counted": True}
         assert set(state._game_cache) == {1}

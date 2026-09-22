@@ -161,6 +161,12 @@ def main() -> int:
     new_meta = dict(meta)
     new_meta["total_games"] = len(targets)
     new_meta["core_size"] = len(core)
+    # Games 1..cutoff keep the words the old pool gave them, so they are the
+    # only ones in the file that never passed the current rules: verbs,
+    # adjectives and whatever else was allowed then. The daily series has
+    # already walked past them, but the random modes draw over the whole range
+    # and would keep serving them. This is where they stop.
+    new_meta["first_curated_game"] = cutoff + 1
     with open(os.path.join(args.out_dir, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(new_meta, f, ensure_ascii=False, indent=2)
 

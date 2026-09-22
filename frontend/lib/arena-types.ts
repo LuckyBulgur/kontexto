@@ -50,6 +50,9 @@ export interface ArenaGuessResult {
   /** Set when the guess was a typo with exactly one plausible reading: what was
    *  typed, so the player can see which word was actually scored. */
   corrected_from?: string | null;
+  /** False when the word is guessable but holds no place on the counted scale,
+   *  so its number is shared with the core word it stands behind. */
+  counted?: boolean;
 }
 
 export type ArenaWsMessage =

@@ -238,7 +238,13 @@ export default function GameClient() {
         setPodestError({ word: result.word, message: "Wort bereits geraten" });
         return;
       }
-      addGuess({ word: result.word, rank: result.rank, isTip: false, correctedFrom: result.corrected_from ?? undefined });
+      addGuess({
+        word: result.word,
+        rank: result.rank,
+        isTip: false,
+        correctedFrom: result.corrected_from ?? undefined,
+        counted: result.counted,
+      });
       setTotal(result.total);
     } catch (e: unknown) {
       if (e instanceof UnknownWordError) {

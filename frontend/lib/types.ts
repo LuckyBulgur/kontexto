@@ -5,6 +5,11 @@ export interface GuessResult {
   /** Set when the guess was a typo with exactly one plausible reading: what was
    *  typed, so the player can see which word was actually scored. */
   corrected_from?: string | null;
+  /** False when the word is guessable but holds no place on the counted scale.
+   *  It then shares its number with the core word it stands behind, so the row
+   *  is shown as an approximation rather than as a tie. Absent on an older
+   *  server, where every rank was its own place. */
+  counted?: boolean;
 }
 
 export interface TipResult {
@@ -24,6 +29,9 @@ export interface Guess {
   isTip: boolean;
   /** What the player typed when this guess was a corrected typo. */
   correctedFrom?: string;
+  /** False when this word holds no place on the counted scale and only stands
+   *  behind the core word with that number. Undefined counts as true. */
+  counted?: boolean;
   /** Who played this word, where that is worth showing. Solo modes leave it
    *  unset; the stream chat sets it on every row, because the whole point of
    *  that mode is that a viewer sees their own name on the board. */
@@ -276,6 +284,11 @@ export interface DualGuessResult {
   /** Set when the guess was a typo with exactly one plausible reading: what was
    *  typed, so the player can see which word was actually scored. */
   corrected_from?: string | null;
+  /** False when the word is guessable but holds no place on the counted scale.
+   *  It then shares its number with the core word it stands behind, so the row
+   *  is shown as an approximation rather than as a tie. Absent on an older
+   *  server, where every rank was its own place. */
+  counted?: boolean;
 }
 
 export interface SuddenDeathRound {
