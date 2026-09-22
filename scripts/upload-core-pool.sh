@@ -5,8 +5,11 @@
 # the cutoff upwards and copies the played npz across inside the volume,
 # because a rebuild used to leave them untouched. This rebuild changes the
 # space itself (the vectors are debiased on the core lexicon), so every rank
-# array is new, the played ones included. It also adds a file the runtime reads
-# at startup, core_words.json, which decides what a rank counts.
+# array is new, the played ones included. It also ships the two files the
+# runtime reads at startup: core_words.json, which decides what a rank counts,
+# and fold_map.json, which says what every other guessable form is scored as.
+# The two are written by one build and have to travel together, because a list
+# without its folds refuses every plural.
 #
 # The staging and swap are the same as before, and for the same reason: the
 # backend reads target_words.json once at startup and caches rank arrays per
@@ -49,7 +52,9 @@ case "${1:-}" in
             mv target_words.previous.json target_words.json && \
             mv metadata.previous.json metadata.json && \
             if [ -f core_words.previous.json ]; then mv core_words.previous.json core_words.json; \
-            else rm -f core_words.json; fi'"
+            else rm -f core_words.json; fi && \
+            if [ -f fold_map.previous.json ]; then mv fold_map.previous.json fold_map.json; \
+            else rm -f fold_map.json; fi'"
         remote "$COMPOSE restart $SERVICE"
         echo "Rolled back. The rejected pool is at /app/data/games.broken."
         exit 0
@@ -66,7 +71,8 @@ esac
 OUT_DIR="${1:?usage: upload-core-pool.sh <out-dir> [--dry-run]}"
 DRY_RUN="${2:-}"
 
-for required in target_words.json metadata.json manifest.json core_words.json games; do
+for required in target_words.json metadata.json manifest.json core_words.json \
+                fold_map.json games; do
     [ -e "$OUT_DIR/$required" ] || { echo "ABORT: $OUT_DIR/$required missing"; exit 1; }
 done
 
@@ -92,6 +98,7 @@ in_container "sh -c 'rm -rf /app/data/.staging && mkdir -p /app/data/.staging'"
 # One compressed tar stream: some 1.900 separate copies over ssh would take far
 # longer than the generation did.
 tar -C "$OUT_DIR" -czf - games target_words.json metadata.json core_words.json \
+      fold_map.json \
   | remote "$COMPOSE exec -T $SERVICE tar -C /app/data/.staging -xzf -"
 
 echo "Verifying the staged copy ..."
@@ -103,11 +110,13 @@ in_container "sh -c 'cd /app/data && \
     cp target_words.json target_words.previous.json && \
     cp metadata.json metadata.previous.json && \
     if [ -f core_words.json ]; then cp core_words.json core_words.previous.json; fi && \
+    if [ -f fold_map.json ]; then cp fold_map.json fold_map.previous.json; fi && \
     rm -rf games.previous && mv games games.previous && \
     mv .staging/games games && \
     mv .staging/target_words.json target_words.json && \
     mv .staging/metadata.json metadata.json && \
     mv .staging/core_words.json core_words.json && \
+    mv .staging/fold_map.json fold_map.json && \
     rmdir .staging'"
 in_container "sh -c 'chown -R appuser:appuser /app/data/games /app/data/*.json'" || true
 
@@ -133,6 +142,18 @@ if [ "$AFTER_TOTAL" != "$CORE_SIZE" ]; then
     exit 1
 fi
 echo "The rank scale is the core lexicon ($AFTER_TOTAL words)."
+
+echo "Checking that an inflected form still scores ..."
+FOLDED=$(in_container "python3 -c \"import urllib.request,json;\
+req=urllib.request.Request('http://127.0.0.1:8000/api/guess', \
+data=json.dumps({'word':'kinder'}).encode(), \
+headers={'Content-Type':'application/json'});\
+print(json.load(urllib.request.urlopen(req))['word'])\"" | tr -d '\r') || FOLDED=""
+if [ -z "$FOLDED" ]; then
+    echo "ABORT: a plural of a counted word was refused. fold_map.json did not arrive."
+    exit 1
+fi
+echo "A plural scores as its singular ($FOLDED)."
 
 echo "Spot check, the pool the random modes draw from:"
 api_get "infinite/next" | head -c 200
