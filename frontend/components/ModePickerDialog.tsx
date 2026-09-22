@@ -24,7 +24,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MEDIA_DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import ModeRow from "@/components/ModeRow";
 import { loadSentence, totalSentence } from "@/lib/matchmaking-rules";
 import { QueueModeId } from "@/lib/matchmaking-types";
@@ -134,17 +142,23 @@ export default function ModePickerDialog({
     if (!open) setPath("solo");
   }, [open]);
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-h3">Wie willst du spielen?</DialogTitle>
-          <DialogDescription className="sr-only">
-            {"Spielmodus auswählen und direkt starten"}
-          </DialogDescription>
-        </DialogHeader>
+  // Below the breakpoint the same content comes up from the bottom instead.
+  // Measured before it was changed: as a centred dialog it was 719 pixels tall
+  // with no height cap at all, which is 108% of an iPhone SE and 114% of a
+  // 640 pixel Android. The title and the footer link were both off screen, and
+  // the `max-h-[60vh]` on the list never fired because the box around it could
+  // grow without limit.
+  const desktop = useMediaQuery(MEDIA_DESKTOP);
 
-        <Tabs value={path} onValueChange={(next) => setPath(next as Path)}>
+  const body = (
+    <>
+      <Tabs
+        value={path}
+        onValueChange={(next) => setPath(next as Path)}
+        // The tab strip stays put and only the list inside scrolls, so the
+        // three tabs are reachable however long a list gets.
+        className="flex min-h-0 flex-1 flex-col"
+      >
           {/* The vendored list is a 36 pixel strip and its trigger is sized
               against that height, which in a three-column grid left the active
               pill hanging over the edge. Both heights come from the content
@@ -167,12 +181,12 @@ export default function ModePickerDialog({
           </TabsList>
 
           {TAB_ORDER.map((id) => (
-            <TabsContent key={id} value={id}>
+            <TabsContent key={id} value={id} className="flex min-h-0 flex-1 flex-col">
               <p className="pb-2 text-small text-muted-foreground">
                 {id === "strangers" && live ? totalSentence(live) : TAB_LEADS[id]}
               </p>
 
-              <div className="scrollbar-thin max-h-[60vh] space-y-2 overflow-y-auto">
+              <div className="scrollbar-thin min-h-0 flex-1 space-y-2 overflow-y-auto">
                 {withPopularFirst(modesFor(id, onInfiniteStart), popular[id]).map((mode) => (
                   <ModeRow
                     key={mode.id}
@@ -198,15 +212,56 @@ export default function ModePickerDialog({
               </div>
             </TabsContent>
           ))}
-        </Tabs>
+      </Tabs>
 
-        <StreamCallout />
+      <StreamCallout />
 
-        <p className="text-center text-micro text-muted-foreground">
-          <Link href="/modi/" className="underline underline-offset-2 hover:no-underline">
-            {"Regeln aller Modi nachlesen"}
-          </Link>
-        </p>
+      <p className="text-center text-micro text-muted-foreground">
+        <Link href="/modi/" className="underline underline-offset-2 hover:no-underline">
+          {"Regeln aller Modi nachlesen"}
+        </Link>
+      </p>
+    </>
+  );
+
+  const title = "Wie willst du spielen?";
+  const description = "Spielmodus auswählen und direkt starten";
+  const onOpenChange = (next: boolean) => { if (!next) onClose(); };
+
+  if (!desktop) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        {/* 92% of the small viewport height: dvh and not vh, because on a
+            phone the browser bar counts and vh does not know about it. The
+            strip that stays uncovered is what tells the player the board is
+            still behind the sheet. */}
+        <DrawerContent
+          // The variant selector and not a plain utility: drawer.tsx ships
+          // max-h-[80vh] behind the same data attribute, which wins on
+          // specificity, so a bare max-h here does nothing. dvh rather than
+          // vh, because on a phone the browser bar counts.
+          className="data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        >
+          <DrawerHeader className="pb-2 text-left">
+            <DrawerTitle className="text-h3">{title}</DrawerTitle>
+            <DrawerDescription className="sr-only">{description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 pb-6">
+            {body}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90dvh] max-w-md flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-h3">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        </DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
@@ -276,20 +331,29 @@ function modesFor(path: Path, onInfiniteStart?: () => void): PickerEntry[] {
  * has to hold, because the mode reaches far fewer people than the other six and
  * would be read as one more row among nine if it looked like one.
  */
+/**
+ * The one row that is not a mode: the way into the stream chat.
+ *
+ * It keeps the coloured surface, because a streamer has to find it without
+ * looking for it, and it stays small on a phone. On a 360 pixel screen the
+ * list above it is the thing being chosen from; a banner that takes a fifth of
+ * the sheet pushes the choice off the screen. So the padding, the glyph and
+ * the second line all step up only from the breakpoint.
+ */
 function StreamCallout() {
   return (
     <Link
       href="/live/"
-      className="flex w-full items-center gap-3 rounded-xl bg-primary p-4 text-left text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="flex w-full items-center gap-2.5 rounded-xl bg-primary p-2.5 text-left text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:gap-3 md:p-4"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15">
-        <Radio className="h-5 w-5" aria-hidden="true" />
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 md:h-10 md:w-10">
+        <Radio className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-lead font-bold">
+        <span className="block font-display text-body font-bold md:text-lead">
           {"Du streamst?"}
         </span>
-        <span className="block text-small text-primary-foreground/80">
+        <span className="block text-micro leading-snug text-primary-foreground/80 md:text-small">
           {"Lass deinen Twitch-Chat mitraten, ohne Anmeldung."}
         </span>
       </span>
