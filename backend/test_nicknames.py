@@ -6,6 +6,8 @@ the work is in *not* catching ordinary German, where ``arsch`` sits inside
 adjective. A filter that rejects "Marschieren" is a worse product than no filter.
 """
 
+from pathlib import Path
+
 import pytest
 
 from nicknames import (
@@ -76,17 +78,135 @@ class TestDetection:
 
     def test_a_nickname_is_joined_before_matching(self):
         """A nickname is one token; the spaces in it are decoration."""
-        assert contains_profanity("H u r e n s o h n", collapse_words=True)
-        assert not contains_profanity("H u r e n s o h n")
+        assert contains_profanity("Hu ren sohn", collapse_words=True)
+        assert not contains_profanity("Hu ren sohn")
+
+    @pytest.mark.parametrize("text", [
+        "H u r e n s o h n",
+        "h.i.t.l.e.r ist toll",
+        "das war h-i-t-l-e-r",
+    ])
+    def test_free_text_reads_a_spelled_out_word(self, text):
+        """A run of single letters cannot invent a word across a real gap."""
+        assert contains_profanity(text)
+
+    def test_single_letters_next_to_words_stay_apart(self):
+        assert not contains_profanity("Plan B a la carte")
+        assert not contains_profanity("E T A Hoffmann")
 
     def test_a_generated_name_survives_the_filter(self):
         for _ in range(200):
             assert not contains_profanity(generate_nickname(), collapse_words=True)
 
+    def test_every_solution_passes(self):
+        """A word the filter flags cannot be the answer of a live-chat round.
+
+        The live overlay drops flagged guesses except the solution. The three
+        listed here are real solutions and deliberate insults at once; anything
+        else the filter reaches in the pool is a false positive to fix in the
+        lists, which is how ``Sparschwein`` was found.
+        """
+        pool = (Path(__file__).parent / "data" / "solution_pool.txt").read_text(encoding="utf-8")
+        words = [line.strip() for line in pool.splitlines()
+                 if line.strip() and not line.startswith("#")]
+        flagged = {word for word in words if contains_profanity(word, collapse_words=True)}
+        assert flagged == {"depp", "idiot", "kamel"}
+
+    def test_the_names_corpus_passes(self):
+        """The names a nickname is drawn from, measured against every tier.
+
+        Each of these is a deliberate decision, not an accident: a real insult
+        that also happens to be listed as a name. A new list entry that reaches
+        any other name fails here until it is reviewed.
+        """
+        names = (Path(__file__).parent / "german_names.txt").read_text(encoding="utf-8")
+        flagged = {name.strip().lower() for name in names.splitlines()
+                   if name.strip() and contains_profanity(name, collapse_words=True)}
+        assert flagged == {
+            "cock", "dildora", "hitlerike", "kamel", "ludde", "lude", "mist", "rowdy",
+        }
+
     def test_the_solution_list_keeps_its_deliberate_homographs(self):
         """Solutions and user text are two questions. This is the first one."""
         for word in ("schwanz", "sack", "eier", "geil", "blasen", "nackt", "furz"):
             assert word not in SOLUTION_BLOCKLIST
+
+
+class TestExtremism:
+    """The category the vendored list never had, and the reason it was added."""
+
+    @pytest.mark.parametrize("text,term", [
+        ("Hitler", "hitler"),
+        ("H1tl3r", "hitler"),
+        ("Hítler", "hitler"),
+        ("Нitler", "hitler"),
+        ("adolf_hitler88", "hitler"),
+        ("HeilHitler", "heilhitler"),
+        ("xxNazixx", "nazi"),
+        ("Nazifan", "nazi"),
+        ("Judensau", "judensau"),
+        ("Goebbels", "goebbels"),
+        ("Kinderschänder", "kinderschaender"),
+    ])
+    def test_a_nickname_is_found(self, text, term):
+        assert find_profanity(text, collapse_words=True) == term
+
+    @pytest.mark.parametrize("text,code", [
+        ("1488", "1488"),
+        ("Max1488", "1488"),
+        ("14 88", "1488"),
+        ("HH88", "hh88"),
+        ("hh_88", "hh88"),
+        ("88HH", "88hh"),
+        ("Sieg88", "sieg88"),
+        ("Heil 18", "heil88"),
+        ("Combat 18", "combat18"),
+        ("14words", "14words"),
+    ])
+    def test_a_number_code_is_found(self, text, code):
+        """Leetspeak would read 1488 as letters, so codes have their own pass."""
+        assert find_profanity(text, collapse_words=True) == code
+        assert find_profanity(text) == code
+
+    @pytest.mark.parametrize("text", [
+        "Sieg Heil",
+        "sieg  heil!",
+        "Juden raus",
+        "Arbeit macht frei",
+        "white power",
+        "hitler war gut",
+    ])
+    def test_free_text_is_found(self, text):
+        assert contains_profanity(text)
+
+    @pytest.mark.parametrize("text", [
+        # A birth year or an age is not a code.
+        "Max88", "Jahrgang 1988", "Anna18", "Lisa 88", "Ahh88",
+        # Names that begin with nazi, exempt as a whole token only.
+        "Nazim", "Nazim99", "Nazir", "Nazife", "Ignazio",
+        # Words and names the substring tier reaches from inside.
+        "Torpedo", "Cocktail", "Hitchcock", "Therapeut", "Fagott", "Deichmann",
+        "zusammengelegt", "Ansporn", "Shitstorm", "Smartwatch", "Sparschwein",
+        "Schwarzenegger", "misst", "warscheinlich", "Bulgarier",
+        "Hamburg HH", "Jude",
+    ])
+    def test_ordinary_text_passes(self, text):
+        assert find_profanity(text, collapse_words=True) is None
+        assert find_profanity(text) is None
+
+    def test_free_text_near_a_phrase_passes(self):
+        """The phrase needs a word boundary on both ends."""
+        assert not contains_profanity("Wettsieg heilt alles")
+        assert not contains_profanity("Die Juden rauschten nicht")
+
+    def test_an_exempt_name_does_not_clear_the_rest(self):
+        assert find_profanity("Nazim Hitler", collapse_words=True) == "hitler"
+        assert find_profanity("Nazim ist ein Nazi") == "nazi"
+
+    def test_the_reflection_masks_the_name(self):
+        assert sanitize_nickname("Hitler") == "Ich bin H****r"
+        assert sanitize_nickname("1488") == "Ich bin 1**8"
+        assert sanitize_nickname(sanitize_nickname("HH88")) == sanitize_nickname("HH88")
 
 
 class TestMasking:

@@ -21,6 +21,12 @@ Run after updating the vendored list:
 
     python scripts/classify-profanity-list.py            # full report
     python scripts/classify-profanity-list.py --allowlist  # allowlist for the strict tier
+    python scripts/classify-profanity-list.py --flagged    # what the live engine still flags
+
+``--flagged`` is the check to run last. It feeds every corpus word through the
+runtime's own ``find_profanity`` as a nickname, allowlists and exemptions
+included, so what it prints is exactly the set of real words a player would
+see reflected. Every line of it has to be a deliberate decision.
 """
 from __future__ import annotations
 
@@ -32,6 +38,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 
 from wordlists import (  # noqa: E402
+    STRICT_FILES,
+    find_profanity,
     load_term_file,
     normalize_for_profanity_check,
 )
@@ -40,12 +48,18 @@ DATA = ROOT / "backend" / "data"
 CORPUS_SIZE = 50_000
 
 
-def corpus() -> list[str]:
+def corpus_words() -> list[str]:
+    """The corpus as written, before normalisation."""
     from wordfreq import top_n_list
 
     words = set(top_n_list("de", CORPUS_SIZE))
     names = (ROOT / "backend" / "german_names.txt").read_text(encoding="utf-8")
     words.update(line.strip() for line in names.splitlines() if line.strip())
+    return sorted(words)
+
+
+def corpus() -> list[str]:
+    words = corpus_words()
     folded = {normalize_for_profanity_check(w).replace(" ", "") for w in words}
     return sorted(w for w in folded if w)
 
@@ -63,16 +77,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allowlist", action="store_true",
                         help="print the allowlist the strict tier needs, one word per line")
+    parser.add_argument("--flagged", action="store_true",
+                        help="print every corpus word the runtime engine flags, with the term")
     parser.add_argument("--source", default="profanity_de_raw.txt",
                         help="which file under backend/data to classify")
     args = parser.parse_args()
+
+    if args.flagged:
+        flagged = [(word, find_profanity(word, collapse_words=True)) for word in corpus_words()]
+        hits = [(word, term) for word, term in flagged if term is not None]
+        for word, term in hits:
+            print(f"{word:<32} {term}")
+        print()
+        print(f"{len(hits)} of {len(flagged)} corpus words flagged")
+        return 0
 
     raw = load_term_file(DATA / args.source)
     words = corpus()
     profane = set(raw)
 
     if args.allowlist:
-        strict = load_term_file(DATA / "profanity_de_strict.txt")
+        strict = [term for name in STRICT_FILES for term in load_term_file(DATA / name)]
         hits = collisions(strict, words, profane)
         for word in sorted({w for group in hits.values() for w in group}):
             print(word)

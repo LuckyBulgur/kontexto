@@ -1,0 +1,40 @@
+# Substring tier, hand-maintained: the English vulgar register and English
+# slurs. The German vendored list has none of it, although a German chat uses
+# it all the time, and SOLUTION_BLOCKLIST carried these for solutions only.
+#
+# Same format and matching as profanity_de_strict.txt. Short English entries
+# that sit inside ordinary words (cock in Cocktail, rape in Trapez, fag in
+# Fagott) are in profanity_de_word.txt instead, as whole tokens only.
+# Deliberately absent: dick (German for fat), sex, anal, cum (cum laude), hoe.
+#
+# Measure with: python scripts/classify-profanity-list.py --source profanity_en.txt
+
+fuck
+fucker
+fucking
+motherfucker
+shit
+bullshit
+bitch
+cunt
+whore
+slut
+pussy
+asshole
+dickhead
+dumbass
+wanker
+twat
+boobs
+blowjob
+handjob
+cumshot
+gangbang
+porn
+nigger
+nigga
+faggot
+retard
+rapist
+kill yourself
+killyourself

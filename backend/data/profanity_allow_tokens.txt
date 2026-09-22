@@ -1,0 +1,40 @@
+# Whole-token exemptions: names and words that a tier term reaches from
+# inside or through its squeezed spelling. Measured with
+# scripts/classify-profanity-list.py --flagged against german_names.txt and
+# wordfreq's 50.000 most frequent German words.
+#
+# These cannot go into profanity_de_allow.txt. That list is removed from the
+# text as a substring, so an entry "nazif" would also clear "Nazifan". Here a
+# token counts only when it is exactly the name, optionally followed by a
+# number (Nazim, Nazim99), and the rest of the text is still scanned.
+
+# nazi
+ignazia
+ignazio
+nazif
+nazifa
+nazife
+nazih
+naziha
+nazik
+nazila
+nazim
+nazima
+nazime
+nazir
+nazira
+nazire
+
+# shit
+harshita
+reshit
+rushit
+yoshitaka
+yoshito
+yoshitoshi
+
+# porn, found through the squeezed spelling anuporna
+anupoorna
+
+# mist, reached through the squeezed spelling of the verb
+misst

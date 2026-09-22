@@ -8,6 +8,8 @@
 # whole family: "marsch" also clears marschieren and einmarschieren.
 
 # arsch
+sparschwein
+warschein
 marsch
 marschall
 barsch
@@ -36,3 +38,24 @@ thure
 
 # schiesser
 schiesserei
+
+# nazi
+entnazifizier
+
+# pedo
+torpedo
+
+# mengele
+sammengeleg
+
+# porn
+sporn
+
+# shit
+shitstorm
+
+# twat
+smartwatch
+
+# neger
+schwarzenegger

@@ -39,3 +39,12 @@ tussi
 weichei
 zicke
 zickig
+
+# Short English and extremist entries that sit inside ordinary words: cock in
+# Cocktail and Hitchcock, rape in Therapeut, fag in Fagott, eichmann in
+# Deichmann. The rest of both lists is in the substring tier.
+cock
+rape
+fag
+kkk
+eichmann

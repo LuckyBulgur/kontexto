@@ -48,6 +48,14 @@ class TestChannelNames:
         assert normalise_channel("hat-bindestrich") is None
         assert normalise_channel("x" * 26) is None
 
+    def test_a_profane_channel_is_refused(self):
+        from live_chat import normalise_channel
+
+        assert normalise_channel("adolf_hitler_88") is None
+        assert normalise_channel("hurensohn_tv") is None
+        assert normalise_channel("marschall_tv") == "marschall_tv"
+        assert normalise_channel("max1988") == "max1988"
+
 
 class TestIrcParsing:
     def test_privmsg_with_tags(self):

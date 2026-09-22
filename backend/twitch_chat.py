@@ -184,6 +184,8 @@ class LiveChatIngest:
                 # plausible correction. A chat cannot answer a suggestion, so the
                 # line is dropped instead of turning into three of them.
                 return
+            if not live_chat.is_showable_guess(word, result["word"], result["rank"]):
+                return
 
             nickname = live_chat.viewer_nickname(message.display_name)
             recorded = await record_koop_guess(

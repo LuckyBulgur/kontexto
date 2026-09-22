@@ -273,6 +273,25 @@ class TestIngest:
 
         self._run(run())
 
+    def test_a_flagged_word_never_reaches_the_overlay(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, {"hitler": 312, "apfel": 42})
+            await ingest.handle_message(koop_id, self._message("1", "Mara", "Hitler"))
+            await ingest.handle_message(koop_id, self._message("2", "Jo", "apfel"))
+            assert await self._words(db, koop_id) == ["apfel"]
+
+        self._run(run())
+
+    def test_a_flagged_solution_still_counts(self, db):
+        """Idiot is a solution and a flagged word; the chat must be able to win."""
+        async def run():
+            koop_id, ingest = await self._ready(db, {"idiot": 1, "depp": 3})
+            await ingest.handle_message(koop_id, self._message("1", "Mara", "depp"))
+            await ingest.handle_message(koop_id, self._message("2", "Jo", "Idiot"))
+            assert await self._words(db, koop_id) == ["idiot"]
+
+        self._run(run())
+
     def test_an_unbound_room_takes_nothing(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42})

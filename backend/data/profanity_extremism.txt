@@ -1,0 +1,80 @@
+# Substring tier, hand-maintained: National Socialist names and slogans,
+# antisemitic and racist slurs, and paedophilia terms. The vendored LDNOOBW list
+# has none of this, which is how "Hitler" got into a player list as a nickname.
+#
+# Same format and same matching as profanity_de_strict.txt: normalised on load
+# (leetspeak, umlauts, confusables), matched anywhere inside a word. An entry
+# written with spaces is also matched as a phrase in free text, across the gaps
+# between its words ("Sieg Heil", "Juden raus"), see PHRASE_PATTERNS in
+# wordlists.py. Extremist number codes (1488, HH88) cannot live here, because
+# the leetspeak fold turns their digits into letters; they are a separate pass
+# in wordlists.py.
+#
+# Legitimate words that carry an entry inside them go to profanity_de_allow.txt.
+# Measure with: python scripts/classify-profanity-list.py --source profanity_extremism.txt
+# Deliberately absent, with the reason:
+#   adolf, hess, bormann   ordinary first name and surnames
+#   eichmann               also an ordinary surname and inside Deichmann and
+#                          Teichmann, so it is in the exact-token tier
+#   arier                  sits inside bulgarier and vegetarier
+#   jude, juden            a people, not an insult; the slurs built on it are here
+#   ss, hh, 88, 18         Hamburg plate, birth years; handled as codes in context
+#   zyklon b               zyklonbildung is meteorology
+#   vergasen               a carburettor vergast
+
+# National Socialism: names
+hitler
+goebbels
+himmler
+heydrich
+mengele
+# National Socialism: organisations, symbols, slogans
+nazi
+neonazi
+nsdap
+gestapo
+waffen ss
+hakenkreuz
+swastika
+sieg heil
+sieg hail
+heil hitler
+hitlergruss
+reichsfuehrer
+arbeit macht frei
+meine ehre heisst treue
+blut und ehre
+white power
+white pride
+ku klux klan
+kukluxklan
+# National Socialism: extermination and denial
+auschwitz
+gaskammer
+endloesung
+holocaustluege
+holohoax
+untermensch
+herrenrasse
+rassenschande
+juden vergasen
+# Antisemitic slurs
+judensau
+judenschwein
+judenpack
+judenfrei
+juden raus
+saujude
+drecksjude
+# Racist and antiziganist slurs the vendored list misses
+auslaender raus
+kanacke
+zigeuner
+bimbo
+negerkuss
+# Paedophilia
+paedo
+pedo
+paedophil
+kinderschaender
+kinderficker

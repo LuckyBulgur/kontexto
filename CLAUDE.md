@@ -230,8 +230,35 @@ collisions. Run it after any list update.
 
 Matching happens over a normalised form that survives leetspeak (`f1ck`), Unicode confusables
 (a Cyrillic `а` in `аrsch`), zero‑width characters, combining marks and stretched
-letters (`aaarsch`). The survey free text uses the same engine with `collapse_words=False`, so
-tokens stay separate and "Star Schule" does not read as profane.
+letters (`aaarsch`). The survey and word-rating free text use the same engine with
+`collapse_words=False`, so tokens stay separate and "Star Schule" does not read as profane; two
+narrow joins are made anyway, because neither can invent a word: a run of three or more single
+letters is read as the word it spells (`h.i.t.l.e.r`), and a multi-word entry is matched as a
+phrase with word boundaries on both ends (`Sieg Heil`, not `Wettsieg heilt`).
+
+**The vendored list has no extremism and no English (fixed 2026-09-22).** `Hitler` passed as a
+nickname until then. Two hand-maintained substring files sit next to the derived one and are
+matched as one tier: `profanity_extremism.txt` (NS names, slogans and symbols, antisemitic and
+racist slurs, paedophilia terms) and `profanity_en.txt` (the English vulgar register). Each file
+lists in its header what is deliberately absent and why (`adolf`, `jude`, `arier` inside
+`Bulgarier`). Extremist number codes (`1488`, `HH88`, `Sieg88`, `Combat 18`) need their own pass
+over a digit-preserving form, because leetspeak reads `1488` as letters; a bare `88` or `18` is
+never a code, since `Max88` is a birth year. First names that begin with a term (`Nazim`,
+`Nazir`, `Nazife`) are exempt in `profanity_allow_tokens.txt` **as a whole token only**, because a
+substring allowlist entry `nazif` would also clear `Nazifan`. The allowlist is also removed in its
+squeezed spelling, which is what made `zusammengelegt` read as `mengele` before.
+
+**Measure before and after every list edit:** `python scripts/classify-profanity-list.py
+--flagged` runs the runtime engine over wordfreq's 50.000 words plus `german_names.txt` and
+prints every word a player would see reflected. Two tests pin the result: every name in
+`german_names.txt` passes except an explicit set of eight deliberate ones, and every word of the
+solution pool passes except `depp`, `idiot` and `kamel`.
+
+**The live stream overlay is the one place a guess is filtered.** Invited rooms show every
+guessable word; a live room writes what anonymous viewers type onto a public stream, so
+`live_chat.is_showable_guess` drops a flagged guess silently, **except the solution**, or a chat
+could never finish a round whose answer is `Idiot`. A profane Twitch channel name is refused with
+the ordinary `bad_channel` error.
 
 ### Analytics (cookieless, server‑authoritative, `analytics.py`)
 Authoritative counts (guesses/solves/hints/reveals/duels) are incremented **server‑side from the real handlers**, never trusted from the client. Visitor identity is an anonymous, non‑reversible fingerprint `SHA256(IP + UA + monthly salt)` folded into **HyperLogLog** sketches (all‑time + monthly) for unique‑visitor estimates. Raw `analytics_events` are kept **35 days** then pruned; permanent rollups live in `analytics_daily`/`analytics_counters`/HLL tables. Only the completion **distribution histograms** come from the client (`stats/complete`), token‑gated + bot‑filtered + deduped. The attribution survey („Woher kennst du Kontexto?", `survey/answer`) follows the same pattern: the countable answer is a permanent counter (`survey_source_v1`), the dedup ledger `analytics_survey_seen` is kept 180 days, and the optional free text lives in `analytics_survey_details` **without** a fingerprint. Frontend side: `lib/survey.ts` (catalogue, shuffle, frequency caps), `components/SourceSurvey*.tsx`. Three further growth signals share the same posture: `starts` (counted once per fingerprint, mode and game via `analytics_start_seen`, triggered by the `first` flag on the opening guess, which is only a hint because the ledger caps it), `shares` plus `share_arrivals` (the share text carries `?s=<game>`, the marker is counted per page and stripped from the address bar on arrival) and `attention` (one heartbeat of a visible tab = `HEARTBEAT_SECONDS`). Heatmap/peak‑hour stats are bucketed in **`DISPLAY_TZ = Europe/Berlin`** (`analytics.py`).

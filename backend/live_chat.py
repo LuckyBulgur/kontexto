@@ -35,6 +35,7 @@ from dataclasses import dataclass
 import aiosqlite
 
 from nicknames import sanitize_nickname
+from wordlists import contains_profanity
 
 # The platforms a room may be bound to. Only Twitch reads a chat today; the
 # column exists so YouTube (OAuth plus a quota budget) and TikTok (no official
@@ -100,7 +101,15 @@ def normalise_channel(raw: str | None) -> str | None:
     if "twitch.tv/" in name:
         name = name.split("twitch.tv/", 1)[1]
     name = name.split("?", 1)[0].split("/", 1)[0].strip()
-    return name if _CHANNEL.match(name) else None
+    if not _CHANNEL.match(name):
+        return None
+    # The channel name is printed on the overlay and kept forever on the admin
+    # board, so it passes the nickname rule. A refusal here is the ordinary
+    # bad_channel error: the host is a streamer setting up a room, not a
+    # prober, and a silent rename cannot apply to a login that must match.
+    if contains_profanity(name, collapse_words=True):
+        return None
+    return name
 
 
 # --- IRC parsing ------------------------------------------------------------
@@ -189,6 +198,27 @@ def extract_word(text: str, require_prefix: bool) -> str | None:
             return None
         text = rest.strip()
     return text.lower() if _WORD.match(text) else None
+
+
+def is_showable_guess(typed: str, scored: str, rank: int) -> bool:
+    """Whether a resolved chat guess may appear on the stream overlay.
+
+    The invited rooms show every guessable word, because the players chose each
+    other. A live room writes what anonymous viewers type onto a public stream,
+    so a word the user-text filter flags is dropped there, silently, like any
+    other line that does not count.
+
+    The solution always counts. ``Idiot``, ``Depp`` and ``Kamel`` are solutions
+    and flagged words at once, and a chat that could never enter the answer
+    could never finish the round. Both spellings are checked, because the scored
+    form is the folded lemma and the typed one may be the worse of the two.
+    """
+    if rank == 1:
+        return True
+    return not (
+        contains_profanity(typed, collapse_words=True)
+        or contains_profanity(scored, collapse_words=True)
+    )
 
 
 class GuessGate:

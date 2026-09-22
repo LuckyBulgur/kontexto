@@ -221,6 +221,29 @@ class TestDetail:
         assert ok is True
         assert count == 0
 
+    @pytest.mark.parametrize("detail", [
+        "Hitler war besser", "Sieg Heil", "h i t l e r", "1488", "fuck this word",
+    ])
+    def test_extremist_and_english_detail_is_dropped(self, db_path, detail):
+        async def go(db):
+            await vote(db, game=53)
+            ok, _ = await vote(db, game=53, detail=detail)
+            async with db.execute("SELECT COUNT(*) FROM analytics_rating_details") as cur:
+                (count,) = await cur.fetchone()
+            return ok, count
+        ok, count = with_db(db_path, go)
+        assert ok is True
+        assert count == 0
+
+    def test_ordinary_detail_with_numbers_is_kept(self, db_path):
+        async def go(db):
+            await vote(db, game=54)
+            await vote(db, game=54, detail="Nach 88 Versuchen, Jahrgang 1988")
+            async with db.execute("SELECT COUNT(*) FROM analytics_rating_details") as cur:
+                (count,) = await cur.fetchone()
+            return count
+        assert with_db(db_path, go) == 1
+
 
 class TestDashboard:
     def test_coverage_comes_with_the_numbers(self, db_path):

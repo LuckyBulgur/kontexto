@@ -6,14 +6,11 @@
 # Legitimate German words that carry one of these inside them live in
 # profanity_de_allow.txt; run scripts/classify-profanity-list.py after an edit.
 aasgeier
-abdrehen
 abortuar
 abschaum
 abschaumdermenschlichengesellschaft
 abspritzen
 abticken
-abtreibende
-abtreibungen
 affenarsch
 affenschwanz
 ahduschwein
@@ -44,7 +41,6 @@ arschloch
 arschloecher
 arschmade
 aufgeilen
-ausgestossen
 aushilfsnasenbaer
 ausstossend
 backpfeifengesicht

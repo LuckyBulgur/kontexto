@@ -124,3 +124,7 @@ wuetend      # wuetend, an emotion
 xbewertet    # not a German word
 ziehleine    # not an insult
 zombie       # Zombie, not an insult
+abdrehen     # abdrehen, to turn off; removed from the strict tier 2026-09-22
+abtreibende  # a medical and political term, not an insult
+abtreibungen # a medical and political term, not an insult
+ausgestossen # ausgestossen, expelled
