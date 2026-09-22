@@ -281,7 +281,6 @@ export default function ArenaPageClient() {
             : [...prev, {
                 word: result.word,
                 rank: result.rank,
-                counted: result.counted,
                 isTip: false,
                 correctedFrom: result.corrected_from ?? undefined,
               }]

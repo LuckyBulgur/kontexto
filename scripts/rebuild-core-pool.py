@@ -86,6 +86,10 @@ def main() -> int:
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--pool", default=POOL_FILE)
     ap.add_argument("--today", default=None)
+    ap.add_argument("--guess-counts", default=None,
+                    help="JSON object word -> how often it was guessed on production. "
+                         "A word players type is a word players know, which corpus "
+                         "frequency alone gets wrong just under the floor.")
     ap.add_argument("--seed", type=int, default=20260921)
     ap.add_argument("--verify-sample", type=int, default=0,
                     help="verify N recomputed arrays instead of all of them")
@@ -136,7 +140,13 @@ def main() -> int:
     carried = [w for w in played if w not in set(pool)]
     log(f"  {len(carried)} played words are not in the curated pool and stay only where they are")
 
-    core = core_lexicon.build_core_lexicon(vocab_index, lemma_map, keep=set(targets))
+    guess_counts: dict[str, int] = {}
+    if args.guess_counts:
+        with open(args.guess_counts, encoding="utf-8") as f:
+            guess_counts = json.load(f)
+        log(f"  {len(guess_counts)} words carry a guess count from production")
+    core, fold = core_lexicon.build_core_lexicon(
+        vocab_index, lemma_map, keep=set(targets), guess_counts=guess_counts)
     missing_from_core = [w for w in targets if w not in set(core)]
     if missing_from_core:
         # A solution outside the core would be counted by nothing, and the
@@ -144,7 +154,9 @@ def main() -> int:
         # it, but the data should never ask it to.
         raise SystemExit(f"ABORT: {len(missing_from_core)} solutions are not in the core: "
                          f"{missing_from_core[:10]}")
-    log(f"Core lexicon: {len(core)} words ({100 * len(core) / len(vocab_list):.0f}% of the vocabulary)")
+    log(f"Counted lexicon: {len(core)} words "
+        f"({100 * len(core) / len(vocab_list):.0f}% of the vocabulary), "
+        f"{len(fold)} forms fold onto one of them")
 
     log("Debiasing on the core and applying it to the whole vocabulary ...")
     vectors = postprocess_vectors(raw, fit_words=set(core))
@@ -156,6 +168,7 @@ def main() -> int:
         if os.path.exists(src):
             shutil.copyfile(src, os.path.join(args.out_dir, name))
     core_lexicon.write_core_words(args.out_dir, core)
+    core_lexicon.write_fold_map(args.out_dir, fold)
     with open(os.path.join(args.out_dir, "target_words.json"), "w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False)
     new_meta = dict(meta)

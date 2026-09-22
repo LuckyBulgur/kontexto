@@ -358,8 +358,9 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     print(f"  Mapped {len(lemma_map)} inflected forms.")
 
     print("Building the core lexicon...")
-    core = core_lexicon.build_core_lexicon(vocab_index, lemma_map)
-    print(f"  {len(core)} of {len(vocab_list)} words count towards a rank.")
+    core, fold = core_lexicon.build_core_lexicon(vocab_index, lemma_map)
+    print(f"  {len(core)} of {len(vocab_list)} words count towards a rank, "
+          f"{len(fold)} further forms fold onto one of them.")
 
     print("Post-processing vectors (All-but-the-Top, fitted on the core)...")
     filtered = postprocess_vectors(filtered, fit_words=set(core))
@@ -385,6 +386,7 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     with open(os.path.join(output_dir, "lemma_map.json"), "w", encoding="utf-8") as f:
         json.dump(lemma_map, f, ensure_ascii=False)
     core_lexicon.write_core_words(output_dir, core)
+    core_lexicon.write_fold_map(output_dir, fold)
     with open(os.path.join(output_dir, "bloom.bin"), "wb") as f:
         pickle.dump(bf, f)
     with open(os.path.join(output_dir, "target_words.json"), "w", encoding="utf-8") as f:

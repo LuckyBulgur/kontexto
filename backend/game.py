@@ -67,6 +67,14 @@ class GameState:
                 self.core_mask = mask
         self.core_size = int(self.core_mask.sum()) if self.core_mask is not None else len(self.vocabulary)
 
+        # What a guessable form outside the counted list is scored as. Written
+        # by the same build as the list itself, so the two can never disagree
+        # about which word holds a number; see core_lexicon for why a form that
+        # folds is not a collision but the same word.
+        self.fold_map: dict[str, str] = (
+            core_lexicon.load_fold_map(data_dir) if self.core_mask is not None else {}
+        )
+
         self._game_cache: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
 
         # Typo correction. The prebuilt index is the normal case; a data
@@ -89,14 +97,15 @@ class GameState:
 
         The stored array ranks all ~80.000 words, but most of them are rare
         compounds and inflected forms nobody guesses, and each one pushes the
-        number the player reads further up: only about 78 of the 500 nearest
-        words are everyday words. So the displayed rank counts core words only.
+        number the player reads further up. So the displayed rank counts the
+        words of the counted lexicon, and **only** those: each of them gets its
+        own number, one after the other, with no gaps and no ties.
 
-        A word outside the core is **not** refused, it shares the number of the
-        nearest core word ahead of it plus one, capped at the core size. That
-        keeps every word guessable while the scale stays the small one, and it
-        keeps rank 1 unique to the solution, which is what every client reads as
-        "solved".
+        A word outside the lexicon gets rank 0, which is not a rank. It never
+        reaches a player, because :meth:`normalize_word` has already folded it
+        onto the counted word it is a form of, or refused it. Giving it the
+        number of the counted word ahead of it, which is what this did until
+        2026-09-22, is what put two different words on the same rank.
         """
         if self.core_mask is None:
             rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
@@ -104,10 +113,10 @@ class GameState:
             return ranks, rank_to_index
 
         order = np.argsort(ranks)                       # vocabulary index by rank
-        # The solution counts, whatever the core says. It is the word at rank 1,
-        # and if it were left out of the count, the nearest core word would take
-        # displayed rank 1 and the game would report a wrong word as solved.
-        # scripts/rebuild-core-pool.py keeps every solution in the core, so this
+        # The solution counts, whatever the lexicon says. It is the word at rank
+        # 1, and if it were left out of the count, the nearest counted word
+        # would take displayed rank 1 and the game would report a wrong word as
+        # solved. The pool builder keeps every solution in the lexicon, so this
         # is a guard rather than a mechanism, and it costs one array element.
         counts = self.core_mask.copy()
         counts[order[0]] = True
@@ -118,8 +127,7 @@ class GameState:
         core_size = int(counted[-1])
 
         display = counted[ranks - 1].copy()
-        outside = ~counts
-        display[outside] = np.minimum(display[outside] + 1, core_size)
+        display[~counts] = 0
 
         core_rank_to_index = np.zeros(core_size + 1, dtype=np.uint32)
         core_rank_to_index[1:] = order[core_by_rank]
@@ -160,14 +168,56 @@ class GameState:
         total = self.metadata.get("total_games", len(self.target_words))
         return ((days - 1) % total) + 1
 
-    def is_stopword(self, word: str) -> bool:
-        return word.strip().lower() in GERMAN_STOPWORDS
+    def is_uncounted(self, word: str) -> bool:
+        """Whether the game carries this word but gives it no place on the scale.
+
+        Two kinds of word land here and they get the same answer, because to the
+        player they are the same thing: a word the game knows and will not rank.
+        The hand-written stopword list is one. The other is everything the
+        counted lexicon leaves out and no fold picks up, which measured against
+        1.95 million real guesses is 2,9% of them and almost entirely closed
+        class: conjunctions, prepositions, auxiliaries, pronouns, determiners.
+
+        The caller answers this before it answers "unknown word", so a word the
+        dictionary has is never reported as a word the dictionary lacks.
+        """
+        w = word.strip().lower()
+        if w in GERMAN_STOPWORDS:
+            return True
+        if self.core_mask is None:
+            return False
+        return w in self.vocabulary and self.normalize_word(w) is None
 
     def normalize_word(self, word: str) -> str | None:
-        """Normalize a word: lowercase, check vocab first, lemma as fallback."""
+        """The counted word a guess is scored as, or None when there is none.
+
+        A counted word is itself. An inflected form of one is that one: the
+        plural for children is scored as the word for child and the row shows
+        it, which is what the game already did for the forms ``lemma_map``
+        happened to know. Everything else is refused, and the caller offers
+        suggestions, because a word with no place on the scale can only be shown
+        a number that belongs to a different word.
+        """
         w = word.strip().lower()
 
         if w not in self.bloom:
+            return None
+
+        if self.core_mask is not None:
+            index = self.vocabulary.get(w)
+            if index is not None and self.core_mask[index]:
+                return w
+            folded = self.fold_map.get(w)
+            if folded is not None:
+                return folded
+            # Not counted and not a form of anything counted. A word the
+            # vocabulary does not carry at all can still be an inflection the
+            # game derived itself, so the lemma index gets the last word.
+            lemma = self.lemma_map.get(w)
+            if lemma is not None and lemma != w:
+                lemma_index = self.vocabulary.get(lemma)
+                if lemma_index is not None and self.core_mask[lemma_index]:
+                    return lemma
             return None
 
         # Direct vocab match takes priority
@@ -203,8 +253,37 @@ class GameState:
         )
 
     def suggestions(self, word: str) -> list[str]:
-        """Words to offer for an unknown guess, possibly empty."""
-        return list(self.resolve_unknown(word).suggestions)
+        """Words to offer for an unknown guess, possibly empty.
+
+        The typo index reads the whole vocabulary, so it can name a word the
+        scale does not count. Offering one would be a trap: the player taps it
+        and gets told the word does not count, which reads as the game changing
+        its mind. So a suggestion is kept only if guessing it would work, and it
+        is named by the word that would actually be scored.
+        """
+        offered: list[str] = []
+        for candidate in self.resolve_unknown(word).suggestions:
+            scored = self.normalize_word(candidate)
+            if scored is not None and scored not in offered:
+                offered.append(scored)
+        return offered
+
+    def _solution_of(self, game_number: int, word: str) -> str | None:
+        """The word itself, when it is this game's solution and nothing else.
+
+        ``normalize_word`` refuses a word that holds no place on the scale, and
+        it cannot make an exception for the solution because it does not know
+        which game is being played. The solution always holds rank 1, whatever
+        the lexicon says, and a player who types it has to be told they won.
+        The pool builder keeps every solution counted, so this is a guard for a
+        data directory where that went wrong.
+        """
+        raw = word.strip().lower()
+        index = self.vocabulary.get(raw)
+        if index is None:
+            return None
+        ranks, _ = self._get_game(game_number)
+        return raw if int(ranks[index]) == 1 else None
 
     def guess(self, word: str, game_number: int, correct_typos: bool = True) -> dict | None:
         """Process a guess and return its rank.
@@ -215,6 +294,8 @@ class GameState:
         """
         normalized = self.normalize_word(word)
         corrected_from: str | None = None
+        if normalized is None:
+            normalized = self._solution_of(game_number, word)
         if normalized is None:
             if not correct_typos:
                 return None
@@ -230,36 +311,18 @@ class GameState:
 
         ranks, rank_to_index = self._get_game(game_number)
         rank = int(ranks[index])
+        if rank == 0:
+            # Not on the scale. `normalize_word` only returns counted words, so
+            # this is reachable only for a data directory whose lexicon and rank
+            # arrays disagree, and a number that belongs to another word is
+            # worse than no answer.
+            return None
         return {
             "word": normalized,
             "rank": rank,
             "total": len(rank_to_index) - 1,
             "corrected_from": corrected_from,
-            # The solution holds rank 1 whatever the core list says, the same
-            # guard `_display_scale` applies, so the winning row is never shown
-            # as an approximation.
-            "counted": rank == 1 or self.is_counted(normalized),
         }
-
-    def is_counted(self, word: str) -> bool:
-        """Whether this word occupies a place on the displayed scale.
-
-        64.483 of the 80.000 guessable words are not core words, and they all
-        have to be shown a rank on a scale of 15.517 places. Any whole number
-        therefore collides: a guess outside the core shares the number of the
-        core word it stands behind, and two rows then read as a tie that is not
-        one. The player found it on the day the solution was a verb, where half
-        the neighbourhood is that verb's own inflections: the words for "to
-        contact" and "reports" both showed rank 3.
-
-        The collision cannot be arithmetic'd away, so the answer is to say
-        which of the two rows is actually on the list. A client renders an
-        uncounted rank as an approximation.
-        """
-        if self.core_mask is None:
-            return True
-        index = self.vocabulary.get(word)
-        return index is not None and bool(self.core_mask[index])
 
     def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
         """Get a hint word based on difficulty level.

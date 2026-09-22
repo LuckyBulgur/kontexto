@@ -22,6 +22,13 @@ fasttext-wheel==0.9.2
 HanTa==1.2.1
 wordfreq==3.1.1
 german-nouns==1.2.5
+# Build-time only (core_lexicon.py): word class and lemma for the counted
+# lexicon. It replaced HanTa and simplemma for that one job because both read a
+# common adjective as a verb infinitive, which dropped the words for hot, cheap
+# and thin off the scale although players type them by the thousand. The model
+# is a separate download and is not on PyPI as a dependency, so the data build
+# fetches it; see scripts/prepare-data.sh.
+spacy==3.8.7
 aiosqlite==0.22.1
 webauthn==3.0.0
 pytest==9.1.1

@@ -49,6 +49,14 @@ elif [ ! -f "$MODEL_BIN" ]; then
     gunzip "$MODEL_PATH"
 fi
 
+# The word class model behind the counted lexicon. It is a pip package hosted
+# outside PyPI, so it cannot sit in requirements.txt; the build fetches it once
+# and a rebuilt image with a warm layer cache skips the download.
+if ! python3 -c "import de_core_news_lg" 2>/dev/null; then
+    echo "Downloading the German spaCy model..."
+    python3 -m spacy download de_core_news_lg
+fi
+
 echo "Running preparation pipeline..."
 cd /app/backend
 python3 prepare.py \

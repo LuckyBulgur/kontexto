@@ -382,7 +382,7 @@ async def guess(
         return JSONResponse(status_code=400, content={"error": "invalid_game", "message": str(e)})
     gs.load_game(game_num)
 
-    if gs.is_stopword(req.word):
+    if gs.is_uncounted(req.word):
         return JSONResponse(
             status_code=422,
             content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
@@ -631,7 +631,7 @@ async def dual_guess(
             content={"error": "invalid_game", "message": "Spiel existiert nicht"},
         )
 
-    if gs.is_stopword(req.word):
+    if gs.is_uncounted(req.word):
         return JSONResponse(
             status_code=422,
             content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
@@ -766,7 +766,7 @@ async def duel_guess_endpoint(duel_id: str, req: DuelGuessRequest):
         gs = _get_game_state()
         gs.load_game(game_num)
 
-        if gs.is_stopword(req.word):
+        if gs.is_uncounted(req.word):
             return JSONResponse(
                 status_code=422,
                 content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
@@ -992,7 +992,7 @@ async def koop_guess_endpoint(koop_id: str, req: KoopGuessRequest):
         gs = _get_game_state()
         gs.load_game(game_num)
 
-        if gs.is_stopword(req.word):
+        if gs.is_uncounted(req.word):
             return JSONResponse(
                 status_code=422,
                 content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},
@@ -1185,7 +1185,7 @@ def _resolve_room_guess(game_number: int, word: str) -> dict | None:
     """
     gs = _get_game_state()
     gs.load_game(game_number)
-    if gs.is_stopword(word):
+    if gs.is_uncounted(word):
         return None
     return gs.guess(word, game_number)
 
@@ -1466,7 +1466,7 @@ async def arena_guess_endpoint(arena_id: str, req: ArenaGuessRequest):
         gs = _get_game_state()
         gs.load_game(game_num)
 
-        if gs.is_stopword(req.word):
+        if gs.is_uncounted(req.word):
             return JSONResponse(
                 status_code=422,
                 content={"error": "stopword", "message": "Dieses Wort zählt nicht, es ist zu allgemein"},

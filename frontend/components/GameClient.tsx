@@ -243,7 +243,6 @@ export default function GameClient() {
         rank: result.rank,
         isTip: false,
         correctedFrom: result.corrected_from ?? undefined,
-        counted: result.counted,
       });
       setTotal(result.total);
     } catch (e: unknown) {

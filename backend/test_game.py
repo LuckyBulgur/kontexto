@@ -208,14 +208,18 @@ class TestCoreLexicon:
 
     The vocabulary is a frequency cut and most of it is rare compounds and
     inflected forms; counting them pushed the displayed rank up by about a
-    factor of six. The core lexicon is what counts, everything else still
-    scores at the position of the nearest core word.
+    factor of five. The counted lexicon is what counts, and since 2026-09-22 it
+    is also the whole of what can be guessed: a form outside it either folds
+    onto the counted word it belongs to, or it is refused. Two words sharing a
+    number is the one thing a rank must not do.
     """
 
     @pytest.fixture
     def core_dir(self, data_dir):
-        # apfel, kirsche and haus count; birne and auto only score.
+        # apfel, kirsche and haus count; birne folds onto kirsche and auto is
+        # carried by the vocabulary but holds no place, so it is refused.
         core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
+        core_lexicon.write_fold_map(data_dir, {"birne": "kirsche"})
         return data_dir
 
     def test_ranks_count_core_words_only(self, core_dir):
@@ -225,22 +229,34 @@ class TestCoreLexicon:
         assert state.guess("kirsche", 1)["rank"] == 2
         assert state.guess("haus", 1)["rank"] == 3
 
-    def test_word_outside_the_core_still_scores(self, core_dir):
+    def test_every_counted_word_has_its_own_number(self, core_dir):
         state = GameState(core_dir)
-        # birne sits between apfel and kirsche and shares kirsche's number.
-        assert state.guess("birne", 1)["rank"] == 2
-        # auto sits behind kirsche; the number is capped at the core size.
-        assert state.guess("auto", 1)["rank"] == 3
+        ranks = [state.guess(w, 1)["rank"] for w in ("apfel", "kirsche", "haus")]
+        assert ranks == sorted(set(ranks))
+
+    def test_a_form_is_scored_as_the_word_it_belongs_to(self, core_dir):
+        state = GameState(core_dir)
+        folded = state.guess("birne", 1)
+        # The row shows the counted word, so it cannot read as a second word
+        # sitting on the same number.
+        assert folded["word"] == "kirsche"
+        assert folded["rank"] == state.guess("kirsche", 1)["rank"]
+
+    def test_a_word_with_no_place_is_refused(self, core_dir):
+        state = GameState(core_dir)
+        # Before 2026-09-22 this came back with the number of the counted word
+        # ahead of it, which is what put two words on one rank.
+        assert state.guess("auto", 1, correct_typos=False) is None
 
     def test_rank_one_stays_unique_to_the_solution(self, core_dir):
         state = GameState(core_dir)
-        first = [w for w in ("apfel", "birne", "kirsche", "auto", "haus")
-                 if state.guess(w, 1)["rank"] == 1]
+        scored = [(w, state.guess(w, 1)) for w in ("apfel", "birne", "kirsche", "auto", "haus")]
+        first = [w for w, r in scored if r is not None and r["rank"] == 1]
         assert first == ["apfel"]
 
     def test_total_is_the_core_size(self, core_dir):
         state = GameState(core_dir)
-        assert state.guess("birne", 1)["total"] == 3
+        assert state.guess("kirsche", 1)["total"] == 3
         assert state.display_total() == 3
 
     def test_closest_words_are_core_words(self, core_dir):
@@ -265,36 +281,24 @@ class TestCoreLexicon:
         assert 2 <= tip["rank"] <= 3
 
     def test_a_solution_outside_the_core_still_owns_rank_one(self, data_dir):
-        # The pool builder keeps every solution in the core; this is the guard
-        # for a data directory where that went wrong. Without it the nearest
-        # core word would be reported as rank 1, and the client would call the
-        # round solved on the wrong word.
+        # The pool builder keeps every solution in the lexicon; this is the
+        # guard for a data directory where that went wrong. Without it the
+        # nearest counted word would be reported as rank 1, and the client would
+        # call the round solved on the wrong word.
         core_lexicon.write_core_words(data_dir, ["kirsche", "haus"])
         state = GameState(data_dir)
         assert state.guess("apfel", 1)["rank"] == 1      # apfel is the solution
         assert state.guess("kirsche", 1)["rank"] == 2
         assert state.guess("haus", 1)["rank"] == 3
-        assert state.guess("birne", 1)["rank"] == 2      # outside the core
 
-    def test_a_word_outside_the_core_is_marked_as_not_counted(self, data_dir):
-        # Two words sharing a displayed number read as a tie, and on the day
-        # the solution was a verb the rows for two different words both said 3.
-        # The number cannot be made unique, 64.483 guessable words share 15.517
-        # places, so the answer is to say which row actually holds the place.
-        core_lexicon.write_core_words(data_dir, ["kirsche", "haus"])
+    def test_the_lemma_index_still_resolves_a_form(self, data_dir):
+        # A directory whose fold map does not name a form falls back on the
+        # surface form index the game builds for typo correction.
+        core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
         state = GameState(data_dir)
-        assert state.guess("kirsche", 1)["counted"] is True
-        assert state.guess("birne", 1)["counted"] is False
-        # Both stand at 2, and only one of them is on the list.
-        assert state.guess("kirsche", 1)["rank"] == state.guess("birne", 1)["rank"]
-        # The solution counts whatever the core says, so the winning row is
-        # never shown as an approximation.
-        assert state.guess("apfel", 1)["rank"] == 1
-        assert state.guess("apfel", 1)["counted"] is True
-
-    def test_without_a_core_every_rank_is_its_own_place(self, data_dir):
-        state = GameState(data_dir)
-        assert state.guess("haus", 1)["counted"] is True
+        state.lemma_map["aepfel"] = "apfel"
+        state.bloom.add("aepfel")
+        assert state.guess("aepfel", 1)["word"] == "apfel"
 
     def test_without_a_core_the_whole_vocabulary_counts(self, data_dir):
         state = GameState(data_dir)
@@ -313,33 +317,74 @@ class TestCoreLexicon:
         core_lexicon.write_core_words(data_dir, ["apfel", "gibtesnicht"])
         state = GameState(data_dir)
         assert state.core_size == 1
-        assert state.guess("haus", 1)["rank"] == 1  # only apfel counts, and it is rank 1
         assert state.guess("apfel", 1)["rank"] == 1
 
 
 class TestBuildCoreLexicon:
     VOCAB = ["hund", "hunde", "haus", "xylophon", "und", "ab"]
     LEMMA = {"hunde": "hund"}
+    #: (pos, lemma) capitalised, then as written. Standing in for spaCy, which
+    #: the build reads once over the whole vocabulary and never at runtime.
+    CLASSES = {
+        "hund": ("NOUN", "hund", "NOUN", "hund"),
+        "hunde": ("NOUN", "hund", "NOUN", "hunde"),
+        "haus": ("NOUN", "haus", "NOUN", "haus"),
+        "xylophon": ("NOUN", "xylophon", "NOUN", "xylophon"),
+        "und": ("CCONJ", "und", "CCONJ", "und"),
+        "ab": ("ADP", "ab", "ADP", "ab"),
+    }
+
+    def build(self, **kwargs):
+        kwargs.setdefault("classes", self.CLASSES)
+        return core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, **kwargs)
 
     def test_keeps_one_entry_per_lemma(self):
-        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=0.0)
+        core, fold = self.build(min_zipf=0.0)
         assert "hund" in core
         assert "hunde" not in core
+        assert fold["hunde"] == "hund"
 
     def test_applies_the_frequency_floor(self):
-        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=4.0)
+        core, _ = self.build(min_zipf=4.0)
         assert "haus" in core
         assert "xylophon" not in core
 
+    def test_a_word_players_type_beats_the_floor(self):
+        # Corpus frequency gets the words for body part and weekday wrong just
+        # under the floor, and players typed them by the hundred.
+        core, _ = self.build(min_zipf=7.0, guess_counts={"xylophon": 40}, min_guesses=10)
+        assert "xylophon" in core
+
+    def test_closed_class_words_hold_no_place(self):
+        core, fold = self.build(min_zipf=0.0)
+        assert "und" not in core and "und" not in fold
+
     def test_drops_very_short_forms(self):
-        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=0.0)
+        core, _ = self.build(min_zipf=0.0, min_length=3)
         assert "ab" not in core
 
     def test_keep_wins_over_the_floor(self):
-        core = core_lexicon.build_core_lexicon(
-            self.VOCAB, self.LEMMA, min_zipf=7.0, keep={"xylophon", "nichtimvokabular"})
+        core, _ = self.build(min_zipf=7.0, keep={"xylophon", "nichtimvokabular"})
         assert "xylophon" in core
         assert "nichtimvokabular" not in core
+
+    def test_a_solution_is_never_folded_away(self):
+        # A solution scored as some other word would report the round solved on
+        # the wrong one, so keep wins over the fold as well.
+        core, fold = self.build(min_zipf=0.0, keep={"hunde"})
+        assert "hunde" in core
+        assert "hunde" not in fold
+
+    def test_a_fold_always_lands_on_a_counted_word(self):
+        core, fold = self.build(min_zipf=0.0)
+        assert set(fold.values()) <= set(core)
+
+    def test_fold_map_round_trip(self, data_dir):
+        core_lexicon.write_fold_map(data_dir, {"hunde": "hund"})
+        assert core_lexicon.load_fold_map(data_dir) == {"hunde": "hund"}
+
+    def test_fold_map_is_empty_without_a_file(self, data_dir):
+        assert core_lexicon.load_fold_map(data_dir) == {}
 
     def test_load_returns_none_without_a_file(self, data_dir):
         assert core_lexicon.load_core_words(data_dir) is None
@@ -412,5 +457,5 @@ class TestGameCacheLru:
         # Game 1 was evicted; a guess against it must reload from disk.
         result = state.guess("birne", 1)
         assert result == {"word": "birne", "rank": 2, "total": 5,
-                          "corrected_from": None, "counted": True}
+                          "corrected_from": None}
         assert set(state._game_cache) == {1}

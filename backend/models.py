@@ -22,10 +22,6 @@ class GuessResponse(BaseModel):
     # Set when the guess was a typo that had exactly one plausible correction:
     # what the player typed, so the client can say which word was actually scored.
     corrected_from: str | None = None
-    # False when the word is guessable but holds no place on the displayed
-    # scale, so it shares a number with the core word it stands behind. The
-    # client shows such a rank as an approximation; see GameState.is_counted.
-    counted: bool = True
 
 
 class ErrorResponse(BaseModel):
@@ -106,10 +102,6 @@ class DualGuessResponse(BaseModel):
     # Set when the guess was a typo that had exactly one plausible correction:
     # what the player typed, so the client can say which word was actually scored.
     corrected_from: str | None = None
-    # False when the word is guessable but holds no place on the displayed
-    # scale, so it shares a number with the core word it stands behind. The
-    # client shows such a rank as an approximation; see GameState.is_counted.
-    counted: bool = True
 
 
 class SuddenDeathResponse(BaseModel):
@@ -274,10 +266,6 @@ class KoopGuessResponse(BaseModel):
     # Set when the guess was a typo that had exactly one plausible correction:
     # what the player typed, so the client can say which word was actually scored.
     corrected_from: str | None = None
-    # False when the word is guessable but holds no place on the displayed
-    # scale, so it shares a number with the core word it stands behind. The
-    # client shows such a rank as an approximation; see GameState.is_counted.
-    counted: bool = True
 
 
 class KoopGuessEntry(BaseModel):
@@ -454,10 +442,6 @@ class ArenaGuessResponse(BaseModel):
     # Set when the guess was a typo that had exactly one plausible correction:
     # what the player typed, so the client can say which word was actually scored.
     corrected_from: str | None = None
-    # False when the word is guessable but holds no place on the displayed
-    # scale, so it shares a number with the core word it stands behind. The
-    # client shows such a rank as an approximation; see GameState.is_counted.
-    counted: bool = True
 
 
 # --- Matchmaking ---

@@ -283,7 +283,6 @@ export default function DuelPageClient() {
         const newGuess = {
           word: result.word,
           rank: result.rank,
-          counted: result.counted,
           isTip: false,
           correctedFrom: result.corrected_from ?? undefined,
         };
