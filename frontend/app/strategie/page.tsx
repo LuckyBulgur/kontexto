@@ -64,7 +64,7 @@ export default function StrategiePage() {
           </p>
         </Prose>
         <ComparisonTable
-          columns={["Wort", "Signal unter Rang 1500", "Begründung"]}
+          columns={["Wort", "Signal unter Rang 1500 (alte Skala)", "Begründung"]}
           rows={[
             ["gehen", <span key="1" className="text-rank-near-ink">13,2 %</span>, "Stärkstes Einzelwort im Test; es deckt viele Handlungskontexte ab."],
             ["machen", <span key="2" className="text-rank-near-ink">12,8 %</span>, "Ebenfalls ein starkes Verb im getesteten Kandidatenfeld."],

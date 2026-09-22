@@ -139,7 +139,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Mein Wort wird nicht akzeptiert, warum?`,
-    a: `Der Wortschatz umfasst rund 80.000 Einträge. Fehlt deiner, hilft meist die Grundform oder ein geläufigeres Wort. Eigennamen fehlen absichtlich.`,
+    a: `Der Wortschatz umfasst rund 80.000 Einträge, gezählt werden für den Rang die rund 16.000 Alltagswörter davon. Fehlt deiner, hilft meist die Grundform oder ein geläufigeres Wort. Eigennamen fehlen absichtlich.`,
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,

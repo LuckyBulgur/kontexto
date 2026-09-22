@@ -8,7 +8,7 @@
  */
 const STEPS: [string, string][] = [
   ["fastText", "cc.de.300, rund 2 Mio. Zeichenketten"],
-  ["Filtern", "80.000 echte deutsche Wörter"],
+  ["Filtern", "80.000 Wörter, 16.000 davon zählen"],
   ["Entzerren", "Mittelwert und 3 Hauptkomponenten entfernt"],
   ["Sortieren", "Kosinus-Ähnlichkeit zum Zielwort"],
   ["Rangtabelle", "eine Datei je Rätsel"],
@@ -29,7 +29,8 @@ export default function PipelineDiagram() {
         <title id="pd-title">Vom Sprachmodell zur Rangtabelle</title>
         <desc id="pd-desc">
           Fünf aufeinanderfolgende Schritte: Aus dem deutschen fastText-Modell mit rund zwei
-          Millionen Zeichenketten werden 80.000 echte Wörter gefiltert. Deren Vektoren werden
+          Millionen Zeichenketten werden 80.000 echte Wörter gefiltert, von denen die rund
+          16.000 Alltagswörter des Kernwortschatzes den Rang bestimmen. Deren Vektoren werden
           entzerrt, indem Mittelwert und die drei stärksten Hauptkomponenten entfernt werden.
           Danach wird für jedes Rätsel die Kosinus-Ähnlichkeit aller Wörter zum Zielwort
           berechnet und sortiert. Das Ergebnis ist eine Rangtabelle je Rätsel. Alle Schritte

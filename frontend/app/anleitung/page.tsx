@@ -30,7 +30,7 @@ const toc = [
 const howToSteps = [
   { name: "Wort eingeben", text: "Tippe ein beliebiges deutsches Wort ein und bestätige mit Enter. Du hast unbegrenzt viele Versuche." },
   { name: "Rang ablesen", text: "Jedes Wort erhält einen Rang. Rang 1 ist das Zielwort; je kleiner die Zahl, desto näher liegt dein Wort an der Bedeutung." },
-  { name: "Farben deuten", text: "Grün bedeutet sehr nah (Rang 1–300), Gelb auf dem Weg (301–1500), Rot weit entfernt (ab 1501)." },
+  { name: "Farben deuten", text: "Grün bedeutet sehr nah (Rang 1–100), Gelb auf dem Weg (101–600), Rot weit entfernt (ab 601)." },
   { name: "Der Bedeutung folgen", text: "Nutze gute Treffer als Wegweiser: Taste die Richtungen ab, die von deinem besten Wort wegführen, bis du das Zielwort auf Rang 1 findest." },
 ];
 
@@ -143,9 +143,12 @@ export default function AnleitungPage() {
         <Prose>
           <h2 id="eingaben">Welche Wörter das Spiel annimmt</h2>
           <p>
-            Kontexto kennt rund 80.000 deutsche Wörter. Groß- und Kleinschreibung ist egal, alles
-            andere zählt: Es gibt keine Rechtschreibkorrektur und keine Ähnlichkeitssuche. Vier
-            Regeln erklären die häufigsten Ablehnungen.
+            Kontexto nimmt rund 80.000 deutsche Wörter an. Gezählt wird der Rang aber gegen die
+            rund 16.000 Wörter des Alltagswortschatzes, damit die Zahl auf dem Bildschirm etwas
+            aussagt: Ein seltenes Kompositum bekommt den Rang des nächstgelegenen Alltagsworts und
+            verschiebt dadurch nichts. Groß- und Kleinschreibung ist egal, alles andere zählt: Es
+            gibt keine Rechtschreibkorrektur und keine Ähnlichkeitssuche. Vier Regeln erklären die
+            häufigsten Ablehnungen.
           </p>
           <ul>
             <li>

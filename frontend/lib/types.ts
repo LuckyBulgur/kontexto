@@ -24,6 +24,10 @@ export interface Guess {
   isTip: boolean;
   /** What the player typed when this guess was a corrected typo. */
   correctedFrom?: string;
+  /** Who played this word, where that is worth showing. Solo modes leave it
+   *  unset; the stream chat sets it on every row, because the whole point of
+   *  that mode is that a viewer sees their own name on the board. */
+  by?: string;
 }
 
 export interface RevealResult {
@@ -290,9 +294,18 @@ export interface CompletionPayload {
   best_rank: number;
 }
 
+/**
+ * Die Farbbänder, gemessen am Kernwortschatz.
+ *
+ * Bis 2026-09-21 wurde gegen 80.000 Wortformen gezählt und Grün lag bei Rang
+ * 300, also im obersten 0,4 Prozent. Gezählt wird jetzt im Kernwortschatz mit
+ * rund 14.000 Wörtern; dieselbe Grenze wäre dort Rang 52 und Grün praktisch
+ * unerreichbar. 100 und 600 sind daher nicht umgerechnet, sondern bewusst
+ * großzügiger als vorher: 0,7 und 4,3 Prozent statt 0,4 und 1,9.
+ */
 export function getRankColor(rank: number): "green" | "yellow" | "red" {
-  if (rank <= 300) return "green";
-  if (rank <= 1500) return "yellow";
+  if (rank <= 100) return "green";
+  if (rank <= 600) return "yellow";
   return "red";
 }
 

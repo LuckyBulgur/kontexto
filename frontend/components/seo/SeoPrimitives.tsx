@@ -133,9 +133,9 @@ export function Step({
  */
 export function ColorLegend() {
   const rows = [
-    { dot: "bg-rank-near", label: "Grün", range: "Rang 1–300", desc: "sehr nah am Zielwort" },
-    { dot: "bg-rank-mid", label: "Gelb", range: "Rang 301–1500", desc: "auf dem richtigen Weg" },
-    { dot: "bg-rank-far", label: "Rot", range: "Rang 1501+", desc: "noch weit entfernt" },
+    { dot: "bg-rank-near", label: "Grün", range: "Rang 1–100", desc: "sehr nah am Zielwort" },
+    { dot: "bg-rank-mid", label: "Gelb", range: "Rang 101–600", desc: "auf dem richtigen Weg" },
+    { dot: "bg-rank-far", label: "Rot", range: "Rang 601+", desc: "noch weit entfernt" },
   ] as const;
   return (
     <Panel asChild>

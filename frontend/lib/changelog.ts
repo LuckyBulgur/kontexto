@@ -26,6 +26,20 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-21",
     kind: "Verbessert",
+    title: "Kleinere Ränge, leichtere Lösungen",
+    body:
+      "Gezählt wird ein Rang jetzt im Kernwortschatz, also unter rund 16.000 Alltagswörtern statt " +
+      "unter 80.000 Wortformen. Dadurch stehen in der Nähe des Lösungsworts keine seltenen " +
+      "Komposita und keine Beugungsformen mehr, und die angezeigte Zahl ist etwa sechsmal " +
+      "kleiner. Raten darfst du weiterhin alles, was das Spiel vorher angenommen hat. Dazu " +
+      "wurden die Lösungswörter neu ausgewählt: 2.697 alltagsnahe Substantive, jedes einzeln " +
+      "durchgespielt und von Hand geprüft.",
+    href: "/blog/wie-das-loesungswort-entsteht/",
+    hrefLabel: "Wie das Lösungswort entsteht",
+  },
+  {
+    date: "2026-09-21",
+    kind: "Verbessert",
     title: "Neues Erscheinungsbild",
     body:
       "Das Spiel hat ein neues Gesicht: eine feste Schriftskala statt gewachsener Größen, eine Karte, die überall gleich aussieht, und Tintenblau als Grundfarbe in hell und dunkel. Die Farben der Rangleiste bleiben unangetastet, weil der geteilte Ergebnistext sie als Quadrate buchstabiert. Wem das alte Grau lieber ist, findet es in den Einstellungen als Farbwelt „Klassisch“.",

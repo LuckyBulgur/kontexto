@@ -136,7 +136,7 @@ export default function VergleichPage() {
             nützlich wird.
           </p>
           <p>
-            Ein Rang bringt den Maßstab mit. „Von 80.000 Wörtern sind nur 299 näher dran“ kann jeder
+            Ein Rang bringt den Maßstab mit. „Von 16.000 Wörtern sind nur 299 näher dran“ kann jeder
             sofort einordnen, ohne zu wissen, wie Ähnlichkeitswerte skalieren. Der Preis dafür ist,
             dass die Ränge einmal vorberechnet werden müssen, was wiederum bedeutet, dass die
             Rätselreihe im Voraus feststeht. Wie das abläuft, steht in{" "}

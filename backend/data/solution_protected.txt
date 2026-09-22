@@ -1,0 +1,60 @@
+# Words the player ruled on by hand. No automatic gate may remove these.
+#
+# The measured gates in scripts/recode-pool.py are good at their job and wrong
+# often enough that a human ruling has to outrank them. Every entry here was
+# named explicitly, either as one that must stay or as one whose removal was
+# taken back. A word listed here still has to pass the reproducible gates: it
+# must be in the vocabulary, a common noun in its base form, no proper name and
+# nothing on the profanity list.
+abbildung
+appetit
+archiv
+arm
+ausweis
+batterie
+bonus
+brustkorb
+creme
+currywurst
+curry
+erfolg
+erinnerung
+feuerwehr
+galaxie
+garantie
+geheimnis
+geschäft
+gießkanne
+glocke
+grünkohl
+gummibärchen
+gutschein
+horror
+kamera
+kapitel
+katastrophe
+krankheit
+kuscheltier
+kühlschrank
+laden
+luxus
+lüge
+marienkäfer
+maut
+panik
+rabatt
+refrain
+reparatur
+schmetterling
+schneemann
+schnürsenkel
+sonnencreme
+strahlung
+symbol
+umwelt
+vertrag
+volk
+wassermelone
+zahnstocher
+zeugnis
+zubehör

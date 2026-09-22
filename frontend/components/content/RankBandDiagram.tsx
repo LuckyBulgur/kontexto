@@ -61,13 +61,13 @@ export default function RankBandDiagram() {
           Ähnlichkeit
         </text>
         <text x={380} y={234} textAnchor="end" className="fill-muted-foreground text-[9px]">
-          Rang, 1 bis 80.000
+          Rang, 1 bis 16.000
         </text>
       </svg>
       <figcaption className="mt-2 text-center text-xs text-muted-foreground">
         Schematischer Verlauf: Vorne entsprechen wenige Ränge einem großen
         Bedeutungsunterschied, hinten entsprechen Tausende Ränge fast keinem. Deshalb ist ein
-        Sprung von Rang 300 auf 90 wertvoll und einer von 9.000 auf 6.000 fast bedeutungslos.
+        Sprung von Rang 300 auf 90 wertvoll und einer von 6.000 auf 4.000 fast bedeutungslos.
       </figcaption>
     </figure>
   );

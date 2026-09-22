@@ -11,6 +11,7 @@ import numpy as np
 from pybloom_live import BloomFilter
 import simplemma
 
+import core_lexicon
 import spellfix
 
 GERMAN_STOPWORDS = {
@@ -138,13 +139,36 @@ def stream_vocab_vectors(
     return filtered, frequency_order
 
 
-def postprocess_vectors(vectors: dict[str, np.ndarray], n_components: int = 3) -> dict[str, np.ndarray]:
-    """Remove mean and top principal components from vectors (All-but-the-Top)."""
+def postprocess_vectors(
+    vectors: dict[str, np.ndarray],
+    n_components: int = 3,
+    fit_words: set[str] | None = None,
+) -> dict[str, np.ndarray]:
+    """Remove mean and top principal components from vectors (All-but-the-Top).
+
+    With ``fit_words`` the mean and the components are computed on that subset
+    and then applied to every vector. That is how the core lexicon shapes the
+    game: the directions removed are the ones that dominate the words a player
+    actually uses, not the ones that dominate a corpus tail of rare compounds.
+    The words outside the subset keep a vector in the same space, so they stay
+    scorable and no guess has to be refused.
+    """
     words = list(vectors.keys())
     mat = np.array([vectors[w] for w in words], dtype=np.float32)
-    mean = mat.mean(axis=0)
+    rows: list[int] | None = None
+    if fit_words:
+        rows = [i for i, w in enumerate(words) if w in fit_words]
+        if len(rows) < n_components + 1:
+            raise ValueError(
+                f"fit_words covers only {len(rows)} of {len(words)} vectors, "
+                "which is too few to fit the projection"
+            )
+    mean = (mat[rows] if rows is not None else mat).mean(axis=0)
     mat -= mean
-    u, s, vt = np.linalg.svd(mat, full_matrices=False)
+    # Read the basis out of the centred matrix, never before it: a slice of the
+    # whole matrix is a view, and centring it twice would fit the wrong space.
+    basis = mat[rows] if rows is not None else mat
+    u, s, vt = np.linalg.svd(basis, full_matrices=False)
     top = vt[:n_components]
     mat -= mat @ top.T @ top
     return {w: mat[i] for i, w in enumerate(words)}
@@ -329,8 +353,16 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     vocab_index = {w: i for i, w in enumerate(vocab_list)}
     print(f"  Filtered to {len(vocab_list)} words (max {vocab_size}).")
 
-    print("Post-processing vectors (All-but-the-Top)...")
-    filtered = postprocess_vectors(filtered)
+    print("Creating lemma map...")
+    lemma_map = create_lemma_map(vocab_list)
+    print(f"  Mapped {len(lemma_map)} inflected forms.")
+
+    print("Building the core lexicon...")
+    core = core_lexicon.build_core_lexicon(vocab_index, lemma_map)
+    print(f"  {len(core)} of {len(vocab_list)} words count towards a rank.")
+
+    print("Post-processing vectors (All-but-the-Top, fitted on the core)...")
+    filtered = postprocess_vectors(filtered, fit_words=set(core))
     print(f"  Removed mean and top 3 principal components.")
 
     print("Selecting target words (frequent words)...")
@@ -339,10 +371,6 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
         raise ValueError(f"Not enough target words ({len(targets)}) for {num_games} games.")
     targets = targets[:num_games]
     print(f"  Selected {len(targets)} target words.")
-
-    print("Creating lemma map...")
-    lemma_map = create_lemma_map(vocab_list)
-    print(f"  Mapped {len(lemma_map)} inflected forms.")
 
     print("Creating bloom filter...")
     all_known_words = set(vocab_list) | set(lemma_map.keys()) | GERMAN_STOPWORDS
@@ -356,11 +384,13 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
         json.dump(vocab_index, f, ensure_ascii=False)
     with open(os.path.join(output_dir, "lemma_map.json"), "w", encoding="utf-8") as f:
         json.dump(lemma_map, f, ensure_ascii=False)
+    core_lexicon.write_core_words(output_dir, core)
     with open(os.path.join(output_dir, "bloom.bin"), "wb") as f:
         pickle.dump(bf, f)
     with open(os.path.join(output_dir, "target_words.json"), "w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False)
-    metadata = {"start_date": start_date, "total_games": num_games, "vocab_size": len(vocab_list)}
+    metadata = {"start_date": start_date, "total_games": num_games,
+                "vocab_size": len(vocab_list), "core_size": len(core)}
     with open(os.path.join(output_dir, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
 

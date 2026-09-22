@@ -48,6 +48,11 @@ export const glossary: GlossaryTerm[] = [
     definition: `Eine Richtung im Vektorraum, entlang derer die Daten besonders stark streuen. Bei Worteinbettungen tragen die stärksten Hauptkomponenten überwiegend Häufigkeitsinformation und keine Bedeutung, weshalb sie vor der Rangberechnung entfernt werden.`,
   },
   {
+    term: "Kernwortschatz",
+    slug: "kernwortschatz",
+    definition: `Die rund 16.000 Alltagswörter, die einen Rang besetzen: je Wort eine Grundform, keine Beugungen, keine seltenen Komposita. Geraten werden dürfen weiterhin alle 80.000 Vokabeleinträge, ein Wort außerhalb des Kernwortschatzes bekommt den Rang des nächstgelegenen Alltagsworts. Ohne diese Trennung stünden zwischen „Bauch“ und „Magen“ Dutzende Wortformen, die niemand eingibt, und die angezeigte Zahl wäre rund sechsmal so groß.`,
+  },
+  {
     term: "Kompositum",
     slug: "kompositum",
     definition: `Ein zusammengesetztes Wort wie „Strandkorb“ oder „Morgendämmerung“. Deutsch bildet Komposita unbegrenzt produktiv, weshalb keine endliche Wortliste sie alle enthalten kann. fastText schätzt seltene Komposita über ihre Zeichen-n-Gramme ab, was zugleich Ähnlichkeit vortäuschen kann, wo keine ist.`,
@@ -80,7 +85,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Rang",
     slug: "rang",
-    definition: `Die Position eines geratenen Wortes in der nach Ähnlichkeit sortierten Liste aller Vokabelwörter. Rang 1 ist das Zielwort selbst. Der Rang ist eine relative Aussage: Rang 300 bedeutet, dass von 80.000 Wörtern nur 299 näher am Zielwort liegen.`,
+    definition: `Die Position eines geratenen Wortes in der nach Ähnlichkeit sortierten Liste des Kernwortschatzes. Rang 1 ist das Zielwort selbst. Der Rang ist eine relative Aussage: Rang 300 bedeutet, dass von rund 16.000 Alltagswörtern nur 299 näher am Zielwort liegen.`,
   },
   {
     term: "Semantik",
@@ -105,7 +110,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Vokabular",
     slug: "vokabular",
-    definition: `Die Menge aller Wörter, die Kontexto als Eingabe akzeptiert und für die ein Rang berechnet wurde. Sie umfasst die 80.000 häufigsten gefilterten deutschen Wörter. Nicht jedes davon kann Lösung werden: Eigennamen etwa sind ratbar, aber als Lösung gesperrt.`,
+    definition: `Die Menge aller Wörter, die Kontexto als Eingabe akzeptiert und für die ein Rang berechnet wurde. Sie umfasst die 80.000 häufigsten gefilterten deutschen Wörter. Den Maßstab des Rangs bildet davon der Kernwortschatz. Nicht jedes Wort kann Lösung werden: Eigennamen etwa sind ratbar, aber als Lösung gesperrt.`,
   },
   {
     term: "Worteinbettung (Embedding)",

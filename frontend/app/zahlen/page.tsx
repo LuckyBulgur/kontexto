@@ -100,6 +100,12 @@ export default function ZahlenPage() {
             ausrechnen, welchen Rang ein Wort in jedem einzelnen Rätsel bekommen hätte.
           </p>
           <p>
+            Die Ränge auf dieser Seite stammen vom August 2026 und wurden gegen alle
+            Vokabelwörter gezählt. Seit dem 21. September 2026 zählt der Rang nur noch im
+            Kernwortschatz und fällt dadurch etwa sechsmal kleiner aus. Die Reihenfolge der
+            Startwörter ändert das nicht, ihre absoluten Ränge schon.
+          </p>
+          <p>
             Sortiert ist nach <strong>Anteil unter Rang 1500</strong>, also danach, wie oft ein Wort
             überhaupt ein verwertbares Signal liefert. Das ist die einzige der vier Kennzahlen, die
             zwischen guten und schlechten Startwörtern trennt. Die Einordnung steht in{" "}

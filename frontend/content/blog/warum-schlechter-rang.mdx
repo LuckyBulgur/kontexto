@@ -16,13 +16,14 @@ Jedes der 80.000 Wörter im Vokabular hat einen Vektor. Beim Aufbau der Spieldat
 jedes Rätsel die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und **allen** Vokabelvektoren
 berechnet, absteigend sortiert und die Position gespeichert.
 
-Dein Rang ist genau diese Position. Rang 1 ist das Zielwort, Rang 2 sein nächster Nachbar,
-Rang 80.000 das entfernteste Wort im gesamten Vokabular.
+Gezählt wird die Position allerdings im **Kernwortschatz**, also unter den rund 16.000
+Alltagswörtern: je Wort eine Grundform, keine Beugungen, keine seltenen Komposita. Raten darfst du
+weiterhin alles, ein Wort außerhalb bekommt den Rang des nächstgelegenen Alltagsworts. Rang 1 ist
+das Zielwort, Rang 2 sein nächster Nachbar, Rang 16.000 das entfernteste Alltagswort.
 
 Daraus folgt sofort etwas, das viele unterschätzen: Ein Rang ist eine **relative** Aussage. Rang
-340 heißt nicht „ziemlich nah“, sondern „von 80.000 Wörtern sind 339 näher dran“. Das ist das
-obere halbe Prozent, und in dieses halbe Prozent passen mehrere komplette Themenfelder
-nebeneinander.
+340 heißt nicht „ziemlich nah“, sondern „von 16.000 Wörtern sind 339 näher dran“. Das sind die
+oberen zweieinhalb Prozent, und da passen mehrere komplette Themenfelder nebeneinander.
 
 ## Ursache 1: Kontextnähe ist nicht begriffliche Verwandtschaft
 

@@ -36,10 +36,10 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
  * story is the one a player actually plays, circling in from nothing.
  */
 const GUESSES = [
-  { word: "Auto", rank: 8120 },
-  { word: "Fenster", rank: 3640 },
-  { word: "Haus", rank: 1180 },
-  { word: "Pflanze", rank: 402 },
+  { word: "Auto", rank: 6840 },
+  { word: "Fenster", rank: 2310 },
+  { word: "Haus", rank: 940 },
+  { word: "Pflanze", rank: 168 },
   { word: "Garten", rank: 1 },
 ] as const;
 
@@ -50,15 +50,15 @@ const SORTED = [...GUESSES].sort((a, b) => a.rank - b.rank);
 
 /** Matches the live game's thresholds (lib/types.ts, getRankColor). */
 function tone(rank: number) {
-  if (rank <= 300) return "near" as const;
-  if (rank <= 1500) return "mid" as const;
+  if (rank <= 100) return "near" as const;
+  if (rank <= 600) return "mid" as const;
   return "far" as const;
 }
 
-/** Matches getBarWidth against a stand-in vocabulary size. */
+/** Matches getBarWidth against the size of the core lexicon. */
 function fraction(rank: number) {
   if (rank === 1) return 100;
-  return Math.max(5, 100 * (1 - rank / 10000));
+  return Math.max(5, 100 * (1 - rank / 15000));
 }
 
 export default function OpeningDemo() {

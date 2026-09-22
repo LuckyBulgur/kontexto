@@ -13,13 +13,15 @@ from datetime import date
 
 import numpy as np
 
+import core_lexicon
 import spellfix
 from prepare import GERMAN_STOPWORDS
 
-# Upper bound for per-process game data. Each cached game holds two uint32
-# arrays over the ~80k vocabulary (~640 KB), so 64 games stay near 40 MB per
-# worker. Unbounded caching exhausted the 4 GB prod host (OOM worker kills).
-GAME_CACHE_SIZE = 64
+# Upper bound for per-process game data. Each cached game holds the displayed
+# rank per vocabulary word plus the core word at each displayed rank, about
+# 1 MB over the ~80k vocabulary, so 40 games stay near 40 MB per worker.
+# Unbounded caching exhausted the 4 GB prod host (OOM worker kills).
+GAME_CACHE_SIZE = 40
 
 
 class GameState:
@@ -48,6 +50,23 @@ class GameState:
 
         self.start_date = date.fromisoformat(self.metadata["start_date"])
 
+        # The core lexicon decides what a rank counts. Without one (an older
+        # data volume, the Wordle data, a fixture) every vocabulary word counts,
+        # which is what the game did before the core existed.
+        core_words = core_lexicon.load_core_words(data_dir)
+        self.core_mask: np.ndarray | None = None
+        if core_words:
+            mask = np.zeros(len(self.vocabulary), dtype=bool)
+            known = 0
+            for word in core_words:
+                index = self.vocabulary.get(word)
+                if index is not None:
+                    mask[index] = True
+                    known += 1
+            if known:
+                self.core_mask = mask
+        self.core_size = int(self.core_mask.sum()) if self.core_mask is not None else len(self.vocabulary)
+
         self._game_cache: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
 
         # Typo correction. The prebuilt index is the normal case; a data
@@ -65,11 +84,53 @@ class GameState:
         """Warm the cache for a game (lookups load on demand anyway)."""
         self._get_game(game_number)
 
+    def _display_scale(self, ranks: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Turn raw ranks over the whole vocabulary into the displayed scale.
+
+        The stored array ranks all ~80.000 words, but most of them are rare
+        compounds and inflected forms nobody guesses, and each one pushes the
+        number the player reads further up: only about 78 of the 500 nearest
+        words are everyday words. So the displayed rank counts core words only.
+
+        A word outside the core is **not** refused, it shares the number of the
+        nearest core word ahead of it plus one, capped at the core size. That
+        keeps every word guessable while the scale stays the small one, and it
+        keeps rank 1 unique to the solution, which is what every client reads as
+        "solved".
+        """
+        if self.core_mask is None:
+            rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
+            rank_to_index[ranks] = np.arange(len(ranks), dtype=np.uint32)
+            return ranks, rank_to_index
+
+        order = np.argsort(ranks)                       # vocabulary index by rank
+        # The solution counts, whatever the core says. It is the word at rank 1,
+        # and if it were left out of the count, the nearest core word would take
+        # displayed rank 1 and the game would report a wrong word as solved.
+        # scripts/rebuild-core-pool.py keeps every solution in the core, so this
+        # is a guard rather than a mechanism, and it costs one array element.
+        counts = self.core_mask.copy()
+        counts[order[0]] = True
+
+        core_by_rank = counts[order]
+        # counted[r - 1] = how many counting words sit at rank r or closer
+        counted = np.cumsum(core_by_rank, dtype=np.uint32)
+        core_size = int(counted[-1])
+
+        display = counted[ranks - 1].copy()
+        outside = ~counts
+        display[outside] = np.minimum(display[outside] + 1, core_size)
+
+        core_rank_to_index = np.zeros(core_size + 1, dtype=np.uint32)
+        core_rank_to_index[1:] = order[core_by_rank]
+        return display.astype(np.uint32, copy=False), core_rank_to_index
+
     def _get_game(self, game_number: int) -> tuple[np.ndarray, np.ndarray]:
         """Return (ranks, rank_to_index) for a game, loading it on a cache miss.
 
-        ranks maps vocabulary index to rank (1-based permutation from
-        prepare.py); rank_to_index is the inverse, with slot 0 unused.
+        Both are on the displayed scale (see :meth:`_display_scale`): ranks maps
+        a vocabulary index to the rank the player is shown, rank_to_index maps a
+        displayed rank back to the core word standing there, with slot 0 unused.
         Entries are kept in an LRU bounded by GAME_CACHE_SIZE.
         """
         cached = self._game_cache.get(game_number)
@@ -81,8 +142,7 @@ class GameState:
         with np.load(path) as data:
             ranks = data["ranks"].astype(np.uint32, copy=False)
 
-        rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
-        rank_to_index[ranks] = np.arange(len(ranks), dtype=np.uint32)
+        ranks, rank_to_index = self._display_scale(ranks)
 
         self._game_cache[game_number] = (ranks, rank_to_index)
         while len(self._game_cache) > GAME_CACHE_SIZE:
@@ -168,11 +228,11 @@ class GameState:
         if index is None:
             return None
 
-        ranks, _ = self._get_game(game_number)
+        ranks, rank_to_index = self._get_game(game_number)
         return {
             "word": normalized,
             "rank": int(ranks[index]),
-            "total": len(ranks),
+            "total": len(rank_to_index) - 1,
             "corrected_from": corrected_from,
         }
 
@@ -182,7 +242,7 @@ class GameState:
         Never returns rank 1 (the answer). If the computed rank was already
         guessed, searches upward for the next unguessed rank.
         """
-        ranks, rank_to_index = self._get_game(game_number)
+        _, rank_to_index = self._get_game(game_number)
 
         if guessed_ranks is None:
             guessed_ranks = []
@@ -195,7 +255,7 @@ class GameState:
         else:  # hard
             target_rank = random.randint(2, max(2, best_rank - 1))
 
-        max_rank = len(ranks)
+        max_rank = len(rank_to_index) - 1
         target_rank = min(target_rank, max_rank)
 
         # Search both directions for an unguessed rank
@@ -226,8 +286,8 @@ class GameState:
         """
         if rank < 2:
             return None
-        ranks, rank_to_index = self._get_game(game_number)
-        if rank > len(ranks):
+        _, rank_to_index = self._get_game(game_number)
+        if rank >= len(rank_to_index):
             return None
         return {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
 
@@ -239,6 +299,14 @@ class GameState:
             if entry is not None:
                 out.append(entry)
         return out
+
+    def display_total(self) -> int:
+        """The scale a rank is read against: the size of the core lexicon.
+
+        Endpoints used to report ``metadata["vocab_size"]`` here, which is the
+        whole vocabulary and no longer the number a rank is measured against.
+        """
+        return self.core_size
 
     def total_games(self) -> int:
         """Number of pre-computed games available (the full infinite-mode pool)."""
@@ -272,8 +340,8 @@ class GameState:
 
     def get_closest_words(self, game_number: int) -> list[dict]:
         """Return the 500 closest words for the given game."""
-        ranks, rank_to_index = self._get_game(game_number)
+        _, rank_to_index = self._get_game(game_number)
         return [
             {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
-            for rank in range(1, min(501, len(ranks) + 1))
+            for rank in range(1, min(501, len(rank_to_index)))
         ]

@@ -33,14 +33,20 @@ ein Schwanz aus seltenen Formen und Beugungsvarianten, der die Ranglisten verwä
 jemand diese Wörter je eintippt. Unterhalb von 80.000 fehlen dagegen Komposita und Fachbegriffe,
 die Spieler tatsächlich versuchen.
 
-Wichtig für das Spielgefühl: Diese 80.000 sind die Wörter, die du *raten* darfst. Welche davon
-Lösung werden können, entscheidet eine völlig getrennte Filterkette.
+Wichtig für das Spielgefühl: Diese 80.000 sind die Wörter, die du *raten* darfst. Den Rang
+bestimmen sie nicht alle. Gezählt wird im Kernwortschatz, rund 16.000 Alltagswörter mit je einer
+Grundform, ohne Beugungen und ohne seltene Komposita. Ein Wort außerhalb davon wird trotzdem
+angenommen und bekommt den Rang des nächstgelegenen Alltagsworts. Sonst stünden zwischen „Bauch“
+und „Magen“ Dutzende Wortformen, die niemand eintippt, und die angezeigte Zahl wäre rund sechsmal
+so groß. Welche Wörter Lösung werden können, entscheidet noch einmal eine getrennte Filterkette.
 
 ## Stufe 3: die Vektoren werden entzerrt
 
 Bevor irgendetwas sortiert wird, laufen alle 80.000 Vektoren durch eine Nachbearbeitung, die in
-der Literatur „All-but-the-Top“ heißt: Der Mittelwert aller Vektoren wird abgezogen, danach
-werden die drei stärksten Hauptkomponenten entfernt.
+der Literatur „All-but-the-Top“ heißt: Der Mittelwert wird abgezogen, danach werden die drei
+stärksten Hauptkomponenten entfernt. Berechnet werden Mittelwert und Hauptkomponenten auf dem
+Kernwortschatz und erst dann auf alle Vektoren angewandt, damit die Richtungen verschwinden, die
+den Alltagswortschatz dominieren, und nicht die eines Schwanzes aus seltenen Komposita.
 
 Der Grund ist, dass rohe Worteinbettungen einen gemeinsamen Drift haben. Alle Vektoren zeigen
 zu einem gewissen Grad in dieselbe Richtung, und diese Richtung kodiert vor allem, wie häufig
@@ -118,9 +124,9 @@ mit einem *anderen* Wort im Vokabular teilt, ist als Lösung gesperrt. Ratbar bl
 
 ## Was am Ende auf der Platte liegt
 
-Für jedes der 2.400 Rätsel wird einmal die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und
+Für jedes der 2.772 Rätsel wird einmal die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und
 allen 80.000 Vokabelvektoren berechnet, absteigend sortiert und als Rangliste gespeichert. Eine
-komprimierte Datei pro Spiel.
+komprimierte Datei pro Spiel. Angezeigt wird daraus die Position im Kernwortschatz.
 
 Dazu kommen das Vokabular als Wort-zu-Index-Tabelle, eine Lemma-Tabelle, die gebeugte Formen auf
 ihre Grundform zieht, und ein Bloom-Filter mit einer Fehlerrate von 0,001, der die Frage

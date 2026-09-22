@@ -435,7 +435,7 @@ async def game_info():
     return {
         "gameNumber": game_num,
         "date": date.today().isoformat(),
-        "total": gs.metadata["vocab_size"],
+        "total": gs.display_total(),
     }
 
 
@@ -486,7 +486,7 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
 
     return {
         "gameNumber": chosen,
-        "total": gs.metadata["vocab_size"],
+        "total": gs.display_total(),
         "totalGames": gs.total_games(),
     }
 
@@ -589,7 +589,7 @@ async def dual_next(exclude: str = Query("")):
         )
     return {
         "gameNumbers": chosen,
-        "total": gs.metadata["vocab_size"],
+        "total": gs.display_total(),
         "totalGames": gs.total_games(),
     }
 
@@ -681,7 +681,7 @@ async def sudden_death(exclude: str = Query("")):
             status_code=404,
             content={"error": "no_hints", "message": "Für dieses Spiel gibt es keine Nachbarn"},
         )
-    return {"gameNumber": chosen, "total": gs.metadata["vocab_size"], "hints": hints}
+    return {"gameNumber": chosen, "total": gs.display_total(), "hints": hints}
 
 
 # --- Duel endpoints ---
@@ -849,7 +849,7 @@ async def duel_next_game_endpoint(duel_id: str, req: NextGameRequest):
             )
         await analytics.record_action(_db_path, "rounds", "duel")
         fresh = await get_duel_state(db, duel_id)
-        return {"round": fresh["round"], "total": gs.metadata["vocab_size"]}
+        return {"round": fresh["round"], "total": gs.display_total()}
     finally:
         await db.close()
 
@@ -915,7 +915,7 @@ async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
                 status_code=404,
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
-        result["total"] = gs.metadata["vocab_size"]
+        result["total"] = gs.display_total()
         return result
     finally:
         await db.close()
@@ -944,7 +944,7 @@ async def get_koop_state_endpoint(koop_id: str):
                 status_code=404,
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
-        state["total"] = gs.metadata["vocab_size"]
+        state["total"] = gs.display_total()
         return state
     finally:
         await db.close()
@@ -1108,7 +1108,7 @@ async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
             )
         await analytics.record_action(_db_path, "rounds", "koop")
         fresh = await get_koop_state(db, koop_id)
-        return {"round": fresh["round"], "total": gs.metadata["vocab_size"]}
+        return {"round": fresh["round"], "total": gs.display_total()}
     finally:
         await db.close()
 
@@ -1340,7 +1340,7 @@ async def arena_next_game_endpoint(arena_id: str, req: NextGameRequest):
             )
         state = await get_arena_state(db, arena_id)
         await analytics.record_action(_db_path, "rounds", state["mode"] if state else "royale")
-        return {"round": state["round"], "total": gs.metadata["vocab_size"]}
+        return {"round": state["round"], "total": gs.display_total()}
     finally:
         await db.close()
 

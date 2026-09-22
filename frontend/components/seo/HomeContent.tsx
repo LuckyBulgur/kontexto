@@ -173,8 +173,8 @@ export default function HomeContent() {
         </FeatureCard>
       </FeatureGrid>
       <p className="mt-4 max-w-prose">
-        Beim Raten wird nichts live berechnet. Für jedes der 9.537 vorbereiteten
-        Rätsel liegt die vollständige Rangliste über rund 80.000 Wörter fertig vor,
+        Beim Raten wird nichts live berechnet. Für jedes der 2.772 vorbereiteten
+        Rätsel liegt die vollständige Rangliste fertig vor,
         eine Eingabe ist deshalb ein Nachschlagen und keine Modellabfrage. Das hält
         die Antwort schnell und macht die Ränge über den ganzen Tag stabil: Zwei
         Personen, die dasselbe Wort eingeben, sehen garantiert denselben Rang. Wie

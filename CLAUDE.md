@@ -62,6 +62,8 @@ pytest                                                              # all backen
 pytest test_analytics.py::test_name                                # single test
 bash ../scripts/prepare-data.sh ../data/                            # build game data (downloads German fastText, computes rankings), needed once for local dev
 python ../scripts/extend-game-pool.py --help                        # grow the prod pool offline (see docs/plans/2026-09-20-mode-expansion-upload.md)
+python ../scripts/rebuild-core-pool.py --help                       # rebuild the data around the core lexicon and solution_pool.txt
+python ../scripts/playtest-pool.py --help                           # play sampled rounds against a running backend and report each one
 ```
 
 ### Full stack
@@ -75,9 +77,94 @@ docker compose up --build    # http://localhost:8080, builds frontend, prepares 
 `main.py` is one FastAPI app run as **two roles** (see `supervisord.conf`): **4 API workers** (`:8000`) and **exactly one WebSocket worker** (`:8001`, started with `KONTEXTO_WS_MODE=1`). Five background loops run **only in the WS worker** (single writer, no races): analytics aggregation/pruning plus room cleanup and queue pruning (every 5 min), the duel/koop/wordle‑duel poll‑and‑broadcast loops, the **arena clock** (`arena.advance_due_arenas`, every 1 s, applies every deadline that has passed) and the **matchmaking loop** (`matchmaking.run_matchmaking`, every 1 s, forms parties). There is no in‑process shared state between workers: **SQLite is the single source of truth**, so all writes must be idempotent (HLL `MAX`‑upserts, daily upserts) because multiple workers write concurrently (WAL, 5 s busy timeout).
 
 ### Game engine (the core mechanic is pre‑computed)
-There is **no live embedding inference at request time**. `prepare.py` (offline / build step) loads the German fastText model, debiases vectors (remove mean + top‑3 PCs), computes cosine similarity to each target, and writes per‑game rank arrays to `data/games/{NNNN}.npz`, plus `vocabulary.json`, `lemma_map.json`, `bloom.bin`, `target_words.json`, `metadata.json`. At runtime `game.py` does an O(1) dict/array lookup `word → rank`. Wordle uses `data/wordle/{solutions,valid_words}.json`.
+There is **no live embedding inference at request time**. `prepare.py` (offline / build step) loads the German fastText model, debiases vectors (remove mean + top‑3 PCs), computes cosine similarity to each target, and writes per‑game rank arrays to `data/games/{NNNN}.npz`, plus `vocabulary.json`, `lemma_map.json`, `bloom.bin`, `core_words.json`, `target_words.json`, `metadata.json`. At runtime `game.py` does an O(1) dict/array lookup `word → rank`. Wordle uses `data/wordle/{solutions,valid_words}.json`.
 
-**What may be a solution (`target_selection.py`)**: since 2026-09-21 a Kontexto solution is a **concrete common noun**, nothing else. Verbs and adjectives stay legal guesses, they just stopped being answers. Two gates carry the rule, both on by default and both switched off explicitly by the scripts that maintain the older pools: `nouns_only`, and `require_concrete`, which checks `data/concrete_nouns.txt` (derived from the German affective norms by `scripts/build-concreteness-list.py`; the 6 MB source is never committed). The reason is measured, not asserted: on production, a solution the norms rate below 4.0 costs 118 guesses per solve and one at 7.0 or above costs 48, while whole frequency bands differ by barely a third. That is also why the frequency floor is only Zipf 2.5: a rare but picturable word (`maiskolben`, `pelikan`, `streichholz`) is a better round than a frequent abstract one. `data/unfair_targets.txt` holds what no automatic gate catches, written down by heading from reading every proposed solution by hand. Details and the numbers: `docs/plans/2026-09-21-concrete-noun-pool.md`.
+**The core lexicon decides what a rank counts (`core_lexicon.py`, since 2026-09-21).** The vocabulary is a frequency cut of 80.000 word forms and only a fifth of it is language anybody uses; measured over 200 games, just 78 of the 500 nearest words were everyday words and the 50th best everyday word sat at displayed rank 302. So a second, smaller list ships next to it: **15.517 core lemmas**, Zipf ≥ 3.2, one base form per word (three gates: `lemma_map`, simplemma, and HanTa for the participles the other two miss), name tokens kept because they are ordinary nouns too. Two consequences, both in `game.py._display_scale`: the **debias is fitted on the core** and then applied to the whole vocabulary (`prepare.postprocess_vectors(fit_words=…)`), and the **displayed rank counts core words only**, so `guess`, `tip` and `closest` all run on that scale and `total` is the core size, not `vocab_size`. **Nothing is refused**: a word outside the core still scores, sharing the number of the nearest core word ahead of it plus one, capped at the core size, which also keeps rank 1 unique to the solution. A data directory without `core_words.json` (an older volume, the Wordle data, a test fixture) ranks over the whole vocabulary exactly as before. **The solution always counts**, whatever the core list says, because otherwise the nearest core word would take displayed rank 1 and a client would call the round solved on the wrong word; the pool builder keeps every solution in the core and aborts if one is missing, and `_display_scale` guards it a second time. Measured against the deployed scale on 80 identical solutions: median 45,5 guesses → 35,0, all 80 solved instead of 78, rounds over 80 guesses 12% → 4%.
+
+**What may be a solution**: the live pool is the hand-curated list in **`backend/data/solution_pool.txt`** (2.697 words, about 7,4 years of daily puzzles), and `scripts/rebuild-core-pool.py` builds the data from it. Two automatic gates and one human one. Automatic and reproducible: the word is a core lemma, and `TargetWordFilter` accepts it as a common noun that the dictionary lists as a lemma, with no proper name, no inflected form and nothing from the profanity list. Human and not reproducible: every candidate was read against a written rubric, and `backend/data/solution_rejects.txt` records what was struck and under which code.
+
+**The original's selection curve, reconstructed (2026-09-22).** Sorted into
+frequency bands of the English word list, the 1.461 published Contexto answers
+show what that game does: it takes 11,8% of the first 500 words, peaks at 17,4%
+between rank 500 and 1.000, then falls off geometrically to 1,3% at rank 16.000
+and 0,008% past 64.000. It is not a frequency cut with a hard edge and not a
+uniform draw over a vocabulary, it is a weighting, and missing that is why the
+old pool sat at median rank 13.606 where the original sits at 5.889.
+`scripts/generate-pool.py` reproduces that shape: it collects every eligible
+German noun up to rank 64.000 through the project's own gates
+(`scripts/build-solution-pool.py`), gives each band the share the original
+gives it, and fills each band with the words of best **foothold**, so the curve
+decides the shape and the foothold keeps it easy.
+
+**What the reconstruction proved, and its limit.** The curve cannot be filled
+in German. Of the 500 most frequent German words only 39 are nouns our gates
+accept, and of the top 2.000 only 281, because German's frequency top is
+particles, verbs and abstract nouns. A pool that follows the curve exactly
+therefore stops at 2.229 words with a median rank of 8.899, and the deep bands
+the curve still asks for can only be filled with administrative German
+(`amtsblatt`, `bezirksamt`, `schulbehörde`, `erwerbstätigkeit`). So the shape
+is followed where the language allows it: 57 of the 245 words the generator
+proposed were taken, the other 188 refused under code `S`. The gap that remains
+is the language, not the method.
+
+**The simulated player is wrong about abstract words too (2026-09-22).** It
+ranked the pool cleanly by concreteness, AbstConc 6,5 and up at a median of 39
+guesses against 52 below 4,5, and playing the original's own 77 answers in
+German gave median 50 with 18% of rounds over 80. On that evidence 1.007 words
+were struck, and the evidence was wrong. The model's neighbours for those words
+are good (the word for order returns disorder, cleanliness, chaos, harmony,
+structure), and the decisive measurement is blind: take the 500 most frequent
+core words, which is what a player types before they have a direction, and ask
+which ranks best. For concrete solutions the median best rank is 95, for
+abstract ones **29**. An abstract solution is easier to get a foothold on, not
+harder; the bot simply never tries "chaos" for the word for order because its
+neighbour walk goes elsewhere. The words were restored. This is the same failure
+that struck out the words for camera, clock, nose and Christmas, now written
+down for a third class. **Do not use the bot as a per-word veto.**
+
+**The model was put out to tender and kept (2026-09-22).**
+`scripts/benchmark-embeddings.py` runs every candidate against five measures
+without recomputing a single game: the SemEval-2017 German gold standard, the
+foothold, string contamination, a polysemy trap and the player from
+`playtest-pool.py` run offline. Measured: fastText 0,807 correlation and 41
+guesses with 7,5% of rounds over 80; ConceptNet Numberbatch wins the gold
+standard at 0,839 and plays at 51 guesses with 26%; our own retrofit against
+OpenThesaurus reaches 0,830 and plays at 50 with 14%; the 2024 sentence
+transformers (BGE-M3, multilingual-e5, Model2Vec) land between 0,45 and 0,52
+and play at 64 to 69 guesses with 36 to 43%. They are trained to retrieve
+passages, so a bare word is out of distribution and they fall back on subword
+overlap. **Two lessons written down: the academic score is not the game**, since
+the two models that win the correlation both lose the play test by pulling
+synonyms into tight clusters a player then circles inside; and **nothing moves
+the abstract words**, not any model, not any retrofit strength, and not a
+greedy optimisation of the opening words that cut the median foothold from 191
+to 116 without changing play at all. Training our own on a Wikipedia crawl
+would use less data than `cc.de.300` already saw.
+
+**The foothold is the per-word gate (reject code `F`).** It is the best rank any
+of the twenty opening words reaches for a solution: deterministic, one matrix
+row, and unlike the simulated player it cannot get stuck, which is what made
+the player useless as a veto. Validated against 600 live rounds, Spearman
+0,614: a foothold under 50 plays at 33 guesses with no round over 80, one over
+1.200 at 75 guesses with 34%. The pool is cut at 400, which is the knee of the
+curve, and `backend/data/solution_protected.txt` holds every word the player
+ruled on by hand, restored after all automatic gates, because a measured gate
+is wrong often enough that a human ruling has to outrank it.
+
+**Every game is played before a pool ships**, not a sample: `playtest-pool.py`
+with `--rounds` set to the whole range. On the current pool that is 2.665
+rounds at 99,5% solved, median 40 guesses and 5,3% over 80. The 14 the player
+never solves are its blind spot and stay in: short, polysemous words such as
+the ones for hammer, sack and wool, which a person types in the first minute.
+
+Still worth measuring some day: subtitle frequencies (SUBTLEX-DE) instead of
+wordfreq, because subtitle counts predict word recognition speed far better
+than web text, and spaCy instead of HanTa for the word-class gate.
+
+
+**The simulated player is not a gate on single words, and the attempt is written down so it is not repeated.** `scripts/playtest-pool.py` measures how the pool plays as a whole and is good at that. As a per-word veto at 80 guesses it struck out the words for camera, clock, nose, cinnamon, Christmas, quark, wool and courgette: it walks from neighbour to neighbour, so a short, polysemous or semantically isolated word defeats it while a person types it in the first minute. Concreteness scores have the same limit in the other direction, and they put the words for ash tree, amber and moth into the pool. Both are hints for the reading pass, never the decision.
+
+**The filter behind the list (`target_selection.py`)**: since 2026-09-21 a Kontexto solution is a **concrete common noun**, nothing else. Verbs and adjectives stay legal guesses, they just stopped being answers. Two gates carry the rule, both on by default and both switched off explicitly by the scripts that maintain the older pools: `nouns_only`, and `require_concrete`, which checks `data/concrete_nouns.txt` (derived from the German affective norms by `scripts/build-concreteness-list.py`; the 6 MB source is never committed). The reason is measured, not asserted: on production, a solution the norms rate below 4.0 costs 118 guesses per solve and one at 7.0 or above costs 48, while whole frequency bands differ by barely a third. That is also why the frequency floor is only Zipf 2.5: a rare but picturable word (`maiskolben`, `pelikan`, `streichholz`) is a better round than a frequent abstract one. `data/unfair_targets.txt` holds what no automatic gate catches, written down by heading from reading every proposed solution by hand. Details and the numbers: `docs/plans/2026-09-21-concrete-noun-pool.md`.
 
 **Typo correction (`spellfix.py`)**: a guess that is not a known word is not rejected right away. `prepare.py` also writes `data/spell_index.npz`, a symmetric-delete (SymSpell) index over every surface form (vocabulary word plus inflected form from the lemma map), stored as sorted 64-bit hashes plus word ids, around 25 MB in memory and 0,05 ms per lookup. The rules are deliberately narrow: a known word is never rewritten, written-out umlauts (`haeuser`, `strasse`) always resolve, a single candidate at edit distance 1 in a word of at least 5 characters is scored with `corrected_from` set, and anything else comes back as a 404 with up to three `suggestions` the player can tap. Candidates are ordered by edit distance and German word frequency, **never** by their rank in the running game, which would turn the correction into a free hint. Two typos in one word are out of scope. A data volume from before this feature gets its index from `scripts/build-spell-index.py`, which the Docker entrypoint runs; without it each worker builds its own on the first mistyped guess (1,6 s).
 

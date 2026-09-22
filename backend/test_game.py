@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 from pybloom_live import BloomFilter
 
+import core_lexicon
 from game import GameState
 
 
@@ -181,6 +182,132 @@ class TestRandomGameNumber:
 
     def test_total_games(self, gs):
         assert gs.total_games() == 3
+
+
+class TestCoreLexicon:
+    """The scale a rank is read against.
+
+    The vocabulary is a frequency cut and most of it is rare compounds and
+    inflected forms; counting them pushed the displayed rank up by about a
+    factor of six. The core lexicon is what counts, everything else still
+    scores at the position of the nearest core word.
+    """
+
+    @pytest.fixture
+    def core_dir(self, data_dir):
+        # apfel, kirsche and haus count; birne and auto only score.
+        core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
+        return data_dir
+
+    def test_ranks_count_core_words_only(self, core_dir):
+        state = GameState(core_dir)
+        assert state.core_size == 3
+        assert state.guess("apfel", 1)["rank"] == 1
+        assert state.guess("kirsche", 1)["rank"] == 2
+        assert state.guess("haus", 1)["rank"] == 3
+
+    def test_word_outside_the_core_still_scores(self, core_dir):
+        state = GameState(core_dir)
+        # birne sits between apfel and kirsche and shares kirsche's number.
+        assert state.guess("birne", 1)["rank"] == 2
+        # auto sits behind kirsche; the number is capped at the core size.
+        assert state.guess("auto", 1)["rank"] == 3
+
+    def test_rank_one_stays_unique_to_the_solution(self, core_dir):
+        state = GameState(core_dir)
+        first = [w for w in ("apfel", "birne", "kirsche", "auto", "haus")
+                 if state.guess(w, 1)["rank"] == 1]
+        assert first == ["apfel"]
+
+    def test_total_is_the_core_size(self, core_dir):
+        state = GameState(core_dir)
+        assert state.guess("birne", 1)["total"] == 3
+        assert state.display_total() == 3
+
+    def test_closest_words_are_core_words(self, core_dir):
+        state = GameState(core_dir)
+        assert state.get_closest_words(1) == [
+            {"word": "apfel", "rank": 1},
+            {"word": "kirsche", "rank": 2},
+            {"word": "haus", "rank": 3},
+        ]
+
+    def test_word_at_rank_follows_the_core(self, core_dir):
+        state = GameState(core_dir)
+        assert state.word_at_rank(1, 2) == {"word": "kirsche", "rank": 2}
+        assert state.word_at_rank(1, 3) == {"word": "haus", "rank": 3}
+        assert state.word_at_rank(1, 4) is None
+
+    def test_tip_stays_inside_the_core(self, core_dir):
+        state = GameState(core_dir)
+        tip = state.get_tip(1, "medium", best_rank=3)
+        assert tip is not None
+        assert tip["word"] in {"kirsche", "haus"}
+        assert 2 <= tip["rank"] <= 3
+
+    def test_a_solution_outside_the_core_still_owns_rank_one(self, data_dir):
+        # The pool builder keeps every solution in the core; this is the guard
+        # for a data directory where that went wrong. Without it the nearest
+        # core word would be reported as rank 1, and the client would call the
+        # round solved on the wrong word.
+        core_lexicon.write_core_words(data_dir, ["kirsche", "haus"])
+        state = GameState(data_dir)
+        assert state.guess("apfel", 1)["rank"] == 1      # apfel is the solution
+        assert state.guess("kirsche", 1)["rank"] == 2
+        assert state.guess("haus", 1)["rank"] == 3
+        assert state.guess("birne", 1)["rank"] == 2      # outside the core
+
+    def test_without_a_core_the_whole_vocabulary_counts(self, data_dir):
+        state = GameState(data_dir)
+        assert state.core_mask is None
+        assert state.display_total() == 5
+        assert state.guess("haus", 1)["rank"] == 5
+        assert state.guess("haus", 1)["total"] == 5
+
+    def test_an_empty_core_file_is_ignored(self, data_dir):
+        core_lexicon.write_core_words(data_dir, [])
+        state = GameState(data_dir)
+        assert state.core_mask is None
+        assert state.display_total() == 5
+
+    def test_core_words_outside_the_vocabulary_are_ignored(self, data_dir):
+        core_lexicon.write_core_words(data_dir, ["apfel", "gibtesnicht"])
+        state = GameState(data_dir)
+        assert state.core_size == 1
+        assert state.guess("haus", 1)["rank"] == 1  # only apfel counts, and it is rank 1
+        assert state.guess("apfel", 1)["rank"] == 1
+
+
+class TestBuildCoreLexicon:
+    VOCAB = ["hund", "hunde", "haus", "xylophon", "und", "ab"]
+    LEMMA = {"hunde": "hund"}
+
+    def test_keeps_one_entry_per_lemma(self):
+        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=0.0)
+        assert "hund" in core
+        assert "hunde" not in core
+
+    def test_applies_the_frequency_floor(self):
+        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=4.0)
+        assert "haus" in core
+        assert "xylophon" not in core
+
+    def test_drops_very_short_forms(self):
+        core = core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, min_zipf=0.0)
+        assert "ab" not in core
+
+    def test_keep_wins_over_the_floor(self):
+        core = core_lexicon.build_core_lexicon(
+            self.VOCAB, self.LEMMA, min_zipf=7.0, keep={"xylophon", "nichtimvokabular"})
+        assert "xylophon" in core
+        assert "nichtimvokabular" not in core
+
+    def test_load_returns_none_without_a_file(self, data_dir):
+        assert core_lexicon.load_core_words(data_dir) is None
+
+    def test_round_trip(self, data_dir):
+        core_lexicon.write_core_words(data_dir, ["apfel", "haus"])
+        assert core_lexicon.load_core_words(data_dir) == ["apfel", "haus"]
 
 
 class TestLoadGame:
