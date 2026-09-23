@@ -18,7 +18,10 @@ import { useAdConsent } from "@/lib/use-ad-consent";
 
 /** Banner copy. Changing what it says about processing requires bumping AD_CONSENT_VERSION. */
 const COPY = {
+  /** Landmark name of the bottom banner, read by screen readers; it names the subject. */
   region: "Werbung auf Kontexto",
+  /** Visible heading of the blocking dialog. The text right under it (`what`) names ads and Adcash. */
+  title: "Kontexto bleibt kostenlos",
   lead: "Kurz ehrlich:",
   what:
     " Kontexto kostet dich nix, uns aber Server und Zeit. Wenn du akzeptierst, zeigt unser " +
@@ -184,7 +187,7 @@ export default function AdConsent() {
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
           <AlertDialogHeader>
-            <AlertDialogTitle>{COPY.region}</AlertDialogTitle>
+            <AlertDialogTitle>{COPY.title}</AlertDialogTitle>
             <AlertDialogDescription>
               <span className="font-semibold text-foreground">{COPY.lead}</span>
               {COPY.what}
