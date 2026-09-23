@@ -34,6 +34,7 @@ import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
 import type { PodestError } from "@/components/GuessList";
+import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 
 
@@ -492,6 +493,7 @@ export default function GameClient() {
               noMoreGames={noMoreGames}
             />
             <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
+            <AdcashResultSlot className="mt-2" />
           </>
         ) : (
           <>

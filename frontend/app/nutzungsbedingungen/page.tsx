@@ -125,8 +125,9 @@ export default function NutzungsbedingungenPage() {
           AdSense vorgesehen. Werbung erscheint nur, wenn du sie im Einwilligungsbanner erlaubt
           hast, und ausschließlich auf den Spielseiten, in den Einzelspieler- wie in den
           Mehrspieler-Modi. Inhaltsseiten, Rechtsseiten und der Stream-Modus bleiben werbefrei. Die
-          Werbung erscheint als Banner neben dem
-          Spiel oder als schmale Leiste am unteren Rand, nie als Pop-under oder Vollbild. Werbe- und
+          Werbung erscheint in gekennzeichneten
+          Flächen, als Banner oder als kleines, schließbares Videofenster, nie als Pop-under, im
+          Vollbild oder als Weiterleitung ohne Klick. Werbe- und
           Trackingcookies werden nur nach deiner
           Einwilligung gesetzt, die sich über den Link „Cookie-Einstellungen“ in der Fußzeile
           jederzeit widerrufen lässt.
@@ -162,7 +163,7 @@ export default function NutzungsbedingungenPage() {
           Verbraucherschutzvorschriften des Staates, in dem du deinen gewöhnlichen Aufenthalt hast,
           bleiben davon unberührt. {legal.disputeResolution}
         </p>
-        <p className="text-micro">Stand: August 2026</p>
+        <p className="text-micro">Stand: September 2026</p>
       </section>
     </TextPage>
   );

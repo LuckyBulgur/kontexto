@@ -22,8 +22,9 @@ const COPY = {
   lead: "Kurz ehrlich:",
   what:
     " Kontexto kostet dich nix, uns aber Server und Zeit. Wenn du akzeptierst, zeigt unser " +
-    "Partner Adcash auf den Spielseiten ein, zwei Banner am Rand. Keine Pop-ups, keine Videos, " +
-    "nichts, was dich beim Raten stört. Dafür speichert Adcash Kennungen auf deinem Gerät. " +
+    "Partner Adcash auf den Spielseiten Werbung in gekennzeichneten Flächen: Banner und kleine " +
+    "Videos, die stumm starten und sich wegklicken lassen. Keine Pop-ups, kein Vollbild, keine " +
+    "Weiterleitung ohne Klick. Dafür speichert Adcash Kennungen auf deinem Gerät. " +
     "Sagst du nein, spielst du ganz normal weiter. ",
   policy: "Details",
   privacy: "Datenschutz",

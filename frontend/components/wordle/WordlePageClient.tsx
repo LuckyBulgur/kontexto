@@ -12,6 +12,7 @@ import { loadTheme, saveTheme } from "@/lib/storage";
 import { getWordleGame } from "@/lib/wordle-api";
 import type { TileColor } from "@/lib/wordle-types";
 import { AD_SLOTS } from "@/lib/adsense";
+import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 export default function WordlePageClient() {
   const [showStats, setShowStats] = useState(false);
@@ -109,6 +110,7 @@ export default function WordlePageClient() {
       {gameData && (
         <div className="px-4 pb-4">
           <AdUnit slot={AD_SLOTS.wordleResult} />
+          <AdcashResultSlot />
         </div>
       )}
 

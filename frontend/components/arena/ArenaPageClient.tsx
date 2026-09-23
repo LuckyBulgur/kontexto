@@ -33,6 +33,7 @@ import { loadDifficulty, loadSortMode, loadTheme, saveDifficulty, saveSortMode, 
 import { Difficulty, Guess, SortMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import RoomLanding from "@/components/RoomLanding";
+import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 /** `/arena/<id>/` carries the room; `/arena/` and `/arena/create/` do not. */
 function getArenaIdFromPath(): string | null {
@@ -395,14 +396,17 @@ export default function ArenaPageClient() {
               onCopyLink={handleCopyLink}
             />
           ) : state.status === "finished" ? (
-            <ArenaResultCard
-              state={state}
-              currentNickname={nickname}
-              gameNumber={roundGame}
-              solution={solution}
-              onNextRound={handleNextRound}
-              nextLoading={nextLoading}
-            />
+            <>
+              <ArenaResultCard
+                state={state}
+                currentNickname={nickname}
+                gameNumber={roundGame}
+                solution={solution}
+                onNextRound={handleNextRound}
+                nextLoading={nextLoading}
+              />
+              <AdcashResultSlot />
+            </>
           ) : (
             <>
               <div className="flex items-baseline justify-between rounded-xl border bg-card px-4 py-3">

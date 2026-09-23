@@ -26,8 +26,14 @@ export const AD_CONSENT_KEY = "kontexto_ad_consent";
  * Version of the text the visitor agreed to. Bump it whenever the banner or the
  * privacy policy changes what is processed, by whom or for which purpose: a
  * consent covers only what the visitor was told.
+ *
+ * 3 since 2026-09-24: the texts name the formats as categories (banners and
+ * closable, muted video windows in marked areas; never pop-under, full screen
+ * or a redirect without a click) instead of "two banners at the edge, no
+ * videos". A new zone, size or position inside those categories is covered
+ * and needs no bump; a format outside them does.
  */
-export const AD_CONSENT_VERSION = 2;
+export const AD_CONSENT_VERSION = 3;
 
 /** Twelve months, after which the question is asked again. */
 export const AD_CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;

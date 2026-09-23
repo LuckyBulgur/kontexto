@@ -187,10 +187,12 @@ export default function DatenschutzPage() {
               Adcash geladen wurde, lädt Kontexto diese Seite neu, und zwar ohne Adcash.
             </p>
             <p>
-              <strong className="text-foreground">Welche Werbung erscheint:</strong> ausschließlich
-              Werbebanner in fest gekennzeichneten Flächen. Auf großen Bildschirmen steht je ein
-              Banner links und rechts neben dem Spiel, auf kleineren eine schmale Leiste am unteren
-              Rand. Pop-under-Fenster, Vollbildanzeigen und Videowerbung nutzt Kontexto nicht. Welche
+              <strong className="text-foreground">Welche Werbung erscheint:</strong> Anzeigen in
+              gekennzeichneten Flächen auf den Spielseiten, als Werbebanner oder als kleines
+              Videofenster am Bildschirmrand, das stumm startet und sich schließen lässt. Wo eine
+              Fläche steht und wie groß sie ist, hängt von der Bildschirmbreite ab, etwa neben dem
+              Spiel, als Leiste am unteren Rand oder unter dem Ergebnis einer Runde. Pop-under-Fenster,
+              Vollbildanzeigen und Weiterleitungen ohne deinen Klick nutzt Kontexto nicht. Welche
               Anzeige in einer Fläche erscheint, entscheidet Adcash.
             </p>
             <p>

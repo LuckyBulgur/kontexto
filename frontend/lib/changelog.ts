@@ -24,6 +24,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-24",
+    kind: "Neu",
+    title: "Mehr Werbeflächen, auch kleine Videos",
+    body:
+      "Wer Werbung erlaubt, sieht jetzt auch eine Anzeige unter dem Ergebnis einer Runde, auf " +
+      "Tablets eine breitere Leiste und ein kleines Videofenster am Rand, das stumm startet und " +
+      "sich wegklicken lässt. Pop-ups, Vollbild und Weiterleitungen ohne Klick bleiben " +
+      "ausgeschlossen. Weil sich der Text im Einwilligungsbanner geändert hat, fragt Kontexto " +
+      "einmal neu; eine Ablehnung bleibt bestehen.",
+  },
+  {
     date: "2026-09-23",
     kind: "Neu",
     title: "Werbung von Adcash, nur mit Einwilligung",

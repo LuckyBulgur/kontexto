@@ -1,6 +1,6 @@
 // verify-language-fixture: the selectors quote the German UI they drive.
 import { test, expect, type Page } from "./fixtures";
-import { ADCASH_ZONES } from "../lib/adcash";
+import { ADCASH_VIDEO_SLIDER_ZONE, ADCASH_ZONES } from "../lib/adcash";
 
 /**
  * The Adcash consent banner against the real static export.
@@ -24,7 +24,8 @@ const NO_ZONES = "no Adcash display zone configured in lib/adcash.ts yet";
 /**
  * Stands in for aclib.js. With `fill` it puts an element into each target the
  * way a served ad does; without, it does what Adcash does for a zone with no
- * matching ad (an empty 204): nothing.
+ * matching ad (an empty 204): nothing. Every video slider call is recorded in
+ * `window.__adcashSliders`, so a spec can count them.
  */
 async function stubAdcash(page: Page, { fill = true }: { fill?: boolean } = {}): Promise<void> {
   await page.route(ADCASH, (route) =>
@@ -38,6 +39,8 @@ async function stubAdcash(page: Page, { fill = true }: { fill?: boolean } = {}):
         ad.setAttribute("data-rendered", o.zoneId);
         ad.style.cssText = "width:100%;height:100%;background:#ccc";
         el.appendChild(ad);
+      }, runVideoSlider: function (o) {
+        (window.__adcashSliders = window.__adcashSliders || []).push(o.zoneId);
       } };`,
     }),
   );
@@ -50,6 +53,9 @@ function adcashRequests(page: Page): string[] {
   });
   return seen;
 }
+
+const sliderCalls = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __adcashSliders?: string[] }).__adcashSliders ?? []);
 
 const banner = (page: Page) => page.getByTestId("ad-consent");
 const storedChoice = (page: Page) =>
@@ -221,7 +227,7 @@ test.describe("Werbe-Einwilligung", () => {
     await expect(page.locator("script#aclib:not([type='text/plain'])")).toHaveCount(1);
   });
 
-  test("Randbanner ab 1280 Pixeln, darunter nur die Leiste unten", async ({ page }) => {
+  test("Randbanner ab 1280 Pixeln, 728er-Leiste ab 768, darunter die schmale Leiste", async ({ page }) => {
     test.skip(!HAS_ZONES, NO_ZONES);
     await stubAdcash(page);
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -230,14 +236,78 @@ test.describe("Werbe-Einwilligung", () => {
     if (ADCASH_ZONES.railLeft) await expect(page.locator("[data-adcash-slot='railLeft']")).toBeVisible();
     if (ADCASH_ZONES.railRight) await expect(page.locator("[data-adcash-slot='railRight']")).toBeVisible();
     await expect(page.locator("[data-adcash-slot='bottomBar']")).toHaveCount(0);
+    await expect(page.locator("[data-adcash-slot='leaderboard']")).toHaveCount(0);
+
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await expect(page.locator("[data-adcash-slot^='rail']")).toHaveCount(0);
+    await expect(page.locator("[data-adcash-slot='bottomBar']")).toHaveCount(0);
+    if (ADCASH_ZONES.leaderboard) {
+      const leaderboard = page.locator("[data-adcash-slot='leaderboard']");
+      await expect(leaderboard).toBeVisible();
+      const box = await leaderboard.boundingBox();
+      expect(box?.width ?? 0).toBeLessThanOrEqual(1024);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    }
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator("[data-adcash-slot^='rail']")).toHaveCount(0);
+    await expect(page.locator("[data-adcash-slot='leaderboard']")).toHaveCount(0);
     if (ADCASH_ZONES.bottomBar) {
       await expect(page.locator("[data-adcash-slot='bottomBar']")).toBeVisible();
       const padding = await page.evaluate(() => getComputedStyle(document.body).paddingBottom);
       expect(parseFloat(padding)).toBeGreaterThanOrEqual(50);
     }
+  });
+
+  test("der Video-Slider startet einmal pro Seite, auf jeder Breite und ueber Seitenwechsel hinweg", async ({ page }) => {
+    test.skip(!ADCASH_VIDEO_SLIDER_ZONE, "no video slider zone configured in lib/adcash.ts");
+    await stubAdcash(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
+    await expect.poll(() => sliderCalls(page)).toEqual([ADCASH_VIDEO_SLIDER_ZONE]);
+
+    // Crossing both breakpoints remounts the layout, which must not stack a second player.
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByRole("link", { name: /Wördle/ }).first().click();
+    await expect(page).toHaveURL(/\/wordle\/$/);
+    await page.waitForTimeout(300);
+    expect(await sliderCalls(page)).toEqual([ADCASH_VIDEO_SLIDER_ZONE]);
+  });
+
+  test("ohne Erlauben startet kein Video-Slider", async ({ page }) => {
+    await stubAdcash(page);
+    await page.goto("/");
+    await banner(page).getByRole("button", { name: "Ablehnen" }).click();
+    await page.waitForTimeout(500);
+    expect(await sliderCalls(page)).toEqual([]);
+  });
+
+  test("unter dem Ergebnis einer Runde steht ein Rechteck, waehrend der Runde nicht", async ({ page }) => {
+    test.skip(!ADCASH_ZONES.result, "no result zone configured in lib/adcash.ts");
+    await stubAdcash(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
+    const input = page.getByRole("textbox");
+    await input.fill("fahrrad");
+    await input.press("Enter");
+    await expect(input).toHaveValue("");
+    await expect(page.locator("[data-adcash-slot='result']")).toHaveCount(0);
+
+    await page.getByRole("button", { name: /^Men/ }).click();
+    await page.getByRole("menuitem", { name: "Aufgeben" }).click();
+    const confirm = page.getByRole("button", { name: /^Aufgeben$/ });
+    if (await confirm.isVisible().catch(() => false)) await confirm.click();
+
+    const result = page.locator("[data-adcash-slot='result']");
+    await expect(result).toBeVisible({ timeout: 10_000 });
+    await expect(result).toContainText("Anzeige");
+    await expect(result.locator("[data-rendered]")).toHaveCount(1);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 
   test("ohne ausgelieferte Anzeige bleibt keine leere Flaeche stehen", async ({ page }) => {

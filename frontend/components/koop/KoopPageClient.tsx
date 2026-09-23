@@ -32,6 +32,7 @@ import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
 import RoomLanding from "@/components/RoomLanding";
+import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
@@ -545,18 +546,21 @@ export default function KoopPageClient({
           )}
 
           {roundOver ? (
-            <KoopResultCard
-              gameNumber={roundGame}
-              guesses={guesses}
-              players={players}
-              solvedBy={solvedBy}
-              currentNickname={nickname ?? ""}
-              gaveUp={gaveUp}
-              onNextGame={handleNextGame}
-              label={resultLabel}
-              groupNoun={resultGroupNoun}
-              rows={resultRows}
-            />
+            <>
+              <KoopResultCard
+                gameNumber={roundGame}
+                guesses={guesses}
+                players={players}
+                solvedBy={solvedBy}
+                currentNickname={nickname ?? ""}
+                gaveUp={gaveUp}
+                onNextGame={handleNextGame}
+                label={resultLabel}
+                groupNoun={resultGroupNoun}
+                rows={resultRows}
+              />
+              <AdcashResultSlot />
+            </>
           ) : (
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">

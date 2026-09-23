@@ -21,6 +21,7 @@ import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wo
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { fireBurst } from "@/lib/confetti";
+import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -424,12 +425,15 @@ export default function WordleDuelPageClient() {
       <Keyboard letterStates={letterStates} onKey={handleKey} />
 
       {allFinished && (
-        <DuelResultCard
-          players={players}
-          currentNickname={nickname}
-          solution={solution}
-          onNextGame={handleNextGame}
-        />
+        <>
+          <DuelResultCard
+            players={players}
+            currentNickname={nickname}
+            solution={solution}
+            onNextGame={handleNextGame}
+          />
+          <AdcashResultSlot className="px-4 pb-4" />
+        </>
       )}
     </div>
   );
