@@ -1,4 +1,4 @@
-import { test, expect, blockThirdParty } from "./fixtures";
+import { test, expect, blockThirdParty, presetAdConsent } from "./fixtures";
 
 /**
  * The whole new multiplayer path in one run: two strangers enter the queue, the
@@ -14,7 +14,10 @@ import { test, expect, blockThirdParty } from "./fixtures";
 test.describe("Arena über die Mitspielersuche", () => {
   test("zwei Fremde werden gepaart und starten eine Blitz-Runde", async ({ browser }) => {
     const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
-    for (const context of contexts) await blockThirdParty(context);
+    for (const context of contexts) {
+      await blockThirdParty(context);
+      await presetAdConsent(context);
+    }
     const [alice, bob] = await Promise.all(contexts.map((c) => c.newPage()));
 
     // Both enter the queue for the same mode. Blitz pairs at two players with no
@@ -84,7 +87,10 @@ test.describe("Auslastung vor dem Einreihen", () => {
 
   test("ein wartender Spieler taucht in der Liste auf", async ({ browser }) => {
     const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
-    for (const context of contexts) await blockThirdParty(context);
+    for (const context of contexts) {
+      await blockThirdParty(context);
+      await presetAdConsent(context);
+    }
     const [waiter, watcher] = await Promise.all(contexts.map((c) => c.newPage()));
 
     // Asserted as a delta, not as an absolute count. A ticket lives
@@ -135,7 +141,10 @@ const PAIRED_MODES = [
 for (const entry of PAIRED_MODES) {
   test(`die Suche baut auch einen ${entry.label}-Raum`, async ({ browser }) => {
     const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
-    for (const context of contexts) await blockThirdParty(context);
+    for (const context of contexts) {
+      await blockThirdParty(context);
+      await presetAdConsent(context);
+    }
     const pages = await Promise.all(contexts.map((c) => c.newPage()));
 
     for (const [index, page] of pages.entries()) {

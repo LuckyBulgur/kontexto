@@ -20,6 +20,9 @@ services:
         # Set this to false only after the site has been approved and ads are
         # intentionally being enabled.
         NEXT_PUBLIC_ADSENSE_REVIEW_MODE: ${NEXT_PUBLIC_ADSENSE_REVIEW_MODE:-true}
+        # Interim Adcash ads behind a consent banner. Set to false once AdSense
+        # has approved the site.
+        NEXT_PUBLIC_ADCASH_ENABLED: ${NEXT_PUBLIC_ADCASH_ENABLED:-true}
     expose:
       - "8080"
     volumes:

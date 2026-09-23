@@ -59,7 +59,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Für die Finanzierung ist Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Nach einer Freischaltung sollen Anzeigen ausschließlich auf den beiden Einzelspieler-Seiten laufen. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Tracking- und Werbe-Cookies werden erst gesetzt, wenn du eingewilligt hast, und die Einwilligung lässt sich über den Link in der Fußzeile jederzeit ändern oder widerrufen. Ohne Einwilligung läuft das Spiel unverändert weiter.`,
+    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Finanziert wird es über Werbung, übergangsweise von Adcash, später von Google AdSense. Anzeigen laufen ausschließlich auf den beiden Einzelspieler-Seiten und nur, wenn du sie im Einwilligungsbanner erlaubt hast. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Tracking- und Werbe-Cookies werden erst gesetzt, wenn du eingewilligt hast, und die Einwilligung lässt sich über den Link in der Fußzeile jederzeit ändern oder widerrufen. Ohne Einwilligung läuft das Spiel unverändert weiter.`,
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Wordle?`,

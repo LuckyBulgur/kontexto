@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { reopenAdConsent } from "@/lib/ad-consent";
+import { ADCASH_ENABLED } from "@/lib/adcash";
 
 /**
  * Footer-Link „Cookie-Einstellungen", der das Einwilligungsbanner von Googles
@@ -17,6 +19,19 @@ import { useEffect, useState } from "react";
  * - https://developers.google.com/funding-choices/fc-api-docs
  */
 export default function ConsentSettingsLink({ className }: { className?: string }) {
+  // While Adcash is the interim network, the banner in components/AdConsent.tsx
+  // holds the decision, so the link reopens that one and not Google's.
+  if (ADCASH_ENABLED) {
+    return (
+      <button type="button" onClick={reopenAdConsent} className={className}>
+        {"Cookie-Einstellungen"}
+      </button>
+    );
+  }
+  return <GoogleConsentSettingsLink className={className} />;
+}
+
+function GoogleConsentSettingsLink({ className }: { className?: string }) {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {

@@ -269,6 +269,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Room for the Adcash bottom bar, which sets the variable while it is
+       mounted (components/AdcashSlots.tsx). Zero otherwise. */
+    padding-bottom: var(--ad-bar-height, 0px);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
     /* Figtree ships a proper set of alternates. cv11 gives the single-storey

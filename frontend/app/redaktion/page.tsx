@@ -121,19 +121,19 @@ export default function RedaktionPage() {
         <Prose>
           <h2 id="werbung">Trennung von Werbung und Inhalt</h2>
           <p>
-            Für die Finanzierung ist Werbung vorgesehen. Während der AdSense-Prüfung werden keine
-            Anzeigenflächen ausgeliefert. Damit Werbung die Inhalte auch später nicht berührt,
-            gelten drei Festlegungen, die im Code verankert sind und nicht nur hier versprochen werden:
+            Übergangsweise finanziert sich Kontexto über Werbung von Adcash, bis Google AdSense
+            freigeschaltet ist. Damit Werbung die Inhalte nicht berührt, gelten drei Festlegungen,
+            die im Code verankert sind und nicht nur hier versprochen werden:
           </p>
           <ul>
             <li>
-              Nach einer Freischaltung erscheinen Anzeigen ausschließlich auf den beiden
-              Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben
-              werbefrei.
+              Anzeigen erscheinen ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten,
+              Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei.
             </li>
             <li>
               Jede Anzeigenfläche trägt sichtbar die Kennzeichnung „Anzeige“ und ist als eigener
-              Bereich ausgezeichnet, auch für Screenreader.
+              Bereich ausgezeichnet, auch für Screenreader. Pop-under-Fenster und Vollbildanzeigen
+              gibt es nicht.
             </li>
             <li>
               Werbe- und Trackingcookies werden erst nach ausdrücklicher Einwilligung gesetzt, die

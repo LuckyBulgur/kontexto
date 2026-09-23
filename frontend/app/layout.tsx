@@ -3,6 +3,9 @@ import { Figtree, Bricolage_Grotesque, Anton } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
+import AdConsent from "@/components/AdConsent";
+import AdcashSlots from "@/components/AdcashSlots";
+import { ADCASH_ENABLED, ADCASH_VERIFICATION_TAG } from "@/lib/adcash";
 import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
@@ -91,6 +94,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3545758989514084"
           crossOrigin="anonymous"
         />
+        {ADCASH_ENABLED && (
+          <>
+            {/*
+              Adcash onboarding snippet, inert: type="text/plain" is neither
+              fetched nor run, so the verification crawler finds it in the HTML
+              while no visitor reaches Adcash before consenting. See
+              ADCASH_VERIFICATION_TAG in lib/adcash.ts.
+            */}
+            <script id={ADCASH_VERIFICATION_TAG.id} type="text/plain" src={ADCASH_VERIFICATION_TAG.src} />
+            <script type="text/plain" dangerouslySetInnerHTML={{ __html: ADCASH_VERIFICATION_TAG.autotag }} />
+          </>
+        )}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("kontexto_theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
@@ -110,6 +125,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toaster />
         <Analytics />
         <SideRailAds />
+        <AdcashSlots />
+        <AdConsent />
       </body>
     </html>
   );

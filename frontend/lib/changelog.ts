@@ -24,6 +24,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-23",
+    kind: "Neu",
+    title: "Werbung von Adcash, nur mit Einwilligung",
+    body:
+      "Bis Google AdSense freigeschaltet ist, finanziert sich Kontexto über Werbung von Adcash. " +
+      "Beim ersten Besuch fragt ein Banner, ob du Werbung erlaubst; ohne Zustimmung lädt kein " +
+      "Werbeskript, und das Spiel bleibt unverändert. Anzeigen erscheinen nur auf der " +
+      "Kontexto-Startseite und der Wördle-Seite, und die Wahl lässt sich jederzeit über " +
+      "„Cookie-Einstellungen“ in der Fußzeile ändern.",
+  },
+  {
     date: "2026-09-21",
     kind: "Verbessert",
     title: "Kleinere Ränge, leichtere Lösungen",

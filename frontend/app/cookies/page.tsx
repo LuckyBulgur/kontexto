@@ -99,23 +99,36 @@ export default function CookiesPage() {
         <Prose>
           <h2 id="werbung">Cookies durch Werbung</h2>
           <p>
-            Für die spätere Finanzierung des kostenlosen Angebots ist Google AdSense vorgesehen. Im
-            aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Erst wenn Anzeigen nach
-            einer Freischaltung tatsächlich erscheinen, kommen Werbe-Cookies ins Spiel, und zwar
-            ausschließlich nach deiner Einwilligung über das Einwilligungsbanner.
+            Übergangsweise finanziert sich Kontexto über Werbung von Adcash, bis Google AdSense
+            freigeschaltet ist. Beim ersten Besuch fragt ein Banner, ob du Werbung erlaubst. Deine
+            Antwort merkt sich der Browser, damit die Frage nicht bei jedem Aufruf wiederkommt; nach
+            zwölf Monaten fragen wir erneut. Das Adcash-Skript lädt erst nach „Akzeptieren“ und
+            nur auf der Kontexto-Startseite und der Wördle-Seite.
           </p>
+        </Prose>
+        <ComparisonTable
+          columns={["Schlüssel", "Von wem", "Zweck", "Wann"]}
+          rows={[
+            ["kontexto_ad_consent", "Kontexto", "deine Antwort im Banner, mit Zeitpunkt und Fassung des Banners", "sobald du dich entscheidest, zwölf Monate"],
+            ["vast-client-*, __VASTStorage__", "Adcash", "Zählung und Begrenzung von Einblendungen", "nur nach „Akzeptieren“"],
+            ["adcsh_*, suv5_*", "Adcash", "Zustand der eingeblendeten Anzeigen", "nur nach „Akzeptieren“"],
+            ["template (Sitzungsspeicher)", "Adcash", "Vorlage einer Anzeige für die laufende Sitzung", "nur nach „Akzeptieren“, bis der Tab geschlossen wird"],
+            ["Cookies unter Adcash-Domains", "Adcash", "Auslieferung, Messung und Abrechnung der Anzeigen, Erkennung von Betrug", "nur nach „Akzeptieren“, Dauer legt Adcash fest"],
+          ]}
+          caption="Einträge im Zusammenhang mit Werbung, gemessen am 23. September 2026"
+        />
+        <Prose>
           <p>
-            Wenn Anzeigen ausgeliefert werden, werden die Cookies nicht von uns, sondern von Google
-            und weiteren Anbietern gesetzt, die an der Anzeigenauslieferung beteiligt sind. Sie
-            dienen der Auswahl und Messung von Anzeigen und der Begrenzung, wie oft dieselbe Anzeige
-            erscheint. Welche Anbieter das im Einzelnen sind, listet das Einwilligungsbanner auf;
-            die Rechtsgrundlagen und die Übermittlung in die USA stehen in der{" "}
-            <Link href="/datenschutz/">Datenschutzerklärung</Link>.
+            Öffnest du mit einem Klick auf eine Anzeige die Seite eines Werbekunden, setzt diese Seite ihre eigenen Cookies,
+            unter ihrer eigenen Domain und nach ihrem eigenen Einwilligungsbanner. Darauf hat Kontexto
+            keinen Einfluss. Die Rechtsgrundlagen und die Einzelheiten zu Adcash stehen in der{" "}
+            <Link href="/datenschutz/#werbung-adcash">Datenschutzerklärung</Link>.
           </p>
           <p>
             Wichtig: Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt, und das Spiel
             funktioniert vollständig weiter. Die Einwilligung lässt sich jederzeit über den Link
-            „Cookie-Einstellungen“ in der Fußzeile ändern oder widerrufen.
+            „Cookie-Einstellungen“ in der Fußzeile ändern oder widerrufen. Beim Widerruf entfernt
+            Kontexto die Adcash-Einträge aus dem lokalen Speicher und lädt die Seite ohne Adcash neu.
           </p>
         </Prose>
       </Reveal>
@@ -147,8 +160,9 @@ export default function CookiesPage() {
           </p>
           <p>
             Wer nur die Werbeeinwilligung zurücknehmen möchte, braucht dafür nichts zu löschen. Der
-            Link „Cookie-Einstellungen“ in der Fußzeile öffnet das Banner erneut. Wie du
-            personalisierte Werbung darüber hinaus dauerhaft abschaltest, steht in der{" "}
+            Link „Cookie-Einstellungen“ in der Fußzeile öffnet das Banner erneut. Cookies, die Adcash
+            unter eigenen Domains gesetzt hat, entfernst du in den Einstellungen deines Browsers; eine
+            Website kommt an sie nicht heran. Mehr dazu steht in der{" "}
             <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
         </Prose>

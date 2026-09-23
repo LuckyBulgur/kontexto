@@ -121,11 +121,14 @@ export default function NutzungsbedingungenPage() {
       <section className="space-y-2">
         <h2 className="text-body font-semibold text-foreground">5. Werbung</h2>
         <p>
-          Das Angebot ist aktuell werbefrei. Für die Finanzierung ist Werbung vorgesehen, die nach
-          einer Freischaltung ausschließlich auf den beiden Einzelspieler-Seiten angezeigt wird.
-          Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Werbe- und
-          Trackingcookies werden nur nach deiner Einwilligung gesetzt, die
-          sich über den Link „Cookie-Einstellungen“ in der Fußzeile jederzeit widerrufen lässt.
+          Übergangsweise finanziert sich das Angebot über Werbung von Adcash, später ist Google
+          AdSense vorgesehen. Werbung erscheint nur, wenn du sie im Einwilligungsbanner erlaubt
+          hast, und ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten
+          und die Mehrspieler-Räume bleiben werbefrei. Die Werbung erscheint als Banner neben dem
+          Spiel oder als schmale Leiste am unteren Rand, nie als Pop-under oder Vollbild. Werbe- und
+          Trackingcookies werden nur nach deiner
+          Einwilligung gesetzt, die sich über den Link „Cookie-Einstellungen“ in der Fußzeile
+          jederzeit widerrufen lässt.
           Einzelheiten stehen in der{" "}
           <Link href="/datenschutz/" className="underline underline-offset-2 hover:no-underline">
             Datenschutzerklärung

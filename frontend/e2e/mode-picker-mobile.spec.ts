@@ -1,5 +1,5 @@
 // verify-language-fixture: the selectors quote the German UI they drive.
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 /**
  * The picker on a phone.
