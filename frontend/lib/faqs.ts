@@ -143,7 +143,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel kostet nichts. Werbung ist zur Finanzierung geplant, bleibt während der Prüfung aber vollständig abgeschaltet. Später sind Anzeigen nur in den beiden Einzelspieler-Partien vorgesehen. Werbe-Cookies entstehen erst nach deiner Zustimmung, die du jederzeit zurücknehmen kannst.`,
+    a: `Das Spiel kostet nichts. Bezahlt wird der Betrieb über Werbebanner neben den beiden Einzelspieler-Partien, die erst nach deiner Zustimmung laden. Die Zustimmung kannst du jederzeit zurücknehmen, und ohne sie spielst du einfach ohne Werbung.`,
   },
 ];
 

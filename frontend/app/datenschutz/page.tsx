@@ -198,8 +198,8 @@ export default function DatenschutzPage() {
               im lokalen Speicher deines Browsers unter kontexto.de ab, unter anderem um Einblendungen
               zu zählen und zu begrenzen, und kann Cookies unter eigenen Domains setzen und lesen.
               Beteiligt waren bei unserer Messung vom 23. September 2026 die Domains acscdn.com,
-              adexchangerapid.com und usrpubtrk.com sowie Server, von denen Werbekunden ihre
-              Werbemittel ausliefern.
+              adexchangerapid.com, usrpubtrk.com und crcdn.org, von der die Werbebilder geladen
+              werden.
             </p>
             <p>
               <strong className="text-foreground">Zwecke:</strong> Auswahl und Auslieferung der

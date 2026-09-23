@@ -183,6 +183,11 @@ export default function VergleichPage() {
             <li><strong>Du willst auf Englisch spielen:</strong> Contexto oder Semantle.</li>
             <li><strong>Du willst beides:</strong> Spiel hier täglich Kontexto und Wördle direkt nacheinander.</li>
           </ul>
+          <p>
+            Kontexto ist ein unabhängiges Projekt und mit keinem der hier verglichenen Spiele oder
+            ihren Betreibern verbunden. Die Namen Contexto, Semantle und Wordle stehen hier nur für
+            den Vergleich und gehören ihren jeweiligen Inhabern.
+          </p>
         </Prose>
         <Callout variant="tip" title="Direkt loslegen">
           Starte mit <Link href="/">Kontexto</Link> oder <Link href="/wordle/">Wördle</Link>. Tipps

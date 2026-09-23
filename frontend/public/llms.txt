@@ -20,7 +20,7 @@ Loesungswoerter und Auswertungen.
 - Blog mit Anleitungen, Strategie- und Technikartikeln
 - Dark Mode
 - Kein Account noetig; der persoenliche Spielstand bleibt im Browser
-- Im aktuellen AdSense-Pruefmodus werden keine Anzeigenflaechen ausgeliefert
+- Werbebanner von Adcash nur auf den beiden Einzelspieler-Seiten und nur nach Einwilligung
 
 ## URL
 https://kontexto.de

@@ -61,6 +61,16 @@ export default function ImpressumPage() {
         </section>
       )}
 
+      <section className="space-y-2">
+        <h2 className="text-body font-semibold text-foreground">Unabhängigkeit</h2>
+        <p>
+          Kontexto ist ein unabhängiges Projekt. Es ist nicht mit Contexto, Semantle, Cémantix oder
+          Wordle verbunden und wird von deren Betreibern weder unterstützt noch beauftragt. Die Namen
+          dieser Spiele nennen wir nur, um sie mit Kontexto zu vergleichen. Sie gehören ihren
+          jeweiligen Inhabern.
+        </p>
+      </section>
+
       {legal.disputeResolution && (
         <section className="space-y-2">
           <h2 className="text-body font-semibold text-foreground">Verbraucherstreitbeilegung</h2>

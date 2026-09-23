@@ -178,8 +178,8 @@ export default function UeberPage() {
         <Prose>
           <h2 id="wer">Wer dahintersteht</h2>
           <p>
-            Kontexto ist ein unabhängiges Projekt aus Deutschland. Für die spätere Finanzierung ist
-            Werbung vorgesehen, damit das Spiel für alle kostenlos bleiben kann. Entwickelt und
+            Kontexto ist ein unabhängiges Projekt aus Deutschland. Finanziert wird es über Werbung,
+            damit das Spiel für alle kostenlos bleiben kann. Entwickelt und
             gepflegt wird es von {AUTHOR_NAME}, ohne Verlag im Rücken. Er beschäftigt sich mit
             Worteinbettungen und natürlicher Sprachverarbeitung und schreibt im{" "}
             <Link href="/blog/">Blog</Link> über die Technik und Strategie hinter dem Spiel.

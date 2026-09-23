@@ -110,13 +110,19 @@ export default function CookiesPage() {
           columns={["Schlüssel", "Von wem", "Zweck", "Wann"]}
           rows={[
             ["kontexto_ad_consent", "Kontexto", "deine Antwort im Banner, mit Zeitpunkt und Fassung des Banners", "sobald du dich entscheidest, zwölf Monate"],
-            ["vast-client-*, __VASTStorage__", "Adcash", "Zählung und Begrenzung von Einblendungen", "nur nach „Akzeptieren“"],
-            ["adcsh_*, suv5_*", "Adcash", "Zustand der eingeblendeten Anzeigen", "nur nach „Akzeptieren“"],
-            ["template (Sitzungsspeicher)", "Adcash", "Vorlage einer Anzeige für die laufende Sitzung", "nur nach „Akzeptieren“, bis der Tab geschlossen wird"],
+            ["Einträge von Adcash im lokalen Speicher", "Adcash", "Zählung und Begrenzung von Einblendungen, etwa vast-client-* oder adcsh_*", "nur nach „Akzeptieren“, sofern Adcash sie anlegt"],
             ["Cookies unter Adcash-Domains", "Adcash", "Auslieferung, Messung und Abrechnung der Anzeigen, Erkennung von Betrug", "nur nach „Akzeptieren“, Dauer legt Adcash fest"],
           ]}
-          caption="Einträge im Zusammenhang mit Werbung, gemessen am 23. September 2026"
+          caption="Einträge im Zusammenhang mit Werbung"
         />
+        <Prose>
+          <p>
+            Bei unserer Messung der Werbebanner am 23. September 2026 hat Adcash weder im lokalen
+            Speicher etwas abgelegt noch ein Cookie gesetzt. Nach den eigenen Angaben von Adcash kann
+            sich das ändern, etwa um zu zählen, wie oft du eine Anzeige gesehen hast. Deshalb lädt
+            Kontexto die Werbung trotzdem nur nach deiner Einwilligung.
+          </p>
+        </Prose>
         <Prose>
           <p>
             Öffnest du mit einem Klick auf eine Anzeige die Seite eines Werbekunden, setzt diese Seite ihre eigenen Cookies,
