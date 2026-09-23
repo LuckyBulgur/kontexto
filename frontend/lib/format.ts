@@ -92,3 +92,24 @@ export function formatDuration(seconds: number | null | undefined): string {
   const hours = total / 3600;
   return `${formatDecimal(Math.round(hours * 10) / 10)} Std.`;
 }
+
+// The dashboard's days are Berlin calendar days (backend `analytics.DISPLAY_TZ`),
+// so a server timestamp is shown in that zone too, whatever the viewer's clock says.
+const stampFormat = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** UTC instant "2026-09-23T22:10:00+00:00" -> "24.09.2026, 00:10 Uhr" (Berlin). */
+export function formatStamp(iso: string): string {
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return "k. A.";
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    stampFormat.formatToParts(instant).find((p) => p.type === type)?.value ?? "";
+  return `${part("day")}.${part("month")}.${part("year")}, ${part("hour")}:${part("minute")} Uhr`;
+}

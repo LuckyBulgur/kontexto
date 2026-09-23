@@ -23,7 +23,7 @@ import {
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
 import WordQuality from "@/components/admin/WordQuality";
 import {
-  formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, fullDate, greeting,
+  formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, formatStamp, fullDate, greeting,
   shortMonth, trend,
 } from "@/lib/format";
 import type { GameDifficultyEntry, StatsData, TimelinePoint } from "@/lib/types";
@@ -160,7 +160,6 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
   const visitors = stats.visitors.today;
   const guesses = stats.counters_today.guesses ?? 0;
   const solves = stats.counters_today.solves ?? 0;
-  const generated = new Date(stats.generated_at);
 
   let summary: string;
   if (visitors === 0 && guesses === 0) {
@@ -176,8 +175,7 @@ function GreetingHeader({ stats }: { stats: StatsData }) {
       <div className="text-small font-medium text-muted-foreground">{greeting()}</div>
       <p className="mt-2 max-w-3xl text-h3 font-bold tracking-tight sm:text-h2">{summary}</p>
       <p className="mt-3 text-micro text-muted-foreground">
-        Stand: {fullDate(stats.generated_at.slice(0, 10))},{" "}
-        {generated.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
+        Stand: {formatStamp(stats.generated_at)}
       </p>
     </header>
   );
@@ -700,7 +698,7 @@ function MethodologySection({ stats }: SectionProps) {
               </li>
               <li>Klebrigkeit (Tag/Monat): <span className="font-medium text-foreground">{formatPercent(stats.stickiness)}</span></li>
               <li>Rohdaten-Aufbewahrung: 35 Tage, danach nur aggregierte Werte.</li>
-              <li>Stand: <span className="font-medium text-foreground">{fullDate(stats.generated_at.slice(0, 10))}, {new Date(stats.generated_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr</span></li>
+              <li>Stand: <span className="font-medium text-foreground">{formatStamp(stats.generated_at)}</span></li>
             </ul>
           </AccordionContent>
         </AccordionItem>

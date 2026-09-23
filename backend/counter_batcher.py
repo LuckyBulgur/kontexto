@@ -77,6 +77,10 @@ class CounterBatcher:
         self._db: aiosqlite.Connection | None = None
         self._task: asyncio.Task | None = None
         self._running = False
+        # Set by stop() so the flush loop wakes from its interval wait at once
+        # instead of sleeping out the rest of the interval. Created in start(),
+        # inside the event loop that will await it.
+        self._stop_requested: asyncio.Event | None = None
         # Serialises flushes so the interval timer and an on-demand flush (e.g. the
         # admin dashboard freshening before a read) never use the connection at once.
         self._flush_lock = asyncio.Lock()
@@ -111,6 +115,7 @@ class CounterBatcher:
             await db.close()  # don't leak a half-configured connection on a failed start
             raise
         self._db = db
+        self._stop_requested = asyncio.Event()
         self._running = True
         self._task = asyncio.create_task(self._run())
 
@@ -119,9 +124,12 @@ class CounterBatcher:
         if not self._running:
             return
         self._running = False
+        if self._stop_requested is not None:
+            self._stop_requested.set()
         if self._task is not None:
-            # No cancel: let the in-flight sleep/flush finish so a mid-flight
-            # batch is never dropped. Worst case is one interval of delay.
+            # No cancel: the event above ends the interval wait early, but a flush
+            # that is already in flight runs to completion, so a mid-flight batch
+            # is never dropped.
             try:
                 await self._task
             except Exception:
@@ -137,11 +145,28 @@ class CounterBatcher:
         # Phase-shift this process's timer by a random fraction of the interval so
         # the (up to five) per-worker flushers don't all contend for the single
         # write lock on the same tick (thundering-herd mitigation).
-        await asyncio.sleep(self._interval * random.random())
+        if not await self._wait_or_stop(self._interval * random.random()):
+            return
         while self._running:
             # +/-15% jitter keeps the flushers decorrelated over time, too.
-            await asyncio.sleep(self._interval * (0.85 + 0.30 * random.random()))
+            if not await self._wait_or_stop(self._interval * (0.85 + 0.30 * random.random())):
+                return
             await self._flush_once()
+
+    async def _wait_or_stop(self, delay: float) -> bool:
+        """Wait ``delay`` seconds. False as soon as stop() is called, True otherwise.
+
+        Only the wait on the event is cancelled by the timeout, never a flush:
+        stop() drains the buffer itself after the loop has returned.
+        """
+        stop_requested = self._stop_requested
+        if stop_requested is None or stop_requested.is_set():
+            return False
+        try:
+            await asyncio.wait_for(stop_requested.wait(), timeout=delay)
+        except TimeoutError:
+            return True
+        return False
 
     def _swap(self):
         counters, game_stats, words = self._counters, self._game_stats, self._words

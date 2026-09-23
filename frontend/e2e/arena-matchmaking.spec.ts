@@ -20,8 +20,8 @@ test.describe("Arena über die Mitspielersuche", () => {
     }
     const [alice, bob] = await Promise.all(contexts.map((c) => c.newPage()));
 
-    // Both enter the queue for the same mode. Blitz pairs at two players with no
-    // grace period, so the wait is one pass of the matchmaking loop.
+    // Both enter the queue for the same mode. Blitz starts small after its grace
+    // period, which playwright.config.ts caps at 1 s for this suite.
     for (const [page, name] of [
       [alice, "Alice"],
       [bob, "Bob"],
@@ -99,6 +99,12 @@ test.describe("Auslastung vor dem Einreihen", () => {
     // queue and "1 wartet" is only true on a cold one. Measured: the same line
     // read "1 wartet gerade" and then "2 warten gerade" seconds later, with
     // nobody new joining.
+    //
+    // The picker refreshes these figures every 10 s (use-matchmaking-live.ts).
+    // The watcher gets a controllable clock so the test can jump to the next
+    // refresh instead of sitting it out; the refresh itself still runs through
+    // the page's own interval and a real request.
+    await watcher.clock.install();
     await watcher.goto("/suche/");
     await expect(watcher.locator('label[for="modus-royale"]').getByText(LOAD_LINE)).toBeVisible({
       timeout: 20_000,
@@ -111,9 +117,25 @@ test.describe("Auslastung vor dem Einreihen", () => {
     await waiter.getByRole("button", { name: "Mitspieler suchen" }).click();
     await expect(waiter.getByText("Suche Mitspieler")).toBeVisible({ timeout: 20_000 });
 
+    // Each attempt fires the next refresh. The server answers from a 5 s cache
+    // (LIVE_CACHE_TTL in main.py), so the first refreshes may still carry the
+    // old figure; the poll keeps asking until the fresh one arrives.
     await expect
-      .poll(() => waitingOnRoyale(watcher), { timeout: 20_000, intervals: [500] })
+      .poll(
+        async () => {
+          await watcher.clock.fastForward(10_000);
+          return waitingOnRoyale(watcher);
+        },
+        { timeout: 20_000, intervals: [500] },
+      )
       .toBeGreaterThan(before);
+
+    // Leave the queue again. Closing the context does not reliably send the
+    // pagehide beacon, and a ticket left behind lives for five minutes: the
+    // third one (a retry, --repeat-each) would complete a royale party and the
+    // count this test compares would drop instead of rise.
+    await waiter.getByRole("button", { name: "Suche abbrechen" }).click();
+    await expect(waiter.getByRole("button", { name: "Mitspieler suchen" })).toBeVisible();
 
     for (const context of contexts) await context.close();
   });
@@ -153,7 +175,8 @@ for (const entry of PAIRED_MODES) {
       await page.getByRole("button", { name: "Mitspieler suchen" }).click();
     }
 
-    // Koop waits out a grace period before starting small, so allow for it.
+    // Koop waits out a grace period before starting small (capped at 1 s by
+    // playwright.config.ts), then the room still has to be built.
     for (const page of pages) {
       await expect(page).toHaveURL(entry.path, { timeout: 40_000 });
     }

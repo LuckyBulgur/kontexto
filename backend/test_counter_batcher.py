@@ -118,6 +118,52 @@ def test_stop_drains_remaining(db_path):
     asyncio.run(run())
 
 
+def test_stop_does_not_wait_out_the_interval(db_path):
+    """stop() wakes the loop from its interval wait instead of sleeping it out.
+    Before this, a long interval made every stop() take up to that interval."""
+    async def run():
+        b = CounterBatcher(db_path, flush_interval=100)
+        await b.start()
+        b.incr_counter("2026-06-19", "hints", "easy", 2)
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        await b.stop()
+        assert loop.time() - started < 1.0
+        assert await _counter(db_path, "2026-06-19", "hints", "easy") == 2
+
+    asyncio.run(run())
+
+
+def test_stop_lets_an_in_flight_loop_flush_finish(db_path, monkeypatch):
+    """A flush the loop has already begun is never cancelled by stop(): stop()
+    waits for it, and the batch it carried is persisted."""
+    async def run():
+        b = CounterBatcher(db_path, flush_interval=0.01)
+        write_started = asyncio.Event()
+        release_write = asyncio.Event()
+        real_write = b._write_batch
+
+        async def gated(counters, game_stats, words):
+            write_started.set()
+            await release_write.wait()
+            await real_write(counters, game_stats, words)
+
+        monkeypatch.setattr(b, "_write_batch", gated)
+        await b.start()
+        b.incr_counter("2026-06-19", "guesses", "kontexto", 5)
+        await asyncio.wait_for(write_started.wait(), timeout=5)
+
+        stopping = asyncio.create_task(b.stop())
+        await asyncio.sleep(0.05)
+        assert not stopping.done()  # still waiting on the in-flight flush
+
+        release_write.set()
+        await asyncio.wait_for(stopping, timeout=5)
+        assert await _counter(db_path, "2026-06-19", "guesses", "kontexto") == 5
+
+    asyncio.run(run())
+
+
 def test_failed_flush_folds_back(db_path, monkeypatch):
     """If a flush write fails, its deltas must be retained (not lost) and applied
     on a subsequent successful flush."""
@@ -183,4 +229,4 @@ def test_record_action_immediate_when_batcher_off(db_path):
 
 def analytics_date():
     from datetime import datetime, timezone
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return analytics.local_date(datetime.now(timezone.utc))

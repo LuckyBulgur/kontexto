@@ -21,7 +21,7 @@ import math
 import os
 import re
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import aiosqlite
@@ -37,6 +37,57 @@ logger = logging.getLogger(__name__)
 # heatmap). Raw event timestamps are stored in UTC; we project them to this zone
 # for display so "20 Uhr" means 20:00 for the (predominantly German) audience.
 DISPLAY_TZ = ZoneInfo("Europe/Berlin")
+
+
+# --- Calendar days ------------------------------------------------------------
+#
+# A "day" in every rollup (analytics_counters.date, analytics_daily.date, the
+# dashboard's "Heute", "Woche", "Monat") is a calendar day in DISPLAY_TZ, not in
+# UTC. Bucketing by the UTC date made the dashboard reset at 01:00 or 02:00
+# German time. Raw timestamps stay UTC; only the day label and the day
+# boundaries move. Berlin's offset is a whole number of hours, so a UTC hour
+# always falls into exactly one local day.
+
+def _as_utc(now: datetime) -> datetime:
+    """Treat a naive datetime as UTC, the convention of every caller here."""
+    return now.replace(tzinfo=timezone.utc) if now.tzinfo is None else now
+
+
+def local_date(now: datetime) -> str:
+    """The DISPLAY_TZ calendar day of an instant, as ``YYYY-MM-DD``."""
+    return _as_utc(now).astimezone(DISPLAY_TZ).strftime("%Y-%m-%d")
+
+
+def local_month(now: datetime) -> str:
+    """The DISPLAY_TZ calendar month of an instant, as ``YYYY-MM``."""
+    return _as_utc(now).astimezone(DISPLAY_TZ).strftime("%Y-%m")
+
+
+def _local_midnight_utc(day: date) -> datetime:
+    """The UTC instant at which ``day`` begins in DISPLAY_TZ."""
+    return datetime.combine(day, time.min, tzinfo=DISPLAY_TZ).astimezone(timezone.utc)
+
+
+def local_day_start(now: datetime) -> datetime:
+    """The UTC instant at which the DISPLAY_TZ day containing ``now`` began."""
+    return _local_midnight_utc(_as_utc(now).astimezone(DISPLAY_TZ).date())
+
+
+def _ts_bound(instant: datetime) -> str:
+    """A UTC instant as a bound for comparing against stored ``ts`` strings.
+
+    Stored timestamps are ``isoformat()`` of UTC datetimes, with or without
+    fraction and offset. Leaving both off the bound makes a plain string
+    comparison exact: every stored value at or after the second sorts at or
+    after its bare ``YYYY-MM-DDTHH:MM:SS`` prefix.
+    """
+    return _as_utc(instant).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _local_day_of_utc_hour(hour_prefix: str) -> str:
+    """Map a stored ``YYYY-MM-DDTHH`` UTC prefix to its DISPLAY_TZ day."""
+    instant = datetime.strptime(hour_prefix, "%Y-%m-%dT%H").replace(tzinfo=timezone.utc)
+    return local_date(instant)
 
 # --- Configuration -----------------------------------------------------------
 
@@ -209,8 +260,12 @@ _PAGE_PATTERNS = (
 # --- Secrets & identity ------------------------------------------------------
 
 def _salt_period(now: datetime) -> str:
-    """Salt rotates monthly => stable per-month fingerprints."""
-    return now.strftime("%Y-%m")
+    """Salt rotates monthly => stable per-month fingerprints.
+
+    The month is the DISPLAY_TZ month, so a visitor keeps one fingerprint for
+    the whole month the dashboard's "Monat" card counts.
+    """
+    return local_month(now)
 
 
 def _monthly_salt(now: datetime) -> bytes:
@@ -528,7 +583,7 @@ async def record_pageview(
 
     label = normalize_page(page)
     window_start = now - timedelta(seconds=BEACON_WINDOW_SECONDS)
-    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = local_day_start(now)
 
     # Arrivals through a shared link are counted before the pageview dedup: the
     # marker is stripped from the address bar on arrival, so it cannot be sent
@@ -536,7 +591,7 @@ async def record_pageview(
     # who had the page open half an hour ago.
     if share and _SHARE_MARKER.match(share):
         async def _bump_share(conn: aiosqlite.Connection) -> None:
-            await _bump(conn, "analytics_counters", now.strftime("%Y-%m-%d"),
+            await _bump(conn, "analytics_counters", local_date(now),
                         SHARE_ARRIVAL_METRIC, label, 1)
 
         await _commit_with_retry(db, _bump_share, description="share_arrival")
@@ -553,15 +608,15 @@ async def record_pageview(
     # Flood cap: hard ceiling of events per fingerprint per day.
     cur = await db.execute(
         "SELECT COUNT(*) FROM analytics_events WHERE fp_hash = ? AND ts >= ?",
-        (fp_hash, day_start.isoformat()),
+        (fp_hash, _ts_bound(day_start)),
     )
     if (await cur.fetchone())[0] >= MAX_EVENTS_PER_FP_PER_DAY:
         return False, "rate_limited"
 
     # Stable (never-stored) visitor token for the all-time + monthly HLL sketches.
     register, rank = _hll_register_rank(_stable_fingerprint(ip, user_agent))
-    month = now.strftime("%Y-%m")
-    day_iso = now.strftime("%Y-%m-%d")
+    month = local_month(now)
+    day_iso = local_date(now)
 
     async def _insert(conn: aiosqlite.Connection) -> None:
         await conn.execute(
@@ -633,7 +688,7 @@ async def record_heartbeat(
 
     label = normalize_page(page)
 
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
 
     async def _write(conn: aiosqlite.Connection) -> None:
         await conn.execute(
@@ -707,7 +762,7 @@ async def record_action(
     swallows all errors so analytics can never break a gameplay request.
     """
     now = now or datetime.now(timezone.utc)
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
     w = word.strip().lower()[:60] if (metric == "guesses" and word and word.strip()) else None
 
     # Fast path: coalesce in memory, off the request's critical path. The batcher
@@ -870,7 +925,7 @@ async def record_completion(
     tips = max(0, min(int(tips), 1000))
     duration_seconds = max(0, min(int(duration_seconds), 86400))
     best_rank = max(1, min(int(best_rank), 10_000_000))
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
 
     async def _write(conn: aiosqlite.Connection) -> None:
         # The primary key enforces dedup atomically; a duplicate raises
@@ -925,7 +980,7 @@ async def record_game_start(
     if classify_user_agent(user_agent)[0] == "bot":
         return False
     fp_hash = compute_fingerprint(ip, user_agent, now)
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
 
     try:
         db = await aiosqlite.connect(db_path)
@@ -983,7 +1038,7 @@ async def popular_modes(
     dialog asks which mode is popular and not how busy the site is.
     """
     now = now or datetime.now(timezone.utc)
-    since = (now - timedelta(days=window_days)).strftime("%Y-%m-%d")
+    since = local_date(now - timedelta(days=window_days))
     cur = await db.execute(
         "SELECT dimension, SUM(value) FROM analytics_counters "
         "WHERE metric = ? AND date >= ? GROUP BY dimension",
@@ -1031,7 +1086,7 @@ async def record_share_click(
     if mode not in GAME_MODES:
         return False, "bad_payload"
 
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
 
     async def _write(conn: aiosqlite.Connection) -> None:
         await _bump(conn, "analytics_counters", date_str, SHARE_METRIC, mode, 1)
@@ -1069,7 +1124,7 @@ async def record_ad_consent(
     if kind not in AD_CONSENT_KINDS:
         return False, "bad_payload"
 
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
 
     async def _write(conn: aiosqlite.Connection) -> None:
         # A repeat raises IntegrityError before the counter is touched.
@@ -1091,7 +1146,7 @@ async def get_ad_consent_stats(db: aiosqlite.Connection, now: datetime) -> dict:
     """Ad consent payload for the admin dashboard.
 
     `totals` is all-time per kind, `last_30_days` the same over the trailing 30
-    UTC days, `daily` one row per day of the last AD_CONSENT_TIMELINE_DAYS with
+    local days, `daily` one row per day of the last AD_CONSENT_TIMELINE_DAYS with
     every kind present, so the chart does not lose a series on a quiet day.
     """
     cur = await db.execute(
@@ -1102,7 +1157,7 @@ async def get_ad_consent_stats(db: aiosqlite.Connection, now: datetime) -> dict:
     found = {dim: value for dim, value in await cur.fetchall()}
     totals = {kind: found.get(kind, 0) for kind in AD_CONSENT_KINDS}
 
-    first_day = (now - timedelta(days=AD_CONSENT_TIMELINE_DAYS - 1)).date()
+    first_day = date.fromisoformat(local_date(now)) - timedelta(days=AD_CONSENT_TIMELINE_DAYS - 1)
     cur = await db.execute(
         "SELECT date, dimension, value FROM analytics_counters "
         "WHERE metric = ? AND date >= ?",
@@ -1180,7 +1235,7 @@ async def record_survey_answer(
     if source not in SURVEY_SOURCES or survey != SURVEY_SOURCE_VERSION:
         return False, "bad_payload"
 
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
     clean_detail = sanitize_survey_detail(detail)
 
     if clean_detail is None:
@@ -1329,7 +1384,7 @@ async def record_word_rating(
     if verdict != "hard":
         reason = None
 
-    date_str = now.strftime("%Y-%m-%d")
+    date_str = local_date(now)
     clean_detail = sanitize_survey_detail(detail)
 
     if clean_detail is None:
@@ -1599,17 +1654,21 @@ async def record_login_failure(db: aiosqlite.Connection, now: datetime | None = 
 async def aggregate_daily(db: aiosqlite.Connection, now: datetime | None = None) -> None:
     """Roll raw events into permanent per-day rollups (idempotent upsert)."""
     now = now or datetime.now(timezone.utc)
-    # Aggregate every day still present in raw events (cheap; retention is small).
+    # Aggregate every local day still present in raw events (cheap; retention is
+    # small). Stored timestamps are UTC, so the distinct UTC hours are read and
+    # mapped to their DISPLAY_TZ day; see "Calendar days" above.
     cur = await db.execute(
-        "SELECT DISTINCT substr(ts, 1, 10) FROM analytics_events"
+        "SELECT DISTINCT substr(ts, 1, 13) FROM analytics_events"
     )
-    days = [row[0] for row in await cur.fetchall()]
+    days = sorted({_local_day_of_utc_hour(row[0]) for row in await cur.fetchall()})
     for day in days:
-        lo, hi = f"{day}T00:00:00", f"{day}T23:59:59.999999"
+        start = date.fromisoformat(day)
+        lo = _ts_bound(_local_midnight_utc(start))
+        hi = _ts_bound(_local_midnight_utc(start + timedelta(days=1)))
         # Unique human visitors that day.
         cur = await db.execute(
             "SELECT COUNT(DISTINCT fp_hash) FROM analytics_events "
-            "WHERE ua_class = 'human' AND ts >= ? AND ts <= ?",
+            "WHERE ua_class = 'human' AND ts >= ? AND ts < ?",
             (lo, hi),
         )
         uniques = (await cur.fetchone())[0]
@@ -1621,7 +1680,7 @@ async def aggregate_daily(db: aiosqlite.Connection, now: datetime | None = None)
         # Pageviews per page label that day.
         cur = await db.execute(
             "SELECT page, COUNT(*) FROM analytics_events "
-            "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? AND ts <= ? "
+            "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? AND ts < ? "
             "GROUP BY page",
             (lo, hi),
         )
@@ -1673,7 +1732,7 @@ async def _unique_visitors_since(db: aiosqlite.Connection, start: datetime) -> i
     cur = await db.execute(
         "SELECT COUNT(DISTINCT fp_hash) FROM analytics_events "
         "WHERE ua_class = 'human' AND ts >= ?",
-        (start.isoformat(),),
+        (_ts_bound(start),),
     )
     return (await cur.fetchone())[0]
 
@@ -1690,9 +1749,12 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     has no business loading it.
     """
     now = now or datetime.now(timezone.utc)
-    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today - timedelta(days=today.weekday())
-    month_start = today.replace(day=1)
+    # Day, week and month begin at local midnight (DISPLAY_TZ), held as UTC
+    # instants because that is what the raw timestamps are compared against.
+    local_today = date.fromisoformat(local_date(now))
+    today = _local_midnight_utc(local_today)
+    week_start = _local_midnight_utc(local_today - timedelta(days=local_today.weekday()))
+    month_start = _local_midnight_utc(local_today.replace(day=1))
 
     # Unique visitors (exact within retention window, which covers week & month).
     visitors = {
@@ -1714,7 +1776,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     # the current (not-yet-aggregated) day is always included. The 30-day window
     # sits inside the raw-event retention window (EVENT_RETENTION_DAYS), so this is
     # exact and consistent with the live unique-visitor figures above.
-    pageviews_since = (today - timedelta(days=30)).isoformat()
+    pageviews_since = _ts_bound(_local_midnight_utc(local_today - timedelta(days=30)))
     cur = await db.execute(
         "SELECT page, COUNT(*) FROM analytics_events "
         "WHERE event_type = 'pageview' AND ua_class = 'human' AND ts >= ? "
@@ -1728,7 +1790,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "SELECT metric, SUM(value) FROM analytics_counters GROUP BY metric"
     )
     counters_total = {m: t for m, t in await cur.fetchall()}
-    today_str = today.strftime("%Y-%m-%d")
+    today_str = local_today.isoformat()
     cur = await db.execute(
         "SELECT metric, SUM(value) FROM analytics_counters WHERE date = ? GROUP BY metric",
         (today_str,),
@@ -1864,11 +1926,15 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     today_hourly = today_hourly_full[: now_local.hour + 1]
 
     # Loyalty: visitors seen on >1 distinct day (within retention) are "returning".
+    # Days are local days, so the distinct UTC hours per visitor are mapped here.
     cur = await db.execute(
-        "SELECT COUNT(DISTINCT substr(ts, 1, 10)) AS days FROM analytics_events "
-        "WHERE ua_class = 'human' GROUP BY fp_hash"
+        "SELECT DISTINCT fp_hash, substr(ts, 1, 13) FROM analytics_events "
+        "WHERE ua_class = 'human'"
     )
-    day_counts = [row[0] for row in await cur.fetchall()]
+    days_by_visitor: dict[str, set[str]] = {}
+    for fp_hash, hour_prefix in await cur.fetchall():
+        days_by_visitor.setdefault(fp_hash, set()).add(_local_day_of_utc_hour(hour_prefix))
+    day_counts = [len(days) for days in days_by_visitor.values()]
     visitor_loyalty = {
         "new": sum(1 for d in day_counts if d == 1),
         "returning": sum(1 for d in day_counts if d > 1),
@@ -1970,7 +2036,8 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     best_day_unique = (await cur.fetchone())[0]
     # >= the displayed 30-day MAU (which starts at now-30d; the midnight floor here is
     # a superset window, so this count can only be >=, guaranteeing Gesamt >= 30 Tage).
-    mau_unique = await _unique_visitors_since(db, today - timedelta(days=30))
+    mau_unique = await _unique_visitors_since(
+        db, _local_midnight_utc(local_today - timedelta(days=30)))
     all_time_unique = max(
         all_time_unique_hll, best_day_unique, mau_unique,
         visitors["today"], visitors["week"], visitors["month"],

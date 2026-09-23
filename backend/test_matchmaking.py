@@ -473,3 +473,47 @@ class TestConnectionFlagReset:
 
         first, second = run(scenario())
         assert (first, second) == (2, 0)
+
+
+class TestDevGraceCap:
+    """The end-to-end suite shortens grace periods through an env var. That knob
+    must never reach production and must never change a rule beyond the cap."""
+
+    def test_production_rules_are_unchanged_without_a_cap(self):
+        from matchmaking import _PRODUCTION_PARTY_RULES, build_party_rules
+
+        rules = build_party_rules(None)
+        for mode, rule in _PRODUCTION_PARTY_RULES.items():
+            assert vars(rules[mode]) == vars(rule), mode
+
+    def test_a_cap_only_shortens_grace(self):
+        from matchmaking import _PRODUCTION_PARTY_RULES, build_party_rules
+
+        rules = build_party_rules(2)
+        for mode, rule in _PRODUCTION_PARTY_RULES.items():
+            assert rules[mode].minimum == rule.minimum, mode
+            assert rules[mode].maximum == rule.maximum, mode
+            assert rules[mode].grace_seconds == min(rule.grace_seconds, 2), mode
+
+    def test_the_cap_is_ignored_outside_dev_mode(self, monkeypatch):
+        from matchmaking import GRACE_CAP_ENV, _grace_cap_from_env
+
+        monkeypatch.delenv("KONTEXTO_DEV", raising=False)
+        monkeypatch.setenv(GRACE_CAP_ENV, "1")
+        assert _grace_cap_from_env() is None
+
+    def test_the_cap_is_read_in_dev_mode(self, monkeypatch):
+        from matchmaking import GRACE_CAP_ENV, _grace_cap_from_env
+
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        monkeypatch.setenv(GRACE_CAP_ENV, "3")
+        assert _grace_cap_from_env() == 3
+
+    @pytest.mark.parametrize("raw", ["-1", "zwei", "1.5"])
+    def test_a_malformed_cap_fails_loudly(self, monkeypatch, raw):
+        from matchmaking import GRACE_CAP_ENV, _grace_cap_from_env
+
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        monkeypatch.setenv(GRACE_CAP_ENV, raw)
+        with pytest.raises(ValueError):
+            _grace_cap_from_env()

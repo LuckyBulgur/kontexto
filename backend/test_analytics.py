@@ -453,6 +453,84 @@ class TestAggregation:
         assert deleted == 1 and remaining == 0
 
 
+class TestLocalCalendarDay:
+    """A dashboard day is a Berlin calendar day, not a UTC one.
+
+    Bucketing by the UTC date made "Heute" reset at 02:00 in summer and 01:00
+    in winter. These instants sit on both sides of Berlin midnight.
+    """
+
+    # 2026-09-23 23:30 CEST and 2026-09-24 00:10 CEST.
+    BEFORE_MIDNIGHT = datetime(2026, 9, 23, 21, 30, tzinfo=timezone.utc)
+    AFTER_MIDNIGHT = datetime(2026, 9, 23, 22, 10, tzinfo=timezone.utc)
+    READ_AT = datetime(2026, 9, 23, 22, 45, tzinfo=timezone.utc)
+
+    def _pageview(self, db, ip, now):
+        ua = "Mozilla/5.0 Chrome/120"
+        token = analytics.make_beacon_token(analytics.compute_fingerprint(ip, ua, now), now)
+        return analytics.record_pageview(
+            db, ip=ip, user_agent=ua, referrer=None, page="/", token=token, now=now)
+
+    def test_local_date_follows_berlin_in_summer_and_winter(self):
+        assert analytics.local_date(self.AFTER_MIDNIGHT) == "2026-09-24"
+        assert analytics.local_date(self.BEFORE_MIDNIGHT) == "2026-09-23"
+        assert analytics.local_date(datetime(2026, 1, 14, 23, 30, tzinfo=timezone.utc)) == "2026-01-15"
+        assert analytics.local_date(datetime(2026, 1, 14, 22, 30, tzinfo=timezone.utc)) == "2026-01-14"
+
+    def test_counters_today_resets_at_local_midnight(self, db_path):
+        async def go():
+            await analytics.record_action(db_path, "guesses", "kontexto", now=self.BEFORE_MIDNIGHT)
+            await analytics.record_action(db_path, "guesses", "kontexto", now=self.AFTER_MIDNIGHT)
+            await analytics.record_action(db_path, "guesses", "kontexto", now=self.AFTER_MIDNIGHT)
+            db = await get_db(db_path)
+            try:
+                return await analytics.get_stats(db, self.READ_AT)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["counters_today"].get("guesses") == 2
+
+    def test_visitors_today_and_rollup_use_local_days(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", self.BEFORE_MIDNIGHT)
+                await self._pageview(db, "2.2.2.2", self.AFTER_MIDNIGHT)
+                await self._pageview(db, "3.3.3.3", self.AFTER_MIDNIGHT)
+                await analytics.aggregate_daily(db, self.READ_AT)
+                cur = await db.execute(
+                    "SELECT date, value FROM analytics_daily "
+                    "WHERE metric = 'unique_visitors' ORDER BY date")
+                rollup = dict(await cur.fetchall())
+                return rollup, await analytics.get_stats(db, self.READ_AT)
+            finally:
+                await db.close()
+        rollup, stats = run(go())
+        assert rollup == {"2026-09-23": 1, "2026-09-24": 2}
+        assert stats["visitors"]["today"] == 2
+
+    def test_rollup_covers_the_25_hour_day_at_dst_end(self, db_path):
+        # 2026-10-25 runs from 22:00 UTC on the 24th to 23:00 UTC on the 25th.
+        first = datetime(2026, 10, 24, 22, 0, tzinfo=timezone.utc)
+        last = datetime(2026, 10, 25, 22, 59, 59, tzinfo=timezone.utc)
+        nxt = datetime(2026, 10, 25, 23, 0, tzinfo=timezone.utc)
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._pageview(db, "1.1.1.1", first)
+                await self._pageview(db, "2.2.2.2", last)
+                await self._pageview(db, "3.3.3.3", nxt)
+                await analytics.aggregate_daily(db, nxt)
+                cur = await db.execute(
+                    "SELECT date, value FROM analytics_daily "
+                    "WHERE metric = 'unique_visitors' ORDER BY date")
+                return dict(await cur.fetchall())
+            finally:
+                await db.close()
+        assert run(go()) == {"2026-10-25": 2, "2026-10-26": 1}
+
+
 class TestClientIp:
     def test_real_client_is_second_from_right(self):
         # Caddy appends real client (U), nginx appends Caddy (C): "U, C".

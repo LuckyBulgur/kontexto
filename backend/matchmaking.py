@@ -20,6 +20,8 @@ the individual modes:
 
 from __future__ import annotations
 
+import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -27,6 +29,8 @@ import aiosqlite
 
 from arena import iso_timestamp, parse_iso
 from nicknames import sanitize_nickname
+
+logger = logging.getLogger(__name__)
 
 # Modes the queue serves. Kontexto duel and koop, Wordle duel, and the three
 # arena modes; the arena ones cost nothing extra because a room is a room.
@@ -47,7 +51,7 @@ class PartyRule:
         self.grace_seconds = grace_seconds
 
 
-PARTY_RULES: dict[str, PartyRule] = {
+_PRODUCTION_PARTY_RULES: dict[str, PartyRule] = {
     "duel": PartyRule(2, 2, 0),
     "wordle_duel": PartyRule(2, 2, 0),
     "blitz": PartyRule(2, 8, 12),
@@ -55,6 +59,41 @@ PARTY_RULES: dict[str, PartyRule] = {
     "timerush": PartyRule(2, 8, 15),
     "royale": PartyRule(3, 8, 25),
 }
+
+# Dev-only cap on every grace period, so the end-to-end suite does not sit out
+# 12 to 25 real seconds per matchmaking test (frontend/playwright.config.ts sets
+# it). It is honoured only together with KONTEXTO_DEV: production always plays
+# with the rules above, and a stray value there is ignored with a warning.
+GRACE_CAP_ENV = "KONTEXTO_MATCHMAKING_GRACE_CAP"
+
+
+def _grace_cap_from_env() -> int | None:
+    raw = os.environ.get(GRACE_CAP_ENV)
+    if raw is None or raw.strip() == "":
+        return None
+    if not os.environ.get("KONTEXTO_DEV"):
+        logger.warning("%s is set without KONTEXTO_DEV and is ignored", GRACE_CAP_ENV)
+        return None
+    try:
+        cap = int(raw)
+    except ValueError:
+        raise ValueError(f"{GRACE_CAP_ENV} must be a whole number of seconds, got {raw!r}") from None
+    if cap < 0:
+        raise ValueError(f"{GRACE_CAP_ENV} must not be negative, got {cap}")
+    return cap
+
+
+def build_party_rules(grace_cap: int | None) -> dict[str, PartyRule]:
+    """The production rules, with every grace period capped at ``grace_cap``."""
+    if grace_cap is None:
+        return dict(_PRODUCTION_PARTY_RULES)
+    return {
+        mode: PartyRule(rule.minimum, rule.maximum, min(rule.grace_seconds, grace_cap))
+        for mode, rule in _PRODUCTION_PARTY_RULES.items()
+    }
+
+
+PARTY_RULES: dict[str, PartyRule] = build_party_rules(_grace_cap_from_env())
 
 # A ticket nobody claimed by then is dropped: the tab is gone, the player is not.
 TICKET_TTL_SECONDS = 300

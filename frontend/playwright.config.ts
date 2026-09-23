@@ -75,6 +75,10 @@ export default defineConfig({
         KONTEXTO_LIVE_OFFLINE: "1",
         // A dummy key offers TikTok in the form. OFFLINE means it is never sent.
         KONTEXTO_EULER_API_KEY: "e2e-offline",
+        // Caps every matchmaking grace period (12 to 25 s in production) at
+        // 1 s, so a queue test waits one pairing pass instead of the real
+        // grace. Honoured only with KONTEXTO_DEV; see backend/matchmaking.py.
+        KONTEXTO_MATCHMAKING_GRACE_CAP: "1",
       },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,
