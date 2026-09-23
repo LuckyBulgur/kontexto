@@ -1180,6 +1180,7 @@ async def record_word_rating(
     verdict: str,
     reason: str | None = None,
     detail: str | None = None,
+    first_game: int = 1,
     now: datetime | None = None,
 ) -> tuple[bool, str]:
     """Record one vote on how a solution word played. Returns (accepted, reason).
@@ -1192,6 +1193,13 @@ async def record_word_rating(
     A ``reason`` only means anything next to the "hard" verdict. Sent with any
     other it is dropped rather than rejected, because it carries no information
     there and a client that sends it is confused, not hostile.
+
+    ``first_game`` is the lowest game number a vote may name, the caller passes
+    ``GameState.first_curated_game()``. The games below it kept the words of the
+    pool before the core-lexicon rebuild, verbs among them, and the archive
+    still serves them. A vote on one of those says nothing about the pool the
+    ratings exist to judge, and the dashboard would print it next to a word no
+    rule of the current pool admitted.
     """
     now = now or datetime.now(timezone.utc)
     fp_hash = compute_fingerprint(ip, user_agent, now)
@@ -1210,6 +1218,8 @@ async def record_word_rating(
         return False, "bad_payload"
     if game < 1:
         return False, "bad_payload"
+    if game < first_game:
+        return False, "legacy_game"
     if verdict != "hard":
         reason = None
 
@@ -1301,6 +1311,7 @@ async def get_rating_stats(
     db: aiosqlite.Connection,
     *,
     target_words: list[str] | None = None,
+    first_game: int = 1,
     min_votes: int = 5,
     limit: int = 40,
     detail_limit: int = 120,
@@ -1316,6 +1327,11 @@ async def get_rating_stats(
     tally must not mislead; a dashboard read by one person who knows what a thin
     sample looks like is better served seeing it, and every row carries its own
     vote count.
+
+    Games below ``first_game`` are left out everywhere, counts, lists and free
+    text alike. They are the legacy games that ``record_word_rating`` refuses
+    now, and the votes they collected before that refusal existed describe
+    words the current pool never admitted.
     """
     per_game: dict[int, dict] = {}
     async with db.execute(
@@ -1328,6 +1344,8 @@ async def get_rating_stats(
             if parsed is None:
                 continue
             game, verdict, reason = parsed
+            if game < first_game:
+                continue
             entry = per_game.setdefault(game, {
                 "game_number": game,
                 "word": None,
@@ -1376,8 +1394,8 @@ async def get_rating_stats(
     details = []
     async with db.execute(
         "SELECT game_number, verdict, reason, detail, date FROM analytics_rating_details "
-        "ORDER BY id DESC LIMIT ?",
-        (detail_limit,),
+        "WHERE game_number >= ? ORDER BY id DESC LIMIT ?",
+        (first_game, detail_limit),
     ) as cursor:
         for game, verdict, reason, detail, date in await cursor.fetchall():
             word = None
@@ -1551,12 +1569,15 @@ async def _unique_visitors_since(db: aiosqlite.Connection, start: datetime) -> i
 
 
 async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
-                    target_words: list[str] | None = None) -> dict:
+                    target_words: list[str] | None = None,
+                    first_rated_game: int = 1) -> dict:
     """Assemble the full statistics payload for the admin dashboard.
 
     ``target_words`` lets the word-quality section name the played word next
-    to its number. It is optional because every other section works without
-    the game data, and the analytics module has no business loading it.
+    to its number, and ``first_rated_game`` is the floor below which that
+    section ignores votes (see ``get_rating_stats``). Both are optional because
+    every other section works without the game data, and the analytics module
+    has no business loading it.
     """
     now = now or datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1951,7 +1972,8 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     # Self-reported attribution ("Woher kennst du Kontexto?"), the one channel
     # signal that dark social and offline word of mouth ever produce.
     survey = await get_survey_stats(db)
-    ratings = await get_rating_stats(db, target_words=target_words)
+    ratings = await get_rating_stats(db, target_words=target_words,
+                                     first_game=first_rated_game)
 
     return {
         "generated_at": now.isoformat(),

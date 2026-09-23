@@ -46,10 +46,11 @@ def token(ip="1.2.3.4", now=NOW):
 
 
 def vote(db, *, game=42, verdict="hard", reason=None, detail=None,
-         ip="1.2.3.4", ua=UA, tok=None, now=NOW):
+         ip="1.2.3.4", ua=UA, tok=None, now=NOW, first_game=1):
     return analytics.record_word_rating(
         db, ip=ip, user_agent=ua, token=tok if tok is not None else token(ip, now),
-        game_number=game, verdict=verdict, reason=reason, detail=detail, now=now)
+        game_number=game, verdict=verdict, reason=reason, detail=detail,
+        first_game=first_game, now=now)
 
 
 def with_db(path, fn):
@@ -90,6 +91,49 @@ class TestAcceptance:
     def test_a_game_number_below_one_is_refused(self, db_path):
         ok, reason = with_db(db_path, lambda db: vote(db, game=0))
         assert not ok and reason == "bad_payload"
+
+
+class TestLegacyGames:
+    """The games before the core-lexicon rebuild are not rated.
+
+    They kept the old pool's words, verbs among them, and the archive still
+    serves them. A vote on one says nothing about the pool the ratings judge,
+    and the dashboard would print it next to a word no current rule admitted.
+    """
+
+    def test_a_vote_below_the_floor_is_refused_and_writes_nothing(self, db_path):
+        async def go(db):
+            result = await vote(db, game=107, first_game=108)
+            async with db.execute("SELECT COUNT(*) FROM analytics_rating_seen") as cur:
+                (ledger,) = await cur.fetchone()
+            return result, ledger, await analytics.get_rating_summary(db, 107)
+        result, ledger, summary = with_db(db_path, go)
+        assert result == (False, "legacy_game")
+        assert ledger == 0
+        assert summary["total"] == 0
+
+    def test_the_floor_itself_is_rated(self, db_path):
+        ok, reason = with_db(db_path, lambda db: vote(db, game=108, first_game=108))
+        assert ok and reason == "ok"
+
+    def test_the_dashboard_drops_votes_cast_before_the_refusal(self, db_path):
+        """Votes on legacy games that were recorded before the floor existed."""
+        async def go(db):
+            await vote(db, game=107, verdict="hard", reason="unknown_word")
+            await vote(db, game=107, verdict="hard", reason="unknown_word",
+                       detail="Ein Verb als Lösung")
+            await vote(db, game=108, verdict="right", ip="5.5.5.5")
+            await vote(db, game=108, verdict="right", ip="5.5.5.5",
+                       detail="passt")
+            words = ["w%d" % n for n in range(1, 201)]
+            return await analytics.get_rating_stats(
+                db, target_words=words, first_game=108, min_votes=1)
+        stats = with_db(db_path, go)
+        assert stats["games_with_any_vote"] == 1
+        assert stats["votes_total"] == 1
+        assert stats["reasons"]["unknown_word"] == 0
+        assert [e["game_number"] for e in stats["rated"]] == [108]
+        assert [d["game_number"] for d in stats["details"]] == [108]
 
 
 class TestDedup:

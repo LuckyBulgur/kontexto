@@ -41,6 +41,9 @@ class GameInfoResponse(BaseModel):
     gameNumber: int
     date: str
     total: int
+    # Lowest game number that follows the current pool rules. The archive still
+    # serves the games below it, the post-round rating does not ask about them.
+    firstCuratedGame: int
 
 
 class RevealResponse(BaseModel):

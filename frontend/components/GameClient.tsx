@@ -40,6 +40,9 @@ import type { PodestError } from "@/components/GuessList";
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
   const [total, setTotal] = useState(0);
+  // Games below this kept the words of the pool before the core-lexicon rebuild.
+  // The archive still serves them, the word rating does not ask about them.
+  const [firstCuratedGame, setFirstCuratedGame] = useState(1);
   const [gameState, setGameState] = useState<GameState>({ gameNumber: 0, guesses: [], tips: 0, solved: false });
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
@@ -81,6 +84,7 @@ export default function GameClient() {
       .then((info) => {
         setGameNumber(info.gameNumber);
         setTotal(info.total);
+        setFirstCuratedGame(info.firstCuratedGame);
         const saved = loadGameState(info.gameNumber);
         setGameState(saved);
         // Treat an already-finished saved game as recorded so the completion
@@ -397,6 +401,7 @@ export default function GameClient() {
     getGameInfo().then((info) => {
       setGameNumber(info.gameNumber);
       setTotal(info.total);
+      setFirstCuratedGame(info.firstCuratedGame);
       const saved = loadGameState(info.gameNumber);
       setGameState(saved);
       completedRef.current = (saved.solved || saved.givenUp) ? saved.gameNumber : null;
@@ -426,8 +431,15 @@ export default function GameClient() {
   // Asked on every finished round, the daily puzzle and the random modes alike,
   // and after a give-up as much as after a solve: a word nobody solved is the
   // strongest evidence there is, and leaving those votes out would bias the
-  // data towards the words that already work.
-  const rating = useWordRating(gameOver && showResult, gameNumber, ratingTransport);
+  // data towards the words that already work. The one exception is an archive
+  // game below the curated floor: its word never passed the current pool rules,
+  // so a vote on it would judge a word the pool no longer contains. The server
+  // refuses such a vote as well; this only spares the player the question.
+  const rating = useWordRating(
+    gameOver && showResult && gameNumber >= firstCuratedGame,
+    gameNumber,
+    ratingTransport,
+  );
 
   // Both the loading skeleton and the game container share a viewport-height
   // reserve so the "Laden…" → game swap doesn't cause a Cumulative Layout Shift

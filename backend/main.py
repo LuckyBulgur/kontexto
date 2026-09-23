@@ -447,6 +447,7 @@ async def game_info():
         "gameNumber": game_num,
         "date": date.today().isoformat(),
         "total": gs.display_total(),
+        "firstCuratedGame": gs.first_curated_game(),
     }
 
 
@@ -1802,6 +1803,7 @@ async def word_rating(req: WordRatingRequest, request: Request):
             verdict=req.verdict,
             reason=req.reason,
             detail=req.detail,
+            first_game=_get_game_state().first_curated_game(),
             now=_now(),
         )
         return {"ok": accepted}
@@ -2315,8 +2317,10 @@ async def admin_stats(authorization: str = Header(default="")):
     await analytics.flush_counters()
     db = await get_db(_db_path)
     try:
+        gs = _get_game_state()
         stats = await analytics.get_stats(
-            db, _now(), target_words=_get_game_state().target_words)
+            db, _now(), target_words=gs.target_words,
+            first_rated_game=gs.first_curated_game())
         # Live chat mode keeps its own per-channel book, because the unit its
         # figures are about is a channel and not a day.
         stats["live_streams"] = {

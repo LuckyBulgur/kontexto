@@ -142,6 +142,8 @@ class TestGameInfoEndpoint:
         assert data["gameNumber"] == 1
         assert data["total"] == 5
         assert "date" in data
+        # The fixture has no first_curated_game key, so every game is curated.
+        assert data["firstCuratedGame"] == 1
 
 
 class TestRevealEndpoint:

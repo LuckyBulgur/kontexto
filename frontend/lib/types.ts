@@ -16,6 +16,8 @@ export interface GameInfo {
   gameNumber: number;
   date: string;
   total: number;
+  /** Lowest game number that follows the current pool rules. */
+  firstCuratedGame: number;
 }
 
 export interface Guess {
