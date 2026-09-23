@@ -76,6 +76,54 @@ def _create(client, channel="kontexto", **extra):
     return client.post("/api/live", json=payload)
 
 
+class TestTikTok:
+    """TikTok is offered only with the operator's key, and only up to a cap."""
+
+    def test_without_a_key_tiktok_is_not_offered(self, client, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_EULER_API_KEY", raising=False)
+        assert client.get("/api/live/platforms").json() == {"platforms": ["twitch"]}
+        res = _create(client, platform="tiktok")
+        assert res.status_code == 503
+        assert res.json()["error"] == "platform_unavailable"
+
+    def test_with_a_key_a_tiktok_room_is_bound(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+        assert client.get("/api/live/platforms").json() == {"platforms": ["twitch", "tiktok"]}
+        res = _create(client, platform="tiktok", channel="https://www.tiktok.com/@Kontexto.de/live")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["platform"] == "tiktok"
+        assert body["channel"] == "kontexto.de"
+        assert "game_number" not in body
+
+    def test_a_tiktok_refusal_names_tiktok(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+        res = _create(client, platform="tiktok", channel="endet.")
+        assert res.status_code == 422
+        assert res.json()["error"] == "bad_channel"
+        assert "TikTok" in res.json()["message"]
+
+    def test_the_same_handle_may_play_on_both_platforms(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+        assert _create(client, channel="kontexto").status_code == 200
+        assert _create(client, platform="tiktok", channel="kontexto").status_code == 200
+        assert _create(client, platform="tiktok", channel="kontexto").status_code == 409
+
+    def test_the_cap_refuses_one_room_too_many(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+        monkeypatch.setenv("KONTEXTO_TIKTOK_MAX_ROOMS", "2")
+        assert _create(client, platform="tiktok", channel="erster").status_code == 200
+        assert _create(client, platform="tiktok", channel="zweiter").status_code == 200
+        res = _create(client, platform="tiktok", channel="dritter")
+        assert res.status_code == 503
+        assert res.json()["error"] == "platform_full"
+        # The cap is TikTok's alone; Twitch is not billed by anybody.
+        assert _create(client, channel="twitchkanal").status_code == 200
+
+    def test_an_unknown_platform_is_a_422(self, client):
+        assert _create(client, platform="youtube").status_code == 422
+
+
 class TestCreate:
     def test_a_room_is_bound_to_a_channel(self, client):
         res = _create(client)

@@ -289,7 +289,7 @@ class KoopGuessesResponse(BaseModel):
 class CreateLiveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    platform: Literal["twitch"] = "twitch"
+    platform: Literal["twitch", "tiktok"] = "twitch"
     # A channel name, a handle or a pasted URL; the server normalises it and
     # refuses anything the platform could not have as a login.
     channel: str = Field(..., min_length=1, max_length=120)
@@ -326,6 +326,12 @@ class LiveRoomResponse(BaseModel):
 
 class CreateLiveResponse(LiveRoomResponse):
     player_token: str
+
+
+class LivePlatformsResponse(BaseModel):
+    """Which platforms can be bound right now. TikTok needs the operator's key."""
+
+    platforms: list[str]
 
 
 class LiveStopRequest(BaseModel):

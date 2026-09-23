@@ -20,9 +20,11 @@ host's socket in the first minute. A viewer's guess is written under the chat's
 token with the viewer's own display name, and their standing lives in
 ``live_viewers``, keyed by the platform's immutable user id.
 
-**Nothing here talks to the network.** Reading a chat is
-``backend/twitch_chat.py``; this module is pure logic plus SQLite, so the rules
-that decide what counts as a guess can be tested without a socket.
+**Nothing here talks to the network.** Reading a chat is ``twitch_chat.py``
+(anonymous IRC) and ``tiktok_chat.py`` (the Euler Stream socket), and
+``live_ingest.py`` decides which room gets a reader; this module is pure logic
+plus SQLite, so the rules that decide what counts as a guess can be tested
+without a socket.
 """
 
 from __future__ import annotations
@@ -37,15 +39,25 @@ import aiosqlite
 from nicknames import sanitize_nickname
 from wordlists import contains_profanity
 
-# The platforms a room may be bound to. Only Twitch reads a chat today; the
-# column exists so YouTube (OAuth plus a quota budget) and TikTok (no official
-# chat API) can be added next to it instead of through it.
-PLATFORMS: tuple[str, ...] = ("twitch",)
+# The platforms a room may be bound to. YouTube (OAuth plus a quota budget) is
+# the one still missing, and it is added next to these, not through them.
+PLATFORMS: tuple[str, ...] = ("twitch", "tiktok")
 
-# Twitch login rules: 4 to 25 characters, letters, digits and underscore. Checked
-# before a reader task is ever started, so a typo fails at the create call
-# instead of as a connection that never joins anything.
-_CHANNEL = re.compile(r"^[a-z0-9_]{4,25}$")
+# Login rules per platform, checked before a reader task is ever started, so a
+# typo fails at the create call instead of as a connection that never joins
+# anything. Twitch: 4 to 25 characters, letters, digits and underscore. TikTok:
+# 2 to 24 characters, letters, digits, underscore and dot, never ending in a dot.
+_CHANNEL = {
+    "twitch": re.compile(r"^[a-z0-9_]{4,25}$"),
+    "tiktok": re.compile(r"^[a-z0-9_.]{1,23}[a-z0-9_]$"),
+}
+
+# Where each platform puts the channel in a pasted URL. TikTok writes the handle
+# with an @ in the path (tiktok.com/@name/live), Twitch without.
+_URL_MARKER = {
+    "twitch": "twitch.tv/",
+    "tiktok": "tiktok.com/",
+}
 
 # What a chat line may contribute. One token, German letters only, because a
 # guess is one word and everything else is conversation. The upper bound is the
@@ -86,22 +98,24 @@ class ChatMessage:
     text: str
 
 
-def normalise_channel(raw: str | None) -> str | None:
+def normalise_channel(raw: str | None, platform: str = "twitch") -> str | None:
     """Lowercase a channel name and accept it only if the platform could have it.
 
-    Returns None for anything that is not a possible Twitch login, including the
-    two spellings people paste most often: a full URL and a leading ``@``.
+    Returns None for anything that is not a possible login on that platform,
+    including an unknown platform. Accepts the spellings people paste most often:
+    a full URL and a leading ``@``.
     """
-    if not raw:
+    if not raw or platform not in _CHANNEL:
         return None
     name = raw.strip().lower()
+    marker = _URL_MARKER[platform]
+    # twitch.tv/name, https://www.tiktok.com/@name/live?foo
+    if marker in name:
+        name = name.split(marker, 1)[1]
     if name.startswith("@"):
         name = name[1:]
-    # twitch.tv/name, www.twitch.tv/name, https://twitch.tv/name?foo
-    if "twitch.tv/" in name:
-        name = name.split("twitch.tv/", 1)[1]
     name = name.split("?", 1)[0].split("/", 1)[0].strip()
-    if not _CHANNEL.match(name):
+    if not _CHANNEL[platform].match(name):
         return None
     # The channel name is printed on the overlay and kept forever on the admin
     # board, so it passes the nickname rule. A refusal here is the ordinary

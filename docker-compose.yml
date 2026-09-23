@@ -41,6 +41,10 @@ services:
       # (registration disabled). Set a random value only while enrolling/replacing
       # the passkey at /admin/enroll, then clear it again and redeploy.
       - KONTEXTO_ADMIN_ENROLL_TOKEN=${KONTEXTO_ADMIN_ENROLL_TOKEN:-}
+      # TikTok chat for /live/ through Euler Stream. Empty disables TikTok only.
+      - KONTEXTO_EULER_API_KEY=${KONTEXTO_EULER_API_KEY:-}
+      - KONTEXTO_TIKTOK_MAX_ROOMS=${KONTEXTO_TIKTOK_MAX_ROOMS:-20}
+      - KONTEXTO_EULER_BUDGET=${KONTEXTO_EULER_BUDGET:-}
     restart: unless-stopped
 
 volumes:

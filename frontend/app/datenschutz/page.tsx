@@ -76,7 +76,7 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">5. Mehrspieler-Modi (Duell, Koop, Wördle-Duell)</h2>
+            <h2 className="text-body font-semibold text-foreground">5. Mehrspieler-Modi (Duell, Koop, Wördle-Duell, Stream-Chat)</h2>
             <p>
               Die Einzelspieler-Modi kommen ohne serverseitige Speicherung aus. In den Mehrspieler-Modi geht das nicht, weil die Mitspielenden deinen Fortschritt sehen sollen. Wenn du eine Runde erstellst oder ihr beitrittst, speichern wir für die Dauer dieser Runde auf unserem Server:
             </p>
@@ -91,6 +91,13 @@ export default function DatenschutzPage() {
             </p>
             <p>
               Die Daten einer Runde werden automatisch und vollständig gelöscht, sobald die Runde eine Stunde lang ohne Teilnehmende und ohne Aktivität war. Ein Archiv abgeschlossener Runden gibt es nicht, und die Daten werden nicht ausgewertet, nicht mit anderen Quellen zusammengeführt und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, weil die Verarbeitung genau die Funktion erbringt, die du mit dem Betreten der Runde angefordert hast.
+            </p>
+            <p>
+              <strong className="text-foreground">Stream-Chat (Twitch und TikTok):</strong> Wer als Streamer eine Runde unter /live/ startet, gibt uns seinen öffentlichen Kanalnamen. Unser Server liest dann den öffentlichen Chat dieses Livestreams mit und wertet jede Nachricht aus, die aus einem einzigen Wort besteht. Für eine gezählte Nachricht speichern wir für die Dauer der Runde das Wort, den Anzeigenamen, unter dem die Nachricht im Chat stand, und die Kennung, die die Plattform diesem Konto gibt. Die Kennung brauchen wir, damit niemand öfter als alle zwei Sekunden rät und damit die Rangliste im Stream stimmt. Anzeigenamen und geratene Wörter erscheinen auf der Einblendung, die der Streamer in seinen Stream einbindet. Alles andere im Chat wird weder gespeichert noch ausgewertet. Die Daten werden mit der Runde gelöscht, nach derselben Regel wie oben. Dauerhaft behalten wir nur Zähler je Kanal (Runden, Versuche, Lösungen, Zahl der Mitratenden), ohne Namen und ohne Kennungen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: Das berechtigte Interesse ist, dass ein Chat gemeinsam mitspielen kann, und es werden nur Angaben verarbeitet, die im Chat ohnehin öffentlich stehen.
+            </p>
+            <p>
+              Den Chat von <strong className="text-foreground">Twitch</strong> liest unser Server direkt und anonym, ohne Anmeldung. <strong className="text-foreground">TikTok</strong> bietet dafür keinen offiziellen Weg. Den TikTok-Chat empfangen wir deshalb über den Dienst <strong className="text-foreground">Euler Stream</strong> (eulerstream.com): Unser Server nennt ihm nur den öffentlichen TikTok-Namen des Streamers, Euler Stream liest den Chat dieses Livestreams und reicht die Nachrichten an uns weiter. Daten von Besucherinnen und Besuchern von Kontexto übermitteln wir dabei nicht. Euler Stream nennt in seinen Rechtstexten weder einen Firmensitz noch ein Land der Verarbeitung; wir müssen deshalb davon ausgehen, dass die Verarbeitung außerhalb der EU stattfindet. Seine Angaben stehen in der{" "}
+              <a href="https://www.eulerstream.com/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Datenschutzerklärung von Euler Stream</a>.
             </p>
           </section>
 

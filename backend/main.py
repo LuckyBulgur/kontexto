@@ -39,7 +39,8 @@ from koop import (
 from koop import get_player_info as get_koop_player_info
 from koop import reveal_context as reveal_koop_context
 import live_chat
-from twitch_chat import current_ingest as current_live_ingest, run_live_chat
+import tiktok_chat
+from live_ingest import current_ingest as current_live_ingest, run_live_chat
 from arena import (
     ArenaGuessRefused, advance_arena_game, cleanup_stale_arenas, create_arena,
     get_arena_state, join_arena, record_arena_guess, start_arena,
@@ -72,7 +73,7 @@ from models import (
     RoomRevealRequest, RoomRevealResponse,
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveStopRequest, LiveStopResponse, LiveOverlayResponse,
-    LiveDebugMessageRequest,
+    LiveDebugMessageRequest, LivePlatformsResponse,
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
     ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
     MatchmakingEnqueueRequest, MatchmakingTicketResponse,
@@ -1204,21 +1205,75 @@ def _live_room_payload(room: dict, top: list[dict]) -> dict:
     }
 
 
+# The name a refusal uses for each platform.
+_PLATFORM_NAMES = {"twitch": "Twitch", "tiktok": "TikTok"}
+
+
+def _tiktok_room_cap() -> int:
+    """How many TikTok rooms may be bound at once.
+
+    The free provider tier holds 25 sockets. The default stays below that, so
+    a room that reconnects still finds a slot, and a paid tier raises it here.
+    """
+    try:
+        return max(0, int(os.environ.get("KONTEXTO_TIKTOK_MAX_ROOMS", "20")))
+    except ValueError:
+        return 20
+
+
+def _available_platforms() -> list[str]:
+    return [
+        platform for platform in live_chat.PLATFORMS
+        if platform != "tiktok" or tiktok_chat.is_configured()
+    ]
+
+
+@app.get("/api/live/platforms", response_model=LivePlatformsResponse)
+async def live_platforms_endpoint():
+    """What the create form may offer. Read on every opening of the form, so a
+    key added on the server shows up without a new frontend build."""
+    return {"platforms": _available_platforms()}
+
+
 @app.post("/api/live", response_model=CreateLiveResponse)
 async def create_live_endpoint(req: CreateLiveRequest):
-    channel = live_chat.normalise_channel(req.channel)
+    if req.platform not in _available_platforms():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "platform_unavailable",
+                "message": f"{_PLATFORM_NAMES[req.platform]} ist gerade nicht angebunden",
+            },
+        )
+    channel = live_chat.normalise_channel(req.channel, req.platform)
     if channel is None:
         return JSONResponse(
             status_code=422,
             content={
                 "error": "bad_channel",
-                "message": "Diesen Kanalnamen gibt es auf Twitch nicht",
+                "message": f"Diesen Kanalnamen gibt es auf {_PLATFORM_NAMES[req.platform]} nicht",
             },
         )
 
     game_number = _room_game_number(req.game_source)
     db = await get_db(_db_path)
     try:
+        if req.platform == "tiktok":
+            # Checked before the insert, not inside it. Two creates can race for
+            # the last slot and both pass; that costs one socket over the cap,
+            # which the provider answers with 4429 and the reader waits out.
+            cursor = await db.execute(
+                "SELECT COUNT(*) AS n FROM live_rooms WHERE platform = 'tiktok'"
+            )
+            row = await cursor.fetchone()
+            if row["n"] >= _tiktok_room_cap():
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "error": "platform_full",
+                        "message": "Gerade laufen zu viele TikTok-Runden gleichzeitig",
+                    },
+                )
         # The host plays under their channel name unless they asked for another.
         # sanitize_nickname runs inside create_koop, so a channel name that is
         # itself abusive is masked like any other.

@@ -194,6 +194,21 @@ Battle Royale, Blitz‑Duell and Zeitbonus‑Jagd share one table triple (`arena
 ### Matchmaking (`matchmaking.py`)
 One `matchmaking_queue` table in front of every multiplayer mode. A table and not process memory, because the five workers share nothing else. Pairing runs in the WS worker and claims tickets under `matched_room_id IS NULL`. The nickname rule is not the queue's own; it is `nicknames.sanitize_nickname` and every room runs it, invite links included (see below).
 
+### Stream chat (`live_chat.py`, `live_ingest.py`, `twitch_chat.py`, `tiktok_chat.py`)
+`/live/` binds a koop room to a Twitch or TikTok chat; every one-word message is a guess. The
+ingest runs in the WS worker only (one reader per room, reconciled against `live_rooms` every
+5 s). Readers are per platform behind one `run(on_message, on_state)` seam: Twitch is anonymous
+IRC, **TikTok goes through the Euler Stream cloud WebSocket** because TikTok has no chat API and,
+since 2026-09-09, serves the chat only to a browser session from a residential IP. That needs
+`KONTEXTO_EULER_API_KEY`, which lives in the repository secret `EULER_API_KEY` and is written
+into the server `.env` by `deploy.yml` on every deploy (rotate with `gh secret set`); without it
+TikTok is simply not offered (`GET /api/live/platforms`).
+The free tier is 60/500/2,500 requests per minute/hour/day and 25 sockets, kept on our side by
+`tiktok_chat.ConnectBudget` and `KONTEXTO_TIKTOK_MAX_ROOMS`. The key sits in the socket URL, so
+it must never be logged. The AGPL libraries (TikTok-Live-Connector, TikTokLive) are
+deliberately not used, kontexto is FSL. Research and limits:
+`docs/plans/2026-09-23-tiktok-live-chat.md`.
+
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)
 A name is the only free text the game has, everyone in the room reads it, and an invite link
 gets forwarded, so **one rule guards every door**: `sanitize_nickname` runs in `create_*` and
@@ -386,7 +401,7 @@ zero, not `animation: none`, so `forwards` animations jump to their end state), 
 
 ## Env vars
 
-- Backend: `KONTEXTO_SERVER_SECRET` (required in prod), `KONTEXTO_DATA_DIR` (default `data`), `KONTEXTO_DEV`, `KONTEXTO_FORCE_GAME`, `KONTEXTO_WEBAUTHN_RP_ID` / `KONTEXTO_WEBAUTHN_ORIGIN`, `KONTEXTO_ADMIN_ENROLL_TOKEN`, `KONTEXTO_TRUSTED_PROXY_HOPS`, `KONTEXTO_WS_MODE`. See `.env.example`.
+- Backend: `KONTEXTO_SERVER_SECRET` (required in prod), `KONTEXTO_DATA_DIR` (default `data`), `KONTEXTO_DEV`, `KONTEXTO_FORCE_GAME`, `KONTEXTO_WEBAUTHN_RP_ID` / `KONTEXTO_WEBAUTHN_ORIGIN`, `KONTEXTO_ADMIN_ENROLL_TOKEN`, `KONTEXTO_TRUSTED_PROXY_HOPS`, `KONTEXTO_WS_MODE`, `KONTEXTO_EULER_API_KEY` (TikTok chat), `KONTEXTO_TIKTOK_MAX_ROOMS`, `KONTEXTO_EULER_BUDGET`, `KONTEXTO_LIVE_OFFLINE` (dev/e2e: no chat sockets). See `.env.example`.
 - Frontend (inlined at build time): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AD_SLOT_*` (AdSense slots; unset slots render nothing), and `NEXT_PUBLIC_ADSENSE_REVIEW_MODE` (defaults to true and blocks all manual ad slots until explicitly set to `false`). See `frontend/.env.development` and `frontend/lib/adsense.ts`. `NEXT_PUBLIC_ADCASH_ENABLED` (defaults to on; `false` removes the interim Adcash ads, see below).
 
 ### Interim ads: Adcash behind an own consent banner (since 2026-09-23)

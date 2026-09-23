@@ -1,5 +1,11 @@
 import { RoomGameSource } from "./types";
-import { CreateLiveResponse, LiveOverlayState, LiveRoom } from "./live-types";
+import {
+  CreateLiveResponse,
+  LIVE_PLATFORMS,
+  LiveOverlayState,
+  LivePlatform,
+  LiveRoom,
+} from "./live-types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -8,12 +14,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
  *
  * `channel_busy` means somebody is already playing with that chat, which is the
  * one rule this mode has: one channel, one game. `bad_channel` means the name
- * could not be a Twitch login at all.
+ * could not be a login on that platform at all. `platform_unavailable` means the
+ * server has no connection to the platform right now, `platform_full` that it
+ * has reached its limit of rooms on it.
  *
  * No nickname: the host plays under their channel name. They already have a name
  * on screen, and a second one would be a field that exists only to be filled in.
  */
 export async function createLive(
+  platform: LivePlatform,
   channel: string,
   options: {
     gameSource: RoomGameSource;
@@ -25,7 +34,7 @@ export async function createLive(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      platform: "twitch",
+      platform,
       channel,
       game_source: options.gameSource,
       tips_allowed: options.tipsAllowed,
@@ -34,8 +43,31 @@ export async function createLive(
   });
   if (res.status === 409) throw new Error("channel_busy");
   if (res.status === 422) throw new Error("bad_channel");
+  if (res.status === 503) {
+    const body: unknown = await res.json().catch(() => null);
+    const code =
+      body && typeof body === "object" && "error" in body ? String(body.error) : "";
+    throw new Error(code === "platform_full" ? "platform_full" : "platform_unavailable");
+  }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
+}
+
+function isLivePlatform(value: unknown): value is LivePlatform {
+  return typeof value === "string" && (LIVE_PLATFORMS as readonly string[]).includes(value);
+}
+
+/**
+ * The platforms the server can read right now. TikTok needs the operator's key,
+ * so this is asked at runtime rather than baked into the static export.
+ */
+export async function fetchLivePlatforms(): Promise<LivePlatform[]> {
+  const res = await fetch(`${API_BASE}/live/platforms`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const body: unknown = await res.json();
+  if (!body || typeof body !== "object" || !("platforms" in body)) return [];
+  const { platforms } = body as { platforms: unknown };
+  return Array.isArray(platforms) ? platforms.filter(isLivePlatform) : [];
 }
 
 /** The chat status and the leaderboard. Host token only. */

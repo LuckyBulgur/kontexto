@@ -23,11 +23,11 @@ export default function LiveSeo() {
   return (
     <SeoSection>
       <h1 className="mb-3 text-h2 font-bold text-foreground">
-        {"Kontexto mit dem Twitch-Chat spielen"}
+        {"Kontexto mit dem Twitch- oder TikTok-Chat spielen"}
       </h1>
       <p className="max-w-prose">
         {`Dein Chat rät mit, ohne Konto, ohne Link und ohne dass jemand die Seite öffnen muss. Du
-        trägst deinen Kanalnamen ein, der Server liest den Chat mit, und jede Nachricht aus einem
+        wählst Twitch oder TikTok und trägst deinen Kanalnamen ein, der Server liest den Chat mit, und jede Nachricht aus einem
         einzigen Wort landet als Versuch auf einer gemeinsamen Rateliste. Für OBS gibt es eine
         eigene Einblendung mit den letzten Treffern.`}{" "}
         <Link
@@ -46,8 +46,8 @@ export default function LiveSeo() {
           kein Bot, den jemand einladen muss.`}
         </FeatureCard>
         <FeatureCard icon={Radio} title="Nur gelesen, nie geschrieben">
-          {`Der Server liest anonym mit, so wie jeder Zuschauer. Er schreibt nichts in deinen Chat
-          und braucht keine Rechte an deinem Kanal.`}
+          {`Der Server liest nur mit, so wie jeder Zuschauer, bei TikTok über den Dienst Euler
+          Stream. Er schreibt nichts in deinen Chat und braucht keine Rechte an deinem Kanal.`}
         </FeatureCard>
         <FeatureCard icon={MonitorPlay} title="Einblendung für OBS">
           {`Eine eigene Seite mit transparentem Hintergrund zeigt die letzten Wörter, ihre Ränge
@@ -62,7 +62,7 @@ export default function LiveSeo() {
       <SeoHeading>{"In drei Schritten starten"}</SeoHeading>
       <StepList>
         <Step index={1} title="Kanal eintragen">
-          {`Der Kanalname oder die ganze URL, beides geht. Ein zufälliges Spiel ist voreingestellt,
+          {`Plattform wählen, dann der Kanalname oder die ganze URL. Ein zufälliges Spiel ist voreingestellt,
           damit du das heutige Rätsel nicht vor laufender Kamera verrätst.`}
         </Step>
         <Step index={2} title="Einblendung einbinden">

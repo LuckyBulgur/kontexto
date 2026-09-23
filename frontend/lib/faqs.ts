@@ -254,12 +254,12 @@ export const koopFaqs: Faq[] = [
  */
 export const liveFaqs: Faq[] = [
   {
-    q: `Wie spielt mein Twitch-Chat mit?`,
-    a: `Du trägst deinen Kanalnamen ein, dann liest der Server deinen Chat mit. Jede Nachricht, die aus einem einzigen Wort besteht, zählt als Versuch auf einer gemeinsamen Rateliste. Dein Publikum braucht kein Konto, keinen Link und keinen zweiten Tab.`,
+    q: `Wie spielt mein Twitch- oder TikTok-Chat mit?`,
+    a: `Du wählst die Plattform und trägst deinen Kanalnamen ein, dann liest der Server deinen Chat mit. Jede Nachricht, die aus einem einzigen Wort besteht, zählt als Versuch auf einer gemeinsamen Rateliste. Dein Publikum braucht kein Konto, keinen Link und keinen zweiten Tab.`,
   },
   {
     q: `Muss ich Kontexto Rechte an meinem Kanal geben?`,
-    a: `Nein. Der Chat wird anonym gelesen, so wie ihn jeder Zuschauer sieht. Es gibt keine Anmeldung, keinen Bot in deinem Chat und keine Möglichkeit, in deinem Namen zu schreiben.`,
+    a: `Nein. Der Chat wird nur gelesen, so wie ihn jeder Zuschauer sieht. Es gibt keine Anmeldung, keinen Bot in deinem Chat und keine Möglichkeit, in deinem Namen zu schreiben.`,
   },
   {
     q: `Was passiert, wenn mein Chat zu voll wird?`,
@@ -278,8 +278,12 @@ export const liveFaqs: Faq[] = [
     a: `Nur solange die Runde läuft, für die Rateliste und die Rangliste im Stream. Danach werden sie mit der Runde gelöscht. Dauerhaft gespeichert wird nur, wie viel auf einem Kanal gespielt wurde, nicht von wem.`,
   },
   {
-    q: `Gibt es das auch für YouTube und TikTok?`,
-    a: `Noch nicht. YouTube braucht eine Anmeldung pro Kanal und hat ein Tageslimit für das Mitlesen, TikTok bietet gar keinen offiziellen Weg an den Chat. Twitch ist der einzige, bei dem ein Kanalname genügt.`,
+    q: `Wie funktioniert das mit TikTok?`,
+    a: `TikTok bietet keinen offiziellen Weg an den Chat eines Livestreams. Kontexto liest ihn deshalb über den Dienst Euler Stream mit, der von uns nur deinen öffentlichen TikTok-Namen erfährt. Du brauchst dort kein Konto und musst nichts freigeben. Die Runde kannst du schon vor dem Livegang starten, sie verbindet sich, sobald du live bist.`,
+  },
+  {
+    q: `Gibt es das auch für YouTube?`,
+    a: `Noch nicht. YouTube braucht eine Anmeldung pro Kanal und hat ein Tageslimit für das Mitlesen. Bei Twitch und TikTok genügt dein Kanalname.`,
   },
 ];
 

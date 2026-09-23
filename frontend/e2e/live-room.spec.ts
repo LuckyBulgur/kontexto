@@ -7,8 +7,8 @@ import { test, expect } from "./fixtures";
  * "type" a word, and see it on the host's board and on the OBS overlay.
  *
  * The chat is faked through the dev-only /api/live/<id>/debug-message endpoint,
- * which hands the message to the same ingest a real Twitch line would reach.
- * Nothing here opens a socket to Twitch; the backend runs with
+ * which hands the message to the same ingest a real Twitch or TikTok line would
+ * reach. Nothing here opens a socket to either; the backend runs with
  * KONTEXTO_LIVE_OFFLINE (see playwright.config.ts), so no reader is started.
  */
 
@@ -69,6 +69,42 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
       timeout: 20_000,
     });
+  });
+
+  test("ein TikTok-Chat rät genauso mit", async ({ page }) => {
+    // The e2e backend carries a dummy Euler key, so TikTok is on offer; with
+    // KONTEXTO_LIVE_OFFLINE the key is never sent anywhere.
+    const handle = `tt.${Date.now().toString().slice(-8)}`;
+    await page.goto("/live/");
+    const tiktok = page.getByRole("button", { name: "TikTok" });
+    await expect(tiktok).toBeEnabled({ timeout: 20_000 });
+    await tiktok.click();
+    await expect(tiktok).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByLabel("Dein TikTok-Name").fill(`https://www.tiktok.com/@${handle}/live`);
+    await expect(page.getByText(`Gelesen wird tiktok.com/@${handle}`)).toBeVisible();
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+
+    await expect(
+      page.getByText(`@${handle}`, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    await sendChatMessage(page, roomId, "tt:7485681802586752017", "apfel");
+    await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
+      timeout: 20_000,
+    });
+  });
+
+  test("ein unmöglicher TikTok-Name wird sofort beanstandet", async ({ page }) => {
+    await page.goto("/live/");
+    const tiktok = page.getByRole("button", { name: "TikTok" });
+    await expect(tiktok).toBeEnabled({ timeout: 20_000 });
+    await tiktok.click();
+    await page.getByLabel("Dein TikTok-Name").fill("endet.");
+    await expect(page.getByText(/kein TikTok-Name/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Runde starten" })).toBeDisabled();
   });
 
   test("ein Satz im Chat ist kein Versuch", async ({ page }) => {

@@ -1,31 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
-import { createLive } from "@/lib/live-api";
-import { normaliseChannel } from "@/lib/live-channel";
+import { createLive, fetchLivePlatforms } from "@/lib/live-api";
+import { channelAddress, normaliseChannel } from "@/lib/live-channel";
+import { LivePlatform, PLATFORM_NAMES } from "@/lib/live-types";
+
+/** Everything the form says differently per platform. */
+const PLATFORM_COPY: Record<
+  LivePlatform,
+  { label: string; placeholder: string; hint: string; invalid: string }
+> = {
+  twitch: {
+    label: "Dein Twitch-Kanal",
+    placeholder: "z. B. kontexto",
+    hint: "Der Name oder die ganze URL, beides geht.",
+    invalid:
+      "Das kann kein Twitch-Kanal sein. Vier bis 25 Zeichen, Buchstaben, Ziffern und Unterstrich.",
+  },
+  tiktok: {
+    label: "Dein TikTok-Name",
+    placeholder: "z. B. @kontexto",
+    hint: "Mit oder ohne @, oder der Link zu deinem Profil.",
+    invalid:
+      "Das kann kein TikTok-Name sein. Zwei bis 24 Zeichen, Buchstaben, Ziffern, Punkt und Unterstrich.",
+  },
+};
 
 /**
  * Opening a stream-chat room.
  *
  * One field carries the whole mode: the channel name. There is no login, no
  * OAuth redirect and no bot to invite, because the server only ever reads the
- * chat, and Twitch lets anybody do that anonymously. The cost of that is the one
- * rule below the field: a channel can only have one room at a time, first come.
+ * chat: Twitch lets anybody do that anonymously, and TikTok is read through a
+ * provider the server holds a key for. The cost of that is the one rule below
+ * the field: a channel can only have one room at a time, first come.
  *
- * YouTube and TikTok are shown and disabled rather than hidden, because "not
- * yet" is an answer and an absent option is not.
+ * Which platforms are on offer is asked from the server when the form opens,
+ * because TikTok depends on that key and the page is a static export. YouTube
+ * is shown and disabled rather than hidden, because "not yet" is an answer and
+ * an absent option is not.
  *
  * There is no nickname field. The host already has a name on this screen, the
  * channel, and it is the name their audience knows them by; a second one would
  * be a field that exists only so that something can be typed into it.
  */
 export default function LiveCreateClient() {
+  const [platform, setPlatform] = useState<LivePlatform>("twitch");
+  // Twitch needs nothing from the operator, so it is on offer before the answer
+  // arrives and when the question fails.
+  const [available, setAvailable] = useState<LivePlatform[]>(["twitch"]);
   const [channel, setChannel] = useState("");
   const [gameSource, setGameSource] = useState<"today" | "random">("random");
   const [tipsAllowed, setTipsAllowed] = useState(true);
@@ -33,8 +62,29 @@ export default function LiveCreateClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const normalised = normaliseChannel(channel);
+  useEffect(() => {
+    let cancelled = false;
+    fetchLivePlatforms()
+      .then((platforms) => {
+        if (!cancelled && platforms.length > 0) setAvailable(platforms);
+      })
+      .catch(() => {
+        // Stay on Twitch only; the create call would refuse TikTok anyway.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const tiktokAvailable = available.includes("tiktok");
+  const copy = PLATFORM_COPY[platform];
+  const normalised = normaliseChannel(channel, platform);
   const channelTouched = channel.trim().length > 0;
+
+  const choosePlatform = (next: LivePlatform) => {
+    setPlatform(next);
+    setError(null);
+  };
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -43,7 +93,7 @@ export default function LiveCreateClient() {
     setLoading(true);
     setError(null);
     try {
-      const room = await createLive(normalised, {
+      const room = await createLive(platform, normalised, {
         gameSource,
         tipsAllowed,
         requirePrefix,
@@ -57,7 +107,15 @@ export default function LiveCreateClient() {
       if (e instanceof Error && e.message === "channel_busy") {
         setError("Für diesen Kanal läuft schon eine Runde. Warte, bis sie vorbei ist.");
       } else if (e instanceof Error && e.message === "bad_channel") {
-        setError("Diesen Kanalnamen gibt es auf Twitch nicht.");
+        setError(`Diesen Kanalnamen gibt es auf ${PLATFORM_NAMES[platform]} nicht.`);
+      } else if (e instanceof Error && e.message === "platform_full") {
+        setError(
+          "Gerade laufen zu viele TikTok-Runden gleichzeitig. Versuch es in ein paar Minuten noch mal."
+        );
+      } else if (e instanceof Error && e.message === "platform_unavailable") {
+        setError(`${PLATFORM_NAMES[platform]} ist gerade nicht angebunden.`);
+        setAvailable((current) => current.filter((p) => p !== platform));
+        setPlatform("twitch");
       } else {
         setError("Die Runde konnte nicht gestartet werden");
       }
@@ -93,28 +151,43 @@ export default function LiveCreateClient() {
                 {"Plattform"}
               </Label>
               <div className="grid grid-cols-3 gap-2">
-                <Button type="button" variant="default" className="w-full">
+                <Button
+                  type="button"
+                  variant={platform === "twitch" ? "default" : "outline"}
+                  aria-pressed={platform === "twitch"}
+                  onClick={() => choosePlatform("twitch")}
+                  className="w-full"
+                >
                   {"Twitch"}
+                </Button>
+                <Button
+                  type="button"
+                  variant={platform === "tiktok" ? "default" : "outline"}
+                  aria-pressed={platform === "tiktok"}
+                  onClick={() => choosePlatform("tiktok")}
+                  disabled={!tiktokAvailable}
+                  className="w-full"
+                >
+                  {"TikTok"}
                 </Button>
                 <Button type="button" variant="outline" className="w-full" disabled>
                   {"YouTube"}
                 </Button>
-                <Button type="button" variant="outline" className="w-full" disabled>
-                  {"TikTok"}
-                </Button>
               </div>
               <p className="text-micro text-muted-foreground/80">
-                {"YouTube und TikTok kommen später, beide brauchen mehr als einen Kanalnamen."}
+                {tiktokAvailable
+                  ? "YouTube kommt später, dort braucht das Mitlesen eine Anmeldung pro Kanal."
+                  : "TikTok ist gerade nicht angebunden. YouTube kommt später."}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="channel">{"Dein Twitch-Kanal"}</Label>
+              <Label htmlFor="channel">{copy.label}</Label>
               <Input
                 id="channel"
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                placeholder="z. B. kontexto"
+                placeholder={copy.placeholder}
                 maxLength={120}
                 autoComplete="off"
                 autoCapitalize="none"
@@ -123,11 +196,18 @@ export default function LiveCreateClient() {
               />
               <p id="channel-hint" className="text-micro text-muted-foreground/80">
                 {channelTouched && !normalised
-                  ? "Das kann kein Twitch-Kanal sein. Vier bis 25 Zeichen, Buchstaben, Ziffern und Unterstrich."
+                  ? copy.invalid
                   : normalised
-                    ? `Gelesen wird twitch.tv/${normalised}`
-                    : "Der Name oder die ganze URL, beides geht."}
+                    ? `Gelesen wird ${channelAddress(normalised, platform)}`
+                    : copy.hint}
               </p>
+              {platform === "tiktok" && (
+                <p className="text-micro text-muted-foreground/80">
+                  {`Du kannst die Runde schon vor dem Livegang starten, sie verbindet sich,
+                  sobald du live bist. Den Chat liest der Server über den Dienst Euler Stream
+                  mit, dein Konto bleibt unberührt.`}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

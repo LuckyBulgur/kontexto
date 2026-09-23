@@ -149,7 +149,7 @@ export const MULTIPLAYER_MODES: Record<MultiplayerModeId, MultiplayerModeMeta> =
     game: "kontexto",
     name: "Stream-Chat",
     hook: "Dein Chat rät mit",
-    tagline: "Dein Twitch-Chat rät mit, ohne Anmeldung und ohne Link.",
+    tagline: "Dein Twitch- oder TikTok-Chat rät mit, ohne Anmeldung und ohne Link.",
     rules: [
       "Du trägst deinen Kanal ein, wir lesen den Chat mit.",
       "Jede Nachricht aus einem einzigen Wort ist ein Versuch.",

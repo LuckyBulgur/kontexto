@@ -132,6 +132,7 @@ export default function LivePageClient() {
         room ? (
           <LiveStatus
             channel={room.channel}
+            platform={room.platform}
             chatState={stale ? "error" : room.chat_state}
             chatError={
               stale ? "Keine Verbindung zum Server. Die Runde läuft weiter." : room.chat_error

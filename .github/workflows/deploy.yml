@@ -149,15 +149,32 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          # TikTok chat for /live/ (backend/tiktok_chat.py). Kept as a repository
+          # secret and written into the server .env on every deploy, so the key
+          # lives in one place and a rotation is one `gh secret set` away.
+          EULER_API_KEY: ${{ secrets.EULER_API_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: EULER_API_KEY
           script: |
             set -e
             cd /opt/kontexto
             git fetch origin master
             git reset --hard origin/master
+            # Upsert the Euler Stream key into .env (gitignored, untouched by the
+            # reset above). An empty secret leaves .env alone, so removing the
+            # secret never wipes a key that was set by hand on the server.
+            if [ -n "$EULER_API_KEY" ]; then
+              umask 077
+              touch .env
+              grep -v '^KONTEXTO_EULER_API_KEY=' .env > .env.next || true
+              printf 'KONTEXTO_EULER_API_KEY=%s\n' "$EULER_API_KEY" >> .env.next
+              mv .env.next .env
+              chmod 600 .env
+            fi
             # --force-recreate ensures the running container restarts with the
             # freshly built image (plain `up --build` can leave the old container).
             # Keep the production image review-safe even if an old server .env

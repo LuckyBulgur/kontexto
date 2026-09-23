@@ -6,8 +6,15 @@
  * types. What is here is only the chat binding and the overlay's own read.
  */
 
-/** Which platform a room reads. Only Twitch is connected today. */
-export type LivePlatform = "twitch";
+/** Which platform a room reads. YouTube is the one still missing. */
+export type LivePlatform = "twitch" | "tiktok";
+
+export const LIVE_PLATFORMS: readonly LivePlatform[] = ["twitch", "tiktok"];
+
+export const PLATFORM_NAMES: Record<LivePlatform, string> = {
+  twitch: "Twitch",
+  tiktok: "TikTok",
+};
 
 /** What the reader is doing right now, as the host's status line shows it. */
 export type ChatState = "connecting" | "live" | "error";

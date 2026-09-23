@@ -7,9 +7,9 @@ import { liveFaqs } from "@/lib/faqs";
 
 export const metadata = buildMetadata({
   path: "/live/",
-  title: "Kontexto mit dem Twitch-Chat spielen",
+  title: "Kontexto mit dem Twitch- oder TikTok-Chat spielen",
   description:
-    "Lass deinen Twitch-Chat Kontexto raten: Kanal eintragen, Chat wird mitgelesen, jedes einzelne Wort ist ein Versuch. Mit Einblendung für OBS, kostenlos und ohne Anmeldung.",
+    "Lass deinen Twitch- oder TikTok-Chat Kontexto raten: Kanal eintragen, Chat wird mitgelesen, jedes einzelne Wort ist ein Versuch. Mit Einblendung für OBS, kostenlos und ohne Anmeldung.",
 });
 
 /**

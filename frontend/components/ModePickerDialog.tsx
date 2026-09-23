@@ -354,7 +354,7 @@ function StreamCallout() {
           {"Du streamst?"}
         </span>
         <span className="block text-micro leading-snug text-primary-foreground/80 md:text-small">
-          {"Lass deinen Twitch-Chat mitraten, ohne Anmeldung."}
+          {"Lass deinen Twitch- oder TikTok-Chat mitraten, ohne Anmeldung."}
         </span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-primary-foreground/80" aria-hidden="true" />

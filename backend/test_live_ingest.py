@@ -143,7 +143,7 @@ class TestIngest:
         return asyncio.run(coro)
 
     def _ingest(self, db, ranks):
-        from twitch_chat import LiveChatIngest
+        from live_ingest import LiveChatIngest
 
         def resolve(game_number, word):
             rank = ranks.get(word)
@@ -425,3 +425,44 @@ class TestStreamStats:
                 await conn.close()
 
         self._run(run())
+
+
+class TestReaderChoice:
+    """Each room gets the reader of its own platform."""
+
+    def test_the_factory_is_asked_by_platform(self, db):
+        from koop import create_koop
+        from live_chat import create_live_room
+        from live_ingest import LiveChatIngest
+
+        asked = []
+
+        class IdleReader:
+            def __init__(self, platform, channel):
+                asked.append((platform, channel))
+
+            async def run(self, on_message, on_state):
+                await asyncio.sleep(3600)
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                for platform, channel in (("twitch", "kontexto"), ("tiktok", "kontexto.de")):
+                    room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+                    await create_live_room(
+                        conn, room["koop_id"], platform, channel, room["player_token"], False,
+                    )
+            finally:
+                await conn.close()
+            ingest = LiveChatIngest(db, lambda n, w: None, reader_factory=IdleReader)
+            await ingest.reconcile()
+            ingest.shutdown()
+
+        asyncio.run(run())
+        assert sorted(asked) == [("tiktok", "kontexto.de"), ("twitch", "kontexto")]
+
+    def test_every_platform_has_a_reader(self):
+        from live_chat import PLATFORMS
+        from live_ingest import READERS
+
+        assert set(READERS) == set(PLATFORMS)

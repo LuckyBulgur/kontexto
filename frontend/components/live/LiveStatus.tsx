@@ -3,7 +3,8 @@
 import { Radio, Trophy } from "lucide-react";
 import { Panel } from "@/components/design";
 import { Button } from "@/components/ui/button";
-import { ChatState, LiveViewer } from "@/lib/live-types";
+import { channelLabel } from "@/lib/live-channel";
+import { ChatState, LivePlatform, LiveViewer } from "@/lib/live-types";
 import { cn } from "@/lib/utils";
 
 const STATE_TEXT: Record<ChatState, string> = {
@@ -14,6 +15,7 @@ const STATE_TEXT: Record<ChatState, string> = {
 
 interface LiveStatusProps {
   channel: string;
+  platform: LivePlatform;
   chatState: ChatState;
   chatError: string | null;
   requirePrefix: boolean;
@@ -32,6 +34,7 @@ interface LiveStatusProps {
  */
 export default function LiveStatus({
   channel,
+  platform,
   chatState,
   chatError,
   requirePrefix,
@@ -55,11 +58,12 @@ export default function LiveStatus({
             aria-hidden
           />
           <span className="min-w-0 truncate font-display text-lead font-bold">
-            {channel}
+            {channelLabel(channel, platform)}
           </span>
         </div>
         <p className="text-micro text-muted-foreground">
-          {chatState === "error" && chatError ? chatError : STATE_TEXT[chatState]}
+          {/* A waiting TikTok room carries its reason while it is still connecting. */}
+          {chatState !== "live" && chatError ? chatError : STATE_TEXT[chatState]}
         </p>
         <p className="text-micro text-muted-foreground/80">
           {requirePrefix

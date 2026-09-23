@@ -68,10 +68,13 @@ export default defineConfig({
       env: {
         KONTEXTO_DEV: "1",
         KONTEXTO_DATA_DIR: process.env.KONTEXTO_E2E_DATA_DIR ?? "../data-e2e",
-        // Live chat mode must not dial Twitch from a test run. The ingest still
-        // reconciles rooms and accepts messages, they just come from the
-        // dev-only debug endpoint instead of a socket. See backend/twitch_chat.py.
+        // Live chat mode must not dial Twitch or TikTok from a test run. The
+        // ingest still reconciles rooms and accepts messages, they just come
+        // from the dev-only debug endpoint instead of a socket. See
+        // backend/live_ingest.py.
         KONTEXTO_LIVE_OFFLINE: "1",
+        // A dummy key offers TikTok in the form. OFFLINE means it is never sent.
+        KONTEXTO_EULER_API_KEY: "e2e-offline",
       },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,
