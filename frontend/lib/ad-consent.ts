@@ -24,7 +24,7 @@ export const AD_CONSENT_KEY = "kontexto_ad_consent";
  * privacy policy changes what is processed, by whom or for which purpose: a
  * consent covers only what the visitor was told.
  */
-export const AD_CONSENT_VERSION = 1;
+export const AD_CONSENT_VERSION = 2;
 
 /** Twelve months, after which the question is asked again. */
 export const AD_CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
@@ -130,6 +130,20 @@ export function writeAdConsent(choice: AdConsentChoice, now: Date = new Date()):
   if (choice === "denied") clearAdcashStorage();
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
   return record;
+}
+
+/**
+ * What a decision in the banner means for the consent counter: the answer to
+ * the first ask, a change of mind, or nothing, when a reopened banner is
+ * confirmed with the choice it already had.
+ */
+export function adConsentEvent(
+  previous: AdConsentChoice | "unset",
+  next: AdConsentChoice,
+): "granted" | "denied" | "regranted" | "revoked" | null {
+  if (previous === "unset") return next;
+  if (previous === next) return null;
+  return next === "granted" ? "regranted" : "revoked";
 }
 
 export function subscribeAdConsent(onChange: () => void): () => void {

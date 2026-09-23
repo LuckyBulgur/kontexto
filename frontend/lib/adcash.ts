@@ -14,11 +14,13 @@
  * on page load without a click. Intrusive formats like these are what the
  * AdSense review rejects a site for.
  *
- * Scope: the same two single-player pages that the AdSense allowlist names.
- * The terms of use, the editorial principles and the FAQ promise exactly that.
+ * Scope: every page a round is played on (`ADCASH_GAME_PATHS`,
+ * `ADCASH_ROOM_PREFIXES`). Content, legal and admin pages stay free, and so
+ * does the stream mode. The terms of use, the editorial principles, the FAQ,
+ * the privacy policy and the cookie page state exactly that scope. It is
+ * wider than the AdSense allowlist in `lib/adsense.ts` on purpose: that list
+ * is what the AdSense review sees and stays at the two single-player pages.
  */
-
-import { AD_ELIGIBLE_PATHS } from "@/lib/adsense";
 
 export const ADCASH_ENABLED = process.env.NEXT_PUBLIC_ADCASH_ENABLED !== "false";
 
@@ -78,6 +80,31 @@ export const ADCASH_VERIFICATION_TAG = {
 } as const;
 
 /**
+ * Single-player pages and the two matchmaking queues, matched exactly.
+ * Changing this list changes what the consent covers: bump
+ * `AD_CONSENT_VERSION` and update the pages named at the top of this file.
+ */
+export const ADCASH_GAME_PATHS = [
+  "/",
+  "/wordle/",
+  "/solo/leiter/",
+  "/solo/limit/",
+  "/solo/doppelziel/",
+  "/solo/sudden-death/",
+  "/suche/",
+  "/wordle/suche/",
+] as const;
+
+/**
+ * Multiplayer routes, matched with everything below them: the mode's landing
+ * page, its create form and every room (`/duel/<id>/`). `/live/` is left out
+ * deliberately. The host's board and the overlay are captured into a stream,
+ * so an ad there is an impression for an audience that never saw the page,
+ * which ad networks treat as invalid traffic.
+ */
+export const ADCASH_ROOM_PREFIXES = ["/duel/", "/koop/", "/arena/", "/wordle/duel/"] as const;
+
+/**
  * Normalises the trailing slash, because `usePathname()` in a static export
  * can report a route with or without it.
  */
@@ -85,7 +112,8 @@ export function isAdcashPath(pathname: string | null | undefined): boolean {
   if (typeof pathname !== "string" || pathname.length === 0) return false;
   if (pathname.includes("?") || pathname.includes("#")) return false;
   const normalised = pathname.endsWith("/") ? pathname : `${pathname}/`;
-  return AD_ELIGIBLE_PATHS.some((path) => path === normalised);
+  if (ADCASH_GAME_PATHS.some((path) => path === normalised)) return true;
+  return ADCASH_ROOM_PREFIXES.some((prefix) => normalised.startsWith(prefix));
 }
 
 interface AdcashLib {
@@ -112,8 +140,8 @@ export function isAdcashLoaded(): boolean {
  *
  * No Subresource Integrity: Adcash updates aclib.js in place without versioned
  * URLs, so a pinned hash would switch the ads off on the next release. The
- * exposure is contained instead by loading only after consent and only on two
- * pages.
+ * exposure is contained instead by loading only after consent and only on
+ * the game pages.
  */
 export function loadAdcash(): Promise<AdcashLib> {
   if (loading) return loading;

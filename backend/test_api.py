@@ -353,3 +353,34 @@ class TestWordRatingEndpoint:
         resp = client.post("/api/rating",
                            json={"token": "x", "game_number": 1, "verdict": "grandios"})
         assert resp.status_code == 422
+
+
+class TestAdConsentEndpoint:
+    UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/120"}
+
+    def test_a_decision_reaches_the_dashboard_once(self, client):
+        import auth
+
+        token = client.get("/api/collect/token", headers=self.UA).json()["token"]
+        first = client.post("/api/collect/consent", headers=self.UA,
+                            json={"token": token, "kind": "granted"})
+        replay = client.post("/api/collect/consent", headers=self.UA,
+                             json={"token": token, "kind": "granted"})
+        assert first.status_code == 200 and first.json() == {"ok": True}
+        assert replay.status_code == 200 and replay.json() == {"ok": False}
+
+        admin = auth.issue_session_token()
+        stats = client.get("/api/admin/stats",
+                           headers={"Authorization": f"Bearer {admin}"}).json()
+        assert stats["ad_consent"]["totals"]["granted"] == 1
+        assert stats["ad_consent"]["last_30_days"]["granted"] == 1
+
+    def test_an_unknown_kind_is_a_validation_error(self, client):
+        resp = client.post("/api/collect/consent", json={"token": "x", "kind": "maybe"})
+        assert resp.status_code == 422
+
+    def test_a_bad_token_is_not_an_error(self, client):
+        resp = client.post("/api/collect/consent", headers=self.UA,
+                           json={"token": "garbage", "kind": "shown"})
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": False}

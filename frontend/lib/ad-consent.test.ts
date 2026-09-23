@@ -3,6 +3,7 @@ import {
   AD_CONSENT_KEY,
   AD_CONSENT_MAX_AGE_MS,
   AD_CONSENT_VERSION,
+  adConsentEvent,
   clearAdcashStorage,
   parseAdConsent,
   readAdConsent,
@@ -130,25 +131,55 @@ describe("writeAdConsent", () => {
 });
 
 describe("isAdcashPath", () => {
-  it("allows the two single-player pages, with or without the trailing slash", () => {
-    expect(isAdcashPath("/")).toBe(true);
-    expect(isAdcashPath("/wordle/")).toBe(true);
-    expect(isAdcashPath("/wordle")).toBe(true);
+  it("allows the single-player pages, with or without the trailing slash", () => {
+    for (const path of [
+      "/",
+      "/wordle/",
+      "/wordle",
+      "/solo/leiter/",
+      "/solo/limit/",
+      "/solo/doppelziel/",
+      "/solo/sudden-death",
+      "/suche/",
+      "/wordle/suche/",
+    ]) {
+      expect(isAdcashPath(path), path).toBe(true);
+    }
   });
 
-  it("keeps multiplayer rooms, content, legal pages and the overlay free", () => {
+  it("allows every multiplayer landing page, create form and room", () => {
     for (const path of [
       "/duel/",
+      "/duel/create/",
       "/duel/abc123/",
-      "/koop/abc/",
+      "/koop/",
+      "/koop/abc",
+      "/arena/",
+      "/arena/create/",
       "/arena/x/",
+      "/wordle/duel/",
+      "/wordle/duel/create/",
       "/wordle/duel/x/",
+    ]) {
+      expect(isAdcashPath(path), path).toBe(true);
+    }
+  });
+
+  it("keeps the stream mode, content, legal and admin pages free", () => {
+    for (const path of [
+      "/live/",
+      "/live/abc/",
       "/live/overlay/",
-      "/solo/leiter/",
+      "/modi/",
+      "/solo/",
+      "/solo/unknown/",
+      "/duelle/",
       "/blog/was-ist-contexto-auf-deutsch/",
+      "/faq/",
       "/datenschutz/",
       "/impressum/",
       "/admin/",
+      "/admin/stats/",
     ]) {
       expect(isAdcashPath(path), path).toBe(false);
     }
@@ -159,5 +190,23 @@ describe("isAdcashPath", () => {
     expect(isAdcashPath(undefined)).toBe(false);
     expect(isAdcashPath("")).toBe(false);
     expect(isAdcashPath("/wordle/?game=2")).toBe(false);
+    expect(isAdcashPath("/duel/abc/#x")).toBe(false);
+  });
+});
+
+describe("adConsentEvent", () => {
+  it("counts the answer to the first ask as it is", () => {
+    expect(adConsentEvent("unset", "granted")).toBe("granted");
+    expect(adConsentEvent("unset", "denied")).toBe("denied");
+  });
+
+  it("counts a later change of mind as a change", () => {
+    expect(adConsentEvent("denied", "granted")).toBe("regranted");
+    expect(adConsentEvent("granted", "denied")).toBe("revoked");
+  });
+
+  it("counts nothing when a reopened banner keeps the choice", () => {
+    expect(adConsentEvent("granted", "granted")).toBeNull();
+    expect(adConsentEvent("denied", "denied")).toBeNull();
   });
 });

@@ -30,9 +30,9 @@ export const changelog: ChangelogEntry[] = [
     body:
       "Bis Google AdSense freigeschaltet ist, finanziert sich Kontexto über Werbung von Adcash. " +
       "Beim ersten Besuch fragt ein Banner, ob du Werbung erlaubst; ohne Zustimmung lädt kein " +
-      "Werbeskript, und das Spiel bleibt unverändert. Anzeigen erscheinen nur auf der " +
-      "Kontexto-Startseite und der Wördle-Seite, und die Wahl lässt sich jederzeit über " +
-      "„Cookie-Einstellungen“ in der Fußzeile ändern.",
+      "Werbeskript, und das Spiel bleibt unverändert. Anzeigen erscheinen auf den Spielseiten, " +
+      "allein wie zu mehreren, nie auf Inhalts- und Rechtsseiten oder im Stream-Modus. Die Wahl " +
+      "lässt sich jederzeit über „Cookie-Einstellungen“ in der Fußzeile ändern.",
   },
   {
     date: "2026-09-21",

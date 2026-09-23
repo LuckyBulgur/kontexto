@@ -177,9 +177,12 @@ export default function DatenschutzPage() {
             </p>
             <p>
               <strong className="text-foreground">Wann Adcash geladen wird:</strong> nur, wenn du im
-              Einwilligungsbanner „Akzeptieren“ gewählt hast, und nur auf den beiden
-              Einzelspieler-Seiten, also der Kontexto-Startseite und der Wördle-Seite. Vorher, nach
-              einer Ablehnung und auf allen anderen Seiten bindet Kontexto kein Adcash-Skript ein, und
+              Einwilligungsbanner „Akzeptieren“ gewählt hast, und nur auf den Spielseiten: der
+              Kontexto-Startseite, der Wördle-Seite, den Solo-Modi (Leiter, Limit, Doppelziel,
+              Sudden Death), den Mehrspieler-Modi Duell, Koop, Arena und Wördle-Duell samt ihren
+              Räumen sowie der Mitspielersuche. Der Stream-Modus unter /live/ gehört nicht dazu, weil
+              sein Bild in einen Livestream übertragen wird. Vorher, nach einer Ablehnung und auf
+              allen anderen Seiten bindet Kontexto kein Adcash-Skript ein, und
               dein Browser nimmt keine Verbindung zu Adcash auf. Öffnest du eine andere Seite, nachdem
               Adcash geladen wurde, lädt Kontexto diese Seite neu, und zwar ohne Adcash.
             </p>
@@ -233,6 +236,18 @@ export default function DatenschutzPage() {
               nicht erst, statt ihm eine Ablehnung zu übermitteln. Im Quelltext jeder Seite steht der
               Einbindungscode von Adcash zwar, damit Adcash die Website prüfen kann, aber als
               deaktivierter Text: Dein Browser lädt und startet ihn nicht.
+            </p>
+            <p>
+              <strong className="text-foreground">Zählung deiner Entscheidung:</strong> Damit wir
+              wissen, wie viele Besucher Werbung erlauben, meldet das Banner an unseren eigenen
+              Server, dass es angezeigt wurde, wie du dich entschieden hast und ob du die Wahl später
+              änderst. Adcash erfährt davon nichts. Gezählt wird mit demselben anonymen, monatlich
+              wechselnden Hash-Wert wie bei der Reichweitenmessung, und nur, damit dieselbe Meldung
+              nicht doppelt zählt. Dieser Wert wird nach 45 Tagen gelöscht, danach bleiben nur
+              Tagessummen ohne Bezug zu einem Besucher. Auf deinem Gerät wird dafür nichts gespeichert
+              oder ausgelesen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: Das berechtigte
+              Interesse ist, die Finanzierung des Angebots und die Wirkung des Banners beurteilen zu
+              können.
             </p>
             <p>
               <strong className="text-foreground">Ort der Verarbeitung:</strong> Adcash hat seinen Sitz

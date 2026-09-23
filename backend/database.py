@@ -379,6 +379,18 @@ CREATE TABLE IF NOT EXISTS analytics_start_seen (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_start_seen_ts ON analytics_start_seen(ts);
 
+-- Analytics: dedup ledger for the ad consent banner (analytics.AD_CONSENT_KINDS).
+-- One accepted event per (fingerprint, kind), so a replayed beacon cannot inflate
+-- the consent counter. The fingerprint rotates monthly, and the rows are pruned
+-- after AD_CONSENT_SEEN_RETENTION_DAYS, once they can no longer match anyone.
+CREATE TABLE IF NOT EXISTS analytics_consent_seen (
+    fp_hash TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL,
+    PRIMARY KEY (fp_hash, kind)
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_consent_seen_ts ON analytics_consent_seen(ts);
+
 -- Analytics: dedup ledger for the attribution survey ("Woher kennst du Kontexto?").
 -- One accepted answer per (fingerprint, survey version); detail_done caps the
 -- optional free text at one per answer. Retention is longer than the raw-event

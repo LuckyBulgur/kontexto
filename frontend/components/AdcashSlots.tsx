@@ -136,10 +136,10 @@ function BottomBar({ zoneId }: { zoneId: string }) {
  * Adcash display banners, mounted once in the root layout: a 160x600 rail on
  * each side from 1280px, a 300x100 bar at the bottom below that. Nothing is
  * rendered, and aclib.js is never requested, without a stored consent, off the
- * two single-player pages, or for a zone that has no id yet.
+ * game pages (`isAdcashPath`), or for a zone that has no id yet.
  *
- * The key on each layout remounts the slots on a route change between `/` and
- * `/wordle/` and when the window crosses the breakpoint, so each view gets its
+ * The key on each layout remounts the slots on a route change between two game
+ * pages and when the window crosses the breakpoint, so each view gets its
  * own ad instead of an empty container.
  */
 export default function AdcashSlots() {

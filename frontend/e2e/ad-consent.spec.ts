@@ -73,6 +73,34 @@ test.describe("Werbe-Einwilligung", () => {
     expect(requests).toEqual([]);
   });
 
+  test("das Banner meldet Anzeige, Antwort und Widerruf an den eigenen Server", async ({ page }) => {
+    // Headless Chromium is filtered as a bot, so the server answers ok=false
+    // here and counts nothing. What is counted is held by the backend tests
+    // (TestAdConsent); this spec holds which beacons the banner sends, and that
+    // the endpoint takes them.
+    const events: string[] = [];
+    const statuses: number[] = [];
+    page.on("response", (response) => {
+      if (!response.url().endsWith("/api/collect/consent")) return;
+      events.push((response.request().postDataJSON() as { kind: string }).kind);
+      statuses.push(response.status());
+    });
+    await page.goto("/faq/");
+    await expect.poll(() => events).toEqual(["shown"]);
+    await banner(page).getByRole("button", { name: "Ablehnen" }).click();
+    await expect.poll(() => events).toEqual(["shown", "denied"]);
+
+    await page.getByRole("button", { name: /Cookie-Einstellungen/ }).first().click();
+    await banner(page).getByRole("button", { name: "Ablehnen" }).click();
+    await page.waitForTimeout(300);
+    expect(events).toEqual(["shown", "denied"]);
+
+    await page.getByRole("button", { name: /Cookie-Einstellungen/ }).first().click();
+    await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
+    await expect.poll(() => events).toEqual(["shown", "denied", "regranted"]);
+    expect(statuses).toEqual([200, 200, 200]);
+  });
+
   test("der Pruefcode fuer Adcash steht im HTML, ist aber deaktiviert", async ({ page, request }) => {
     const html = await (await request.get("/")).text();
     expect(html).toContain('<script id="aclib" type="text/plain" src="//acscdn.com/script/aclib.js"></script>');

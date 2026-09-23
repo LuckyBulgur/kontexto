@@ -221,9 +221,9 @@ export default function UeberPage() {
             Kontexto ist kostenlos und soll es bleiben. Es gibt keine Bezahlschranke, keinen
             Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Der Betrieb finanziert
             sich über Werbung, übergangsweise von Adcash und später von Google AdSense, und zwar
-            ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die
-            Mehrspieler-Räume bleiben werbefrei, weil eine Anzeige dort neben zu wenig eigenem Inhalt
-            stünde oder eine laufende Runde mit anderen störte.
+            ausschließlich auf den Seiten, auf denen gespielt wird, allein wie zu mehreren.
+            Inhaltsseiten und Rechtsseiten bleiben werbefrei, weil dort gelesen und nicht gespielt
+            wird, und der Stream-Modus, weil sein Bild in einen Livestream übertragen wird.
           </p>
           <p>
             Werbe- und Trackingcookies werden erst nach deiner Einwilligung gesetzt. Sie lässt sich

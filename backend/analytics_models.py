@@ -65,6 +65,17 @@ class ShareClickRequest(BaseModel):
     mode: Literal["kontexto", "infinite", "wordle"]
 
 
+class AdConsentRequest(BaseModel):
+    """One event of the ad consent banner (analytics.AD_CONSENT_KINDS).
+
+    Carries no page and no version: the figure is how visitors answer, and a
+    kind is counted once per fingerprint whatever page it came from.
+    """
+
+    token: str = Field(..., max_length=64)
+    kind: Literal["shown", "granted", "denied", "regranted", "revoked"]
+
+
 class SurveyAnswerRequest(BaseModel):
     """One answer to the attribution survey ("Woher kennst du Kontexto?").
 

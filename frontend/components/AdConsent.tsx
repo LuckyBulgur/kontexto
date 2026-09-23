@@ -5,7 +5,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { subscribeAdConsentReopen, writeAdConsent, type AdConsentChoice } from "@/lib/ad-consent";
+import {
+  adConsentEvent, subscribeAdConsentReopen, writeAdConsent, type AdConsentChoice,
+} from "@/lib/ad-consent";
+import { reportAdConsent } from "@/lib/analytics";
 import { ADCASH_ENABLED, isAdcashLoaded, isAdcashPath } from "@/lib/adcash";
 import { useAdConsent } from "@/lib/use-ad-consent";
 
@@ -25,6 +28,11 @@ const COPY = {
   reject: "Ablehnen",
   accept: "Akzeptieren",
 } as const;
+
+let shownReported = false;
+
+/** Longest a revocation waits for its beacon before it takes effect. */
+const REVOKE_REPORT_WAIT_MS = 800;
 
 /**
  * Pages that never show the banner. The stream overlay is a browser source in
@@ -76,6 +84,16 @@ export default function AdConsent() {
     if (reopened) regionRef.current?.focus();
   }, [reopened]);
 
+  // Counts that the first ask was on screen, once per page load. The server
+  // dedups per visitor as well; this only keeps a client-side navigation from
+  // sending the same beacon again.
+  const firstAsk = ADCASH_ENABLED && choice === "unset" && !isBannerHiddenPath(pathname);
+  useEffect(() => {
+    if (!firstAsk || shownReported) return;
+    shownReported = true;
+    void reportAdConsent("shown");
+  }, [firstAsk]);
+
   useEffect(() => {
     if (!ADCASH_ENABLED || choice === "server") return;
     const eligible = isAdcashPath(pathname);
@@ -87,7 +105,19 @@ export default function AdConsent() {
   if (!ADCASH_ENABLED || choice === "server" || isBannerHiddenPath(pathname)) return null;
   if (choice !== "unset" && !reopened) return null;
 
-  const decide = (next: AdConsentChoice) => {
+  const decide = async (next: AdConsentChoice) => {
+    const event = adConsentEvent(choice, next);
+    // A revocation with Adcash loaded reloads the page (effect above), so its
+    // beacon is sent before the choice is written. The wait is capped: a slow
+    // network may lose the count, it must never delay the revocation.
+    if (event === "revoked") {
+      await Promise.race([
+        reportAdConsent(event),
+        new Promise<void>((resolve) => window.setTimeout(resolve, REVOKE_REPORT_WAIT_MS)),
+      ]);
+    } else if (event) {
+      void reportAdConsent(event);
+    }
     writeAdConsent(next);
     setReopened(false);
   };
@@ -113,10 +143,10 @@ export default function AdConsent() {
         )}
       </p>
       <div className="flex shrink-0 items-center gap-2">
-        <Button type="button" variant="outline" className="h-10 flex-1 sm:flex-none sm:px-5" onClick={() => decide("denied")}>
+        <Button type="button" variant="outline" className="h-10 flex-1 sm:flex-none sm:px-5" onClick={() => void decide("denied")}>
           {COPY.reject}
         </Button>
-        <Button type="button" className="h-10 flex-1 sm:flex-none sm:px-5" onClick={() => decide("granted")}>
+        <Button type="button" className="h-10 flex-1 sm:flex-none sm:px-5" onClick={() => void decide("granted")}>
           {COPY.accept}
         </Button>
         {choice !== "unset" && (

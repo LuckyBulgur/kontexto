@@ -1658,3 +1658,121 @@ class TestPopularModes:
             finally:
                 await db.close()
         assert run(go()) == 1
+
+
+class TestAdConsent:
+    UA = "Mozilla/5.0 Chrome/120"
+
+    def _token(self, ip="1.2.3.4", now=JAN):
+        fp = analytics.compute_fingerprint(ip, self.UA, now)
+        return analytics.make_beacon_token(fp, now)
+
+    def _record(self, db, *, kind, token=None, ip="1.2.3.4", now=JAN):
+        return analytics.record_ad_consent(
+            db, ip=ip, user_agent=self.UA,
+            token=self._token(ip, now) if token is None else token,
+            kind=kind, now=now)
+
+    async def _counts(self, db):
+        cur = await db.execute(
+            "SELECT dimension, SUM(value) FROM analytics_counters "
+            "WHERE metric = ? GROUP BY dimension",
+            (analytics.AD_CONSENT_METRIC,))
+        return {dim: value for dim, value in await cur.fetchall()}
+
+    def test_model_and_recorder_know_the_same_kinds(self):
+        """The enum lives in two places; drift would silently drop an event."""
+        from typing import get_args
+
+        from analytics_models import AdConsentRequest
+
+        model_kinds = set(get_args(AdConsentRequest.model_fields["kind"].annotation))
+        assert model_kinds == set(analytics.AD_CONSENT_KINDS)
+
+    def test_invalid_token_bot_and_unknown_kind_are_rejected(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                bad_token = await self._record(db, kind="granted", token="garbage")
+                bot_ua = "python-requests/2.31"
+                fp = analytics.compute_fingerprint("1.2.3.4", bot_ua, JAN)
+                bot = await analytics.record_ad_consent(
+                    db, ip="1.2.3.4", user_agent=bot_ua,
+                    token=analytics.make_beacon_token(fp, JAN), kind="granted", now=JAN)
+                unknown = await self._record(db, kind="maybe")
+                return bad_token, bot, unknown, await self._counts(db)
+            finally:
+                await db.close()
+        bad_token, bot, unknown, counts = run(go())
+        assert bad_token == (False, "invalid_token")
+        assert bot == (False, "bot")
+        assert unknown == (False, "bad_payload")
+        assert counts == {}
+
+    def test_each_kind_counts_once_per_fingerprint(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                first = await self._record(db, kind="shown")
+                replay = await self._record(db, kind="shown")
+                answer = await self._record(db, kind="denied")
+                other_visitor = await self._record(db, kind="shown", ip="5.6.7.8")
+                return first, replay, answer, other_visitor, await self._counts(db)
+            finally:
+                await db.close()
+        first, replay, answer, other_visitor, counts = run(go())
+        assert first == (True, "ok")
+        assert replay == (False, "duplicate")
+        assert answer == (True, "ok")
+        assert other_visitor == (True, "ok")
+        assert counts == {"shown": 2, "denied": 1}
+
+    def test_a_later_month_is_a_new_ask(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._record(db, kind="shown", now=JAN)
+                again = await self._record(db, kind="shown", now=FEB)
+                return again, await self._counts(db)
+            finally:
+                await db.close()
+        again, counts = run(go())
+        assert again == (True, "ok")
+        assert counts == {"shown": 2}
+
+    def test_stats_fill_every_kind_and_every_day(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._record(db, kind="shown", now=JAN)
+                await self._record(db, kind="granted", now=JAN)
+                await self._record(db, kind="shown", ip="5.6.7.8", now=JAN - timedelta(days=40))
+                return await analytics.get_ad_consent_stats(db, JAN)
+            finally:
+                await db.close()
+        stats = run(go())
+        assert stats["totals"] == {
+            "shown": 2, "granted": 1, "denied": 0, "regranted": 0, "revoked": 0}
+        assert stats["last_30_days"]["shown"] == 1
+        assert stats["last_30_days"]["granted"] == 1
+        assert len(stats["daily"]) == analytics.AD_CONSENT_TIMELINE_DAYS
+        assert stats["daily"][-1] == {
+            "date": "2026-01-15", "shown": 1, "granted": 1,
+            "denied": 0, "regranted": 0, "revoked": 0}
+        assert all(set(row) == {"date", *analytics.AD_CONSENT_KINDS} for row in stats["daily"])
+
+    def test_ledger_is_pruned_but_the_counter_stays(self, db_path):
+        async def go():
+            db = await get_db(db_path)
+            try:
+                await self._record(db, kind="shown", now=JAN)
+                later = JAN + timedelta(days=analytics.AD_CONSENT_SEEN_RETENTION_DAYS + 1)
+                await analytics.prune_old_events(db, later)
+                cur = await db.execute("SELECT COUNT(*) FROM analytics_consent_seen")
+                ledger = (await cur.fetchone())[0]
+                return ledger, await self._counts(db)
+            finally:
+                await db.close()
+        ledger, counts = run(go())
+        assert ledger == 0
+        assert counts == {"shown": 1}

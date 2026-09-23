@@ -123,8 +123,9 @@ export default function NutzungsbedingungenPage() {
         <p>
           Übergangsweise finanziert sich das Angebot über Werbung von Adcash, später ist Google
           AdSense vorgesehen. Werbung erscheint nur, wenn du sie im Einwilligungsbanner erlaubt
-          hast, und ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten
-          und die Mehrspieler-Räume bleiben werbefrei. Die Werbung erscheint als Banner neben dem
+          hast, und ausschließlich auf den Spielseiten, in den Einzelspieler- wie in den
+          Mehrspieler-Modi. Inhaltsseiten, Rechtsseiten und der Stream-Modus bleiben werbefrei. Die
+          Werbung erscheint als Banner neben dem
           Spiel oder als schmale Leiste am unteren Rand, nie als Pop-under oder Vollbild. Werbe- und
           Trackingcookies werden nur nach deiner
           Einwilligung gesetzt, die sich über den Link „Cookie-Einstellungen“ in der Fußzeile

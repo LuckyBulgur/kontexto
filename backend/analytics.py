@@ -67,6 +67,26 @@ SURVEY_SEEN_RETENTION_DAYS = 180
 # Hard cap for the optional free text (also enforced by the request model).
 SURVEY_DETAIL_MAX_LEN = 80
 
+# Ad consent banner (components/AdConsent.tsx). Counted so the dashboard can show
+# how many visitors allow ads, and how many never answer at all.
+#
+# - shown: the first ask was on screen. The denominator: shown minus decided is
+#   the share that ignored the banner, which a split of the answers alone hides.
+# - granted / denied: the answer to that first ask.
+# - regranted / revoked: a later change through "Cookie-Einstellungen".
+#
+# Each kind counts once per fingerprint (analytics_consent_seen), so a replayed
+# beacon adds nothing. The fingerprint rotates monthly, and a visitor asked again
+# in a later month (expiry, a new banner version, cleared storage) is a new ask.
+# Nothing here reads or writes the visitor's device: the banner sends the beacon
+# after the decision is made, and the row holds no identifier but the rotating
+# hash, which the retention below removes.
+AD_CONSENT_METRIC = "ad_consent"
+AD_CONSENT_KINDS = ("shown", "granted", "denied", "regranted", "revoked")
+AD_CONSENT_SEEN_RETENTION_DAYS = 45
+# Days of daily history the dashboard gets for the consent trend.
+AD_CONSENT_TIMELINE_DAYS = 90
+
 # Post-round word rating ("was this word fair?"). The version lives in the metric
 # name for the same reason the survey's does: a future question is a new survey
 # and not a migration of this one.
@@ -1017,6 +1037,89 @@ async def record_share_click(
     return (True, "ok") if accepted else (False, "write_failed")
 
 
+# --- Ad consent ---------------------------------------------------------------
+
+async def record_ad_consent(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    token: str,
+    kind: str,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Count one event of the ad consent banner. Returns (accepted, reason).
+
+    Client-reported by necessity, because the decision is stored in the browser
+    and produces no server hit. So it gets the posture of every client-reported
+    figure here: a fingerprint-bound token, the bot filter, a closed enum and a
+    dedup ledger whose primary key is the gate. It touches no authoritative
+    counter.
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+    if kind not in AD_CONSENT_KINDS:
+        return False, "bad_payload"
+
+    date_str = now.strftime("%Y-%m-%d")
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        # A repeat raises IntegrityError before the counter is touched.
+        await conn.execute(
+            "INSERT INTO analytics_consent_seen (fp_hash, kind, ts) VALUES (?, ?, ?)",
+            (fp_hash, kind, now.isoformat()),
+        )
+        await _bump(conn, "analytics_counters", date_str, AD_CONSENT_METRIC, kind, 1)
+
+    try:
+        accepted = await _commit_with_retry(db, _write, description="record_ad_consent")
+    except sqlite3.IntegrityError:
+        await db.rollback()
+        return False, "duplicate"
+    return (True, "ok") if accepted else (False, "write_failed")
+
+
+async def get_ad_consent_stats(db: aiosqlite.Connection, now: datetime) -> dict:
+    """Ad consent payload for the admin dashboard.
+
+    `totals` is all-time per kind, `last_30_days` the same over the trailing 30
+    UTC days, `daily` one row per day of the last AD_CONSENT_TIMELINE_DAYS with
+    every kind present, so the chart does not lose a series on a quiet day.
+    """
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric = ? GROUP BY dimension",
+        (AD_CONSENT_METRIC,),
+    )
+    found = {dim: value for dim, value in await cur.fetchall()}
+    totals = {kind: found.get(kind, 0) for kind in AD_CONSENT_KINDS}
+
+    first_day = (now - timedelta(days=AD_CONSENT_TIMELINE_DAYS - 1)).date()
+    cur = await db.execute(
+        "SELECT date, dimension, value FROM analytics_counters "
+        "WHERE metric = ? AND date >= ?",
+        (AD_CONSENT_METRIC, first_day.isoformat()),
+    )
+    by_day: dict[str, dict[str, int]] = {}
+    for date_str, dim, value in await cur.fetchall():
+        by_day.setdefault(date_str, {})[dim] = value
+    daily = []
+    for offset in range(AD_CONSENT_TIMELINE_DAYS):
+        day = (first_day + timedelta(days=offset)).isoformat()
+        row = by_day.get(day, {})
+        daily.append({"date": day, **{kind: row.get(kind, 0) for kind in AD_CONSENT_KINDS}})
+
+    recent = daily[-30:]
+    last_30_days = {kind: sum(row[kind] for row in recent) for kind in AD_CONSENT_KINDS}
+
+    return {"totals": totals, "last_30_days": last_30_days, "daily": daily}
+
+
 # --- Attribution survey ------------------------------------------------------
 
 def sanitize_survey_detail(detail: str | None) -> str | None:
@@ -1550,6 +1653,10 @@ async def prune_old_events(db: aiosqlite.Connection, now: datetime | None = None
     await db.execute("DELETE FROM analytics_start_seen WHERE ts < ?", (cutoff,))
     await db.execute("DELETE FROM analytics_survey_seen WHERE ts < ?", (survey_cutoff,))
     await db.execute(
+        "DELETE FROM analytics_consent_seen WHERE ts < ?",
+        ((now - timedelta(days=AD_CONSENT_SEEN_RETENTION_DAYS)).isoformat(),),
+    )
+    await db.execute(
         "DELETE FROM analytics_rating_seen WHERE ts < ?",
         ((now - timedelta(days=RATING_SEEN_RETENTION_DAYS)).isoformat(),),
     )
@@ -1972,6 +2079,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     # Self-reported attribution ("Woher kennst du Kontexto?"), the one channel
     # signal that dark social and offline word of mouth ever produce.
     survey = await get_survey_stats(db)
+    ad_consent = await get_ad_consent_stats(db, now)
     ratings = await get_rating_stats(db, target_words=target_words,
                                      first_game=first_rated_game)
 
@@ -2009,6 +2117,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "monthly": monthly,
         "mode_monthly": mode_monthly,
         "survey": survey,
+        "ad_consent": ad_consent,
         "word_ratings": ratings,
         "funnel": funnel,
         "sharing": sharing,

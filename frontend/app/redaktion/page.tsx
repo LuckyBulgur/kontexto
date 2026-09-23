@@ -127,8 +127,9 @@ export default function RedaktionPage() {
           </p>
           <ul>
             <li>
-              Anzeigen erscheinen ausschließlich auf den beiden Einzelspieler-Seiten. Inhaltsseiten,
-              Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei.
+              Anzeigen erscheinen ausschließlich auf den Spielseiten, in den Einzelspieler- wie in
+              den Mehrspieler-Modi. Inhaltsseiten, Rechtsseiten und der Stream-Modus bleiben
+              werbefrei.
             </li>
             <li>
               Jede Anzeigenfläche trägt sichtbar die Kennzeichnung „Anzeige“ und ist als eigener

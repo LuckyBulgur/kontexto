@@ -103,7 +103,9 @@ export default function CookiesPage() {
             freigeschaltet ist. Beim ersten Besuch fragt ein Banner, ob du Werbung erlaubst. Deine
             Antwort merkt sich der Browser, damit die Frage nicht bei jedem Aufruf wiederkommt; nach
             zwölf Monaten fragen wir erneut. Das Adcash-Skript lädt erst nach „Akzeptieren“ und
-            nur auf der Kontexto-Startseite und der Wördle-Seite.
+            nur auf den Spielseiten, also Kontexto, Wördle, den Solo-Modi, Duell, Koop, Arena,
+            Wördle-Duell und der Mitspielersuche. Inhaltsseiten, Rechtsseiten und der Stream-Modus
+            bleiben ohne Adcash.
           </p>
         </Prose>
         <ComparisonTable
