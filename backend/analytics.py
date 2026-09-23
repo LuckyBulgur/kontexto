@@ -72,6 +72,9 @@ SURVEY_DETAIL_MAX_LEN = 80
 #
 # - shown: the first ask was on screen. The denominator: shown minus decided is
 #   the share that ignored the banner, which a split of the answers alone hides.
+# - required: a returning player who had not answered got the ask as a dialog
+#   that needs a choice (components/AdConsent.tsx). Answers given there count as
+#   granted / denied like any other; this kind says how often it happened.
 # - granted / denied: the answer to that first ask.
 # - regranted / revoked: a later change through "Cookie-Einstellungen".
 #
@@ -82,7 +85,7 @@ SURVEY_DETAIL_MAX_LEN = 80
 # after the decision is made, and the row holds no identifier but the rotating
 # hash, which the retention below removes.
 AD_CONSENT_METRIC = "ad_consent"
-AD_CONSENT_KINDS = ("shown", "granted", "denied", "regranted", "revoked")
+AD_CONSENT_KINDS = ("shown", "required", "granted", "denied", "regranted", "revoked")
 AD_CONSENT_SEEN_RETENTION_DAYS = 45
 # Days of daily history the dashboard gets for the consent trend.
 AD_CONSENT_TIMELINE_DAYS = 90

@@ -101,6 +101,43 @@ test.describe("Werbe-Einwilligung", () => {
     expect(statuses).toEqual([200, 200, 200]);
   });
 
+  test("beim ersten Besuch blockiert das Banner nicht, beim Wiederkommen verlangt es eine Wahl", async ({ page }) => {
+    await page.goto("/");
+    await expect(banner(page)).toBeVisible();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+
+    // A round on an earlier day, the way the Kontexto streak records it.
+    await page.evaluate(() => {
+      localStorage.setItem("kontexto_streak", JSON.stringify({
+        datesPlayed: ["2026-01-01"], currentStreak: 0, longestStreak: 1,
+      }));
+    });
+    await page.reload();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Datenschutz" })).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Impressum" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Ablehnen" }).click();
+    await expect(dialog).toBeHidden();
+    expect(await storedChoice(page)).toBe("denied");
+    await expect(page.getByRole("textbox")).toBeVisible();
+  });
+
+  test("Impressum und Datenschutz blockiert das Banner nie", async ({ page }) => {
+    await page.goto("/impressum/");
+    await page.evaluate(() => {
+      localStorage.setItem("kontexto_stats", JSON.stringify({ played: 10 }));
+    });
+    for (const path of ["/impressum/", "/datenschutz/", "/live/"]) {
+      await page.goto(path);
+      await expect(banner(page), path).toBeVisible();
+      await expect(page.getByRole("alertdialog"), path).toHaveCount(0);
+    }
+  });
+
   test("der Pruefcode fuer Adcash steht im HTML, ist aber deaktiviert", async ({ page, request }) => {
     const html = await (await request.get("/")).text();
     expect(html).toContain('<script id="aclib" type="text/plain" src="//acscdn.com/script/aclib.js"></script>');

@@ -73,7 +73,7 @@ class AdConsentRequest(BaseModel):
     """
 
     token: str = Field(..., max_length=64)
-    kind: Literal["shown", "granted", "denied", "regranted", "revoked"]
+    kind: Literal["shown", "required", "granted", "denied", "regranted", "revoked"]
 
 
 class SurveyAnswerRequest(BaseModel):

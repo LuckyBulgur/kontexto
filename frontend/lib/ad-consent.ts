@@ -14,7 +14,10 @@
  *
  * A decision is asked again only for a reason: when the consent text changes
  * (bump `AD_CONSENT_VERSION`) or after twelve months. A refusal is kept exactly
- * as long as a grant, so declining does not bring the banner back sooner.
+ * as long as a grant, so declining does not bring the banner back sooner, and a
+ * refusal survives a version bump: a wider scope needs a new yes, but it cannot
+ * turn a no into a question again (DSK guidance for digital services: after a
+ * refusal the banner stays away for a reasonable time).
  */
 
 export const AD_CONSENT_KEY = "kontexto_ad_consent";
@@ -65,7 +68,8 @@ export function parseAdConsent(raw: string | null, now: number = Date.now()): Ad
   } catch {
     return null;
   }
-  if (!isRecord(parsed) || parsed.v !== AD_CONSENT_VERSION) return null;
+  if (!isRecord(parsed) || parsed.v > AD_CONSENT_VERSION) return null;
+  if (parsed.v < AD_CONSENT_VERSION && parsed.choice !== "denied") return null;
   const at = Date.parse(parsed.at);
   if (at > now || now - at > AD_CONSENT_MAX_AGE_MS) return null;
   return parsed;
@@ -156,6 +160,58 @@ export function subscribeAdConsent(onChange: () => void): () => void {
     window.removeEventListener(CHANGE_EVENT, onChange);
     window.removeEventListener("storage", onStorage);
   };
+}
+
+/**
+ * From how many finished rounds on the first visit the banner asks for a
+ * decision. A returning player (a round on an earlier day) is asked from the
+ * first page of the visit.
+ */
+export const AD_CONSENT_REQUIRED_AFTER_ROUNDS = 3;
+
+/**
+ * Whether an unanswered banner should now require a decision.
+ *
+ * A first visit is never interrupted: most visitors come from search, and a
+ * blocking dialog in front of a game they have not seen yet costs them. Someone
+ * who played on an earlier day, or finished a few rounds today, knows what the
+ * page is and will not leave over one click.
+ *
+ * Read from the statistics the games already keep in this browser (no key of
+ * its own, nothing new stored before consent): the days played of Kontexto's
+ * streak and of Wördle, and the finished rounds of both. `today` is compared as
+ * the earlier of the local and the UTC date, because the Kontexto streak writes
+ * the local day and Wördle the UTC one; only a day before both counts as earlier.
+ */
+export function isAdConsentRequired(storage: Pick<Storage, "getItem">, now: Date = new Date()): boolean {
+  const read = (key: string): Record<string, unknown> | null => {
+    try {
+      const raw = storage.getItem(key);
+      if (raw === null) return null;
+      const parsed: unknown = JSON.parse(raw);
+      return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  };
+  const days = (record: Record<string, unknown> | null): string[] =>
+    Array.isArray(record?.datesPlayed)
+      ? record.datesPlayed.filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d))
+      : [];
+  const count = (record: Record<string, unknown> | null): number =>
+    typeof record?.played === "number" && Number.isFinite(record.played) ? Math.max(0, record.played) : 0;
+
+  const streak = read("kontexto_streak");
+  const kontexto = read("kontexto_stats");
+  const wordle = read("wordle_stats");
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const local = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const utc = now.toISOString().slice(0, 10);
+  const today = local < utc ? local : utc;
+  if ([...days(streak), ...days(wordle)].some((day) => day < today)) return true;
+
+  return count(kontexto) + count(wordle) >= AD_CONSENT_REQUIRED_AFTER_ROUNDS;
 }
 
 /** Opens the banner again, for the "Cookie-Einstellungen" link in the footer. */

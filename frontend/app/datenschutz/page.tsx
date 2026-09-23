@@ -241,7 +241,13 @@ export default function DatenschutzPage() {
               <strong className="text-foreground">Zählung deiner Entscheidung:</strong> Damit wir
               wissen, wie viele Besucher Werbung erlauben, meldet das Banner an unseren eigenen
               Server, dass es angezeigt wurde, wie du dich entschieden hast und ob du die Wahl später
-              änderst. Adcash erfährt davon nichts. Gezählt wird mit demselben anonymen, monatlich
+              änderst. Adcash erfährt davon nichts. Beim ersten Besuch liegt das Banner nur am
+              unteren Rand, und du kannst ohne Antwort spielen. Hast du schon an einem früheren Tag
+              oder mehrere Runden gespielt und noch nicht geantwortet, fragt es als Fenster, das eine
+              Wahl verlangt; „Ablehnen“ bringt dich dabei genauso schnell ins Spiel wie
+              „Akzeptieren“. Ob das so ist, prüft dein Browser anhand der Spielstatistik, die er
+              ohnehin speichert. Diese Statistik verlässt dein Gerät dafür nicht, unser Server erfährt
+              nur, dass das Fenster erschien. Gezählt wird mit demselben anonymen, monatlich
               wechselnden Hash-Wert wie bei der Reichweitenmessung, und nur, damit dieselbe Meldung
               nicht doppelt zählt. Dieser Wert wird nach 45 Tagen gelöscht, danach bleiben nur
               Tagessummen ohne Bezug zu einem Besucher. Auf deinem Gerät wird dafür nichts gespeichert

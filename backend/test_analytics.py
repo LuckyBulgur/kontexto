@@ -1752,12 +1752,12 @@ class TestAdConsent:
                 await db.close()
         stats = run(go())
         assert stats["totals"] == {
-            "shown": 2, "granted": 1, "denied": 0, "regranted": 0, "revoked": 0}
+            "shown": 2, "required": 0, "granted": 1, "denied": 0, "regranted": 0, "revoked": 0}
         assert stats["last_30_days"]["shown"] == 1
         assert stats["last_30_days"]["granted"] == 1
         assert len(stats["daily"]) == analytics.AD_CONSENT_TIMELINE_DAYS
         assert stats["daily"][-1] == {
-            "date": "2026-01-15", "shown": 1, "granted": 1,
+            "date": "2026-01-15", "shown": 1, "required": 0, "granted": 1,
             "denied": 0, "regranted": 0, "revoked": 0}
         assert all(set(row) == {"date", *analytics.AD_CONSENT_KINDS} for row in stats["daily"])
 

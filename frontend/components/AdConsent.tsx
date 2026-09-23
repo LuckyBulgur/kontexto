@@ -6,7 +6,11 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  adConsentEvent, subscribeAdConsentReopen, writeAdConsent, type AdConsentChoice,
+  AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  adConsentEvent, isAdConsentRequired, subscribeAdConsentReopen, writeAdConsent, type AdConsentChoice,
 } from "@/lib/ad-consent";
 import { reportAdConsent } from "@/lib/analytics";
 import { ADCASH_ENABLED, isAdcashLoaded, isAdcashPath } from "@/lib/adcash";
@@ -22,6 +26,8 @@ const COPY = {
     "nichts, was dich beim Raten stört. Dafür speichert Adcash Kennungen auf deinem Gerät. " +
     "Sagst du nein, spielst du ganz normal weiter. ",
   policy: "Details",
+  privacy: "Datenschutz",
+  imprint: "Impressum",
   granted: "Aktuell akzeptiert.",
   denied: "Aktuell abgelehnt.",
   close: "Einstellungen schließen, Auswahl bleibt",
@@ -30,6 +36,7 @@ const COPY = {
 } as const;
 
 let shownReported = false;
+let requiredReported = false;
 
 /** Longest a revocation waits for its beacon before it takes effect. */
 const REVOKE_REPORT_WAIT_MS = 800;
@@ -41,6 +48,20 @@ const REVOKE_REPORT_WAIT_MS = 800;
  */
 function isBannerHiddenPath(pathname: string | null): boolean {
   return pathname !== null && (pathname.startsWith("/live/overlay") || pathname.startsWith("/admin"));
+}
+
+/**
+ * Pages on which an unanswered banner never blocks, even for a returning
+ * player: the pages a visitor must be able to read before deciding (DSK
+ * guidance: imprint and privacy policy stay reachable), and the stream mode,
+ * whose board a streamer shows to an audience that cannot click it away.
+ */
+const NEVER_BLOCKING_PREFIXES = [
+  "/impressum", "/datenschutz", "/cookies", "/nutzungsbedingungen", "/kontakt", "/live",
+] as const;
+
+function isNeverBlockingPath(pathname: string | null): boolean {
+  return pathname !== null && NEVER_BLOCKING_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 /**
@@ -58,8 +79,14 @@ function isBannerHiddenPath(pathname: string | null): boolean {
  *   and objects to a refusal that is hard to see, not to an accent on the
  *   grant. No close button on the first ask, because closing without a choice
  *   is not a choice.
- * - The banner does not block the page. The game stays playable without an
- *   answer, which is what makes the consent voluntary.
+ * - A first visit is never blocked: the banner sits at the bottom and the game
+ *   stays playable without an answer. A returning player who has still not
+ *   answered (`isAdConsentRequired`) gets the same two buttons as a dialog
+ *   that asks for a choice. That is not a cookie wall, because "Ablehnen"
+ *   opens the page exactly as fast as "Akzeptieren" (EDPB guidelines 05/2020
+ *   object to access that depends on a yes, not to a question that needs an
+ *   answer), and the dialog links the privacy policy and the imprint, which
+ *   themselves never block.
  * - Revocation takes effect technically: the Adcash storage keys are removed
  *   and the page reloads, because a loaded ad script cannot be unloaded.
  *
@@ -72,8 +99,26 @@ export default function AdConsent() {
   const pathname = usePathname();
   const choice = useAdConsent();
   const [reopened, setReopened] = useState(false);
+  const [required, setRequired] = useState(false);
   const regionRef = useRef<HTMLDivElement>(null);
   const textId = useId();
+
+  // Evaluated on each route, never while one is open: a round in progress is
+  // not interrupted, the question comes with the next page. Reading storage
+  // happens in the effect, because the static export renders without it.
+  useEffect(() => {
+    if (!ADCASH_ENABLED || choice !== "unset" || isNeverBlockingPath(pathname)) {
+      setRequired(false);
+      return;
+    }
+    let result = false;
+    try {
+      result = isAdConsentRequired(window.localStorage);
+    } catch {
+      result = false;
+    }
+    setRequired(result);
+  }, [choice, pathname]);
 
   useEffect(() => {
     if (!ADCASH_ENABLED) return;
@@ -93,6 +138,13 @@ export default function AdConsent() {
     shownReported = true;
     void reportAdConsent("shown");
   }, [firstAsk]);
+
+  const blocking = firstAsk && required && !reopened;
+  useEffect(() => {
+    if (!blocking || requiredReported) return;
+    requiredReported = true;
+    void reportAdConsent("required");
+  }, [blocking]);
 
   useEffect(() => {
     if (!ADCASH_ENABLED || choice === "server") return;
@@ -121,6 +173,42 @@ export default function AdConsent() {
     writeAdConsent(next);
     setReopened(false);
   };
+
+  if (blocking) {
+    return (
+      <AlertDialog open>
+        <AlertDialogContent
+          data-testid="ad-consent"
+          data-blocking="true"
+          onEscapeKeyDown={(event) => event.preventDefault()}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>{COPY.region}</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-foreground">{COPY.lead}</span>
+              {COPY.what}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-small">
+            <Link href="/datenschutz/#werbung-adcash" className="underline underline-offset-2 hover:no-underline">
+              {COPY.privacy}
+            </Link>
+            <Link href="/impressum/" className="underline underline-offset-2 hover:no-underline">
+              {COPY.imprint}
+            </Link>
+          </p>
+          <AlertDialogFooter className="flex-row gap-2">
+            <Button type="button" variant="outline" className="h-10 flex-1 sm:px-5" onClick={() => void decide("denied")}>
+              {COPY.reject}
+            </Button>
+            <Button type="button" className="h-10 flex-1 sm:px-5" onClick={() => void decide("granted")}>
+              {COPY.accept}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
 
   return (
     <div

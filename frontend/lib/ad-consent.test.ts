@@ -4,6 +4,8 @@ import {
   AD_CONSENT_MAX_AGE_MS,
   AD_CONSENT_VERSION,
   adConsentEvent,
+  AD_CONSENT_REQUIRED_AFTER_ROUNDS,
+  isAdConsentRequired,
   clearAdcashStorage,
   parseAdConsent,
   readAdConsent,
@@ -208,5 +210,55 @@ describe("adConsentEvent", () => {
   it("counts nothing when a reopened banner keeps the choice", () => {
     expect(adConsentEvent("granted", "granted")).toBeNull();
     expect(adConsentEvent("denied", "denied")).toBeNull();
+  });
+});
+
+describe("parseAdConsent across versions", () => {
+  it("keeps an older refusal, because a wider scope cannot turn a no into a question", () => {
+    const old = JSON.stringify({ v: AD_CONSENT_VERSION - 1, choice: "denied", at: new Date().toISOString() });
+    expect(parseAdConsent(old)?.choice).toBe("denied");
+  });
+
+  it("drops an older grant, because it covered less than the current text", () => {
+    const old = JSON.stringify({ v: AD_CONSENT_VERSION - 1, choice: "granted", at: new Date().toISOString() });
+    expect(parseAdConsent(old)).toBeNull();
+  });
+
+  it("drops a record from a newer version it cannot know", () => {
+    const next = JSON.stringify({ v: AD_CONSENT_VERSION + 1, choice: "denied", at: new Date().toISOString() });
+    expect(parseAdConsent(next)).toBeNull();
+  });
+});
+
+describe("isAdConsentRequired", () => {
+  const NOW = new Date("2026-09-24T12:00:00Z");
+  const storageOf = (entries: Record<string, unknown>): Pick<Storage, "getItem"> => ({
+    getItem: (key) => (key in entries ? JSON.stringify(entries[key]) : null),
+  });
+
+  it("never blocks a first visit", () => {
+    expect(isAdConsentRequired(storageOf({}), NOW)).toBe(false);
+    expect(isAdConsentRequired(storageOf({ kontexto_streak: { datesPlayed: ["2026-09-24"] } }), NOW)).toBe(false);
+    expect(isAdConsentRequired(storageOf({ kontexto_stats: { played: 2 } }), NOW)).toBe(false);
+  });
+
+  it("asks a player who played on an earlier day", () => {
+    expect(isAdConsentRequired(storageOf({ kontexto_streak: { datesPlayed: ["2026-09-23"] } }), NOW)).toBe(true);
+    expect(isAdConsentRequired(storageOf({ wordle_stats: { played: 1, datesPlayed: ["2026-09-20"] } }), NOW)).toBe(true);
+  });
+
+  it("asks after enough rounds on the first day, across both games", () => {
+    expect(
+      isAdConsentRequired(storageOf({ kontexto_stats: { played: 2 }, wordle_stats: { played: 1 } }), NOW),
+    ).toBe(true);
+    expect(isAdConsentRequired(storageOf({ kontexto_stats: { played: AD_CONSENT_REQUIRED_AFTER_ROUNDS } }), NOW)).toBe(true);
+  });
+
+  it("ignores broken or foreign values instead of blocking on them", () => {
+    const broken: Pick<Storage, "getItem"> = {
+      getItem: (key) => (key === "kontexto_stats" ? "{not json" : key === "kontexto_streak" ? '{"datesPlayed":[1,"x"]}' : null),
+    };
+    expect(isAdConsentRequired(broken, NOW)).toBe(false);
+    expect(isAdConsentRequired(storageOf({ kontexto_stats: { played: "99" } }), NOW)).toBe(false);
   });
 });

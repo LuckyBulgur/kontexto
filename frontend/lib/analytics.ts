@@ -132,7 +132,7 @@ export async function reportShare(mode: "kontexto" | "infinite" | "wordle"): Pro
 }
 
 /** Mirror of analytics.AD_CONSENT_KINDS; the backend rejects anything else. */
-export type AdConsentEvent = "shown" | "granted" | "denied" | "regranted" | "revoked";
+export type AdConsentEvent = "shown" | "required" | "granted" | "denied" | "regranted" | "revoked";
 
 // One event of the ad consent banner: the first ask was on screen, it was
 // answered, or the answer was changed later. Nothing is read from or written to

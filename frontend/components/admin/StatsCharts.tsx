@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/accordion";
 import {
   AreaTrend, BarRanking, CHART_COLORS, DonutChart, Heatmap, Histogram, KpiCard,
-  Panel, RangeToggle, SectionHeader, StackedAreaTrend,
+  GroupedBars, Panel, RangeToggle, SectionHeader, StackedAreaTrend,
   sliceTimeline, sumTimeline, type RangeKey,
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
@@ -451,7 +451,7 @@ function SurveySection({ stats }: SectionProps) {
 }
 
 const AD_CONSENT_LABELS: Record<string, string> = {
-  shown: "Banner gesehen", granted: "Akzeptiert", denied: "Abgelehnt",
+  shown: "Banner gesehen", required: "Als Pflichtabfrage", granted: "Akzeptiert", denied: "Abgelehnt",
   regranted: "Später akzeptiert", revoked: "Widerrufen",
 };
 const AD_CONSENT_SERIES = [
@@ -466,7 +466,12 @@ const AD_CONSENT_SERIES = [
  * rate mean little. Both come from the same 30 days and the same visitors, since
  * every kind is counted once per visitor and month. */
 function AdConsentSection({ stats }: SectionProps) {
-  const { totals, last_30_days: recent, daily } = stats.ad_consent;
+  const { totals, last_30_days: recent } = stats.ad_consent;
+  // The series starts on the first day anything was counted: ninety empty days
+  // in front of it squeeze the data into the right edge of the chart.
+  const firstActive = stats.ad_consent.daily.findIndex((row) =>
+    Object.entries(row).some(([key, value]) => key !== "date" && typeof value === "number" && value > 0));
+  const daily = firstActive === -1 ? [] : stats.ad_consent.daily.slice(firstActive);
 
   if (totals.shown === 0 && totals.granted + totals.denied === 0) {
     return (
@@ -484,19 +489,22 @@ function AdConsentSection({ stats }: SectionProps) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-5">
         <KpiCard icon={Eye} accent={0} label="Banner gesehen" value={formatNumber(recent.shown)}
           sub="letzte 30 Tage" />
         <KpiCard icon={ThumbsUp} accent={1} label="Zustimmungsquote" value={formatPercent(acceptRate)}
           sub={`${formatNumber(recent.granted)} von ${formatNumber(answered)} Antworten`} />
         <KpiCard icon={Clock} accent={2} label="Ohne Antwort" value={formatPercent(unanswered)}
           sub="Banner gesehen, nichts gewählt" />
+        <KpiCard icon={Target} accent={4} label="Pflichtabfrage" value={formatNumber(recent.required)}
+          sub="wiederkehrend, ohne Antwort" />
         <KpiCard icon={Repeat} accent={3} label="Widerrufen" value={formatNumber(recent.revoked)}
           sub={`${formatNumber(recent.regranted)} später akzeptiert`} />
       </div>
-      <Panel title="Antworten pro Tag" hint="letzte 90 Tage" className="lg:col-span-2">
-        <StackedAreaTrend data={daily} series={AD_CONSENT_SERIES} xKey="date" />
+      <Panel title="Antworten pro Tag" hint="seit Beginn, höchstens 90 Tage" className="lg:col-span-2">
+        <GroupedBars data={daily} series={AD_CONSENT_SERIES} xKey="date" />
       </Panel>
+
       <Panel title="Seit Beginn der Zählung" hint="gesamt" className="lg:col-span-2">
         <BarRanking data={totals} accent={0} labelMap={AD_CONSENT_LABELS} />
       </Panel>

@@ -211,6 +211,8 @@ export interface WordRatingStats {
 export type AdConsentCounts = {
   /** The first ask was on screen. */
   shown: number;
+  /** A returning player got the ask as a dialog that needs a choice. */
+  required: number;
   granted: number;
   denied: number;
   /** Changed later through "Cookie-Einstellungen". */
