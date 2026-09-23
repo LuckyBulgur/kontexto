@@ -60,7 +60,6 @@ export default function ArenaPageClient() {
   const [playerToken, setPlayerToken] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [guesses, setGuesses] = useState<Guess[]>([]);
-  const [total, setTotal] = useState(0);
   const [solution, setSolution] = useState<string | null>(null);
   // The game this round was played on. It comes with the reveal, not with the
   // room state: while the arena runs, the number is the answer for everyone
@@ -274,7 +273,6 @@ export default function ArenaPageClient() {
       setPendingWord(word);
       try {
         const result = await submitArenaGuess(arenaId, word, playerToken);
-        setTotal(result.total);
         setLatestWord(result.word);
         setGuesses((prev) =>
           prev.some((g) => g.word === result.word)
@@ -444,7 +442,6 @@ export default function ArenaPageClient() {
           {state.status !== "lobby" && (
             <GuessList
               guesses={guesses}
-              total={total}
               latestWord={latestWord}
               pendingWord={pendingWord}
               podestError={podestError}

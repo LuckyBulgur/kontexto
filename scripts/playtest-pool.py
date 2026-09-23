@@ -124,8 +124,8 @@ def main() -> int:
                     help="lowest game number to sample from (default: the first "
                          "game of the rebuilt pool)")
     ap.add_argument("--fit-core", action="store_true",
-                    help="fit the player's space on the served core_words.json, "
-                         "which is what the data was built with")
+                    help="fit the player's space on the served everyday_words.json "
+                         "(core_words.json before 2026-09-24), which is what the data was built with")
     ap.add_argument("--restrict-after-debias", action="store_true",
                     help="with --mirror-served-vocabulary: build the space on the "
                          "full vocabulary and restrict afterwards")
@@ -169,7 +169,11 @@ def main() -> int:
 
     log("Loading the vector space the simulated player thinks with ...")
     filtered, _ = stream_vocab_vectors(args.vec, args.vocab_size)
-    core_path = os.path.join(args.data_dir, "core_words.json")
+    # The served data debiases on the everyday list since 2026-09-24; a data
+    # directory from before has none, and its scale was its everyday list.
+    core_path = os.path.join(args.data_dir, "everyday_words.json")
+    if not os.path.exists(core_path):
+        core_path = os.path.join(args.data_dir, "core_words.json")
     if args.fit_core and os.path.exists(core_path):
         # The served data debiases on the core lexicon and applies the result to
         # the whole vocabulary. The player has to think in that same space, or

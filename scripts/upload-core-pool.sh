@@ -5,11 +5,13 @@
 # the cutoff upwards and copies the played npz across inside the volume,
 # because a rebuild used to leave them untouched. This rebuild changes the
 # space itself (the vectors are debiased on the core lexicon), so every rank
-# array is new, the played ones included. It also ships the two files the
+# array is new, the played ones included. It also ships the three files the
 # runtime reads at startup: core_words.json, which decides what a rank counts,
-# and fold_map.json, which says what every other guessable form is scored as.
-# The two are written by one build and have to travel together, because a list
-# without its folds refuses every plural.
+# fold_map.json, which says what every other guessable form is scored as, and
+# everyday_words.json, which decides what a tip or a neighbour list may name.
+# The three are written by one build and have to travel together, because a
+# list without its folds refuses every plural and a scale without its everyday
+# list hands out rare compounds as tips.
 #
 # The staging and swap are the same as before, and for the same reason: the
 # backend reads target_words.json once at startup and caches rank arrays per
@@ -54,7 +56,9 @@ case "${1:-}" in
             if [ -f core_words.previous.json ]; then mv core_words.previous.json core_words.json; \
             else rm -f core_words.json; fi && \
             if [ -f fold_map.previous.json ]; then mv fold_map.previous.json fold_map.json; \
-            else rm -f fold_map.json; fi'"
+            else rm -f fold_map.json; fi && \
+            if [ -f everyday_words.previous.json ]; then mv everyday_words.previous.json everyday_words.json; \
+            else rm -f everyday_words.json; fi'"
         remote "$COMPOSE restart $SERVICE"
         echo "Rolled back. The rejected pool is at /app/data/games.broken."
         exit 0
@@ -62,7 +66,8 @@ case "${1:-}" in
     --drop-previous)
         echo "Dropping the previous pool ..."
         in_container "sh -c 'cd /app/data && rm -rf games.previous games.broken \
-            target_words.previous.json metadata.previous.json core_words.previous.json'"
+            target_words.previous.json metadata.previous.json core_words.previous.json \
+            fold_map.previous.json everyday_words.previous.json'"
         in_container "du -sh /app/data"
         exit 0
         ;;
@@ -72,7 +77,7 @@ OUT_DIR="${1:?usage: upload-core-pool.sh <out-dir> [--dry-run]}"
 DRY_RUN="${2:-}"
 
 for required in target_words.json metadata.json manifest.json core_words.json \
-                fold_map.json games; do
+                fold_map.json everyday_words.json games; do
     [ -e "$OUT_DIR/$required" ] || { echo "ABORT: $OUT_DIR/$required missing"; exit 1; }
 done
 
@@ -98,7 +103,7 @@ in_container "sh -c 'rm -rf /app/data/.staging && mkdir -p /app/data/.staging'"
 # One compressed tar stream: some 1.900 separate copies over ssh would take far
 # longer than the generation did.
 tar -C "$OUT_DIR" -czf - games target_words.json metadata.json core_words.json \
-      fold_map.json \
+      fold_map.json everyday_words.json \
   | remote "$COMPOSE exec -T $SERVICE tar -C /app/data/.staging -xzf -"
 
 echo "Verifying the staged copy ..."
@@ -111,12 +116,14 @@ in_container "sh -c 'cd /app/data && \
     cp metadata.json metadata.previous.json && \
     if [ -f core_words.json ]; then cp core_words.json core_words.previous.json; fi && \
     if [ -f fold_map.json ]; then cp fold_map.json fold_map.previous.json; fi && \
+    if [ -f everyday_words.json ]; then cp everyday_words.json everyday_words.previous.json; fi && \
     rm -rf games.previous && mv games games.previous && \
     mv .staging/games games && \
     mv .staging/target_words.json target_words.json && \
     mv .staging/metadata.json metadata.json && \
     mv .staging/core_words.json core_words.json && \
     mv .staging/fold_map.json fold_map.json && \
+    mv .staging/everyday_words.json everyday_words.json && \
     rmdir .staging'"
 in_container "sh -c 'chown -R appuser:appuser /app/data/games /app/data/*.json'" || true
 
@@ -154,6 +161,29 @@ if [ -z "$FOLDED" ]; then
     exit 1
 fi
 echo "A plural scores as its singular ($FOLDED)."
+
+# The scored word for a guess, or the error code when it is refused. The opener
+# carries no HTTPErrorProcessor, so a 422 comes back as a body, not an exception.
+guess_answer() {
+    in_container "python3 -c \"import urllib.request as u,json;\
+o=u.OpenerDirector();o.add_handler(u.HTTPHandler());\
+r=u.Request('http://127.0.0.1:8000/api/guess',data=json.dumps({'word':'$1'}).encode(),\
+headers={'Content-Type':'application/json'});\
+d=json.load(o.open(r));print(d.get('word') or d.get('error'))\"" | tr -d '\r'
+}
+
+echo "Checking that a rare word counts and a function word does not ..."
+RARE=$(guess_answer leggings) || RARE=""
+if [ "$RARE" != "leggings" ]; then
+    echo "ABORT: 'leggings' answered '$RARE'. The new scale did not arrive. Roll back."
+    exit 1
+fi
+STOP=$(guess_answer heute) || STOP=""
+if [ "$STOP" != "stopword" ]; then
+    echo "ABORT: 'heute' answered '$STOP' instead of stopword. Roll back."
+    exit 1
+fi
+echo "A rare word counts, a function word is refused."
 
 echo "Spot check, the pool the random modes draw from:"
 api_get "infinite/next" | head -c 200

@@ -96,3 +96,37 @@ def test_a_word_the_scale_does_not_hold_is_named_as_such(state):
                      if not state.core_mask[state.vocabulary[w]] and w not in state.fold_map)
     assert state.guess(uncounted, 1, correct_typos=False) is None
     assert state.is_uncounted(uncounted) is True
+
+
+# Since 2026-09-24 the scale counts every base form except the stop list, the
+# way the original game does, and what the game hands out comes from the
+# everyday list. These hold both against the real data.
+
+def test_only_the_stop_list_is_refused_as_too_general(state):
+    for word in ("leggings", "apfelmus", "laut", "dank", "viel", "bote", "akten"):
+        if word in state.vocabulary:
+            assert state.is_uncounted(word) is False, word
+            assert state.guess(word, 1, correct_typos=False) is not None, word
+    for word in ("heute", "und", "haben", "meinem"):
+        assert state.is_uncounted(word) is True, word
+
+
+def test_an_infinitive_and_a_noun_in_e_are_scored_as_themselves(state):
+    for word in ("malen", "lieben", "halten", "springen", "liebe", "spitze"):
+        if word in state.vocabulary:
+            assert state.guess(word, 1, correct_typos=False)["word"] == word
+
+
+def test_what_the_game_hands_out_is_an_everyday_word(state):
+    everyday = core_lexicon.load_everyday_words(DATA_DIR)
+    if not everyday:
+        pytest.skip("a data directory from before the everyday list")
+    everyday = set(everyday)
+    for game_number in random.Random(20260924).sample(range(1, state.total_games() + 1), 20):
+        closest = state.get_closest_words(game_number)
+        assert closest[0]["rank"] == 1
+        assert all(e["word"] in everyday for e in closest[1:])
+        assert [e["rank"] for e in closest] == sorted(e["rank"] for e in closest)
+        tip = state.get_tip(game_number, "easy", best_rank=2000)
+        assert tip["word"] in everyday
+        assert state.guess(tip["word"], game_number, correct_typos=False)["rank"] == tip["rank"]

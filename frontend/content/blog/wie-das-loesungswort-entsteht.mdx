@@ -33,19 +33,20 @@ ein Schwanz aus seltenen Formen und Beugungsvarianten, der die Ranglisten verwä
 jemand diese Wörter je eintippt. Unterhalb von 80.000 fehlen dagegen Komposita und Fachbegriffe,
 die Spieler tatsächlich versuchen.
 
-Wichtig für das Spielgefühl: Diese 80.000 sind die Wörter, die du *raten* darfst. Den Rang
-bestimmen sie nicht alle. Gezählt wird im Kernwortschatz, rund 16.000 Alltagswörter mit je einer
-Grundform, ohne Beugungen und ohne seltene Komposita. Ein Wort außerhalb davon wird trotzdem
-angenommen und bekommt den Rang des nächstgelegenen Alltagsworts. Sonst stünden zwischen „Bauch“
-und „Magen“ Dutzende Wortformen, die niemand eintippt, und die angezeigte Zahl wäre rund sechsmal
-so groß. Welche Wörter Lösung werden können, entscheidet noch einmal eine getrennte Filterkette.
+Wichtig für das Spielgefühl: Diese 80.000 sind die Wörter, die du *raten* darfst. Einen eigenen
+Rang bekommen rund 57.000 davon, jede Grundform einmal. Eine gebeugte Form zählt als ihre
+Grundform, „Kinder“ also als „Kind“, sonst stünden zwischen „Bauch“ und „Magen“ Dutzende
+Wortformen desselben Worts. Abgelehnt werden nur Funktionswörter wie Artikel, Pronomen,
+Präpositionen, Bindewörter und Hilfsverben, und zwar nach der Liste, die auch das englische
+Original ablehnt. Tipps und die Liste der nächsten Wörter kommen dagegen nur aus den rund 15.500
+Alltagswörtern, damit sie keine seltenen Komposita verteilen. Welche Wörter Lösung werden können, entscheidet noch einmal eine getrennte Filterkette.
 
 ## Stufe 3: die Vektoren werden entzerrt
 
 Bevor irgendetwas sortiert wird, laufen alle 80.000 Vektoren durch eine Nachbearbeitung, die in
 der Literatur „All-but-the-Top“ heißt: Der Mittelwert wird abgezogen, danach werden die drei
-stärksten Hauptkomponenten entfernt. Berechnet werden Mittelwert und Hauptkomponenten auf dem
-Kernwortschatz und erst dann auf alle Vektoren angewandt, damit die Richtungen verschwinden, die
+stärksten Hauptkomponenten entfernt. Berechnet werden Mittelwert und Hauptkomponenten auf den
+rund 15.500 Alltagswörtern und erst dann auf alle Vektoren angewandt, damit die Richtungen verschwinden, die
 den Alltagswortschatz dominieren, und nicht die eines Schwanzes aus seltenen Komposita.
 
 Der Grund ist, dass rohe Worteinbettungen einen gemeinsamen Drift haben. Alle Vektoren zeigen
@@ -126,7 +127,7 @@ mit einem *anderen* Wort im Vokabular teilt, ist als Lösung gesperrt. Ratbar bl
 
 Für jedes der 2.785 Rätsel wird einmal die Kosinus-Ähnlichkeit zwischen dem Zielwortvektor und
 allen 80.000 Vokabelvektoren berechnet, absteigend sortiert und als Rangliste gespeichert. Eine
-komprimierte Datei pro Spiel. Angezeigt wird daraus die Position im Kernwortschatz.
+komprimierte Datei pro Spiel. Angezeigt wird daraus die Position unter den gewerteten Wörtern.
 
 Dazu kommen das Vokabular als Wort-zu-Index-Tabelle, eine Lemma-Tabelle, die gebeugte Formen auf
 ihre Grundform zieht, und ein Bloom-Filter mit einer Fehlerrate von 0,001, der die Frage

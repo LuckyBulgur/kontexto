@@ -1,89 +1,91 @@
 """The counted lexicon: the words the game ranks over, one number each.
 
-Why this exists
----------------
-The vocabulary is a frequency cut, not a choice: the 80.000 most frequent word
-forms of a Common Crawl model. It carries ``verdauungstrakt`` next to ``darm``
-and ``magens`` next to ``magen``, and every one of them occupies a rank. Only a
-fifth of it is language anybody uses, so the number the player reads is inflated
-by roughly a factor of five.
+Two lists, two questions
+------------------------
+The vocabulary is a frequency cut of 80.000 word forms from a Common Crawl
+model. This module turns it into two lists, and they answer different questions.
 
-The counted lexicon answers "which words hold a place on the scale". It is one
-entry per lemma above a frequency floor, plus every word players have actually
-typed often enough to prove they know it.
+* **The scale** (``core_words.json``) answers "which words hold a place". Since
+  2026-09-24 that is every base form in the vocabulary except a short list of
+  function words, the way the original game does it: asked on that day, the
+  Contexto API refused 178 of 408 English candidates as "too common", all of
+  them articles, pronouns, basic prepositions, conjunctions, auxiliaries and a
+  handful of adverbs, and ranked everything else. ``leggings`` came back at
+  25.638. The German port of that list is ``data/stopwords_de.txt``.
+* **The everyday list** (``everyday_words.json``) answers "which words does
+  everybody know". It is what the scale used to be, one entry per lemma above a
+  frequency floor plus every word players typed often enough, and it still
+  decides three things: the words the vectors are debiased on, the words a tip
+  or a neighbour list hands out, and, through the build, nothing else.
+
+Why the scale grew
+------------------
+Until 2026-09-24 the everyday list *was* the scale, and every other surface form
+either folded onto it or was refused. Measured against 1,95 million real guesses
+that refused 3,56% of them, and most of those were not function words at all:
+52.820 guesses went to words under the frequency floor (``leggings`` at Zipf
+3,04, ``apfelmus``, ``backblech``, ``alufolie``), each one answered with "es ist
+zu allgemein", which was simply false. Counting every base form cuts the refusals
+to 0,79% (47.960 refused word forms down to 292), all of them stop words or forms
+the build reads as one. That includes 6.800 guesses that counted before and no
+longer do, because they went to ``heute``, ``jetzt`` and ``hier``, which the old
+frequency rule let through and the original has always refused.
+
+The price is that rare words now sit between the everyday ones. Over 60 games
+the 50th everyday word moved from displayed rank 50 to 112, and the 100th from
+100 to about 250. The colour bands moved with it, to the original's own 300 and
+1.500, which measured on this scale land where 100 and 600 landed on the old one.
+What must not move is what the game hands out, so tips and neighbour lists are
+drawn from the everyday list only; otherwise they would serve the rare
+compounds the everyday list was built to keep out of them.
 
 One word, one number
 --------------------
-Until 2026-09-22 the counted list was smaller than the guessable one, and a
-guess outside it was shown the number of the counted word it stood behind. That
-makes the scale compact and the numbers small, and it costs the one property a
-rank has to have: two rows then carry the same number without being the same
-distance. The player found it on the day the solution was the verb for "to
-report", where the rows for "to contact" and "reports" both read 3.
+A rank is a position, and two rows carrying the same number are two words
+claiming one position. Every surface form therefore goes one of three ways:
 
-There is no arithmetic that fixes this, because 64.483 guessable words cannot
-hold 15.517 distinct places. So the counted list **is** the guessable list, and
-every other surface form goes one of two ways:
-
+* it **counts**, and holds its own number;
 * it **folds**, when it is an inflected form of a counted word. ``kinder`` is
   scored as ``kind`` and the row shows ``kind``. That is not a collision, it is
-  the same word, and the game already did exactly this for what ``lemma_map``
-  happened to know.
-* it is **refused**, and the player is offered suggestions. Measured against
-  1.95 million real guesses that is 3,6% of them, and all but a fraction of
-  those are closed-class words a semantic game has nothing to say about:
-  conjunctions, prepositions, auxiliaries, pronouns and determiners.
+  the same word;
+* it is **refused**, when it is on the stop list or is a form of a word on it
+  (``meinem`` reads as ``mein``).
 
-Why spaCy and not the previous three gates
-------------------------------------------
-The old build asked ``lemma_map``, simplemma and HanTa whether a word was a base
-form. All three read a common adjective as a verb: the words for hot, cheap and
-thin all came back as infinitives, and every one of them fell off the scale
-although players type them by the thousand. The build also lost every noun
-sitting just under the frequency floor that people nonetheless guess constantly,
-among them the words for body part, board game and weekday.
-
-``de_core_news_lg`` reads all of those correctly, and it lemmatises the plurals
-the old gates missed (``eier`` to ``ei``, ``bakterien`` to ``bakterie``). It is
-read twice, capitalised and as written, because German writes its nouns
-capitalised and the capitalised reading is the one that finds ``haus`` behind
-``haeuser``. It is also the one that invents a lemma when the word is no noun at
-all: ``Blau`` comes back as ``blaue`` and ``Fangen`` as ``fange``, both of which
-exist in the vocabulary and would have swallowed the word. Neither reading can
+Why spaCy
+---------
+``de_core_news_lg`` reads every word twice, capitalised and as written, because
+German writes its nouns capitalised and the capitalised reading is the one that
+finds ``haus`` behind ``haeuser``. It is also the one that invents a lemma when
+the word is no noun at all: ``Blau`` comes back as ``blaue``. Neither reading can
 be trusted alone, so a verb, adjective or adverb settles the word on its own and
 the noun reading only answers for what it is actually good at.
 
-Measured, in three passes over the same 1.95 million guesses. Letting the noun
-reading answer first admitted 7.644 declined adjectives and participles and put
-the scale at 22.722; asking the adjective reading first took 2.632 of them back
-out; stripping the declension ending where what is left is itself an adjective
-took another 113. With the frequency floor raised to match (see MIN_ZIPF) the
-scale ends at 15.487 words, which is the size of the colliding one it replaces
-to within a third of a percent, and it refuses 3,6% of real guesses where the
-old one refused none and gave a wrong number to a tenth of them.
+Two readings went wrong in a way only the fold map showed, and both are guarded
+below. A declension ending was stripped from verbs as well as adjectives, which
+scored ``malen`` as ``mal``, ``lieben`` as ``lieb`` and ``halten`` as ``halt``:
+79 infinitives and 5.505 real guesses. And ``liebe`` itself, the noun, was read
+as a declined ``lieb``, which on its own cost 5.147 guesses.
 """
 
 from __future__ import annotations
 
+import functools
 import json
 import os
+from typing import NamedTuple
 
-#: Zipf frequency a lemma must reach to be counted on frequency alone.
-#: Raised from 3,2 on 2026-09-22, in the same change that made every rank
-#: unique. The two belong together: once the list has to carry every guessable
-#: word, corpus frequency stops being the only evidence that a word is known,
-#: because MIN_GUESSES now carries that question for the words people actually
-#: type. A stricter floor therefore drops rare corpus words without dropping
-#: anything real, and it keeps the scale the size it was. Measured over 1.95
-#: million guesses: 3,2 gives 19.977 words and refuses 2,95%, 3,6 gives 15.487
-#: and refuses 3,55%, and the 0,6 points between them are rare words guessed
-#: fewer than ten times in four months.
+#: Zipf frequency a lemma must reach to be an everyday word on frequency alone.
+#: Measured over 1.95 million guesses on 2026-09-22: 3,2 gives 19.977 words and
+#: 3,6 gives 15.487. It decided the scale until 2026-09-24 and now decides only
+#: the everyday list, so raising or lowering it changes what tips hand out and
+#: what the vectors are debiased on, never whether a guess is refused.
 MIN_ZIPF = 3.6
 
-#: How often players must have typed a word below the floor for it to count.
-#: Real guesses beat corpus frequency at the question "does anybody know this
-#: word": the words for body part (Zipf 3,02), angular (3,03) and weekday (3,14)
-#: all sit under the floor and were each typed hundreds of times.
+#: How often players must have typed a word below the floor for it to be an
+#: everyday word. Real guesses beat corpus frequency at the question "does
+#: anybody know this word": the words for body part (Zipf 3,02), angular (3,03)
+#: and weekday (3,14) all sit under the floor and were each typed hundreds of
+#: times.
 MIN_GUESSES = 10
 
 #: Shortest entry. The German words for oil and egg, and the abbreviation for a
@@ -91,8 +93,9 @@ MIN_GUESSES = 10
 #: all three and the players kept typing them.
 MIN_LENGTH = 2
 
-#: Word classes that can hold a place. Everything else is closed class, and a
-#: semantic distance to the word for "but" is not a thing the game can express.
+#: Word classes an everyday word can have. The scale does not ask: whatever is
+#: not on the stop list counts there, which is how ``laut`` (1.275 guesses) and
+#: ``dank`` stopped being refused as prepositions.
 CONTENT_POS = frozenset({"NOUN", "PROPN", "ADJ", "ADV", "VERB", "X", "NUM"})
 
 #: Read as written, these come back as themselves and are base forms, so they
@@ -104,8 +107,7 @@ PROTECTED_POS = frozenset({"VERB", "ADJ", "ADV"})
 #: the one inflection spaCy regularly hands back unchanged, and it arrives in
 #: bulk: participles used as adjectives, each in five endings, none of which
 #: anybody types. Stripping one only counts when what is left is itself read as
-#: an adjective, which is what keeps an infinitive out of it: the stem of a verb
-#: is read as a noun or as nothing, never as an adjective.
+#: an adjective.
 ADJECTIVE_ENDINGS = ("en", "em", "er", "es", "e")
 STRIP_TARGET_POS = frozenset({"ADJ", "ADV"})
 
@@ -123,6 +125,37 @@ SPACY_MODEL = os.environ.get("KONTEXTO_SPACY_MODEL") or "de_core_news_lg"
 
 CORE_FILE = "core_words.json"
 FOLD_FILE = "fold_map.json"
+EVERYDAY_FILE = "everyday_words.json"
+
+#: The refusal list, shipped with the code rather than the data, because what
+#: counts as a function word is a rule of the game and not a property of one
+#: build. See the file's header for where every entry comes from.
+STOPWORD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "stopwords_de.txt")
+
+
+class Lexicon(NamedTuple):
+    """What a build decides about the vocabulary."""
+
+    #: Every word that holds a number, sorted.
+    scale: list[str]
+    #: Surface form to the counted word it is scored as.
+    fold: dict[str, str]
+    #: The everyday list, sorted. Not quite a subset of ``scale``: an everyday
+    #: word on the stop list (``heute``) stays here and holds no number, so the
+    #: runtime hands out ``everyday`` intersected with ``scale``.
+    everyday: list[str]
+
+
+@functools.cache
+def load_stopwords() -> frozenset[str]:
+    """The words refused as too general, read once per process."""
+    words: set[str] = set()
+    with open(STOPWORD_FILE, encoding="utf-8") as f:
+        for line in f:
+            word = line.strip()
+            if word and not word.startswith("#"):
+                words.add(word.lower())
+    return frozenset(words)
 
 
 def read_word_classes(words: list[str]) -> dict[str, tuple[str, str, str, str]]:
@@ -144,25 +177,29 @@ def read_word_classes(words: list[str]) -> dict[str, tuple[str, str, str, str]]:
     return {w: (u[0], u[1], l[0], l[1]) for w, u, l in zip(words, upper, lower)}
 
 
-def build_core_lexicon(
+def build_lexicon(
     vocabulary: dict[str, int] | list[str],
     lemma_map: dict[str, str] | None = None,
     *,
+    everyday: set[str] | list[str] | None = None,
+    keep: set[str] | None = None,
+    guess_counts: dict[str, int] | None = None,
+    classes: dict[str, tuple[str, str, str, str]] | None = None,
+    stopwords: frozenset[str] | set[str] | None = None,
     min_zipf: float = MIN_ZIPF,
     min_length: int = MIN_LENGTH,
     min_guesses: int = MIN_GUESSES,
-    guess_counts: dict[str, int] | None = None,
-    keep: set[str] | None = None,
-    classes: dict[str, tuple[str, str, str, str]] | None = None,
-) -> tuple[list[str], dict[str, str]]:
-    """Pick the counted words, and say what every other form folds onto.
+) -> Lexicon:
+    """Pick the counted words, the everyday ones among them, and the folds.
 
-    Returns ``(core_words, fold_map)``. ``fold_map`` maps a guessable surface
-    form to the counted word it is a form of; a word in neither is refused.
+    ``everyday`` freezes the everyday list instead of deriving it. A rebuild
+    passes the deployed one, because the vectors are debiased on it and a list
+    that moved would move every rank of the game being played today.
+    ``min_zipf`` and ``min_guesses`` only apply when it is derived.
 
-    ``keep`` is added unconditionally and never folded; the solutions are passed
-    in that way, so a solution can never be missing from the scale it is ranked
-    on and can never be scored as some other word.
+    ``keep`` is added unconditionally, to both lists, and never folded; the
+    solutions are passed in that way, so a solution can never be missing from
+    the scale it is ranked on and can never be scored as some other word.
 
     ``lemma_map`` is accepted and ignored. It stays in the signature because the
     two build scripts pass it positionally and it is still the game's surface
@@ -173,9 +210,17 @@ def build_core_lexicon(
     words = sorted(vocabulary)
     known = set(words)
     counts = guess_counts or {}
+    stop = load_stopwords() if stopwords is None else frozenset(stopwords)
     kept = {w for w in (keep or ()) if w in known}
     if classes is None:
         classes = read_word_classes(words)
+
+    # Every word some other form is read as the verb of. That is what tells an
+    # infinitive from a declined adjective that happens to end the same way:
+    # nothing lemmatises onto ``steilen``, and four forms lemmatise onto
+    # ``malen``, which is why ``malen`` must not lose its ending to ``mal``.
+    verb_lemmas = {lemma for w, (_, _, pos, lemma) in classes.items()
+                   if pos in ("VERB", "AUX") and lemma != w}
 
     def is_content(word: str) -> bool:
         up_pos, _, lo_pos, _ = classes[word]
@@ -188,23 +233,38 @@ def build_core_lexicon(
         singular behind a plural or a genitive. It is also the one that reads a
         declined adjective as a noun and hands the word straight back, which is
         how 7.644 forms such as the declensions of ugly, Iraqi and strenuous
-        walked into the first build of this scale. So a verb, adjective or
-        adverb reading that actually shortens the word wins, and the noun
+        walked into the first build of the everyday list. So a verb, adjective
+        or adverb reading that actually shortens the word wins, and the noun
         reading only gets its turn when that one has nothing to say.
         """
         up_pos, up_lemma, lo_pos, lo_lemma = classes[word]
         if lo_pos in PROTECTED_POS:
-            # A verb, adjective or adverb reading settles the word on its own.
-            # Letting the noun reading answer for one of these is what turns the
-            # word for blue into the inflected adjective the capitalised reading
-            # invents for it.
             if lo_lemma != word:
                 return lo_lemma
+            if lo_pos == "VERB" and word in verb_lemmas:
+                return word
+            if is_noun_in_e(word, up_pos, up_lemma):
+                return word
             stripped = strip_declension(word)
             return stripped if stripped is not None else word
         if up_pos in ("NOUN", "PROPN") and up_lemma != word:
             return up_lemma
         return lo_lemma
+
+    def is_noun_in_e(word: str, up_pos: str, up_lemma: str) -> bool:
+        """A feminine noun in -e, not a declined adjective.
+
+        ``liebe`` reads as the adjective ``lieb`` with an ending, and so do
+        ``spitze``, ``milde`` and ``erwachsene``. The capitalised reading calls
+        each one a noun of its own, which it also does for plenty of genuine
+        declensions, so the tie is broken by frequency: a declined form is rarer
+        than its stem (``perfekte`` 4,40 against ``perfekt`` 4,84), a noun is not
+        (``liebe`` 5,48 against ``lieb`` 4,47).
+        """
+        if not word.endswith("e") or up_pos != "NOUN" or up_lemma != word:
+            return False
+        stem = word[:-1]
+        return stem in classes and zipf_frequency(word, "de") > zipf_frequency(stem, "de")
 
     def strip_declension(word: str) -> str | None:
         """The undeclined adjective behind a declined one, if there is one."""
@@ -217,7 +277,59 @@ def build_core_lexicon(
                 return stem
         return None
 
-    candidates = {
+    lemmas = {w: lemma_of(w) for w in words}
+
+    def holds_a_place(word: str) -> bool:
+        return (word.isalpha() and len(word) >= min_length
+                and word not in stop and lemmas[word] not in stop)
+
+    if everyday is None:
+        daily = _derive_everyday(words, lemmas, kept, counts, is_content, min_length,
+                                 zipf_frequency, min_zipf, min_guesses)
+    else:
+        daily = {w for w in everyday if w in known} | kept
+
+    # Everyday words and solutions are never folded: a tip has to name a word
+    # that holds its own number, and a solution scored as another word would
+    # report the round solved on the wrong one. A stop word stays refused even
+    # when it is an everyday word, and it stays on the everyday list: ``heute``
+    # and ``hier`` are everyday German, the list is what the vectors are
+    # debiased on, and taking them off would move every rank of every game.
+    fixed = (daily - stop) | kept
+    candidates = fixed | {w for w in words if holds_a_place(w)}
+
+    wanted: dict[str, str] = {}
+    for word in candidates - fixed:
+        lemma = lemmas[word]
+        if lemma != word and lemma in candidates:
+            wanted[word] = lemma
+    # A fold has to land on a word that holds a number. When the lemma is itself
+    # a form of something else, the form keeps its own place instead of
+    # following the chain: spaCy reads ``akten`` as ``akte`` and ``akte`` as
+    # ``akt``, and scoring the files as the act would be a wrong word, which is
+    # worse than a second number for the same one.
+    scale = candidates - set(wanted)
+    fold = {w: t for w, t in wanted.items() if t in scale}
+    scale |= set(wanted) - set(fold)
+
+    # A form too short or too odd to count on its own can still be a form of a
+    # counted word. A stop word never folds, whatever its lemma.
+    for word in known - candidates:
+        lemma = lemmas[word]
+        if word not in stop and lemma != word and lemma in scale:
+            fold[word] = lemma
+
+    return Lexicon(scale=sorted(scale), fold=fold, everyday=sorted(daily))
+
+
+def _derive_everyday(words, lemmas, kept, counts, is_content, min_length,
+                     zipf_frequency, min_zipf, min_guesses) -> set[str]:
+    """The everyday list from scratch: frequent or proven, content, one per lemma.
+
+    This is the rule the scale followed until 2026-09-24, kept unchanged so a
+    fresh build debiases on the same kind of list the deployed one was fitted on.
+    """
+    frequent = {
         w for w in words
         if w in kept
         or (
@@ -227,36 +339,33 @@ def build_core_lexicon(
             and is_content(w)
         )
     }
-
-    core: set[str] = set()
-    fold: dict[str, str] = {}
-    for word in candidates:
-        lemma = lemma_of(word)
-        # An inflected form belongs to its lemma, but only when that lemma is
-        # itself counted. Otherwise the word keeps its own place: nobody says
-        # the singular of the words for clothes or bacteria, and folding them
-        # onto an entry that does not exist would simply lose them.
-        if word not in kept and lemma != word and lemma in candidates:
-            fold[word] = lemma
-        else:
-            core.add(word)
-    for word in known - candidates:
-        lemma = lemma_of(word)
-        if lemma != word and lemma in core:
-            fold[word] = lemma
-
-    # A fold has to land on a counted word, never on another folded form.
-    fold = {w: t for w, t in fold.items() if t in core}
-    return sorted(core), fold
+    # An inflected form belongs to its lemma, but only when that lemma is itself
+    # frequent. Otherwise the word keeps its own place: nobody says the singular
+    # of the words for clothes or bacteria, and folding them onto an entry that
+    # does not exist would simply lose them.
+    return {w for w in frequent
+            if w in kept or lemmas[w] == w or lemmas[w] not in frequent}
 
 
 def load_core_words(data_dir: str) -> list[str] | None:
-    """The counted lexicon of a data directory, or None when it carries none.
+    """The scale of a data directory, or None when it carries none.
 
-    A data directory written before the core existed simply has no file. The
+    A data directory written before the scale existed simply has no file. The
     caller then ranks over the whole vocabulary, which is what it did before.
     """
-    path = os.path.join(data_dir, CORE_FILE)
+    return _load_word_list(os.path.join(data_dir, CORE_FILE))
+
+
+def load_everyday_words(data_dir: str) -> list[str] | None:
+    """The everyday list of a data directory, or None when it carries none.
+
+    A directory from before 2026-09-24 has none, and its scale is its everyday
+    list, so the caller falls back on that.
+    """
+    return _load_word_list(os.path.join(data_dir, EVERYDAY_FILE))
+
+
+def _load_word_list(path: str) -> list[str] | None:
     if not os.path.exists(path):
         return None
     with open(path, encoding="utf-8") as f:
@@ -279,6 +388,18 @@ def write_core_words(data_dir: str, words: list[str]) -> None:
         json.dump(words, f, ensure_ascii=False)
 
 
+def write_everyday_words(data_dir: str, words: list[str]) -> None:
+    with open(os.path.join(data_dir, EVERYDAY_FILE), "w", encoding="utf-8") as f:
+        json.dump(words, f, ensure_ascii=False)
+
+
 def write_fold_map(data_dir: str, folds: dict[str, str]) -> None:
     with open(os.path.join(data_dir, FOLD_FILE), "w", encoding="utf-8") as f:
         json.dump(folds, f, ensure_ascii=False)
+
+
+def write_lexicon(data_dir: str, lexicon: Lexicon) -> None:
+    """All three files of a build, which only ever change together."""
+    write_core_words(data_dir, lexicon.scale)
+    write_fold_map(data_dir, lexicon.fold)
+    write_everyday_words(data_dir, lexicon.everyday)

@@ -43,7 +43,7 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
     hook: "Immer näher, sonst raus",
     tagline: "Jedes Wort muss näher dran sein als das vorige.",
     rules: [
-      `Du startest mit einem vorgegebenen Wort auf Rang ${LEITER_START_RANK}.`,
+      `Du startest mit einem vorgegebenen Wort ab Rang ${LEITER_START_RANK}.`,
       "Jedes Wort, das du eingibst, muss einen besseren Rang haben als dein bisher bestes.",
       `Ein Wort, das nicht näher kommt, ist ein Fehlversuch. Nach ${LEITER_MAX_STRIKES} Fehlversuchen ist die Runde vorbei.`,
       "Tipps gibt es nicht.",

@@ -14,7 +14,6 @@ export interface PodestError {
 
 interface GuessListProps {
   guesses: Guess[];
-  total: number;
   latestWord?: string;
   pendingWord?: string;
   podestError?: PodestError;
@@ -26,7 +25,7 @@ interface GuessListProps {
   showNames?: boolean;
 }
 
-export default function GuessList({ guesses, total, latestWord, pendingWord, podestError, onSuggestion, sortMode, showNames }: GuessListProps) {
+export default function GuessList({ guesses, latestWord, pendingWord, podestError, onSuggestion, sortMode, showNames }: GuessListProps) {
   const sorted = sortMode === "rank"
     ? [...guesses].sort((a, b) => a.rank - b.rank)
     : [...guesses];
@@ -50,7 +49,6 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
               <GuessBar
                 word={latest.word}
                 rank={latest.rank}
-                total={total}
                 isNew
                 size="lg"
                 by={showNames ? latest.by : undefined}
@@ -69,7 +67,6 @@ export default function GuessList({ guesses, total, latestWord, pendingWord, pod
           key={`${guess.word}-${i}`}
           word={guess.word}
           rank={guess.rank}
-          total={total}
           isNew={guess.word === latestWord}
           by={showNames ? guess.by : undefined}
         />

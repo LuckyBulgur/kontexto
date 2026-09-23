@@ -111,7 +111,7 @@ export default function LiveOverlay() {
                 {guess.nickname}
               </span>
             </div>
-            <GuessBar word={guess.word} rank={guess.rank} total={state.total} />
+            <GuessBar word={guess.word} rank={guess.rank} />
           </li>
         ))}
       </ol>

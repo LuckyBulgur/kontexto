@@ -6,7 +6,6 @@ interface DualGuessBarProps {
   word: string;
   /** One rank per target, in the order of the round's game numbers. */
   ranks: number[];
-  total: number;
   isNew?: boolean;
 }
 
@@ -22,7 +21,7 @@ const COLOR_CLASSES = {
  * written once and the bars sit next to each other so the two distances can be
  * compared at a glance.
  */
-export default function DualGuessBar({ word, ranks, total, isNew }: DualGuessBarProps) {
+export default function DualGuessBar({ word, ranks, isNew }: DualGuessBarProps) {
   return (
     <div className={cn("mb-1 rounded-lg bg-black/5 dark:bg-white/10", isNew && "animate-slideIn ring-2 ring-white")}>
       <div className="px-3 pt-1.5 pb-1 text-small font-bold text-foreground dark:text-white">{word}</div>
@@ -31,7 +30,7 @@ export default function DualGuessBar({ word, ranks, total, isNew }: DualGuessBar
           <div key={i} className="relative flex h-7 flex-1 items-center rounded-md bg-black/5 dark:bg-white/10">
             <div
               className={cn("absolute inset-y-0 left-0 rounded-md transition-[width] duration-500", COLOR_CLASSES[getRankColor(rank)])}
-              style={{ width: `${getBarWidth(rank, total)}%` }}
+              style={{ width: `${getBarWidth(rank)}%` }}
             />
             <span className="relative z-10 ml-2 text-micro font-semibold text-rank-foreground">
               Ziel {i + 1}

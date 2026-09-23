@@ -74,7 +74,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const meta = SOLO_MODES[mode];
 
   const [state, setState] = useState<SoloState | null>(null);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [restarting, setRestarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,29 +97,26 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     switch (mode) {
       case "leiter": {
         const next = await getInfiniteGame([]);
-        setTotal(next.total);
-        // The opening rank is clamped to the vocabulary. 5000 is the right
-        // distance against the production vocabulary of 80.000 words, but a
+        // The opening rank is clamped to the scale. 5000 is the right distance
+        // against the production scale of some 56.000 counted words, but a
         // smaller one (the e2e dataset, a future trimmed build) has no such
         // rank, and the round would fail to start for a reason the player
-        // cannot act on.
+        // cannot act on. The server answers with the first everyday word at or
+        // beyond it, so the rank the round starts on is the one it returns.
         const startRank = Math.min(LEITER_START_RANK, Math.max(2, next.total - 1));
         const start = await getWordAtRank(startRank, next.gameNumber);
         return createLeiterState(next.gameNumber, start.word, start.rank);
       }
       case "limit": {
         const next = await getInfiniteGame([]);
-        setTotal(next.total);
         return createLimitState(next.gameNumber);
       }
       case "doppel": {
         const next = await getDualNext([]);
-        setTotal(next.total);
         return createDoppelState(next.gameNumbers);
       }
       case "suddendeath": {
         const round = await getSuddenDeath([]);
-        setTotal(round.total);
         return createSuddenDeathState(round.gameNumber, round.hints);
       }
     }
@@ -251,7 +247,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
             setPodestError({ word: result.word, message: "Wort bereits geraten" });
             return;
           }
-          setTotal(result.total);
           setLatestWord(result.word);
           setState(doppelApplyGuess(state, {
             word: result.word,
@@ -272,7 +267,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           setPodestError({ word: result.word, message: "Wort bereits geraten" });
           return;
         }
-        setTotal(result.total);
         setLatestWord(result.word);
 
         if (state.mode === "leiter") {
@@ -408,7 +402,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         {state.mode === "doppel" ? (
           <DoppelBoard
             guesses={state.guesses}
-            total={total}
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
@@ -419,7 +412,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           state.attempt ? (
             <GuessList
               guesses={[{ ...state.attempt, isTip: false }]}
-              total={total}
               latestWord={latestWord}
               pendingWord={pendingWord}
               podestError={podestError}
@@ -429,7 +421,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           ) : (
             <GuessList
               guesses={[]}
-              total={total}
               pendingWord={pendingWord}
               podestError={podestError}
               onSuggestion={handleGuess}
@@ -439,7 +430,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         ) : (
           <GuessList
             guesses={state.guesses}
-            total={total}
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}
@@ -466,7 +456,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
 
 function DoppelBoard({
   guesses,
-  total,
   latestWord,
   pendingWord,
   podestError,
@@ -474,7 +463,6 @@ function DoppelBoard({
   sortMode,
 }: {
   guesses: DoppelGuess[];
-  total: number;
   latestWord?: string;
   pendingWord?: string;
   podestError?: PodestError;
@@ -512,7 +500,6 @@ function DoppelBoard({
           key={`${guess.word}-${i}`}
           word={guess.word}
           ranks={guess.ranks}
-          total={total}
           isNew={guess.word === latestWord}
         />
       ))}

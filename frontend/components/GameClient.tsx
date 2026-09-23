@@ -40,7 +40,6 @@ import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 export default function GameClient() {
   const [gameNumber, setGameNumber] = useState(0);
-  const [total, setTotal] = useState(0);
   // Games below this kept the words of the pool before the core-lexicon rebuild.
   // The archive still serves them, the word rating does not ask about them.
   const [firstCuratedGame, setFirstCuratedGame] = useState(1);
@@ -84,7 +83,6 @@ export default function GameClient() {
     getGameInfo()
       .then((info) => {
         setGameNumber(info.gameNumber);
-        setTotal(info.total);
         setFirstCuratedGame(info.firstCuratedGame);
         const saved = loadGameState(info.gameNumber);
         setGameState(saved);
@@ -252,7 +250,6 @@ export default function GameClient() {
         isTip: false,
         correctedFrom: result.corrected_from ?? undefined,
       });
-      setTotal(result.total);
     } catch (e: unknown) {
       if (e instanceof UnknownWordError) {
         setPodestError({
@@ -281,7 +278,6 @@ export default function GameClient() {
       if (gameState.guesses.some((g) => g.word === result.word)) return;
       setGameState((prev) => ({ ...prev, tips: prev.tips + 1 }));
       addGuess({ word: result.word, rank: result.rank, isTip: true });
-      setTotal((prev) => prev || result.rank);
     } catch {
       setError("Tipp konnte nicht geladen werden");
     }
@@ -317,7 +313,6 @@ export default function GameClient() {
       const fresh: GameState = { gameNumber: next.gameNumber, guesses: [], tips: 0, solved: false };
       infiniteCompletedRef.current = null;
       setGameNumber(next.gameNumber);
-      setTotal(next.total);
       setInfiniteTotalGames(next.totalGames);
       setGameState(fresh);
       setLatestWord(undefined);
@@ -401,7 +396,6 @@ export default function GameClient() {
     setNoMoreGames(false);
     getGameInfo().then((info) => {
       setGameNumber(info.gameNumber);
-      setTotal(info.total);
       setFirstCuratedGame(info.firstCuratedGame);
       const saved = loadGameState(info.gameNumber);
       setGameState(saved);
@@ -542,7 +536,7 @@ export default function GameClient() {
             )}
           </>
         )}
-        <GuessList guesses={gameState.guesses} total={total} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} onSuggestion={handleGuess} sortMode={sortMode} />
+        <GuessList guesses={gameState.guesses} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} onSuggestion={handleGuess} sortMode={sortMode} />
       </div>
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />

@@ -108,7 +108,6 @@ export default function KoopPageClient({
   const [nickname, setNickname] = useState<string | null>(null);
   const [players, setPlayers] = useState<KoopPlayer[]>([]);
   const [guesses, setGuesses] = useState<Guess[]>([]);
-  const [total, setTotal] = useState(0);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [solvedBy, setSolvedBy] = useState<string | null>(null);
@@ -184,7 +183,6 @@ export default function KoopPageClient({
         setSolvedBy(state.solved_by);
         setGaveUp(state.gave_up);
         gaveUpRef.current = state.gave_up;
-        setTotal(state.total);
         const loaded = shared.map((g) => ({
           word: g.word,
           rank: g.rank,
@@ -382,7 +380,6 @@ export default function KoopPageClient({
           setPodestError({ word: result.word, message: "Wort bereits geraten" });
           return;
         }
-        setTotal(result.total);
         appendGuess(result.word, result.rank, false, result.corrected_from ?? undefined);
         if (nickname) {
           setPlayers((prev) =>
@@ -576,7 +573,6 @@ export default function KoopPageClient({
 
           <GuessList
             guesses={guesses}
-            total={total}
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}

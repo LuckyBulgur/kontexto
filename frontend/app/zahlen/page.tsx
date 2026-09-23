@@ -101,9 +101,9 @@ export default function ZahlenPage() {
           </p>
           <p>
             Die Ränge auf dieser Seite stammen vom August 2026 und wurden gegen alle
-            Vokabelwörter gezählt. Seit dem 21. September 2026 zählt der Rang nur noch im
-            Kernwortschatz und fällt dadurch etwa sechsmal kleiner aus. Die Reihenfolge der
-            Startwörter ändert das nicht, ihre absoluten Ränge schon.
+            Vokabelwörter gezählt. Seit dem 24. September 2026 zählt der Rang unter den rund
+            57.000 Grundformen ohne Funktionswörter und fällt dadurch etwas kleiner aus. Die
+            Reihenfolge der Startwörter ändert das nicht, ihre absoluten Ränge schon.
           </p>
           <p>
             Sortiert ist nach <strong>Anteil unter Rang 1500</strong>, also danach, wie oft ein Wort

@@ -52,7 +52,6 @@ export default function DuelPageClient() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [players, setPlayers] = useState<DuelPlayer[]>([]);
   const [guesses, setGuesses] = useState<Guess[]>([]);
-  const [total, setTotal] = useState(0);
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [podestError, setPodestError] = useState<PodestError | undefined>();
@@ -288,7 +287,6 @@ export default function DuelPageClient() {
           correctedFrom: result.corrected_from ?? undefined,
         };
         setGuesses((prev) => [...prev, newGuess]);
-        setTotal(result.total);
         setLatestWord(result.word);
         if (result.rank === 1) {
           fireConfetti();
@@ -499,7 +497,6 @@ export default function DuelPageClient() {
 
           <GuessList
             guesses={guesses}
-            total={total}
             latestWord={latestWord}
             pendingWord={pendingWord}
             podestError={podestError}

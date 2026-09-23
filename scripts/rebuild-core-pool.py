@@ -7,11 +7,11 @@ What changes
    (``backend/core_lexicon.py``) instead of on all 80.000 word forms, and the
    transform is then applied to the whole vocabulary. Every rank array is
    recomputed, the played ones included, because the space itself moved.
-2. **The scale.** ``core_words.json`` ships next to the games. The runtime
-   counts only core words when it shows a rank, so the number the player reads
-   shrinks by roughly a factor of six and the hint and close-word lists stop
-   handing out rare compounds. Nothing is refused: a word outside the core
-   still scores, at the position of the nearest core word.
+2. **The scale.** ``core_words.json`` ships next to the games and holds every
+   base form except the stop list (``backend/data/stopwords_de.txt``), which is
+   what a rank counts. ``everyday_words.json`` holds the everyday words, which
+   the vectors are debiased on and the tips and neighbour lists draw from, and
+   ``fold_map.json`` says what every other form is scored as.
 3. **The answers.** ``backend/data/solution_pool.txt`` replaces the old pool.
    Every word in it is a concrete common noun above Zipf 3,2, measured solvable
    and read by hand.
@@ -145,19 +145,25 @@ def main() -> int:
         with open(args.guess_counts, encoding="utf-8") as f:
             guess_counts = json.load(f)
         log(f"  {len(guess_counts)} words carry a guess count from production")
-    # The deployed counted list is kept whole. Striking a solution takes it out
-    # of the answers, not out of the language: without this, a struck word that
-    # only counted because it was a solution would start being refused as a
-    # guess, and the debias, fitted on the counted list, would move every rank
-    # of the game being played today.
-    deployed_core: set[str] = set()
-    deployed_core_path = os.path.join(args.prod_dir, "core_words.json")
-    if os.path.exists(deployed_core_path):
-        with open(deployed_core_path, encoding="utf-8") as f:
-            deployed_core = set(json.load(f))
-        log(f"  {len(deployed_core)} deployed counted words stay counted")
-    core, fold = core_lexicon.build_core_lexicon(
-        vocab_index, lemma_map, keep=set(targets) | deployed_core, guess_counts=guess_counts)
+    # The deployed everyday list is kept whole, and the deployed scale with it.
+    # Striking a solution takes it out of the answers, not out of the language,
+    # and the debias is fitted on the everyday list: a list that moved would
+    # move every rank of the game being played today. A deployment from before
+    # 2026-09-24 has no everyday file, and its scale was its everyday list.
+    deployed_everyday = (core_lexicon.load_everyday_words(args.prod_dir)
+                         or core_lexicon.load_core_words(args.prod_dir))
+    deployed_scale = set(core_lexicon.load_core_words(args.prod_dir) or ())
+    if deployed_everyday:
+        log(f"  {len(deployed_everyday)} deployed everyday words stay everyday words")
+    lexicon = core_lexicon.build_lexicon(
+        vocab_index, lemma_map, everyday=deployed_everyday, keep=set(targets),
+        guess_counts=guess_counts)
+    core = lexicon.scale
+    dropped = sorted(deployed_scale - set(core) - core_lexicon.load_stopwords())
+    if dropped:
+        # A word that held a number and would now be refused is a word a
+        # player could type yesterday and cannot today.
+        raise SystemExit(f"ABORT: {len(dropped)} counted words would stop counting: {dropped[:10]}")
     missing_from_core = [w for w in targets if w not in set(core)]
     if missing_from_core:
         # A solution outside the core would be counted by nothing, and the
@@ -167,10 +173,11 @@ def main() -> int:
                          f"{missing_from_core[:10]}")
     log(f"Counted lexicon: {len(core)} words "
         f"({100 * len(core) / len(vocab_list):.0f}% of the vocabulary), "
-        f"{len(fold)} forms fold onto one of them")
+        f"{len(lexicon.fold)} forms fold onto one of them, "
+        f"{len(lexicon.everyday)} everyday words")
 
-    log("Debiasing on the core and applying it to the whole vocabulary ...")
-    vectors = postprocess_vectors(raw, fit_words=set(core))
+    log("Debiasing on the everyday words and applying it to the whole vocabulary ...")
+    vectors = postprocess_vectors(raw, fit_words=set(lexicon.everyday))
     del raw
 
     os.makedirs(os.path.join(args.out_dir, "games"), exist_ok=True)
@@ -178,8 +185,7 @@ def main() -> int:
         src = os.path.join(args.prod_dir, name)
         if os.path.exists(src):
             shutil.copyfile(src, os.path.join(args.out_dir, name))
-    core_lexicon.write_core_words(args.out_dir, core)
-    core_lexicon.write_fold_map(args.out_dir, fold)
+    core_lexicon.write_lexicon(args.out_dir, lexicon)
     with open(os.path.join(args.out_dir, "target_words.json"), "w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False)
     new_meta = dict(meta)

@@ -49,9 +49,12 @@ Lemma-Zuordnung bewertet wird.
 
 ## Grund 3: Es ist ein Stoppwort
 
-Knapp 60 Wörter sind als „zu allgemein“ markiert und bekommen eine eigene Fehlermeldung statt der
-normalen Ablehnung: Artikel, Pronomen, häufige Präpositionen, Hilfsverben. `der`, `und`, `mit`,
-`ist`, `nicht`.
+Rund 340 Wörter sind als „zu allgemein“ markiert und bekommen eine eigene Fehlermeldung statt der
+normalen Ablehnung: Artikel, Pronomen, die einfachen Präpositionen, Bindewörter, Hilfsverben und
+ein paar Adverbien wie `hier`, `jetzt` und `heute`. `der`, `und`, `mit`, `ist`, `nicht`. Die Liste
+ist aus dem englischen Original übertragen, das genau diese Wortarten ablehnt und alles andere
+wertet. Deshalb zählen `viel`, `immer`, `laut` und `dank`, und auch ein seltenes Wort wie
+`Leggings` bekommt einen Rang.
 
 Diese Wörter haben im Bedeutungsraum keine sinnvolle Position. Sie kommen in jedem Text vor, ihre
 Vektoren stehen für nichts Bestimmtes, und ein Rang für `und` wäre eine Zufallszahl. Deshalb

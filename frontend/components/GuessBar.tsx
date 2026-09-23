@@ -5,7 +5,6 @@ import { Meter, toneFromRankColor } from "@/components/design";
 interface GuessBarProps {
   word: string;
   rank: number;
-  total: number;
   isNew?: boolean;
   size?: "default" | "lg";
   /** Who played this word, where the mode shows that. */
@@ -26,7 +25,6 @@ interface GuessBarProps {
 export default function GuessBar({
   word,
   rank,
-  total,
   isNew,
   size = "default",
   by,
@@ -36,7 +34,7 @@ export default function GuessBar({
       label={word}
       value={rank}
       meta={by}
-      fraction={getBarWidth(rank, total)}
+      fraction={getBarWidth(rank)}
       tone={toneFromRankColor(getRankColor(rank))}
       isNew={isNew}
       highlight={isNew}

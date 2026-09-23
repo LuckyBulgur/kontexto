@@ -1,0 +1,401 @@
+# The words Kontexto refuses with "Dieses Wort zählt nicht, es ist zu allgemein".
+#
+# A port of the original game's list, not a list of its own. On 2026-09-24 the
+# public Contexto API (api.contexto.me/machado/en/game/<n>/<word>) was asked
+# about 408 English candidates, every entry of the NLTK and spaCy stopword lists
+# plus the borderline cases. It refused 178 of them as "too common" and ranked
+# everything else, rare words included: "leggings" came back at 25.638.
+#
+# What the original refuses, by class, and what this file carries for each:
+#   articles, all pronouns (personal, possessive, reflexive, demonstrative,
+#   interrogative, relative, indefinite), the basic prepositions, conjunctions,
+#   the auxiliaries be/have/do and the modals can/could/will/would/should, the
+#   determiners and quantifiers all/any/some/each/every-one/few/both/several/
+#   enough/no/none/such/same/other, and a short run of adverbs: here, there,
+#   then, now, once, again, very, too, so, just, only, also, else, ever, quite,
+#   sometimes, today, not, how, when, where, why.
+#
+# What the original ranks, and this file therefore leaves out on purpose:
+#   many, much, more, most, less, little, never, always, often, still, already,
+#   yet, soon, almost, maybe, rather, really, even, well, please, yes, oh, okay,
+#   must, may, might, shall, want, need, every number word, and the spatial
+#   prepositions behind, beside, beyond, inside, outside, near, along, across,
+#   among, around, toward, within, via, despite, except, instead, since, till,
+#   plus according and thanks. In German that keeps viel, mehr, meist, wenig,
+#   nie, immer, oft, schon, bereits, bald, fast, vielleicht, wirklich, sogar,
+#   bitte, ja, nein, müssen, dürfen, mögen, wollen, hinter, neben, innerhalb,
+#   außerhalb, entlang, gegenüber, trotz, außer, statt, seit, laut and dank on
+#   the scale. "nein" follows "yes" rather than "no": the English "no" is also
+#   the determiner, which is "kein" here.
+#
+# "meinen" is missing from the possessives and "einigen" from the quantifiers on
+# purpose: they are also the verbs for "to mean" and "to agree", which players
+# type as content words.
+#
+# The list names base forms and the inflected forms of each. A form missing
+# here is still refused when the build reads its lemma as one of these words,
+# so the inflections are listed for the record and for the runtime check, which
+# reads this file directly and does not depend on the build.
+#
+# Held by backend/test_stopwords.py: every entry of prepare.GERMAN_STOPWORDS is
+# in here, no solution is, and nothing the original ranks has crept in.
+
+# Articles
+der
+die
+das
+den
+dem
+des
+ein
+eine
+einer
+eines
+einem
+einen
+
+# Personal and reflexive pronouns
+ich
+mich
+mir
+meiner
+du
+dich
+dir
+deiner
+er
+ihn
+ihm
+seiner
+sie
+ihr
+ihrer
+es
+wir
+uns
+unser
+euch
+euer
+ihnen
+man
+sich
+selbst
+selber
+einander
+
+# Possessive determiners
+mein
+meine
+meinem
+meines
+dein
+deine
+deinem
+deinen
+deines
+sein
+seine
+seinem
+seinen
+seines
+ihre
+ihrem
+ihren
+ihres
+unsere
+unserem
+unseren
+unserer
+unseres
+unsre
+eure
+eurem
+euren
+eurer
+eures
+
+# Demonstratives
+dieser
+diese
+dieses
+diesem
+diesen
+jener
+jene
+jenes
+jenem
+jenen
+derselbe
+dieselbe
+dasselbe
+denselben
+demselben
+desselben
+dieselben
+derjenige
+diejenige
+dasjenige
+diejenigen
+denjenigen
+demjenigen
+desjenigen
+solch
+solche
+solcher
+solches
+solchem
+solchen
+dessen
+deren
+derer
+denen
+
+# Interrogatives and relatives
+wer
+wen
+wem
+wessen
+was
+welch
+welcher
+welche
+welches
+welchem
+welchen
+wo
+wann
+warum
+wieso
+weshalb
+weswegen
+wie
+
+# Indefinites and quantifiers
+jemand
+jemanden
+jemandem
+niemand
+niemanden
+niemandem
+etwas
+nichts
+alles
+alle
+aller
+allem
+allen
+jeder
+jede
+jedes
+jedem
+jeden
+jedermann
+einige
+einiger
+einiges
+einigem
+manche
+mancher
+manches
+manchem
+manchen
+mehrere
+mehrerer
+mehreren
+beide
+beider
+beides
+beiden
+kein
+keine
+keiner
+keines
+keinem
+keinen
+andere
+anderer
+anderes
+anderem
+anderen
+irgendwer
+irgendwen
+irgendwem
+irgendwas
+irgendein
+irgendeine
+irgendeiner
+irgendeines
+irgendeinem
+irgendeinen
+irgendwo
+irgendwie
+irgendwann
+nirgends
+nirgendwo
+überall
+genug
+
+# Prepositions the original refuses, with their contractions
+an
+auf
+aus
+bei
+bis
+durch
+für
+gegen
+in
+mit
+nach
+ohne
+über
+um
+unter
+von
+vor
+während
+wegen
+zu
+zwischen
+ab
+am
+ans
+aufs
+beim
+im
+ins
+vom
+zum
+zur
+durchs
+fürs
+ums
+übers
+unterm
+unters
+vorm
+vors
+
+# Conjunctions
+und
+oder
+aber
+sondern
+denn
+weil
+wenn
+falls
+ob
+dass
+als
+obwohl
+bevor
+nachdem
+sobald
+solange
+indem
+sodass
+damit
+entweder
+weder
+noch
+sowohl
+sowie
+doch
+jedoch
+also
+
+# Auxiliaries: sein, haben, werden
+bin
+bist
+ist
+sind
+seid
+war
+warst
+waren
+wart
+gewesen
+wäre
+wärst
+wären
+wäret
+sei
+seist
+seien
+seiet
+haben
+habe
+hast
+hat
+habt
+hatte
+hattest
+hatten
+hattet
+gehabt
+hätte
+hättest
+hätten
+hättet
+werden
+werde
+wirst
+wird
+werdet
+wurde
+wurdest
+wurden
+wurdet
+geworden
+worden
+würde
+würdest
+würden
+würdet
+
+# The modals the original refuses: können (can, could) and sollen (should)
+können
+kann
+kannst
+könnt
+konnte
+konntest
+konnten
+konntet
+gekonnt
+könne
+könnte
+könntest
+könnten
+könntet
+sollen
+soll
+sollst
+sollt
+sollte
+solltest
+sollten
+solltet
+gesollt
+
+# Adverbs the original refuses
+hier
+da
+dort
+dann
+einmal
+jetzt
+nun
+wieder
+sehr
+so
+nur
+auch
+sonst
+je
+jemals
+ziemlich
+manchmal
+heute
+nicht

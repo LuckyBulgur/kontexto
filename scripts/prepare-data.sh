@@ -68,5 +68,6 @@ python3 prepare.py \
 
 echo "=== Data preparation complete ==="
 echo "Vocabulary size: $(python3 -c "import json; print(len(json.load(open('$DATA_DIR/vocabulary.json'))))")"
-echo "Core lexicon:    $(python3 -c "import json; print(len(json.load(open('$DATA_DIR/core_words.json'))))")"
+echo "Counted words:   $(python3 -c "import json; print(len(json.load(open('$DATA_DIR/core_words.json'))))")"
+echo "Everyday words:  $(python3 -c "import json; print(len(json.load(open('$DATA_DIR/everyday_words.json'))))")"
 echo "Games generated: $(ls "$DATA_DIR/games/" | wc -l)"

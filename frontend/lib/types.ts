@@ -367,21 +367,36 @@ export interface CompletionPayload {
 }
 
 /**
- * Die Farbbänder, gemessen am Kernwortschatz.
+ * The colour bands, the original game's own: green up to rank 300, yellow up
+ * to 1.500 (contexto.me, `e<300?green:e<1500?yellow:red` over a zero-based
+ * distance).
  *
- * Bis 2026-09-21 wurde gegen 80.000 Wortformen gezählt und Grün lag bei Rang
- * 300, also im obersten 0,4 Prozent. Gezählt wird jetzt im Kernwortschatz mit
- * rund 14.000 Wörtern; dieselbe Grenze wäre dort Rang 52 und Grün praktisch
- * unerreichbar. 100 und 600 sind daher nicht umgerechnet, sondern bewusst
- * großzügiger als vorher: 0,7 und 4,3 Prozent statt 0,4 und 1,9.
+ * Since 2026-09-24 the scale counts every base form, as the original does,
+ * and not only the everyday words. Measured over 200 games, the 100th everyday
+ * word now sits at a median rank of 252 and the 600th at 1.808, so 300 and
+ * 1.500 colour a guess very nearly the way 100 and 600 did on the old scale of
+ * 15.466 words. The share text spells these bands as squares, so a change here
+ * changes what a shared round says.
  */
 export function getRankColor(rank: number): "green" | "yellow" | "red" {
-  if (rank <= 100) return "green";
-  if (rank <= 600) return "yellow";
+  if (rank <= 300) return "green";
+  if (rank <= 1500) return "yellow";
   return "red";
 }
 
-export function getBarWidth(rank: number, total: number): number {
-  if (rank === 1) return 100;
-  return Math.max(5, 100 * (1 - rank / total));
+/**
+ * The bar, the original game's curve: it falls off exponentially with the
+ * distance and does not depend on the size of the scale.
+ *
+ * contexto.me computes `f(d / 40000 * 100)` with `f(x) = 0.5 * exp(-0.5 * x)`,
+ * normalised between `f(0)` and `f(100)`, which is `exp(-d / 800)` to within a
+ * rounding error. The linear bar this replaces drew ranks 1, 38 and 402 at 96
+ * to 100 percent, so a closer guess did not look closer. `total` is accepted
+ * and unused, because every caller passes it and the curve needs none.
+ */
+export function getBarWidth(rank: number): number {
+  if (rank <= 1) return 100;
+  const f = (x: number) => 0.5 * Math.exp(-0.5 * x);
+  const width = ((f(((rank - 1) / 40000) * 100) - f(100)) / (f(0) - f(100))) * 100;
+  return Math.max(5, width);
 }

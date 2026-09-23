@@ -4,12 +4,14 @@ Loads pre-computed data and provides guess/tip/game-info operations.
 All lookups are O(1) dict lookups after initial load.
 """
 
+import bisect
 import json
 import os
 import pickle
 import random
 from collections import OrderedDict
 from datetime import date
+from typing import NamedTuple
 
 import numpy as np
 
@@ -22,6 +24,17 @@ from prepare import GERMAN_STOPWORDS
 # 1 MB over the ~80k vocabulary, so 40 games stay near 40 MB per worker.
 # Unbounded caching exhausted the 4 GB prod host (OOM worker kills).
 GAME_CACHE_SIZE = 40
+
+
+class GameView(NamedTuple):
+    """One game on the displayed scale."""
+
+    #: Displayed rank per vocabulary index, 0 for a word that holds no number.
+    ranks: np.ndarray
+    #: Displayed rank to vocabulary index, slot 0 unused.
+    rank_to_index: np.ndarray
+    #: Displayed ranks of the words a tip may name, ascending, rank 1 excluded.
+    hint_ranks: np.ndarray
 
 
 class GameState:
@@ -75,7 +88,26 @@ class GameState:
             core_lexicon.load_fold_map(data_dir) if self.core_mask is not None else {}
         )
 
-        self._game_cache: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
+        # What a tip, a neighbour list or an opening word may name: the everyday
+        # words that hold a number. The scale counts every base form since
+        # 2026-09-24, and handing out its rare compounds is exactly what the
+        # everyday list exists to prevent. A directory without the file is one
+        # whose scale is its everyday list, so the scale answers instead.
+        self.hint_mask: np.ndarray | None = None
+        everyday = core_lexicon.load_everyday_words(data_dir) if self.core_mask is not None else None
+        if everyday:
+            mask = np.zeros(len(self.vocabulary), dtype=bool)
+            for word in everyday:
+                index = self.vocabulary.get(word)
+                if index is not None:
+                    mask[index] = True
+            mask &= self.core_mask
+            if mask.any():
+                self.hint_mask = mask
+
+        self.stopwords = core_lexicon.load_stopwords() | GERMAN_STOPWORDS
+
+        self._game_cache: OrderedDict[int, GameView] = OrderedDict()
 
         # Typo correction. The prebuilt index is the normal case; a data
         # directory without one (an older prod volume, a hand-made fixture)
@@ -92,7 +124,7 @@ class GameState:
         """Warm the cache for a game (lookups load on demand anyway)."""
         self._get_game(game_number)
 
-    def _display_scale(self, ranks: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _display_scale(self, ranks: np.ndarray) -> GameView:
         """Turn raw ranks over the whole vocabulary into the displayed scale.
 
         The stored array ranks all ~80.000 words, but most of them are rare
@@ -110,7 +142,7 @@ class GameState:
         if self.core_mask is None:
             rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
             rank_to_index[ranks] = np.arange(len(ranks), dtype=np.uint32)
-            return ranks, rank_to_index
+            return GameView(ranks, rank_to_index, np.sort(ranks[ranks > 1]))
 
         order = np.argsort(ranks)                       # vocabulary index by rank
         # The solution counts, whatever the lexicon says. It is the word at rank
@@ -131,14 +163,18 @@ class GameState:
 
         core_rank_to_index = np.zeros(core_size + 1, dtype=np.uint32)
         core_rank_to_index[1:] = order[core_by_rank]
-        return display.astype(np.uint32, copy=False), core_rank_to_index
 
-    def _get_game(self, game_number: int) -> tuple[np.ndarray, np.ndarray]:
-        """Return (ranks, rank_to_index) for a game, loading it on a cache miss.
+        hints = self.hint_mask if self.hint_mask is not None else counts
+        hint_ranks = np.sort(display[hints])
+        return GameView(
+            display.astype(np.uint32, copy=False),
+            core_rank_to_index,
+            hint_ranks[hint_ranks > 1].astype(np.uint32, copy=False),
+        )
 
-        Both are on the displayed scale (see :meth:`_display_scale`): ranks maps
-        a vocabulary index to the rank the player is shown, rank_to_index maps a
-        displayed rank back to the core word standing there, with slot 0 unused.
+    def _get_view(self, game_number: int) -> GameView:
+        """One game on the displayed scale, loaded on a cache miss.
+
         Entries are kept in an LRU bounded by GAME_CACHE_SIZE.
         """
         cached = self._game_cache.get(game_number)
@@ -150,12 +186,22 @@ class GameState:
         with np.load(path) as data:
             ranks = data["ranks"].astype(np.uint32, copy=False)
 
-        ranks, rank_to_index = self._display_scale(ranks)
+        view = self._display_scale(ranks)
 
-        self._game_cache[game_number] = (ranks, rank_to_index)
+        self._game_cache[game_number] = view
         while len(self._game_cache) > GAME_CACHE_SIZE:
             self._game_cache.popitem(last=False)
-        return ranks, rank_to_index
+        return view
+
+    def _get_game(self, game_number: int) -> tuple[np.ndarray, np.ndarray]:
+        """Return (ranks, rank_to_index) for a game.
+
+        Both are on the displayed scale (see :meth:`_display_scale`): ranks maps
+        a vocabulary index to the rank the player is shown, rank_to_index maps a
+        displayed rank back to the counted word standing there, slot 0 unused.
+        """
+        view = self._get_view(game_number)
+        return view.ranks, view.rank_to_index
 
     def get_game_number(self, today: date | None = None) -> int:
         """Calculate today's game number from the start date.
@@ -171,18 +217,18 @@ class GameState:
     def is_uncounted(self, word: str) -> bool:
         """Whether the game carries this word but gives it no place on the scale.
 
-        Two kinds of word land here and they get the same answer, because to the
-        player they are the same thing: a word the game knows and will not rank.
-        The hand-written stopword list is one. The other is everything the
-        counted lexicon leaves out and no fold picks up, which measured against
-        1.95 million real guesses is 2,9% of them and almost entirely closed
-        class: conjunctions, prepositions, auxiliaries, pronouns, determiners.
+        The stop list (``data/stopwords_de.txt``, a port of the original game's)
+        is the rule: articles, pronouns, the basic prepositions, conjunctions,
+        auxiliaries and a few adverbs. The build also refuses the forms it reads
+        as one of those (``meinem`` as ``mein``), which is why a word the
+        vocabulary carries but the scale does not hold is answered the same way.
+        Measured against 1,95 million real guesses that is 0,8% of them.
 
         The caller answers this before it answers "unknown word", so a word the
         dictionary has is never reported as a word the dictionary lacks.
         """
         w = word.strip().lower()
-        if w in GERMAN_STOPWORDS:
+        if w in self.stopwords:
             return True
         if self.core_mask is None:
             return False
@@ -327,14 +373,16 @@ class GameState:
     def get_tip(self, game_number: int, difficulty: str, best_rank: int, guessed_ranks: list[int] | None = None) -> dict | None:
         """Get a hint word based on difficulty level.
 
-        Never returns rank 1 (the answer). If the computed rank was already
-        guessed, searches upward for the next unguessed rank.
+        The difficulty picks a target rank; the tip is the everyday word nearest
+        to it that has not been guessed yet, looking closer first and then
+        further out. Never rank 1, which is the answer.
         """
-        _, rank_to_index = self._get_game(game_number)
+        view = self._get_view(game_number)
+        hints = view.hint_ranks
+        if len(hints) == 0:
+            return None
 
-        if guessed_ranks is None:
-            guessed_ranks = []
-        guessed_set = set(guessed_ranks) | {1}  # always exclude rank 1
+        guessed_set = set(guessed_ranks or ())
 
         if difficulty == "easy":
             target_rank = max(2, best_rank // 2)
@@ -343,53 +391,61 @@ class GameState:
         else:  # hard
             target_rank = random.randint(2, max(2, best_rank - 1))
 
-        max_rank = len(rank_to_index) - 1
-        target_rank = min(target_rank, max_rank)
-
-        # Search both directions for an unguessed rank
-        lo, hi = target_rank, target_rank
-        while True:
-            if lo >= 2 and lo not in guessed_set:
-                target_rank = lo
-                break
-            if hi <= max_rank and hi not in guessed_set:
-                target_rank = hi
-                break
+        # Positions in the hint list, not ranks: the everyday words sit between
+        # rare ones, so the nearest one may be several ranks away.
+        lo = bisect.bisect_right(hints, target_rank) - 1
+        hi = lo + 1
+        while lo >= 0 or hi < len(hints):
+            if lo >= 0 and int(hints[lo]) not in guessed_set:
+                return self._entry(view, int(hints[lo]))
+            if hi < len(hints) and int(hints[hi]) not in guessed_set:
+                return self._entry(view, int(hints[hi]))
             lo -= 1
             hi += 1
-            if lo < 2 and hi > max_rank:
-                return None
-
-        return {
-            "word": self.index_to_word[int(rank_to_index[target_rank])],
-            "rank": target_rank,
-        }
+        return None
 
     def word_at_rank(self, game_number: int, rank: int) -> dict | None:
-        """Return the word sitting at an exact rank of a game.
+        """The everyday word at this rank, or the first one further out.
 
-        Used by the Leiter mode, which opens on a deliberately distant word, and
-        by Sudden Death, which shows the runners-up. Rank 1 is never handed out
-        here: that is the solution, and no mode may learn it this way.
+        Used by the Leiter mode, which opens on a deliberately distant word.
+        The word may sit a few ranks beyond the one asked for, never closer, and
+        the returned rank is its own. Rank 1 is never handed out here: that is
+        the solution, and no mode may learn it this way.
         """
         if rank < 2:
             return None
-        _, rank_to_index = self._get_game(game_number)
-        if rank >= len(rank_to_index):
+        view = self._get_view(game_number)
+        position = bisect.bisect_left(view.hint_ranks, rank)
+        if position >= len(view.hint_ranks):
             return None
-        return {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
+        return self._entry(view, int(view.hint_ranks[position]))
 
     def words_at_ranks(self, game_number: int, wanted: list[int]) -> list[dict]:
-        """Return the words at several exact ranks, skipping the ones out of range."""
+        """Distinct everyday words at or beyond several ranks, nearest first.
+
+        Sudden Death asks for ranks 2 to 6 and gets the five everyday words
+        closest to the solution, whatever ranks they hold.
+        """
+        view = self._get_view(game_number)
+        hints = view.hint_ranks
         out: list[dict] = []
-        for rank in wanted:
-            entry = self.word_at_rank(game_number, rank)
-            if entry is not None:
-                out.append(entry)
+        floor = 2
+        for rank in sorted(set(wanted)):
+            if rank < 2:
+                continue
+            position = bisect.bisect_left(hints, max(rank, floor))
+            if position >= len(hints):
+                break
+            found = int(hints[position])
+            out.append(self._entry(view, found))
+            floor = found + 1
         return out
 
+    def _entry(self, view: GameView, rank: int) -> dict:
+        return {"word": self.index_to_word[int(view.rank_to_index[rank])], "rank": rank}
+
     def display_total(self) -> int:
-        """The scale a rank is read against: the size of the core lexicon.
+        """The scale a rank is read against: every word that holds a number.
 
         Endpoints used to report ``metadata["vocab_size"]`` here, which is the
         whole vocabulary and no longer the number a rank is measured against.
@@ -453,9 +509,15 @@ class GameState:
         return self.target_words[game_number - 1]
 
     def get_closest_words(self, game_number: int) -> list[dict]:
-        """Return the 500 closest words for the given game."""
-        _, rank_to_index = self._get_game(game_number)
-        return [
-            {"word": self.index_to_word[int(rank_to_index[rank])], "rank": rank}
-            for rank in range(1, min(501, len(rank_to_index)))
+        """The solution and the 499 everyday words closest to it.
+
+        Each carries its own rank, so the list has gaps where rare words sit in
+        between; filling them would put back the compounds the everyday list
+        keeps out.
+        """
+        view = self._get_view(game_number)
+        if len(view.rank_to_index) < 2:
+            return []
+        return [self._entry(view, 1)] + [
+            self._entry(view, int(rank)) for rank in view.hint_ranks[:499]
         ]

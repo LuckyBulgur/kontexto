@@ -23,7 +23,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Wie wird die Ähnlichkeit berechnet?`,
-    a: `Grundlage ist das deutsche fastText-Modell cc.de.300, trainiert auf Common Crawl und der deutschen Wikipedia. Jedes Wort ist darin ein Vektor aus 300 Zahlen, der festhält, in welchen Kontexten das Wort auftritt. Vor dem Spiel werden diese Vektoren entzerrt: Der Mittelwert aller Vektoren und die drei stärksten Hauptkomponenten werden entfernt, weil sie vor allem Worthäufigkeit abbilden und sonst jedes häufige Wort zu allem ähnlich wirken ließen. Entzerrt wird dabei auf dem Kernwortschatz, also den rund 16.000 Alltagswörtern, damit die Nachbarschaft eines Lösungsworts von gebräuchlichen Wörtern bestimmt wird und nicht von seltenen Komposita. Danach wird für jedes Zielwort die Kosinus-Ähnlichkeit zu rund 80.000 Vokabeleinträgen berechnet und in eine feste Rangliste sortiert. Angezeigt wird der Rang innerhalb des Kernwortschatzes. Beim Raten wird nur noch nachgeschlagen, nicht gerechnet.`,
+    a: `Grundlage ist das deutsche fastText-Modell cc.de.300, trainiert auf Common Crawl und der deutschen Wikipedia. Jedes Wort ist darin ein Vektor aus 300 Zahlen, der festhält, in welchen Kontexten das Wort auftritt. Vor dem Spiel werden diese Vektoren entzerrt: Der Mittelwert aller Vektoren und die drei stärksten Hauptkomponenten werden entfernt, weil sie vor allem Worthäufigkeit abbilden und sonst jedes häufige Wort zu allem ähnlich wirken ließen. Entzerrt wird dabei auf dem Kernwortschatz, also den rund 15.500 Alltagswörtern, damit die Nachbarschaft eines Lösungsworts von gebräuchlichen Wörtern bestimmt wird und nicht von seltenen Komposita. Danach wird für jedes Zielwort die Kosinus-Ähnlichkeit zu rund 80.000 Vokabeleinträgen berechnet und in eine feste Rangliste sortiert. Angezeigt wird der Rang unter den rund 57.000 gewerteten Grundformen. Beim Raten wird nur noch nachgeschlagen, nicht gerechnet.`,
   },
   {
     q: `Wann gibt es ein neues Wort?`,
@@ -139,7 +139,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Mein Wort wird nicht akzeptiert, warum?`,
-    a: `Der Wortschatz umfasst rund 80.000 Einträge, gezählt werden für den Rang die rund 16.000 Alltagswörter davon. Fehlt deiner, hilft meist die Grundform oder ein geläufigeres Wort. Eigennamen fehlen absichtlich.`,
+    a: `Der Wortschatz umfasst rund 80.000 Einträge, und bis auf Funktionswörter wie Artikel, Pronomen, Präpositionen, Bindewörter und Hilfsverben bekommt jede Grundform davon einen Rang. Fehlt deiner, hilft meist die Grundform oder ein geläufigeres Wort. Eigennamen kannst du raten, Lösung werden sie aber nie.`,
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,

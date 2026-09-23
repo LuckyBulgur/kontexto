@@ -2,7 +2,8 @@
 
 import * as React from "react";
 
-import { Meter } from "@/components/design";
+import { Meter, toneFromRankColor } from "@/components/design";
+import { getBarWidth, getRankColor } from "@/lib/types";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 /**
@@ -30,10 +31,9 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
  * One plausible round, in the order the words were guessed.
  *
  * The ranks are spread across the whole scale rather than clustered near the
- * top. The live bar is linear over the vocabulary, so ranks 1, 38 and 402 all
- * render at 96 to 100 percent and four of five rows looked identical: correct,
- * and useless as a demonstration. These five make each step visible, and the
- * story is the one a player actually plays, circling in from nothing.
+ * top, one per band and one past them, so each step is visible: the bar falls
+ * off exponentially with the rank (getBarWidth), and the story is the one a
+ * player actually plays, circling in from nothing.
  */
 const GUESSES = [
   { word: "Auto", rank: 6840 },
@@ -48,17 +48,13 @@ const TARGET = "Garten";
 /** What the list looks like when it is over: best rank on top. */
 const SORTED = [...GUESSES].sort((a, b) => a.rank - b.rank);
 
-/** Matches the live game's thresholds (lib/types.ts, getRankColor). */
+/** The live game's own bands and bar, so the demo cannot drift from them. */
 function tone(rank: number) {
-  if (rank <= 100) return "near" as const;
-  if (rank <= 600) return "mid" as const;
-  return "far" as const;
+  return toneFromRankColor(getRankColor(rank));
 }
 
-/** Matches getBarWidth against the size of the core lexicon. */
 function fraction(rank: number) {
-  if (rank === 1) return 100;
-  return Math.max(5, 100 * (1 - rank / 15000));
+  return getBarWidth(rank);
 }
 
 export default function OpeningDemo() {

@@ -147,7 +147,7 @@ def postprocess_vectors(
     """Remove mean and top principal components from vectors (All-but-the-Top).
 
     With ``fit_words`` the mean and the components are computed on that subset
-    and then applied to every vector. That is how the core lexicon shapes the
+    and then applied to every vector. That is how the everyday list shapes the
     game: the directions removed are the ones that dominate the words a player
     actually uses, not the ones that dominate a corpus tail of rare compounds.
     The words outside the subset keep a vector in the same space, so they stay
@@ -357,13 +357,14 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
     lemma_map = create_lemma_map(vocab_list)
     print(f"  Mapped {len(lemma_map)} inflected forms.")
 
-    print("Building the core lexicon...")
-    core, fold = core_lexicon.build_core_lexicon(vocab_index, lemma_map)
-    print(f"  {len(core)} of {len(vocab_list)} words count towards a rank, "
-          f"{len(fold)} further forms fold onto one of them.")
+    print("Building the counted lexicon...")
+    lexicon = core_lexicon.build_lexicon(vocab_index, lemma_map)
+    print(f"  {len(lexicon.scale)} of {len(vocab_list)} words count towards a rank, "
+          f"{len(lexicon.fold)} further forms fold onto one of them, "
+          f"{len(lexicon.everyday)} are everyday words.")
 
-    print("Post-processing vectors (All-but-the-Top, fitted on the core)...")
-    filtered = postprocess_vectors(filtered, fit_words=set(core))
+    print("Post-processing vectors (All-but-the-Top, fitted on the everyday words)...")
+    filtered = postprocess_vectors(filtered, fit_words=set(lexicon.everyday))
     print(f"  Removed mean and top 3 principal components.")
 
     print("Selecting target words (frequent words)...")
@@ -385,14 +386,13 @@ def run_pipeline(output_dir: str, num_games: int, fasttext_path: str, start_date
         json.dump(vocab_index, f, ensure_ascii=False)
     with open(os.path.join(output_dir, "lemma_map.json"), "w", encoding="utf-8") as f:
         json.dump(lemma_map, f, ensure_ascii=False)
-    core_lexicon.write_core_words(output_dir, core)
-    core_lexicon.write_fold_map(output_dir, fold)
+    core_lexicon.write_lexicon(output_dir, lexicon)
     with open(os.path.join(output_dir, "bloom.bin"), "wb") as f:
         pickle.dump(bf, f)
     with open(os.path.join(output_dir, "target_words.json"), "w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False)
     metadata = {"start_date": start_date, "total_games": num_games,
-                "vocab_size": len(vocab_list), "core_size": len(core)}
+                "vocab_size": len(vocab_list), "core_size": len(lexicon.scale)}
     with open(os.path.join(output_dir, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
 

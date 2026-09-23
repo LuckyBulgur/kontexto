@@ -56,7 +56,7 @@ export default function ClosestWordsDialog({ open, onClose, game, infinite }: Cl
             <p className="text-small text-destructive text-center py-4">{error}</p>
           )}
           {!loading && !error && words.map((entry) => (
-            <GuessBar key={entry.rank} word={entry.word} rank={entry.rank} total={500} />
+            <GuessBar key={entry.rank} word={entry.word} rank={entry.rank} />
           ))}
         </div>
       </DialogContent>

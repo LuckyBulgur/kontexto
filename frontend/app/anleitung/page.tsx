@@ -30,7 +30,7 @@ const toc = [
 const howToSteps = [
   { name: "Wort eingeben", text: "Tippe ein beliebiges deutsches Wort ein und bestätige mit Enter. Du hast unbegrenzt viele Versuche." },
   { name: "Rang ablesen", text: "Jedes Wort erhält einen Rang. Rang 1 ist das Zielwort; je kleiner die Zahl, desto näher liegt dein Wort an der Bedeutung." },
-  { name: "Farben deuten", text: "Grün bedeutet sehr nah (Rang 1–100), Gelb auf dem Weg (101–600), Rot weit entfernt (ab 601)." },
+  { name: "Farben deuten", text: "Grün bedeutet sehr nah (Rang 1–300), Gelb auf dem Weg (301–1500), Rot weit entfernt (ab 1501)." },
   { name: "Der Bedeutung folgen", text: "Nutze gute Treffer als Wegweiser: Taste die Richtungen ab, die von deinem besten Wort wegführen, bis du das Zielwort auf Rang 1 findest." },
 ];
 
@@ -143,12 +143,11 @@ export default function AnleitungPage() {
         <Prose>
           <h2 id="eingaben">Welche Wörter das Spiel annimmt</h2>
           <p>
-            Kontexto nimmt rund 80.000 deutsche Wörter an. Gezählt wird der Rang aber gegen die
-            rund 16.000 Wörter des Alltagswortschatzes, damit die Zahl auf dem Bildschirm etwas
-            aussagt: Ein seltenes Kompositum bekommt den Rang des nächstgelegenen Alltagsworts und
-            verschiebt dadurch nichts. Groß- und Kleinschreibung ist egal, alles andere zählt: Es
-            gibt keine Rechtschreibkorrektur und keine Ähnlichkeitssuche. Vier Regeln erklären die
-            häufigsten Ablehnungen.
+            Kontexto nimmt rund 80.000 deutsche Wörter an, und jede Grundform davon bekommt ihren
+            eigenen Rang, rund 57.000 insgesamt. Eine gebeugte Form zählt als ihre Grundform:
+            „Kinder“ steht in der Liste als „Kind“. Groß- und Kleinschreibung ist egal. Einen
+            einzelnen Tippfehler korrigiert das Spiel, wenn das gemeinte Wort eindeutig ist, sonst
+            schlägt es passende Wörter vor. Vier Regeln erklären die häufigsten Ablehnungen.
           </p>
           <ul>
             <li>
@@ -166,9 +165,10 @@ export default function AnleitungPage() {
               <strong>Ein Wort.</strong> Bindestriche und Leerzeichen werden nicht akzeptiert.
             </li>
             <li>
-              <strong>Keine Füllwörter.</strong> Artikel, Pronomen und Hilfsverben wie „der“, „und“
-              oder „ist“ werden ausdrücklich abgewiesen, weil sie im Bedeutungsraum keine
-              aussagekräftige Position haben.
+              <strong>Keine Füllwörter.</strong> Artikel, Pronomen, Präpositionen, Bindewörter und
+              Hilfsverben wie „der“, „und“ oder „ist“ werden ausdrücklich abgewiesen, weil sie im
+              Bedeutungsraum keine aussagekräftige Position haben. Die Liste folgt dem englischen
+              Original.
             </li>
           </ul>
           <p>

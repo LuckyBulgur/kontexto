@@ -320,8 +320,82 @@ class TestCoreLexicon:
         assert state.guess("apfel", 1)["rank"] == 1
 
 
-class TestBuildCoreLexicon:
-    VOCAB = ["hund", "hunde", "haus", "xylophon", "und", "ab"]
+class TestEverydayHints:
+    """What the game hands out is drawn from the everyday list.
+
+    The scale counts every base form since 2026-09-24, rare compounds included,
+    and a tip naming one of those is the thing the everyday list exists to keep
+    out. So tips, neighbour lists and opening words skip them and report the
+    rank the everyday word really holds.
+    """
+
+    @pytest.fixture
+    def hint_dir(self, data_dir):
+        # All five count; only auto and haus are everyday words besides the
+        # solution. Ranks: apfel 1, birne 2, kirsche 3, auto 4, haus 5.
+        core_lexicon.write_core_words(data_dir, ["apfel", "birne", "kirsche", "auto", "haus"])
+        core_lexicon.write_everyday_words(data_dir, ["apfel", "auto", "haus"])
+        return data_dir
+
+    def test_the_scale_still_counts_every_word(self, hint_dir):
+        state = GameState(hint_dir)
+        assert state.display_total() == 5
+        assert state.guess("birne", 1)["rank"] == 2
+
+    def test_a_tip_names_an_everyday_word_at_its_own_rank(self, hint_dir):
+        tip = GameState(hint_dir).get_tip(1, "medium", best_rank=3)
+        assert tip == {"word": "auto", "rank": 4}
+
+    def test_a_tip_skips_what_was_guessed(self, hint_dir):
+        tip = GameState(hint_dir).get_tip(1, "medium", best_rank=3, guessed_ranks=[4])
+        assert tip == {"word": "haus", "rank": 5}
+
+    def test_no_tip_once_every_everyday_word_was_guessed(self, hint_dir):
+        assert GameState(hint_dir).get_tip(1, "easy", best_rank=5, guessed_ranks=[4, 5]) is None
+
+    def test_the_neighbour_list_holds_the_solution_and_everyday_words(self, hint_dir):
+        assert GameState(hint_dir).get_closest_words(1) == [
+            {"word": "apfel", "rank": 1},
+            {"word": "auto", "rank": 4},
+            {"word": "haus", "rank": 5},
+        ]
+
+    def test_word_at_rank_moves_outward_to_an_everyday_word(self, hint_dir):
+        state = GameState(hint_dir)
+        assert state.word_at_rank(1, 2) == {"word": "auto", "rank": 4}
+        assert state.word_at_rank(1, 5) == {"word": "haus", "rank": 5}
+        assert state.word_at_rank(1, 6) is None
+        assert state.word_at_rank(1, 1) is None
+
+    def test_words_at_ranks_are_distinct_and_nearest_first(self, hint_dir):
+        assert GameState(hint_dir).words_at_ranks(1, [2, 3, 4]) == [
+            {"word": "auto", "rank": 4},
+            {"word": "haus", "rank": 5},
+        ]
+
+    def test_an_everyday_word_holding_no_number_is_never_handed_out(self, data_dir):
+        # "heute" is everyday German and on the stop list; it stays on the
+        # everyday list because the vectors are debiased on it.
+        core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
+        core_lexicon.write_everyday_words(data_dir, ["apfel", "birne", "haus"])
+        state = GameState(data_dir)
+        assert state.words_at_ranks(1, [2, 3, 4]) == [{"word": "haus", "rank": 3}]
+
+    def test_without_the_file_the_scale_is_the_everyday_list(self, data_dir):
+        core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
+        state = GameState(data_dir)
+        assert state.hint_mask is None
+        assert state.word_at_rank(1, 2) == {"word": "kirsche", "rank": 2}
+
+    def test_a_stop_word_is_refused_as_too_general(self, gs):
+        assert gs.is_uncounted("und") is True
+        assert gs.is_uncounted("heute") is True
+        assert gs.is_uncounted("apfel") is False
+
+
+class TestBuildLexicon:
+    VOCAB = ["hund", "hunde", "haus", "xylophon", "und", "ab", "malen", "malt", "mal",
+             "liebe", "lieb", "akten", "akte", "akt", "meinem", "mein", "laut"]
     LEMMA = {"hunde": "hund"}
     #: (pos, lemma) capitalised, then as written. Standing in for spaCy, which
     #: the build reads once over the whole vocabulary and never at runtime.
@@ -332,52 +406,121 @@ class TestBuildCoreLexicon:
         "xylophon": ("NOUN", "xylophon", "NOUN", "xylophon"),
         "und": ("CCONJ", "und", "CCONJ", "und"),
         "ab": ("ADP", "ab", "ADP", "ab"),
+        # The infinitive reads as itself and ends like a declined ``mal``;
+        # ``malt`` is what proves it is a verb.
+        "malen": ("NOUN", "malen", "VERB", "malen"),
+        "malt": ("VERB", "malen", "VERB", "malen"),
+        "mal": ("ADV", "mal", "ADV", "mal"),
+        # The noun reads as a declined ``lieb``; the capitalised reading and
+        # the frequency say otherwise.
+        "liebe": ("NOUN", "liebe", "ADJ", "liebe"),
+        "lieb": ("ADJ", "lieb", "ADJ", "lieb"),
+        # spaCy's own chain: the files read as the file, the file as the act.
+        "akten": ("NOUN", "akte", "NOUN", "akte"),
+        "akte": ("NOUN", "akt", "NOUN", "akte"),
+        "akt": ("NOUN", "akt", "NOUN", "akt"),
+        "meinem": ("DET", "mein", "DET", "mein"),
+        "mein": ("DET", "mein", "DET", "mein"),
+        # A preposition by class, a content word by use: "laut" is loud.
+        "laut": ("ADP", "laut", "ADP", "laut"),
     }
+    STOP = frozenset({"und", "mein", "ab"})
 
     def build(self, **kwargs):
         kwargs.setdefault("classes", self.CLASSES)
-        return core_lexicon.build_core_lexicon(self.VOCAB, self.LEMMA, **kwargs)
+        kwargs.setdefault("stopwords", self.STOP)
+        return core_lexicon.build_lexicon(self.VOCAB, self.LEMMA, **kwargs)
 
     def test_keeps_one_entry_per_lemma(self):
-        core, fold = self.build(min_zipf=0.0)
-        assert "hund" in core
-        assert "hunde" not in core
-        assert fold["hunde"] == "hund"
+        lex = self.build()
+        assert "hund" in lex.scale
+        assert "hunde" not in lex.scale
+        assert lex.fold["hunde"] == "hund"
 
-    def test_applies_the_frequency_floor(self):
-        core, _ = self.build(min_zipf=4.0)
-        assert "haus" in core
-        assert "xylophon" not in core
+    def test_a_rare_word_counts(self):
+        # The original game ranks "leggings" at 25.638 rather than refusing it;
+        # frequency decides the everyday list, never whether a word counts.
+        lex = self.build(min_zipf=7.0)
+        assert "xylophon" in lex.scale
+        assert "xylophon" not in lex.everyday
 
-    def test_a_word_players_type_beats_the_floor(self):
+    def test_the_frequency_floor_shapes_the_everyday_list(self):
+        lex = self.build(min_zipf=4.0)
+        assert "haus" in lex.everyday
+        assert "xylophon" not in lex.everyday
+
+    def test_a_word_players_type_is_an_everyday_word(self):
         # Corpus frequency gets the words for body part and weekday wrong just
         # under the floor, and players typed them by the hundred.
-        core, _ = self.build(min_zipf=7.0, guess_counts={"xylophon": 40}, min_guesses=10)
-        assert "xylophon" in core
+        lex = self.build(min_zipf=7.0, guess_counts={"xylophon": 40}, min_guesses=10)
+        assert "xylophon" in lex.everyday
 
-    def test_closed_class_words_hold_no_place(self):
-        core, fold = self.build(min_zipf=0.0)
-        assert "und" not in core and "und" not in fold
+    def test_a_stop_word_holds_no_place(self):
+        lex = self.build()
+        assert "und" not in lex.scale and "und" not in lex.fold
+
+    def test_a_form_of_a_stop_word_is_refused_with_it(self):
+        lex = self.build()
+        assert "meinem" not in lex.scale and "meinem" not in lex.fold
+
+    def test_a_closed_class_reading_does_not_refuse_a_word(self):
+        assert "laut" in self.build().scale
+
+    def test_an_infinitive_keeps_its_ending(self):
+        # Stripping "-en" from verbs scored malen as mal and lieben as lieb,
+        # 5.505 real guesses on production.
+        lex = self.build()
+        assert "malen" in lex.scale
+        assert lex.fold.get("malt") == "malen"
+
+    def test_a_noun_in_e_is_not_a_declined_adjective(self):
+        lex = self.build()
+        assert "liebe" in lex.scale
+        assert "liebe" not in lex.fold
+
+    def test_a_fold_does_not_follow_a_chain(self):
+        lex = self.build()
+        assert lex.fold.get("akte") == "akt"
+        assert "akten" in lex.scale
+
+    def test_the_everyday_list_can_be_frozen(self):
+        # A rebuild passes the deployed list, because the vectors are debiased
+        # on it and a list that moved would move every rank of every game.
+        lex = self.build(everyday={"xylophon", "und", "gibtesnicht"})
+        assert lex.everyday == ["und", "xylophon"]
+        assert "und" not in lex.scale
 
     def test_drops_very_short_forms(self):
-        core, _ = self.build(min_zipf=0.0, min_length=3)
-        assert "ab" not in core
+        assert "ab" not in self.build(min_length=3).scale
 
     def test_keep_wins_over_the_floor(self):
-        core, _ = self.build(min_zipf=7.0, keep={"xylophon", "nichtimvokabular"})
-        assert "xylophon" in core
-        assert "nichtimvokabular" not in core
+        lex = self.build(min_zipf=7.0, keep={"xylophon", "nichtimvokabular"})
+        assert "xylophon" in lex.everyday
+        assert "nichtimvokabular" not in lex.scale
 
     def test_a_solution_is_never_folded_away(self):
         # A solution scored as some other word would report the round solved on
         # the wrong one, so keep wins over the fold as well.
-        core, fold = self.build(min_zipf=0.0, keep={"hunde"})
-        assert "hunde" in core
-        assert "hunde" not in fold
+        lex = self.build(keep={"hunde"})
+        assert "hunde" in lex.scale
+        assert "hunde" not in lex.fold
+
+    def test_an_everyday_word_is_never_folded_away(self):
+        lex = self.build(everyday={"hunde"})
+        assert "hunde" in lex.scale
+        assert "hunde" not in lex.fold
 
     def test_a_fold_always_lands_on_a_counted_word(self):
-        core, fold = self.build(min_zipf=0.0)
-        assert set(fold.values()) <= set(core)
+        lex = self.build()
+        assert set(lex.fold.values()) <= set(lex.scale)
+        assert not set(lex.fold) & set(lex.scale)
+
+    def test_write_lexicon_round_trip(self, data_dir):
+        lex = core_lexicon.Lexicon(scale=["haus", "hund"], fold={"hunde": "hund"}, everyday=["haus"])
+        core_lexicon.write_lexicon(data_dir, lex)
+        assert core_lexicon.load_core_words(data_dir) == ["haus", "hund"]
+        assert core_lexicon.load_fold_map(data_dir) == {"hunde": "hund"}
+        assert core_lexicon.load_everyday_words(data_dir) == ["haus"]
 
     def test_fold_map_round_trip(self, data_dir):
         core_lexicon.write_fold_map(data_dir, {"hunde": "hund"})
