@@ -145,8 +145,19 @@ def main() -> int:
         with open(args.guess_counts, encoding="utf-8") as f:
             guess_counts = json.load(f)
         log(f"  {len(guess_counts)} words carry a guess count from production")
+    # The deployed counted list is kept whole. Striking a solution takes it out
+    # of the answers, not out of the language: without this, a struck word that
+    # only counted because it was a solution would start being refused as a
+    # guess, and the debias, fitted on the counted list, would move every rank
+    # of the game being played today.
+    deployed_core: set[str] = set()
+    deployed_core_path = os.path.join(args.prod_dir, "core_words.json")
+    if os.path.exists(deployed_core_path):
+        with open(deployed_core_path, encoding="utf-8") as f:
+            deployed_core = set(json.load(f))
+        log(f"  {len(deployed_core)} deployed counted words stay counted")
     core, fold = core_lexicon.build_core_lexicon(
-        vocab_index, lemma_map, keep=set(targets), guess_counts=guess_counts)
+        vocab_index, lemma_map, keep=set(targets) | deployed_core, guess_counts=guess_counts)
     missing_from_core = [w for w in targets if w not in set(core)]
     if missing_from_core:
         # A solution outside the core would be counted by nothing, and the

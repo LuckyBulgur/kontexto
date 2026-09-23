@@ -34,7 +34,7 @@
 # The list is data, not output. Edit it by hand, keep it sorted, one word per
 # line. scripts/recode-pool.py applies a reviewed pass to both files.
 #
-# 2.761 words, about 7,6 years of daily puzzles.
+# 2.705 words, about 7,4 years of daily puzzles.
 
 abbildung
 abdruck
@@ -119,7 +119,6 @@ arena
 arm
 armaturenbrett
 armband
-armbanduhr
 armee
 armut
 aroma
@@ -142,7 +141,6 @@ aubergine
 aufbau
 aufdruck
 aufenthalt
-auffahrt
 aufführung
 aufgabe
 aufkleber
@@ -178,17 +176,12 @@ autor
 autorennen
 autoschlüssel
 autounfall
-außenspiegel
 axt
 baby
 babysitter
 backofen
 backpulver
 bad
-badeanzug
-badehose
-bademantel
-badesee
 badewanne
 badezimmer
 badminton
@@ -209,7 +202,6 @@ banane
 band
 bank
 bar
-bargeld
 barock
 bart
 baseball
@@ -251,7 +243,6 @@ berg
 bergbau
 bergwerk
 beruf
-berufsschule
 berührung
 besatzung
 beschreibung
@@ -264,7 +255,6 @@ beton
 betreuer
 betreuung
 bett
-bettdecke
 bettlaken
 bettler
 bettwäsche
@@ -327,13 +317,11 @@ bordstein
 bowling
 box
 boxer
-boxershorts
 brandung
 braten
 bratwurst
 brauerei
 braut
-brautkleid
 brei
 bremse
 brennholz
@@ -342,7 +330,6 @@ brettspiel
 brief
 briefkasten
 briefmarke
-briefpapier
 brieftasche
 brille
 brokkoli
@@ -491,7 +478,6 @@ effekt
 ego
 ehe
 ehefrau
-ehemann
 ehepaar
 ehrgeiz
 ei
@@ -732,7 +718,6 @@ futter
 fuß
 fußball
 fußballplatz
-fußboden
 fußgänger
 fußgängerzone
 fußmatte
@@ -819,7 +804,6 @@ geruch
 gerät
 geräusch
 gerüst
-gesamtschule
 gesang
 geschenk
 geschenkpapier
@@ -859,7 +843,6 @@ gitarre
 gitarrist
 glanz
 glas
-glasplatte
 glasur
 glatze
 gleichgewicht
@@ -888,7 +871,6 @@ griff
 grill
 grippe
 großeltern
-großstadt
 grundschule
 grundstück
 grundwasser
@@ -898,7 +880,6 @@ gulasch
 gummi
 gummiband
 gummibärchen
-gummistiefel
 gurke
 gurt
 gutschein
@@ -919,10 +900,8 @@ hagel
 hahn
 hai
 haken
-halbbruder
 halbinsel
 halbkreis
-hallenbad
 hals
 halsband
 halskette
@@ -942,7 +921,6 @@ handschlag
 handschrift
 handschuh
 handschuhfach
-handtasche
 handtuch
 handwerk
 handwerker
@@ -957,7 +935,6 @@ haufen
 hauptgericht
 hauptstadt
 haus
-hausarzt
 hausaufgabe
 hausboot
 hausfrau
@@ -972,7 +949,6 @@ hebamme
 hebel
 hecke
 heckklappe
-heckscheibe
 hefe
 heft
 heiligabend
@@ -1084,7 +1060,6 @@ intelligenz
 internat
 internet
 jacke
-jackett
 jagd
 jaguar
 jahr
@@ -1094,7 +1069,6 @@ jahrmarkt
 jazz
 jeans
 jogger
-jogginghose
 joghurt
 journalist
 judo
@@ -1187,8 +1161,6 @@ kiesel
 kilometer
 kimono
 kind
-kinderarzt
-kinderbuch
 kindergarten
 kindergeld
 kindersitz
@@ -1223,7 +1195,6 @@ kleiderbügel
 kleiderschrank
 kleidung
 kleingeld
-kleinstadt
 klima
 klimaanlage
 klimawandel
@@ -1560,7 +1531,6 @@ militär
 millionär
 mimik
 mineral
-mineralwasser
 minigolf
 minze
 mischung
@@ -1618,7 +1588,6 @@ mähne
 männchen
 märchen
 möbel
-möbelhaus
 möhre
 mörtel
 möwe
@@ -1638,7 +1607,6 @@ nachbarschaft
 nachhilfe
 nachmittag
 nacht
-nachthemd
 nachtigall
 nachtisch
 nachtleben
@@ -1694,7 +1662,6 @@ oase
 oberarm
 oberfläche
 obergeschoss
-oberkiefer
 oberkörper
 oberlippe
 oberschenkel
@@ -1928,7 +1895,6 @@ raumstation
 raupe
 reagenzglas
 reaktor
-realschule
 rechnung
 recycling
 refrain
@@ -1950,7 +1916,6 @@ reiter
 reitsport
 rektor
 rennfahrer
-rennrad
 rennwagen
 rente
 reparatur
@@ -1994,9 +1959,7 @@ rundfunk
 ruß
 rätsel
 räuber
-rückbank
 rücken
-rückfahrt
 rückkehr
 rücklicht
 rückseite
@@ -2062,7 +2025,6 @@ schirm
 schlacht
 schlachtfeld
 schlaf
-schlafanzug
 schlafsack
 schlafzimmer
 schlagzeug
@@ -2132,7 +2094,6 @@ schwerpunkt
 schwert
 schwester
 schwiegermutter
-schwiegertochter
 schwiegervater
 schwimmbad
 schwimmer
@@ -2173,7 +2134,6 @@ sirene
 sirup
 situation
 sitz
-sitzbank
 skateboard
 skelett
 ski
@@ -2204,9 +2164,7 @@ sonne
 sonnenaufgang
 sonnenblume
 sonnenbrand
-sonnenbrille
 sonnencreme
-sonnenschirm
 sonnensystem
 sonnenuntergang
 sonntag
@@ -2245,7 +2203,6 @@ sport
 sportart
 sporthalle
 sportler
-sportplatz
 sportverein
 sprache
 sprechstunde
@@ -2328,7 +2285,6 @@ strom
 stromnetz
 struktur
 strumpf
-strumpfhose
 student
 studie
 studio
@@ -2461,12 +2417,10 @@ tracht
 tradition
 trainer
 training
-trainingsanzug
 traktor
 trampolin
 transport
 traube
-traubensaft
 traum
 trauma
 treppe
@@ -2477,7 +2431,6 @@ tribüne
 trichter
 trikot
 trinkgeld
-trinkwasser
 triumph
 trockner
 troll
@@ -2522,23 +2475,18 @@ uniform
 universität
 universum
 unkraut
-unterarm
 untergrund
 unterhaltung
-unterhemd
-unterhose
 unterkiefer
 unterkunft
 unternehmer
 unterricht
-unterschenkel
 unterschrift
 unterstützung
 untersuchung
 unterwelt
 unterwäsche
 uran
-urgroßvater
 urkunde
 urlaub
 ursprung
@@ -2593,14 +2541,12 @@ vollgas
 vollmond
 vorbereitung
 vordergrund
-vorderrad
 vorderseite
 vorfahren
 vorfahrt
 vorgarten
 vorhang
 vorlage
-vormittag
 vorname
 vorort
 vorrat
@@ -2644,7 +2590,6 @@ wasserhahn
 wasserkocher
 wasserkraft
 wassermelone
-wassersport
 wasserstoff
 watt
 watte
@@ -2688,7 +2633,6 @@ windrichtung
 windschutzscheibe
 winkel
 winter
-wintersport
 wippe
 wirbelsäule
 wirklichkeit
