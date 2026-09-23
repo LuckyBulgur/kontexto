@@ -77,4 +77,28 @@ test.describe("Wortbewertung", () => {
 
     await expect(page.getByText(QUESTION)).toBeVisible({ timeout: 10_000 });
   });
+
+  test("fragt nicht nach einem Spiel aus dem alten Pool", async ({ page, request }) => {
+    // The fixture has no legacy games, so the floor is moved above today's
+    // game in the one response that carries it. Everything else stays real.
+    await page.route("**/api/game", async (route) => {
+      const response = await route.fetch();
+      const info = await response.json();
+      await route.fulfill({
+        response,
+        json: { ...info, firstCuratedGame: info.gameNumber + 1 },
+      });
+    });
+    const { word } = await (await request.get("/api/reveal")).json();
+
+    await page.goto("/");
+    const input = page.getByRole("textbox");
+    await input.fill(word);
+    await input.press("Enter");
+    await expect(page.getByRole("heading", { name: word, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await expect(page.getByText(QUESTION)).toHaveCount(0);
+  });
 });
