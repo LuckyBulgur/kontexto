@@ -38,11 +38,15 @@ export type AdcashSlot = "railLeft" | "railRight" | "bottomBar";
  * Kept in code rather than in build variables for the same reason as
  * `ADSENSE_CLIENT_ID`: they are public, and the e2e suite reads them to know
  * which slots to expect. `null` renders no slot and loads nothing.
+ *
+ * Each id's size was read from Adcash itself (the `width`/`height` that
+ * banner.php returns for the zone, 2026-09-23), not from the order the ids
+ * were copied in: a 300x100 zone in a 160x600 slot was live once.
  */
 export const ADCASH_ZONES: Record<AdcashSlot, string | null> = {
-  railLeft: "12211714",
-  railRight: "12211722",
-  bottomBar: "12211730",
+  railLeft: "12211730", // 160x600
+  railRight: "12211722", // 160x600
+  bottomBar: "12211714", // 300x100
 };
 
 export const ADCASH_SLOT_SIZES: Record<AdcashSlot, { width: number; height: number }> = {
