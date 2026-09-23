@@ -140,6 +140,22 @@ test.describe("Werbe-Einwilligung", () => {
     }
   });
 
+  test("die Erlaubnis gilt in jedem Modus, Solo wie Mehrspieler", async ({ page }) => {
+    test.skip(!HAS_ZONES, NO_ZONES);
+    await stubAdcash(page);
+    await page.goto("/solo/leiter/");
+    await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
+    for (const path of ["/solo/leiter/", "/wordle/", "/duel/", "/koop/", "/arena/", "/wordle/duel/", "/suche/"]) {
+      await page.goto(path);
+      const slots = page.locator("[data-adcash-slot]");
+      await expect(slots.first(), path).toBeVisible();
+      for (const slot of await slots.all()) {
+        await expect(slot.locator("[data-rendered]"), path).toHaveCount(1);
+      }
+    }
+    await expect(page.locator("script#aclib:not([type='text/plain'])")).toHaveCount(1);
+  });
+
   test("Randbanner ab 1280 Pixeln, darunter nur die Leiste unten", async ({ page }) => {
     test.skip(!HAS_ZONES, NO_ZONES);
     await stubAdcash(page);
@@ -181,11 +197,11 @@ test.describe("Werbe-Einwilligung", () => {
     await expect(page.locator("[data-adcash-slot]")).toHaveCount(0);
   });
 
-  test("auf Inhalts-, Rechts- und Mehrspielerseiten laedt Adcash trotz Erlaubnis nicht", async ({ page }) => {
+  test("auf Inhalts-, Rechts- und Stream-Seiten laedt Adcash trotz Erlaubnis nicht", async ({ page }) => {
     const requests = adcashRequests(page);
     await page.goto("/faq/");
     await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
-    for (const path of ["/faq/", "/datenschutz/", "/duel/", "/solo/leiter/"]) {
+    for (const path of ["/faq/", "/datenschutz/", "/modi/", "/live/"]) {
       await page.goto(path);
       await expect(page.locator("footer")).toBeVisible();
     }
@@ -207,8 +223,15 @@ test.describe("Werbe-Einwilligung", () => {
     });
     await page.locator("footer").getByRole("link", { name: "Datenschutz" }).first().click();
     await expect(page).toHaveURL(/\/datenschutz\/$/);
+    // The URL changes on the client first and the full reload follows. A read
+    // that lands inside the reload finds the old context destroyed; that is the
+    // reload still under way, so it counts as "same document" and is polled again.
     await expect
-      .poll(() => page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument ?? false))
+      .poll(() =>
+        page
+          .evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument ?? false)
+          .catch(() => true)
+      )
       .toBe(false);
     await expect(page.locator("script#aclib:not([type='text/plain'])")).toHaveCount(0);
   });
