@@ -7,11 +7,12 @@
  * together.
  *
  * Formats: display banners only, a 160x600 skyscraper on each side from `xl`
- * up and one 320x50 bar at the bottom below that. Autotag is deliberately not
- * run. Measured on 2026-09-23 against zone l8rhgb60kc it rotates pop-under,
- * interstitial, in-page push and a video slider, and it opened a pop-under on
- * page load without a click. That is the behaviour the AdSense review rejects a
- * site for.
+ * up and one 300x100 bar at the bottom below that (Adcash offers no 320x50).
+ * Autotag is deliberately not run. Measured on 2026-09-23 against zone
+ * l8rhgb60kc it rotates pop-under, interstitial, in-page push and a video
+ * slider, and it loaded an advertiser landing page, with that page's cookies,
+ * on page load without a click. Intrusive formats like these are what the
+ * AdSense review rejects a site for.
  *
  * Scope: the same two single-player pages that the AdSense allowlist names.
  * The terms of use, the editorial principles and the FAQ promise exactly that.
@@ -39,15 +40,15 @@ export type AdcashSlot = "railLeft" | "railRight" | "bottomBar";
  * which slots to expect. `null` renders no slot and loads nothing.
  */
 export const ADCASH_ZONES: Record<AdcashSlot, string | null> = {
-  railLeft: null,
-  railRight: null,
-  bottomBar: null,
+  railLeft: "12211714",
+  railRight: "12211722",
+  bottomBar: "12211730",
 };
 
 export const ADCASH_SLOT_SIZES: Record<AdcashSlot, { width: number; height: number }> = {
   railLeft: { width: 160, height: 600 },
   railRight: { width: 160, height: 600 },
-  bottomBar: { width: 320, height: 50 },
+  bottomBar: { width: 300, height: 100 },
 };
 
 /**

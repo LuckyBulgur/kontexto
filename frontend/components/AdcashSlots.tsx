@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import {
   ADCASH_ENABLED,
@@ -28,16 +28,51 @@ const getServerLayout = (): Layout => "server";
 const LABEL = "Anzeige";
 
 /**
- * One display zone. Rendered only when it is visible: an ad placed into a
- * hidden container counts an impression nobody saw, which ad networks treat as
- * invalid traffic. If aclib.js is blocked the slot removes itself, so no empty
- * "Anzeige" box is left standing.
+ * One display zone. Mounted only for the layout that is on screen: an ad
+ * placed into a container hidden by CSS counts an impression nobody saw, which
+ * ad networks treat as invalid traffic.
+ *
+ * It stays invisible until Adcash actually puts something into it. Adcash
+ * answers a zone without a matching ad with an empty 204 (measured on
+ * 2026-09-23 for all three zones right after they were created), and without
+ * this an empty "Anzeige" box would stand next to the game. The switch to
+ * visible happens in the mutation callback, before the next paint, so the ad
+ * is never on screen while its slot is hidden. A blocked aclib.js removes the
+ * slot altogether.
  */
-function Slot({ slot, zoneId, className }: { slot: AdcashSlot; zoneId: string; className: string }) {
+function Slot({
+  slot,
+  zoneId,
+  className,
+  onFilled,
+}: {
+  slot: AdcashSlot;
+  zoneId: string;
+  className: string;
+  onFilled?: () => void;
+}) {
   const [failed, setFailed] = useState(false);
+  const [filled, setFilled] = useState(false);
   const started = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const elementId = `adcash-${slot}`;
   const { width, height } = ADCASH_SLOT_SIZES[slot];
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const check = () => {
+      if (container.childElementCount > 0) {
+        setFilled(true);
+        onFilled?.();
+        observer.disconnect();
+      }
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(container, { childList: true });
+    check();
+    return () => observer.disconnect();
+  }, [onFilled]);
 
   useEffect(() => {
     if (started.current) return;
@@ -48,11 +83,17 @@ function Slot({ slot, zoneId, className }: { slot: AdcashSlot; zoneId: string; c
   if (failed) return null;
 
   return (
-    <aside aria-label={LABEL} className={className} data-adcash-slot={slot}>
+    <aside
+      aria-label={LABEL}
+      aria-hidden={filled ? undefined : true}
+      className={filled ? className : `${className} invisible`}
+      data-adcash-slot={slot}
+      data-filled={filled ? "true" : "false"}
+    >
       <span aria-hidden="true" className="mb-1 block text-center text-micro text-muted-foreground">
         {LABEL}
       </span>
-      <div id={elementId} style={{ width, height }} />
+      <div ref={containerRef} id={elementId} style={{ width, height }} />
     </aside>
   );
 }
@@ -64,10 +105,12 @@ function Slot({ slot, zoneId, className }: { slot: AdcashSlot; zoneId: string; c
  */
 function BottomBar({ zoneId }: { zoneId: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [filled, setFilled] = useState(false);
+  const markFilled = useCallback(() => setFilled(true), []);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || !filled) return;
     const root = document.documentElement;
     const apply = () => root.style.setProperty("--ad-bar-height", `${element.offsetHeight}px`);
     apply();
@@ -77,21 +120,21 @@ function BottomBar({ zoneId }: { zoneId: string }) {
       observer.disconnect();
       root.style.removeProperty("--ad-bar-height");
     };
-  }, []);
+  }, [filled]);
 
   return (
     <div
       ref={ref}
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-center bg-card px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-lg"
+      className={`fixed inset-x-0 bottom-0 z-40 flex justify-center bg-card px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-lg${filled ? "" : " invisible"}`}
     >
-      <Slot slot="bottomBar" zoneId={zoneId} className="flex flex-col items-center" />
+      <Slot slot="bottomBar" zoneId={zoneId} className="flex flex-col items-center" onFilled={markFilled} />
     </div>
   );
 }
 
 /**
  * Adcash display banners, mounted once in the root layout: a 160x600 rail on
- * each side from 1280px, a 320x50 bar at the bottom below that. Nothing is
+ * each side from 1280px, a 300x100 bar at the bottom below that. Nothing is
  * rendered, and aclib.js is never requested, without a stored consent, off the
  * two single-player pages, or for a zone that has no id yet.
  *

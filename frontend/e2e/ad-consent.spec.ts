@@ -22,16 +22,22 @@ const HAS_ZONES = Object.values(ADCASH_ZONES).some((zone) => zone !== null);
 const NO_ZONES = "no Adcash display zone configured in lib/adcash.ts yet";
 
 /**
- * Stands in for aclib.js: records each runBanner call and fills the target,
- * so a spec can see which slots were asked for without reaching Adcash.
+ * Stands in for aclib.js. With `fill` it puts an element into each target the
+ * way a served ad does; without, it does what Adcash does for a zone with no
+ * matching ad (an empty 204): nothing.
  */
-async function stubAdcash(page: Page): Promise<void> {
+async function stubAdcash(page: Page, { fill = true }: { fill?: boolean } = {}): Promise<void> {
   await page.route(ADCASH, (route) =>
     route.fulfill({
       contentType: "text/javascript",
       body: `window.aclib = { runBanner: function (o) {
+        if (!${fill}) return;
         var el = document.querySelector(o.renderIn);
-        if (el) el.setAttribute("data-rendered", o.zoneId);
+        if (!el) return;
+        var ad = document.createElement("div");
+        ad.setAttribute("data-rendered", o.zoneId);
+        ad.style.cssText = "width:100%;height:100%;background:#ccc";
+        el.appendChild(ad);
       } };`,
     }),
   );
@@ -151,6 +157,18 @@ test.describe("Werbe-Einwilligung", () => {
       const padding = await page.evaluate(() => getComputedStyle(document.body).paddingBottom);
       expect(parseFloat(padding)).toBeGreaterThanOrEqual(50);
     }
+  });
+
+  test("ohne ausgelieferte Anzeige bleibt keine leere Flaeche stehen", async ({ page }) => {
+    test.skip(!HAS_ZONES, NO_ZONES);
+    await stubAdcash(page, { fill: false });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await banner(page).getByRole("button", { name: "Akzeptieren" }).click();
+    await expect(page.locator("[data-adcash-slot='bottomBar']")).toHaveAttribute("data-filled", "false");
+    await expect(page.locator("[data-adcash-slot]")).toBeHidden();
+    const padding = await page.evaluate(() => getComputedStyle(document.body).paddingBottom);
+    expect(padding).toBe("0px");
   });
 
   test("ohne eingetragene Zone laedt Adcash auch nach Erlauben nicht", async ({ page }) => {
