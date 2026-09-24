@@ -246,7 +246,7 @@ the game speaking, not the player. It decides the tip, the Leiter opening word a
 Sudden Death runners-up; since those are ranks 2 to 6 without a gap, a game whose runners-up
 hold a blocked word is not dealt (`random_sudden_death_game`). A blocked word stays a legal
 guess with its rank; in the neighbour list after a round it keeps its row and shows as
-`p****l`. Measured on the deployed build: 130 of 14.840 hint words are filtered, 24 of 2.675
+`p****l`. Measured on the deployed build: 137 of 14.840 hint words are filtered (2026-09-25), 24 of 2.675
 curated games leave the Sudden Death draw, 0,3 s per worker at startup.
 
 **Solutions follow the same rule, and so does their neighbourhood.** A solution is struck
