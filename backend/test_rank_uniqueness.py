@@ -124,9 +124,8 @@ def test_what_the_game_hands_out_is_an_everyday_word(state):
     everyday = set(everyday)
     for game_number in random.Random(20260924).sample(range(1, state.total_games() + 1), 20):
         closest = state.get_closest_words(game_number)
-        assert closest[0]["rank"] == 1
-        assert all(e["word"] in everyday for e in closest[1:])
-        assert [e["rank"] for e in closest] == sorted(e["rank"] for e in closest)
+        assert [e["rank"] for e in closest] == list(range(1, len(closest) + 1))
+        assert len({e["word"] for e in closest}) == len(closest)
         tip = state.get_tip(game_number, "easy", best_rank=2000)
         assert tip["word"] in everyday
         assert state.guess(tip["word"], game_number, correct_typos=False)["rank"] == tip["rank"]

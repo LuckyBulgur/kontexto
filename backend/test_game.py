@@ -325,8 +325,10 @@ class TestEverydayHints:
 
     The scale counts every base form since 2026-09-24, rare compounds included,
     and a tip naming one of those is the thing the everyday list exists to keep
-    out. So tips, neighbour lists and opening words skip them and report the
-    rank the everyday word really holds.
+    out. So a single word handed out, a tip or the Leiter opening word, skips
+    them and reports the rank the everyday word really holds. Every list the
+    game shows (the neighbour list, the Sudden Death runners-up) is a run of
+    consecutive ranks instead, because a list with gaps reads as a bug.
     """
 
     @pytest.fixture
@@ -353,9 +355,11 @@ class TestEverydayHints:
     def test_no_tip_once_every_everyday_word_was_guessed(self, hint_dir):
         assert GameState(hint_dir).get_tip(1, "easy", best_rank=5, guessed_ranks=[4, 5]) is None
 
-    def test_the_neighbour_list_holds_the_solution_and_everyday_words(self, hint_dir):
+    def test_the_neighbour_list_has_no_gaps(self, hint_dir):
         assert GameState(hint_dir).get_closest_words(1) == [
             {"word": "apfel", "rank": 1},
+            {"word": "birne", "rank": 2},
+            {"word": "kirsche", "rank": 3},
             {"word": "auto", "rank": 4},
             {"word": "haus", "rank": 5},
         ]
@@ -367,10 +371,11 @@ class TestEverydayHints:
         assert state.word_at_rank(1, 6) is None
         assert state.word_at_rank(1, 1) is None
 
-    def test_words_at_ranks_are_distinct_and_nearest_first(self, hint_dir):
-        assert GameState(hint_dir).words_at_ranks(1, [2, 3, 4]) == [
+    def test_words_at_ranks_are_the_exact_ranks_without_gaps(self, hint_dir):
+        assert GameState(hint_dir).words_at_ranks(1, [4, 2, 3, 2, 1, 9]) == [
+            {"word": "birne", "rank": 2},
+            {"word": "kirsche", "rank": 3},
             {"word": "auto", "rank": 4},
-            {"word": "haus", "rank": 5},
         ]
 
     def test_an_everyday_word_holding_no_number_is_never_handed_out(self, data_dir):
@@ -379,7 +384,7 @@ class TestEverydayHints:
         core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])
         core_lexicon.write_everyday_words(data_dir, ["apfel", "birne", "haus"])
         state = GameState(data_dir)
-        assert state.words_at_ranks(1, [2, 3, 4]) == [{"word": "haus", "rank": 3}]
+        assert state.word_at_rank(1, 2) == {"word": "haus", "rank": 3}
 
     def test_without_the_file_the_scale_is_the_everyday_list(self, data_dir):
         core_lexicon.write_core_words(data_dir, ["apfel", "kirsche", "haus"])

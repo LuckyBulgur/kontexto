@@ -421,25 +421,16 @@ class GameState:
         return self._entry(view, int(view.hint_ranks[position]))
 
     def words_at_ranks(self, game_number: int, wanted: list[int]) -> list[dict]:
-        """Distinct everyday words at or beyond several ranks, nearest first.
+        """The words at exactly these ranks, nearest first, rank 1 never.
 
-        Sudden Death asks for ranks 2 to 6 and gets the five everyday words
-        closest to the solution, whatever ranks they hold.
+        Sudden Death asks for ranks 2 to 6 and shows them as a list, so they
+        come from the whole scale like the neighbour list does: drawn from the
+        everyday list they read 4, 6, 7, 8, 14, which a player takes for a bug.
+        A rank past the end of the scale is left out.
         """
         view = self._get_view(game_number)
-        hints = view.hint_ranks
-        out: list[dict] = []
-        floor = 2
-        for rank in sorted(set(wanted)):
-            if rank < 2:
-                continue
-            position = bisect.bisect_left(hints, max(rank, floor))
-            if position >= len(hints):
-                break
-            found = int(hints[position])
-            out.append(self._entry(view, found))
-            floor = found + 1
-        return out
+        last = len(view.rank_to_index) - 1
+        return [self._entry(view, rank) for rank in sorted(set(wanted)) if 2 <= rank <= last]
 
     def _entry(self, view: GameView, rank: int) -> dict:
         return {"word": self.index_to_word[int(view.rank_to_index[rank])], "rank": rank}
@@ -509,15 +500,15 @@ class GameState:
         return self.target_words[game_number - 1]
 
     def get_closest_words(self, game_number: int) -> list[dict]:
-        """The solution and the 499 everyday words closest to it.
+        """The 500 words nearest the solution, rank 1 to 500 without a gap.
 
-        Each carries its own rank, so the list has gaps where rare words sit in
-        between; filling them would put back the compounds the everyday list
-        keeps out.
+        This is the list the original shows once a round is over, and like the
+        original it names every word that holds a number, rare ones included:
+        a list that skipped them read as broken, because the ranks jumped from
+        1 to 4 to 6. The list only appears after the round, so naming a rare
+        compound gives nothing away. Tips and opening words, which are handed
+        out while the round is open, still come from the everyday list.
         """
         view = self._get_view(game_number)
-        if len(view.rank_to_index) < 2:
-            return []
-        return [self._entry(view, 1)] + [
-            self._entry(view, int(rank)) for rank in view.hint_ranks[:499]
-        ]
+        last = min(500, len(view.rank_to_index) - 1)
+        return [self._entry(view, rank) for rank in range(1, last + 1)]
