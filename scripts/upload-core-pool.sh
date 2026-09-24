@@ -136,14 +136,17 @@ case "${1:-}" in
 
         # The words the rebuild was made for, and the ones it must not touch.
         # Umlauts are written as Python escapes, which the string literal
-        # resolves, so the check does not depend on the shell's encoding: a plural beside its singular, a finite verb form, a noun
-        # that reads like a plural, an infinitive, a rare word, a stop word.
+        # resolves, so the check does not depend on the shell's encoding: a
+        # plural beside its singular, a finite verb form, a noun that reads
+        # like a plural, an infinitive, a rare word, a stop word. The ssh call
+        # reads from /dev/null, or it swallows the rest of the list after the
+        # first check.
         while read -r guess expected; do
             ANSWER=$(in_container "python3 -c \"import urllib.request as u,json;\
 o=u.OpenerDirector();o.add_handler(u.HTTPHandler());\
 r=u.Request('http://127.0.0.1:8000/api/guess',data=json.dumps({'word':'$guess'}).encode(),\
 headers={'Content-Type':'application/json'});\
-d=json.load(o.open(r));print((d.get('word') or d.get('error')).encode('unicode_escape').decode())\"" | tr -d '\r') || ANSWER=""
+d=json.load(o.open(r));print((d.get('word') or d.get('error')).encode('unicode_escape').decode())\"" < /dev/null | tr -d '\r') || ANSWER=""
             if [ "$ANSWER" != "$expected" ]; then
                 echo "ABORT: '$guess' answered '$ANSWER', expected '$expected'. Run --rollback-lexicon."
                 exit 1
