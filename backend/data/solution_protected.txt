@@ -111,7 +111,6 @@ armband
 atom
 ausflug
 bahnsteig
-blase
 bohne
 box
 bremse
@@ -158,7 +157,6 @@ kontinent
 krankenschwester
 krater
 kugel
-kuss
 lasagne
 loch
 lutscher
@@ -174,7 +172,6 @@ müsli
 navi
 nordpol
 pfannkuchen
-pille
 pudding
 pyjama
 rauch
@@ -299,7 +296,6 @@ aura
 belag
 calcium
 dämon
-eichel
 erreger
 fackel
 festung

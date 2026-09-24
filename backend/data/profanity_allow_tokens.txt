@@ -38,3 +38,6 @@ anupoorna
 
 # mist, reached through the squeezed spelling of the verb
 misst
+
+# rape, reached through the squeezed spelling of the black horse
+rappe

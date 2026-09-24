@@ -78,3 +78,38 @@ def test_sudden_death_still_has_games_to_deal(state):
     clean = sum(state.sudden_death_is_clean(n, SUDDEN_DEATH_RANKS) for n in curated)
     # 24 of 2.675 curated games were left out on the build of 2026-09-24.
     assert clean >= 0.97 * len(curated)
+
+
+def _pool() -> list[str]:
+    path = os.path.join(os.path.dirname(__file__), "data", "solution_pool.txt")
+    with open(path, encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+
+def test_no_solution_is_a_blocked_word():
+    # kamel is the animal; the nickname filter lists it as an insult by use.
+    blocklist = core_lexicon.load_hint_blocklist()
+    flagged = {w for w in _pool() if w in blocklist or contains_profanity(w, collapse_words=True)}
+    assert flagged == {"kamel"}
+
+
+def test_a_word_struck_as_unfit_is_out_of_the_pool():
+    unfit = core_lexicon.load_child_unfit_solutions()
+    assert len(unfit) >= 22
+    assert unfit.isdisjoint(_pool())
+
+
+@real_data
+def test_no_solution_sits_among_blocked_neighbours(state):
+    # The rule behind code J: two of the 19 nearest neighbours blocked is a
+    # round that walks a child through that vocabulary.
+    number_of = {word: n for n, word in enumerate(state.target_words, start=1)}
+    crowded = []
+    for word in _pool():
+        number = number_of.get(word)
+        if number is None:
+            continue
+        neighbours = state.words_at_ranks(number, list(range(2, 21)))
+        if sum(state.is_handout_blocked(e["word"]) for e in neighbours) >= 2:
+            crowded.append(word)
+    assert crowded == []

@@ -27,6 +27,13 @@ from wordlists import contains_profanity
 GAME_CACHE_SIZE = 40
 
 
+def mask_word(word: str) -> str:
+    """First and last letter, stars between: ``pimmel`` reads ``p****l``."""
+    if len(word) <= 2:
+        return word[0] + "*" * (len(word) - 1)
+    return word[0] + "*" * (len(word) - 2) + word[-1]
+
+
 class GameView(NamedTuple):
     """One game on the displayed scale."""
 
@@ -125,6 +132,16 @@ class GameState:
             if self.is_handout_blocked(self.index_to_word[index]):
                 self.handout_mask[index] = False
         self._sudden_death_clean: dict[tuple[int, tuple[int, ...]], bool] = {}
+
+        # Games whose solution was struck under code J (no word for a child, or
+        # one whose nearest neighbours are not). The pool no longer holds them,
+        # but a data directory built from an older pool still does, so the
+        # random draws skip them here as well. The daily series is fixed by
+        # date and only a rebuild takes them out of it.
+        unfit = core_lexicon.load_child_unfit_solutions()
+        self.unfit_games: frozenset[int] = frozenset(
+            number for number, word in enumerate(self.target_words, start=1) if word in unfit
+        )
 
         self.stopwords = core_lexicon.load_stopwords() | GERMAN_STOPWORDS
 
@@ -490,7 +507,7 @@ class GameState:
         runners-up include a blocked word. None when no game is left.
         """
         candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
-                      if n not in exclude]
+                      if n not in exclude and n not in self.unfit_games]
         random.shuffle(candidates)
         for number in candidates:
             if self.sudden_death_is_clean(number, ranks):
@@ -540,7 +557,7 @@ class GameState:
         retry).
         """
         candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
-                      if n not in exclude]
+                      if n not in exclude and n not in self.unfit_games]
         if not candidates:
             return None
         return random.choice(candidates)
@@ -553,7 +570,7 @@ class GameState:
         The range starts at :meth:`first_curated_game`.
         """
         candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
-                      if n not in exclude]
+                      if n not in exclude and n not in self.unfit_games]
         if len(candidates) < count:
             return None
         return random.sample(candidates, count)
@@ -573,7 +590,15 @@ class GameState:
         1 to 4 to 6. The list only appears after the round, so naming a rare
         compound gives nothing away. Tips and opening words, which are handed
         out while the round is open, still come from the everyday list.
+
+        A blocked word keeps its row and its rank and shows only its first and
+        last letter, the way an abusive nickname is shown, so the list has no
+        gap and names nothing a child should not read.
         """
         view = self._get_view(game_number)
         last = min(500, len(view.rank_to_index) - 1)
-        return [self._entry(view, rank) for rank in range(1, last + 1)]
+        entries = [self._entry(view, rank) for rank in range(1, last + 1)]
+        for entry in entries[1:]:
+            if self.is_handout_blocked(entry["word"]):
+                entry["word"] = mask_word(entry["word"])
+        return entries

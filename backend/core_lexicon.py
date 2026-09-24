@@ -180,6 +180,12 @@ STOPWORD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data",
 #: Shipped with the code for the same reason as the stop list.
 HINT_BLOCKLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "hint_blocklist_de.txt")
 
+#: The hand-kept record of struck solutions. The runtime reads one code from
+#: it, J (unfit for children), so a game whose solution was struck for that
+#: reason is never dealt at random, even before the data is rebuilt.
+SOLUTION_REJECTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "solution_rejects.txt")
+CHILD_UNFIT_CODE = "J"
+
 
 class Lexicon(NamedTuple):
     """What a build decides about the vocabulary."""
@@ -204,6 +210,20 @@ def load_stopwords() -> frozenset[str]:
 def load_hint_blocklist() -> frozenset[str]:
     """The words a tip may not name beyond the profanity engine, read once."""
     return _read_word_file(HINT_BLOCKLIST_FILE)
+
+
+@functools.cache
+def load_child_unfit_solutions() -> frozenset[str]:
+    """Solutions struck under code J in ``solution_rejects.txt``, read once."""
+    words: set[str] = set()
+    with open(SOLUTION_REJECTS_FILE, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#") or " = " not in line:
+                continue
+            word, reason = line.split(" = ", 1)
+            if reason.split(" ", 1)[0] == CHILD_UNFIT_CODE:
+                words.add(word.strip().lower())
+    return frozenset(words)
 
 
 def _read_word_file(path: str) -> frozenset[str]:

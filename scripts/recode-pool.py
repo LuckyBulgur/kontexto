@@ -60,6 +60,7 @@ CODES = {
     "Z": "ab 13 Zeichen und kein Alltagsding, das jeder selbst erlebt",
     "A": "so allgemein, dass es neben jedem Wort steht und keine Richtung gibt",
     "T": "als Tagesraetsel unpassend im Ton (Gewalt, Krankheit, Ausscheidung)",
+    "J": "nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)",
 }
 
 #: From this length on, a word has to earn the typing. Below it, length is no

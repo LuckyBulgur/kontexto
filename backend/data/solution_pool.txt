@@ -34,7 +34,7 @@
 # The list is data, not output. Edit it by hand, keep it sorted, one word per
 # line. scripts/recode-pool.py applies a reviewed pass to both files.
 #
-# 2.356 words, about 6,5 years of daily puzzles.
+# 2.334 words, about 6,4 years of daily puzzles.
 
 abbildung
 abdruck
@@ -61,7 +61,6 @@ akzent
 alarmanlage
 album
 alge
-alkohol
 allergie
 alltag
 alphabet
@@ -69,7 +68,6 @@ altenheim
 altpapier
 altstadt
 aluminium
-amateur
 ameise
 ampel
 amt
@@ -187,7 +185,6 @@ batterie
 bau
 bauarbeiter
 bauch
-bauchnabel
 bauer
 bauernhof
 baujahr
@@ -243,7 +240,6 @@ bienenstock
 bier
 bierdeckel
 biergarten
-bikini
 bild
 bilderbuch
 bilderrahmen
@@ -253,7 +249,6 @@ billard
 biologie
 birne
 bistro
-blase
 blatt
 blaulicht
 blech
@@ -301,7 +296,6 @@ bronze
 brot
 bruder
 brunnen
-brust
 brustkorb
 bräutigam
 brötchen
@@ -404,7 +398,6 @@ draht
 drehbuch
 dreieck
 dreirad
-droge
 drogerie
 drohne
 druck
@@ -430,7 +423,6 @@ ehe
 ehefrau
 ehepaar
 ei
-eichel
 eichhörnchen
 eidechse
 eigelb
@@ -526,7 +518,6 @@ fahrt
 fahrzeug
 falke
 fallschirm
-falschgeld
 familie
 fantasie
 farbe
@@ -861,7 +852,6 @@ himbeere
 himmel
 hintergrund
 hinterkopf
-hintern
 hippie
 hirsch
 hitze
@@ -906,7 +896,6 @@ hülle
 hütte
 idee
 identität
-idiot
 igel
 imbiss
 immobilie
@@ -1001,7 +990,6 @@ keks
 keller
 kellner
 kennzeichen
-kerl
 kern
 kerze
 kerzenschein
@@ -1082,7 +1070,6 @@ komödie
 konfetti
 konsole
 konstruktion
-konsum
 kontakt
 kontinent
 konto
@@ -1147,7 +1134,6 @@ kuppel
 kupplung
 kur
 kuscheltier
-kuss
 kutsche
 käfer
 käfig
@@ -1205,7 +1191,6 @@ lebensgefahr
 lebensmittel
 leber
 lebewesen
-leck
 leder
 lehm
 lehrer
@@ -1534,7 +1519,6 @@ philosophie
 physik
 pickel
 picknick
-pille
 pilot
 pilz
 pinguin
@@ -1765,7 +1749,6 @@ schlamm
 schlange
 schlauch
 schlauchboot
-schleim
 schlitten
 schlittschuh
 schloss
@@ -1812,7 +1795,6 @@ schuppen
 schwamm
 schwan
 schwangerschaft
-schwanz
 schwefel
 schwein
 schweiß
@@ -1844,8 +1826,6 @@ sekt
 seminar
 sendung
 sessel
-sex
-sexualität
 shampoo
 shorts
 sicht
@@ -1896,7 +1876,6 @@ sparschwein
 spaziergang
 speck
 speer
-speichel
 speicher
 speisekarte
 speiseplan
@@ -2010,7 +1989,6 @@ säure
 süden
 südpol
 süßigkeit
-tabak
 tablet
 tablett
 tablette

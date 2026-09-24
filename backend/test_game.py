@@ -444,9 +444,19 @@ class TestHandoutFilter:
         assert state.guess("pimmel", 1)["rank"] == 2
         assert state.guess("kondom", 1)["rank"] == 3
 
-    def test_the_neighbour_list_is_unchanged(self, adult_dir):
-        words = [e["word"] for e in GameState(adult_dir).get_closest_words(1)]
-        assert words == ["apfel", "pimmel", "kondom", "auto", "haus"]
+    def test_the_neighbour_list_masks_blocked_words_and_keeps_every_rank(self, adult_dir):
+        entries = GameState(adult_dir).get_closest_words(1)
+        assert [e["rank"] for e in entries] == [1, 2, 3, 4, 5]
+        assert [e["word"] for e in entries] == ["apfel", "p****l", "k****m", "auto", "haus"]
+
+    def test_a_game_struck_as_unfit_is_never_drawn(self, data_dir, monkeypatch):
+        # target_words: apfel, birne, kirsche. Strike birne under code J.
+        monkeypatch.setattr(core_lexicon, "load_child_unfit_solutions", lambda: frozenset({"birne"}))
+        state = GameState(data_dir)
+        assert state.unfit_games == {2}
+        assert {state.random_game_number(set()) for _ in range(50)} == {1, 3}
+        assert sorted(state.random_game_numbers(2, set())) == [1, 3]
+        assert state.random_game_numbers(3, set()) is None
 
     def test_sudden_death_skips_a_game_with_a_blocked_runner_up(self, adult_dir):
         state = GameState(adult_dir)

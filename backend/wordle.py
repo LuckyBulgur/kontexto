@@ -5,7 +5,22 @@ import os
 import random
 from datetime import date, datetime, timezone, timedelta
 
+import core_lexicon
+from wordlists import contains_profanity
+
 BERLIN_TZ = timezone(timedelta(hours=1))
+
+#: The first day on which an unfit solution is replaced. Earlier days keep the
+#: word they had, so a player's stored round of that day still matches it.
+UNFIT_REPLACED_FROM = 181
+
+#: Solutions the filters flag that stay on purpose: an animal and a harmless
+#: English loan, both only insults by use, never by meaning.
+KEPT_SOLUTIONS = frozenset({"kamel", "rowdy"})
+
+#: The stride to the replacement for an unfit solution. Prime and far from the
+#: pool size, so a replacement is not the next day's word.
+REPLACEMENT_STRIDE = 7919
 
 
 def evaluate(guess: str, solution: str) -> list[str]:
@@ -53,13 +68,36 @@ class WordleState:
             valid_list: list[str] = json.load(f)
         self.all_valid: set[str] = set(self.solutions) | set(valid_list)
         self.epoch = date(2026, 3, 28)
+        # A Wordle answer is shown to whoever plays, children included, so it
+        # follows the same rule as a Kontexto tip: nothing the profanity engine
+        # flags and nothing on data/hint_blocklist_de.txt. The file is data
+        # built elsewhere, so the rule is applied here rather than trusted.
+        blocklist = core_lexicon.load_hint_blocklist()
+        self.unfit: frozenset[int] = frozenset(
+            i for i, word in enumerate(self.solutions)
+            if word not in KEPT_SOLUTIONS
+            and (word in blocklist or contains_profanity(word, collapse_words=True))
+        )
 
     def get_game_number(self) -> int:
         today = datetime.now(BERLIN_TZ).date()
         return (today - self.epoch).days
 
     def get_solution(self, game_number: int) -> str:
-        return self.solutions[game_number % len(self.solutions)]
+        """The answer of a game; an unfit one is replaced by a fixed other word.
+
+        The replacement depends only on the index, so every worker and every
+        request agrees on it. Days before :data:`UNFIT_REPLACED_FROM` keep
+        their word.
+        """
+        n = len(self.solutions)
+        index = game_number % n
+        if game_number >= UNFIT_REPLACED_FROM:
+            for _ in range(n):
+                if index not in self.unfit:
+                    break
+                index = (index + REPLACEMENT_STRIDE) % n
+        return self.solutions[index]
 
     def random_game_number(self, exclude: set[int]) -> int | None:
         """Pick a random game number whose solution isn't excluded.
@@ -70,7 +108,7 @@ class WordleState:
         when every solution is excluded (caller relaxes and retries)."""
         n = len(self.solutions)
         excluded_idx = {e % n for e in exclude}
-        candidates = [i for i in range(n) if i not in excluded_idx]
+        candidates = [i for i in range(n) if i not in excluded_idx and i not in self.unfit]
         if not candidates:
             return None
         return random.choice(candidates)

@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from wordle import evaluate, validate_hard_mode
 
@@ -80,3 +82,40 @@ class TestValidateHardMode:
         assert validate_hard_mode("heule", previous) is None  # h at 0, e at 1+4, l at 3 ✓ (wait u at 2, l at 3, e at 4)
         result = validate_hard_mode("hunde", previous)
         assert result is not None  # missing 'l'
+
+
+class TestUnfitSolutions:
+    """A Wordle answer follows the rule of a Kontexto tip: nothing a child
+    should not be shown. The solutions file is built elsewhere, so the runtime
+    replaces a flagged answer instead of trusting it."""
+
+    @pytest.fixture
+    def state(self, tmp_path):
+        from wordle import WordleState
+
+        wordle_dir = tmp_path / "wordle"
+        wordle_dir.mkdir()
+        solutions = ["apfel", "orgie", "busen", "kamel", "tisch", "stuhl", "birne"]
+        (wordle_dir / "solutions.json").write_text(json.dumps(solutions), encoding="utf-8")
+        (wordle_dir / "valid_words.json").write_text("[]", encoding="utf-8")
+        return WordleState(str(tmp_path))
+
+    def test_flagged_answers_are_unfit_and_kept_ones_are_not(self, state):
+        assert state.unfit == {1, 2}
+
+    def test_an_unfit_answer_is_replaced_from_the_cutoff_on(self, state):
+        from wordle import UNFIT_REPLACED_FROM
+
+        n = len(state.solutions)
+        first = UNFIT_REPLACED_FROM + (1 - UNFIT_REPLACED_FROM) % n  # index 1, orgie
+        replaced = state.get_solution(first)
+        assert replaced not in {"orgie", "busen"}
+        assert state.get_solution(first) == replaced, "the replacement is deterministic"
+        assert state.get_solution(first + 2) == "kamel", "a kept answer is its own day"
+
+    def test_a_day_before_the_cutoff_keeps_its_word(self, state):
+        assert state.get_solution(1) == "orgie"
+
+    def test_random_games_never_land_on_an_unfit_answer(self, state):
+        for _ in range(50):
+            assert state.random_game_number(set()) not in state.unfit

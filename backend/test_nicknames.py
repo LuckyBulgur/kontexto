@@ -101,8 +101,9 @@ class TestDetection:
     def test_every_solution_passes(self):
         """A word the filter flags cannot be the answer of a live-chat round.
 
-        The live overlay drops flagged guesses except the solution. The two
-        listed here are real solutions and deliberate insults at once; anything
+        The live overlay drops flagged guesses except the solution. The one
+        listed here is a real solution and a deliberate insult at once (``idiot``
+        was struck on 2026-09-24 as unfit for children); anything
         else the filter reaches in the pool is a false positive to fix in the
         lists, which is how ``Sparschwein`` was found.
         """
@@ -110,7 +111,7 @@ class TestDetection:
         words = [line.strip() for line in pool.splitlines()
                  if line.strip() and not line.startswith("#")]
         flagged = {word for word in words if contains_profanity(word, collapse_words=True)}
-        assert flagged == {"idiot", "kamel"}
+        assert flagged == {"kamel"}
 
     def test_the_names_corpus_passes(self):
         """The names a nickname is drawn from, measured against every tier.

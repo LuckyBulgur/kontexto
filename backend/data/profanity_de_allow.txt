@@ -18,6 +18,10 @@ haarscharf
 haarschnitt
 nachbarschaft
 sekundarschule
+elementarschul
+haarschmuck
+haarschneid
+sparschael
 warschau
 farschid
 vormarsch
@@ -44,6 +48,7 @@ entnazifizier
 
 # pedo
 torpedo
+empedokles
 
 # mengele
 sammengeleg
@@ -53,9 +58,17 @@ sporn
 
 # shit
 shitstorm
+yamashita
 
 # twat
 smartwatch
 
 # neger
 schwarzenegger
+
+# schlampe
+schlamperei
+tischlamp
+
+# rapist
+trappist

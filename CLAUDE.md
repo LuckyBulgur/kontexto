@@ -89,7 +89,7 @@ There is **no live embedding inference at request time**. `prepare.py` (offline 
 
 **A fold weighs three readings, not spaCy's alone (2026-09-24, same day).** The widened scale made spaCy's misread lemmas visible: the neighbour list for the vintage car read the oldies at 2 beside the oldie at 10 and the plural of the two-wheeler at 3 beside its singular at 25, because spaCy reads rare plurals onto lemmas that are no word, and every such form kept a number of its own next to its singular. The original lists lemmas only (three of its 500-word lists hold no plural beside its singular). `core_lexicon.build_lexicon` now weighs spaCy, simplemma and Wiktionary (`german-nouns`, the authority on nouns, read by `read_noun_forms`), and every rule in it was measured against the deployed build and the 1,95 million guesses, because each source is wrong where the others are not (simplemma reads `schlag` as `schlagen` and `montage` as Monday, Wiktionary files `strasse` as the rhinestone's plural and `ungarn` as the Hungarians, spaCy reads `bunker` as a verb). The rules: a common noun of its own never folds; a verb with two or more conjugated forms in the vocabulary never folds onto a noun, a rarer one reads as the plural it mostly is (the flutes, `posaunen`); an everyday word folds only where two readings agree, because single readings folded the word for thin onto its verb and `polen` onto the pole; a word filed as a name never folds; ss and the sharp s meet on the current spelling. Everyday words fold now as well (they used to be exempt), the everyday list itself stays byte-identical, so the debias and all rank arrays are untouched and only `core_words.json`, `fold_map.json` and `metadata.json` change. Measured: 6.073 forms that held a number fold onto their lemma, the scale shrinks from 56.712 to **51.291** words, 657 forms that used to fold onto a verb or adjective count as the nouns they are (`macht`, `glaube`, `alter`, `stand`: 20.638 guesses), refusals stay at 0,79%. A hand-read sample of 200 new folds had 8 doubtful ones, all rare. The colour bands stay at 300/1.500: the 100th everyday word moved from median rank 249 to 235. Built by `scripts/rebuild-lexicon.py` (no vectors, 40 s), shipped by `scripts/upload-core-pool.sh --lexicon-only`, which refuses when production no longer matches the hashes the build started from. Held by `TestFoldReadings` and `TestReadNounForms` in `test_game.py` and three new cases in `test_rank_uniqueness.py`, which fail on the data deployed before.
 
-**What may be a solution**: the live pool is the hand-curated list in **`backend/data/solution_pool.txt`** (2.356 words, about 6,5 years of daily puzzles), and `scripts/rebuild-core-pool.py` builds the data from it. Two automatic gates and one human one. Automatic and reproducible: the word is a core lemma, and `TargetWordFilter` accepts it as a common noun that the dictionary lists as a lemma, with no proper name, no inflected form and nothing from the profanity list. Human and not reproducible: every candidate was read against a written rubric, and `backend/data/solution_rejects.txt` records what was struck and under which code.
+**What may be a solution**: the live pool is the hand-curated list in **`backend/data/solution_pool.txt`** (2.334 words, about 6,4 years of daily puzzles), and `scripts/rebuild-core-pool.py` builds the data from it. Two automatic gates and one human one. Automatic and reproducible: the word is a core lemma, and `TargetWordFilter` accepts it as a common noun that the dictionary lists as a lemma, with no proper name, no inflected form and nothing from the profanity list. Human and not reproducible: every candidate was read against a written rubric, and `backend/data/solution_rejects.txt` records what was struck and under which code.
 
 **The original's selection curve, reconstructed (2026-09-22).** Sorted into
 frequency bands of the English word list, the 1.461 published Contexto answers
@@ -244,11 +244,22 @@ register, drugs, suicide, fecal language (header lists what deliberately stays, 
 the game speaking, not the player. It decides the tip, the Leiter opening word and the
 Sudden Death runners-up; since those are ranks 2 to 6 without a gap, a game whose runners-up
 hold a blocked word is not dealt (`random_sudden_death_game`). A blocked word stays a legal
-guess with its rank, and the neighbour list after a round is unchanged. Measured on the
-deployed build: 130 of 14.840 hint words are filtered, 24 of 2.675 curated games leave the
-Sudden Death draw, 0,3 s per worker at startup. Held by `TestHandoutFilter` in
-`test_game.py` and `test_hint_filter.py` (real data: no game offers a blocked word, every
-list entry is a vocabulary word).
+guess with its rank; in the neighbour list after a round it keeps its row and shows as
+`p****l`. Measured on the deployed build: 130 of 14.840 hint words are filtered, 24 of 2.675
+curated games leave the Sudden Death draw, 0,3 s per worker at startup.
+
+**Solutions follow the same rule, and so does their neighbourhood.** A solution is struck
+under code **J** in `solution_rejects.txt` when it is a blocked word itself or when two of
+its 19 nearest neighbours are, because such a round walks a child through that vocabulary
+whatever the tips do (`schwanz`, `hintern`, `eichel`, `kuss`: 22 words on 2026-09-24,
+four of them taken off `solution_protected.txt`). `GameState.unfit_games` reads the J
+entries and keeps them out of every random draw, so a data directory built from an older
+pool is safe at once; the daily series only loses them with a rebuild. **Wördle** applies
+the rule at runtime (`WordleState.unfit`, `kamel` and `rowdy` kept on purpose): a flagged
+answer from day `UNFIT_REPLACED_FROM` on is replaced by a fixed other word, earlier days
+keep theirs. Held by `TestHandoutFilter` in `test_game.py`, `TestUnfitSolutions` in
+`test_wordle.py` and `test_hint_filter.py` (real data: no game offers a blocked word, no
+pool solution sits among blocked neighbours, every list entry is a vocabulary word).
 
 **The user‑text list has two tiers, because German compounds.** `profanity_de_strict.txt` is
 matched as a substring, which is how a word list gets evaded (`arschgeige1`, `xxfotzexx`).
@@ -287,7 +298,7 @@ squeezed spelling, which is what made `zusammengelegt` read as `mengele` before.
 --flagged` runs the runtime engine over wordfreq's 50.000 words plus `german_names.txt` and
 prints every word a player would see reflected. Two tests pin the result: every name in
 `german_names.txt` passes except an explicit set of eight deliberate ones, and every word of the
-solution pool passes except `idiot` and `kamel`.
+solution pool passes except `kamel` (`idiot` was struck as unfit for children).
 
 **The live stream overlay is the one place a guess is filtered.** Invited rooms show every
 guessable word; a live room writes what anonymous viewers type onto a public stream, so
