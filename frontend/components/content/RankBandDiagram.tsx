@@ -61,7 +61,7 @@ export default function RankBandDiagram() {
           Ähnlichkeit
         </text>
         <text x={380} y={234} textAnchor="end" className="fill-muted-foreground text-[9px]">
-          Rang, 1 bis 57.000
+          Rang, 1 bis 51.000
         </text>
       </svg>
       <figcaption className="mt-2 text-center text-xs text-muted-foreground">

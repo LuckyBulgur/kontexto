@@ -8,7 +8,7 @@
 # array is new, the played ones included. It also ships the three files the
 # runtime reads at startup: core_words.json, which decides what a rank counts,
 # fold_map.json, which says what every other guessable form is scored as, and
-# everyday_words.json, which decides what a tip or a neighbour list may name.
+# everyday_words.json, which decides what a tip or an opening word may name.
 # The three are written by one build and have to travel together, because a
 # list without its folds refuses every plural and a scale without its everyday
 # list hands out rare compounds as tips.
@@ -61,6 +61,105 @@ case "${1:-}" in
             else rm -f everyday_words.json; fi'"
         remote "$COMPOSE restart $SERVICE"
         echo "Rolled back. The rejected pool is at /app/data/games.broken."
+        exit 0
+        ;;
+    --rollback-lexicon)
+        echo "Rolling back the lexicon ..."
+        in_container "sh -c 'cd /app/data && test -f core_words.previous.json && \
+            mv core_words.previous.json core_words.json && \
+            mv fold_map.previous.json fold_map.json && \
+            mv metadata.previous.json metadata.json'"
+        remote "$COMPOSE restart $SERVICE"
+        echo "Rolled back. The games were never touched."
+        exit 0
+        ;;
+    --lexicon-only)
+        # A lexicon rebuild (scripts/rebuild-lexicon.py) changes which words
+        # hold a number and what every other form is scored as, and nothing
+        # else: the rank arrays and the everyday list stay as they are, so only
+        # three small files travel. The build recorded a hash of every deployed
+        # file it started from, and a production that no longer matches them
+        # would get a lexicon built for other data.
+        OUT_DIR="${2:?usage: upload-core-pool.sh --lexicon-only <out-dir> [--dry-run]}"
+        DRY_RUN="${3:-}"
+        for required in manifest.json core_words.json fold_map.json metadata.json; do
+            [ -e "$OUT_DIR/$required" ] || { echo "ABORT: $OUT_DIR/$required missing"; exit 1; }
+        done
+        MODE=$(python -c "import json;print(json.load(open('$OUT_DIR/manifest.json')).get('mode',''))")
+        [ "$MODE" = "lexicon" ] || { echo "ABORT: $OUT_DIR is not a lexicon build (mode '$MODE')"; exit 1; }
+        CORE_SIZE=$(python -c "import json;print(len(json.load(open('$OUT_DIR/core_words.json'))))")
+        echo "Local artifacts: core=$CORE_SIZE"
+
+        echo "Checking that production is the data the build started from ..."
+        for name in $(python -c "import json;print(' '.join(json.load(open('$OUT_DIR/manifest.json'))['base']))"); do
+            WANT=$(python -c "import json;print(json.load(open('$OUT_DIR/manifest.json'))['base']['$name'])")
+            HAVE=$(in_container "python3 -c \"import hashlib;print(hashlib.sha256(open('/app/data/$name','rb').read()).hexdigest())\"" | tr -d '\r')
+            if [ "$WANT" != "$HAVE" ]; then
+                echo "ABORT: /app/data/$name changed since the build. Copy production again and rebuild."
+                exit 1
+            fi
+        done
+        echo "Production matches."
+
+        BEFORE=$(api_get game)
+        echo "Production before: $BEFORE"
+        if [ "$DRY_RUN" = "--dry-run" ]; then
+            echo "Dry run: nothing was uploaded."
+            exit 0
+        fi
+
+        in_container "sh -c 'rm -rf /app/data/.staging && mkdir -p /app/data/.staging'"
+        tar -C "$OUT_DIR" -czf - core_words.json fold_map.json metadata.json \
+          | remote "$COMPOSE exec -T $SERVICE tar -C /app/data/.staging -xzf -"
+        echo "Swapping ..."
+        in_container "sh -c 'cd /app/data && \
+            cp core_words.json core_words.previous.json && \
+            cp fold_map.json fold_map.previous.json && \
+            cp metadata.json metadata.previous.json && \
+            mv .staging/core_words.json core_words.json && \
+            mv .staging/fold_map.json fold_map.json && \
+            mv .staging/metadata.json metadata.json && \
+            rmdir .staging'"
+        in_container "sh -c 'chown appuser:appuser /app/data/*.json'" || true
+        echo "Restarting ..."
+        remote "$COMPOSE restart $SERVICE"
+        sleep 10
+
+        AFTER=$(api_get game)
+        echo "Production after:  $AFTER"
+        BEFORE_GAME=$(echo "$BEFORE" | python -c "import json,sys;print(json.load(sys.stdin)['gameNumber'])")
+        AFTER_GAME=$(echo "$AFTER" | python -c "import json,sys;print(json.load(sys.stdin)['gameNumber'])")
+        AFTER_TOTAL=$(echo "$AFTER" | python -c "import json,sys;print(json.load(sys.stdin)['total'])")
+        [ "$BEFORE_GAME" = "$AFTER_GAME" ] || { echo "ABORT: the daily game moved. Run --rollback-lexicon."; exit 1; }
+        [ "$AFTER_TOTAL" = "$CORE_SIZE" ] || { echo "ABORT: the scale is $AFTER_TOTAL, expected $CORE_SIZE. Run --rollback-lexicon."; exit 1; }
+        echo "The daily game is unchanged ($AFTER_GAME), the scale is $AFTER_TOTAL words."
+
+        # The words the rebuild was made for, and the ones it must not touch.
+        # Umlauts are written as Python escapes, which the string literal
+        # resolves, so the check does not depend on the shell's encoding: a plural beside its singular, a finite verb form, a noun
+        # that reads like a plural, an infinitive, a rare word, a stop word.
+        while read -r guess expected; do
+            ANSWER=$(in_container "python3 -c \"import urllib.request as u,json;\
+o=u.OpenerDirector();o.add_handler(u.HTTPHandler());\
+r=u.Request('http://127.0.0.1:8000/api/guess',data=json.dumps({'word':'$guess'}).encode(),\
+headers={'Content-Type':'application/json'});\
+d=json.load(o.open(r));print((d.get('word') or d.get('error')).encode('unicode_escape').decode())\"" | tr -d '\r') || ANSWER=""
+            if [ "$ANSWER" != "$expected" ]; then
+                echo "ABORT: '$guess' answered '$ANSWER', expected '$expected'. Run --rollback-lexicon."
+                exit 1
+            fi
+            echo "  $guess -> $ANSWER"
+        done <<'CHECKS'
+motorr\u00e4dern motorrad
+oldies oldie
+kinder kind
+wussten wissen
+montage montage
+arbeiten arbeiten
+leggings leggings
+heute stopword
+CHECKS
+        echo "Done. The previous lexicon is kept as *.previous.json; --rollback-lexicon restores it."
         exit 0
         ;;
     --drop-previous)

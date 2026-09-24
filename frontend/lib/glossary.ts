@@ -50,7 +50,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Kernwortschatz",
     slug: "kernwortschatz",
-    definition: `Die rund 15.500 Alltagswörter, je Wort eine Grundform, ohne seltene Komposita. Aus ihnen kommen die Tipps, das Startwort im Modus Leiter und die Liste der nächsten Wörter nach dem Lösen, und auf ihnen werden die Vektoren entzerrt. Einen Rang bekommen dagegen alle rund 57.000 Grundformen des Vokabulars außer den Funktionswörtern, so wie beim englischen Original.`,
+    definition: `Die rund 15.500 Alltagswörter, je Wort eine Grundform, ohne seltene Komposita. Aus ihnen kommen die Tipps und das Startwort im Modus Leiter, und auf ihnen werden die Vektoren entzerrt. Einen Rang bekommen dagegen alle rund 51.000 Grundformen des Vokabulars außer den Funktionswörtern, so wie beim englischen Original. Die Liste der nächsten Wörter nach dem Lösen zeigt sie Rang für Rang, ohne Lücke.`,
   },
   {
     term: "Kompositum",
@@ -85,7 +85,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Rang",
     slug: "rang",
-    definition: `Die Position eines geratenen Wortes in der nach Ähnlichkeit sortierten Liste der rund 57.000 gewerteten Grundformen. Rang 1 ist das Zielwort selbst. Der Rang ist eine relative Aussage: Rang 300 bedeutet, dass nur 299 Wörter näher am Zielwort liegen.`,
+    definition: `Die Position eines geratenen Wortes in der nach Ähnlichkeit sortierten Liste der rund 51.000 gewerteten Grundformen. Rang 1 ist das Zielwort selbst. Der Rang ist eine relative Aussage: Rang 300 bedeutet, dass nur 299 Wörter näher am Zielwort liegen.`,
   },
   {
     term: "Semantik",
@@ -110,7 +110,7 @@ export const glossary: GlossaryTerm[] = [
   {
     term: "Vokabular",
     slug: "vokabular",
-    definition: `Die Menge aller Wörter, die Kontexto als Eingabe akzeptiert und für die ein Rang berechnet wurde. Sie umfasst die 80.000 häufigsten gefilterten deutschen Wörter. Den Maßstab des Rangs bilden davon die rund 57.000 Grundformen, die keine Funktionswörter sind. Nicht jedes Wort kann Lösung werden: Eigennamen etwa sind ratbar, aber als Lösung gesperrt.`,
+    definition: `Die Menge aller Wörter, die Kontexto als Eingabe akzeptiert und für die ein Rang berechnet wurde. Sie umfasst die 80.000 häufigsten gefilterten deutschen Wörter. Den Maßstab des Rangs bilden davon die rund 51.000 Grundformen, die keine Funktionswörter sind. Nicht jedes Wort kann Lösung werden: Eigennamen etwa sind ratbar, aber als Lösung gesperrt.`,
   },
   {
     term: "Worteinbettung (Embedding)",

@@ -88,7 +88,7 @@ class GameState:
             core_lexicon.load_fold_map(data_dir) if self.core_mask is not None else {}
         )
 
-        # What a tip, a neighbour list or an opening word may name: the everyday
+        # What a tip or an opening word may name: the everyday
         # words that hold a number. The scale counts every base form since
         # 2026-09-24, and handing out its rare compounds is exactly what the
         # everyday list exists to prevent. A directory without the file is one

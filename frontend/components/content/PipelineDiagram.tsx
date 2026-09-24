@@ -8,7 +8,7 @@
  */
 const STEPS: [string, string][] = [
   ["fastText", "cc.de.300, rund 2 Mio. Zeichenketten"],
-  ["Filtern", "80.000 Wörter, 57.000 Grundformen zählen"],
+  ["Filtern", "80.000 Wörter, 51.000 Grundformen zählen"],
   ["Entzerren", "Mittelwert und 3 Hauptkomponenten entfernt"],
   ["Sortieren", "Kosinus-Ähnlichkeit zum Zielwort"],
   ["Rangtabelle", "eine Datei je Rätsel"],
@@ -29,7 +29,7 @@ export default function PipelineDiagram() {
         <title id="pd-title">Vom Sprachmodell zur Rangtabelle</title>
         <desc id="pd-desc">
           Fünf aufeinanderfolgende Schritte: Aus dem deutschen fastText-Modell mit rund zwei
-          Millionen Zeichenketten werden 80.000 echte Wörter gefiltert, von denen rund 57.000
+          Millionen Zeichenketten werden 80.000 echte Wörter gefiltert, von denen rund 51.000
           Grundformen einen Rang bekommen. Die Vektoren werden entzerrt, indem Mittelwert und die
           drei stärksten Hauptkomponenten entfernt werden, gemessen an den rund 15.500
           Alltagswörtern.

@@ -10,7 +10,7 @@ What changes
 2. **The scale.** ``core_words.json`` ships next to the games and holds every
    base form except the stop list (``backend/data/stopwords_de.txt``), which is
    what a rank counts. ``everyday_words.json`` holds the everyday words, which
-   the vectors are debiased on and the tips and neighbour lists draw from, and
+   the vectors are debiased on and tips and opening words draw from, and
    ``fold_map.json`` says what every other form is scored as.
 3. **The answers.** ``backend/data/solution_pool.txt`` replaces the old pool.
    Every word in it is a concrete common noun above Zipf 3,2, measured solvable
@@ -159,11 +159,16 @@ def main() -> int:
         vocab_index, lemma_map, everyday=deployed_everyday, keep=set(targets),
         guess_counts=guess_counts)
     core = lexicon.scale
-    dropped = sorted(deployed_scale - set(core) - core_lexicon.load_stopwords())
+    dropped = sorted(deployed_scale - set(core) - set(lexicon.fold) - core_lexicon.load_stopwords())
+    typed = [w for w in dropped if guess_counts.get(w, 0) >= core_lexicon.MIN_GUESSES]
     if dropped:
+        log(f"  {len(dropped)} counted words are neither counted nor folded now: {dropped[:20]}")
+    if typed:
         # A word that held a number and would now be refused is a word a
-        # player could type yesterday and cannot today.
-        raise SystemExit(f"ABORT: {len(dropped)} counted words would stop counting: {dropped[:10]}")
+        # player could type yesterday and cannot today. A form that folds
+        # onto its lemma still scores, and a form nobody types is noise.
+        raise SystemExit(f"ABORT: {len(typed)} counted words players type would stop counting: "
+                         f"{typed[:10]}")
     missing_from_core = [w for w in targets if w not in set(core)]
     if missing_from_core:
         # A solution outside the core would be counted by nothing, and the

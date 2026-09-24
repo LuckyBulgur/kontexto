@@ -429,10 +429,33 @@ class TestBuildLexicon:
         # A preposition by class, a content word by use: "laut" is loud.
         "laut": ("ADP", "laut", "ADP", "laut"),
     }
+    #: simplemma, (capitalised, as written). The case of the answer is the
+    #: word class it read: ``Hund`` a noun, ``malen`` a verb.
+    SECOND = {
+        "hund": ("Hund", "Hund"),
+        "hunde": ("Hund", "Hund"),
+        "haus": ("Haus", "Haus"),
+        "xylophon": ("Xylophon", "Xylophon"),
+        "und": ("und", "und"),
+        "ab": ("ab", "ab"),
+        "malen": ("Mal", "malen"),
+        "malt": ("malen", "malen"),
+        "mal": ("Mal", "mal"),
+        "liebe": ("Liebe", "lieben"),
+        "lieb": ("lieb", "lieb"),
+        "akten": ("Akte", "Akte"),
+        "akte": ("Akte", "Akte"),
+        "akt": ("Akt", "Akt"),
+        "meinem": ("mein", "mein"),
+        "mein": ("mein", "mein"),
+        "laut": ("laut", "laut"),
+    }
     STOP = frozenset({"und", "mein", "ab"})
 
     def build(self, **kwargs):
         kwargs.setdefault("classes", self.CLASSES)
+        kwargs.setdefault("second", self.SECOND)
+        kwargs.setdefault("nouns", {})
         kwargs.setdefault("stopwords", self.STOP)
         return core_lexicon.build_lexicon(self.VOCAB, self.LEMMA, **kwargs)
 
@@ -483,8 +506,18 @@ class TestBuildLexicon:
         assert "liebe" in lex.scale
         assert "liebe" not in lex.fold
 
-    def test_a_fold_does_not_follow_a_chain(self):
+    def test_a_second_reading_keeps_a_noun_spacy_misreads(self):
+        # spaCy reads the file as the act; simplemma reads it as itself, so the
+        # files fold onto the file and the file keeps its place.
         lex = self.build()
+        assert "akte" in lex.scale
+        assert lex.fold.get("akten") == "akte"
+
+    def test_a_fold_does_not_follow_a_chain(self):
+        # Where both readings take the file for the act, the files do not
+        # follow: scoring them as the act would be a wrong word.
+        second = dict(self.SECOND, akte=("Akt", "Akt"))
+        lex = self.build(second=second)
         assert lex.fold.get("akte") == "akt"
         assert "akten" in lex.scale
 
@@ -510,10 +543,15 @@ class TestBuildLexicon:
         assert "hunde" in lex.scale
         assert "hunde" not in lex.fold
 
-    def test_an_everyday_word_is_never_folded_away(self):
-        lex = self.build(everyday={"hunde"})
-        assert "hunde" in lex.scale
-        assert "hunde" not in lex.fold
+    def test_an_everyday_plural_folds_and_stays_an_everyday_word(self):
+        # Until 2026-09-24 an everyday word never folded, which put a plural
+        # beside its singular once the singular held a place of its own. The
+        # everyday list itself must not move, because the vectors are debiased
+        # on it.
+        lex = self.build(everyday={"hunde", "hund"})
+        assert lex.fold.get("hunde") == "hund"
+        assert "hunde" not in lex.scale
+        assert "hunde" in lex.everyday
 
     def test_a_fold_always_lands_on_a_counted_word(self):
         lex = self.build()
@@ -540,6 +578,167 @@ class TestBuildLexicon:
     def test_round_trip(self, data_dir):
         core_lexicon.write_core_words(data_dir, ["apfel", "haus"])
         assert core_lexicon.load_core_words(data_dir) == ["apfel", "haus"]
+
+
+class TestFoldReadings:
+    """The three readings a fold weighs, one measured case each.
+
+    Every case is a word that went wrong on the deployed build of 2026-09-24,
+    when the scale grew to every base form and spaCy's misread lemmas started to
+    collide with real ones. Readings are injected, as in ``TestBuildLexicon``;
+    ``RARE`` and ``COMMON`` are frequency floors that make the same word rare or
+    frequent without depending on wordfreq's figures.
+    """
+
+    RARE = 9.0
+    COMMON = 0.0
+
+    def build(self, readings, nouns=None, **kwargs):
+        kwargs.setdefault("stopwords", frozenset())
+        return core_lexicon.build_lexicon(
+            sorted(readings),
+            classes={w: r[0] for w, r in readings.items()},
+            second={w: r[1] for w, r in readings.items()},
+            nouns=nouns or {},
+            **kwargs,
+        )
+
+    def test_a_rare_plural_spacy_misreads_folds_on_simplemma(self):
+        readings = {
+            "zweiräder": (("NOUN", "zweiräd", "NOUN", "zweiräder"), ("Zweirad", "Zweirad")),
+            "zweirad": (("NOUN", "zweirad", "NOUN", "zweirad"), ("Zweirad", "Zweirad")),
+        }
+        lex = self.build(readings, min_zipf=self.RARE)
+        assert lex.fold.get("zweiräder") == "zweirad"
+        assert lex.scale == ["zweirad"]
+
+    def test_the_dictionary_folds_a_plural_no_model_places(self):
+        readings = {
+            "oldies": (("X", "oldies", "X", "oldies"), ("Oldie", "Oldie")),
+            "oldie": (("X", "oldie", "X", "oldie"), ("Oldie", "Oldie")),
+        }
+        nouns = {"oldies": (False, ("oldie",), False), "oldie": (True, (), False)}
+        lex = self.build(readings, nouns, min_zipf=self.COMMON)
+        assert lex.fold.get("oldies") == "oldie"
+
+    def test_a_noun_of_its_own_never_folds(self):
+        # Both models read the assembly as the plural of Monday.
+        readings = {
+            "montage": (("NOUN", "montag", "NOUN", "montage"), ("Montag", "Montag")),
+            "montag": (("NOUN", "montag", "NOUN", "montag"), ("Montag", "Montag")),
+        }
+        nouns = {"montage": (True, ("montag",), False), "montag": (True, (), False)}
+        lex = self.build(readings, nouns, min_zipf=self.COMMON)
+        assert "montage" in lex.scale and "montage" not in lex.fold
+
+    def test_a_noun_is_not_scored_as_a_verb(self):
+        readings = {
+            "schlag": (("NOUN", "schlagen", "VERB", "schlag"), ("Schlag", "schlagen")),
+            "schlagen": (("VERB", "schlagen", "VERB", "schlagen"), ("Schlagen", "schlagen")),
+        }
+        lex = self.build(readings, min_zipf=self.RARE)
+        assert "schlag" in lex.scale and "schlag" not in lex.fold
+
+    def test_a_finite_verb_form_folds_onto_its_infinitive(self):
+        readings = {
+            "wussten": (("NOUN", "wussten", "VERB", "wussten"), ("wissen", "wissen")),
+            "wusstet": (("VERB", "wussten", "VERB", "wussten"), ("wissen", "wissen")),
+            "wissen": (("NOUN", "wissen", "VERB", "wissen"), ("Wissen", "wissen")),
+        }
+        lex = self.build(readings, min_zipf=self.COMMON)
+        assert lex.fold.get("wussten") == "wissen"
+
+    def test_a_frequent_word_needs_two_readings(self):
+        # The misspelt coffee reads as a hamlet's plural to simplemma alone.
+        # For a rare word that is enough; for one players type it is not.
+        readings = {
+            "kaffe": (("NOUN", "kaffe", "NOUN", "kaffe"), ("Kaff", "Kaff")),
+            "kaff": (("NOUN", "kaff", "NOUN", "kaff"), ("Kaff", "Kaff")),
+        }
+        assert "kaffe" in self.build(readings, min_zipf=self.COMMON).scale
+        assert self.build(readings, min_zipf=self.RARE).fold.get("kaffe") == "kaff"
+
+    def test_a_frequent_name_never_folds(self):
+        readings = {
+            "ungarn": (("PROPN", "ungarn", "PROPN", "ungarn"), ("Ungar", "Ungar")),
+            "ungar": (("NOUN", "ungar", "NOUN", "ungar"), ("Ungar", "Ungar")),
+        }
+        nouns = {"ungarn": (False, ("ungar",), True), "ungar": (True, (), False)}
+        lex = self.build(readings, nouns, min_zipf=self.COMMON)
+        assert "ungarn" in lex.scale and "ungarn" not in lex.fold
+
+    def test_ss_and_sharp_s_meet_on_the_current_spelling(self):
+        readings = {
+            "strasse": (("NOUN", "strasse", "NOUN", "strasse"), ("Strass", "Strass")),
+            "straße": (("NOUN", "straße", "NOUN", "straße"), ("Straße", "Straße")),
+            "strass": (("NOUN", "strass", "NOUN", "strass"), ("Strass", "Strass")),
+            "hass": (("NOUN", "hass", "NOUN", "hass"), ("Hass", "hassen")),
+            "haß": (("NOUN", "haß", "NOUN", "haß"), ("Hass", "hassen")),
+        }
+        nouns = {
+            "strasse": (False, ("strass",), False),
+            "straße": (True, (), False),
+            "strass": (True, (), False),
+            "hass": (True, (), False),
+        }
+        lex = self.build(readings, nouns, min_zipf=self.COMMON)
+        assert lex.fold.get("strasse") == "straße"
+        assert lex.fold.get("haß") == "hass"
+        assert {"straße", "strass", "hass"} <= set(lex.scale)
+
+    def test_a_rare_verb_reads_as_the_plural_it_mostly_is(self):
+        readings = {
+            "flöten": (("NOUN", "flöte", "VERB", "flöten"), ("Flöte", "flöten")),
+            "flöte": (("NOUN", "flöte", "NOUN", "flöte"), ("Flöte", "Flöte")),
+            "rollen": (("NOUN", "rolle", "VERB", "rollen"), ("Rolle", "rollen")),
+            "rollt": (("VERB", "rollen", "VERB", "rollen"), ("rollen", "rollen")),
+            "rollte": (("VERB", "rollen", "VERB", "rollen"), ("rollen", "rollen")),
+            "rolle": (("NOUN", "rolle", "NOUN", "rolle"), ("Rolle", "Rolle")),
+        }
+        nouns = {
+            "flöten": (False, ("flöte",), False),
+            "flöte": (True, (), False),
+            "rollen": (False, ("rolle",), False),
+            "rolle": (True, (), False),
+        }
+        lex = self.build(readings, nouns, min_zipf=self.COMMON)
+        assert lex.fold.get("flöten") == "flöte"
+        # Two conjugated forms show the verb, and the verb keeps its place.
+        assert "rollen" in lex.scale and "rollen" not in lex.fold
+
+
+@pytest.fixture(scope="module")
+def noun_forms():
+    """Wiktionary as the build reads it, against the real package."""
+    pytest.importorskip("german_nouns")
+    return core_lexicon.read_noun_forms([
+        "montage", "montag", "kekse", "keks", "gedanken", "gedanke",
+        "spatzen", "spatz", "enger", "kosten",
+    ])
+
+
+class TestReadNounForms:
+    @pytest.fixture
+    def forms(self, noun_forms):
+        return noun_forms
+
+    def test_a_noun_of_its_own_and_a_plural(self, forms):
+        assert forms["montage"][0] is True
+        assert "montag" in forms["montage"][1]
+
+    def test_a_plural(self, forms):
+        assert forms["kekse"] == (False, ("keks",), False)
+
+    def test_a_weak_noun_variant_is_a_form(self, forms):
+        assert forms["gedanken"][0] is False
+        assert "gedanke" in forms["gedanken"][1]
+
+    def test_a_plural_only_entry_that_is_also_a_plural_is_a_form(self, forms):
+        assert forms["spatzen"][0] is False
+        assert forms["kosten"][0] is True
+
+    def test_a_town_is_a_name_and_no_noun(self, forms):
+        assert forms["enger"] == (False, (), True)
 
 
 class TestLoadGame:

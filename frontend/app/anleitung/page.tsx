@@ -144,7 +144,7 @@ export default function AnleitungPage() {
           <h2 id="eingaben">Welche Wörter das Spiel annimmt</h2>
           <p>
             Kontexto nimmt rund 80.000 deutsche Wörter an, und jede Grundform davon bekommt ihren
-            eigenen Rang, rund 57.000 insgesamt. Eine gebeugte Form zählt als ihre Grundform:
+            eigenen Rang, rund 51.000 insgesamt. Eine gebeugte Form zählt als ihre Grundform:
             „Kinder“ steht in der Liste als „Kind“. Groß- und Kleinschreibung ist egal. Einen
             einzelnen Tippfehler korrigiert das Spiel, wenn das gemeinte Wort eindeutig ist, sonst
             schlägt es passende Wörter vor. Vier Regeln erklären die häufigsten Ablehnungen.

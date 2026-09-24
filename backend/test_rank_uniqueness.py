@@ -129,3 +129,50 @@ def test_what_the_game_hands_out_is_an_everyday_word(state):
         tip = state.get_tip(game_number, "easy", best_rank=2000)
         assert tip["word"] in everyday
         assert state.guess(tip["word"], game_number, correct_typos=False)["rank"] == tip["rank"]
+
+
+# Since the same day a fold weighs three readings (spaCy, simplemma and
+# Wiktionary), because the widened scale put rare plurals beside their own
+# singular: the neighbour list for the vintage car read the oldies at 2 and the
+# oldie at 10. These hold the cases players reported or typed most.
+
+def test_a_form_scores_as_its_lemma(state):
+    for form, lemma in (("oldies", "oldie"), ("zweiräder", "zweirad"),
+                        ("motorrädern", "motorrad"), ("motorrades", "motorrad"),
+                        ("rallyes", "rallye"), ("yachten", "yacht"), ("kinder", "kind"),
+                        ("knöpfe", "knopf"), ("strasse", "straße"), ("wussten", "wissen"),
+                        ("gedanken", "gedanke")):
+        if form in state.vocabulary and lemma in state.vocabulary:
+            assert state.guess(form, 1, correct_typos=False)["word"] == lemma, form
+
+
+def test_a_word_of_its_own_is_scored_as_itself(state):
+    for word in ("montage", "sekte", "russe", "bunker", "schlag", "reis", "arbeiten",
+                 "rollen", "macht", "glaube", "stand", "kosten", "hass", "ungarn"):
+        if word in state.vocabulary:
+            assert state.guess(word, 1, correct_typos=False)["word"] == word, word
+
+
+def test_no_neighbour_list_holds_a_plural_beside_its_singular(state):
+    """What the player saw: a noun and its own plural, both with a number.
+
+    Judged by Wiktionary, and only for forms simplemma also reads as nouns: a
+    plural that is a verb too (``rollen``, ``klappen``) keeps its place by
+    design. A weak noun's variant in -n (``haufen`` beside the archaic
+    ``haufe``) is the same word spelled two ways and is left alone.
+    """
+    pytest.importorskip("german_nouns")
+    simplemma = pytest.importorskip("simplemma")
+    for game_number in random.Random(20260925).sample(range(1, state.total_games() + 1), 20):
+        words = [e["word"] for e in state.get_closest_words(game_number)]
+        listed = set(words)
+        forms = core_lexicon.read_noun_forms(words)
+        pairs = [
+            (word, lemma)
+            for word in words
+            if (entry := forms.get(word)) and not entry[0] and not entry[2]
+            and simplemma.lemmatize(word, lang="de")[:1].isupper()
+            for lemma in entry[1]
+            if lemma in listed and word != lemma + "n"
+        ]
+        assert pairs == [], f"game {game_number}"
