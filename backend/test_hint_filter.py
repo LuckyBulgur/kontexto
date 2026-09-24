@@ -95,7 +95,7 @@ def test_no_solution_is_a_blocked_word():
 
 def test_a_word_struck_as_unfit_is_out_of_the_pool():
     unfit = core_lexicon.load_child_unfit_solutions()
-    assert len(unfit) >= 22
+    assert len(unfit) >= 30
     assert unfit.isdisjoint(_pool())
 
 

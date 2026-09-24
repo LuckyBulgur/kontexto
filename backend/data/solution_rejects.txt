@@ -29,7 +29,7 @@
 # Text in brackets is the reason an earlier pass wrote down, kept where it says
 # more than the code.
 #
-# 5.501 entries.
+# 5.509 entries.
 
 abbau = S Fach-, Amts- oder Berufswort
 abbild = V Variante eines Worts, das schon drin steht (wie bild)
@@ -2006,6 +2006,7 @@ grünanlage = U Unterbegriff, das Grundwort benennt die Sache
 gründer = F von den Startwoertern aus nicht erreichbar, gemessen
 gründung = F von den Startwoertern aus nicht erreichbar, gemessen
 grünfläche = U Unterbegriff, das Grundwort benennt die Sache
+gummi = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 gummistiefel = U Unterbegriff, das Grundwort benennt die Sache [Durchsicht mit dem Spieler]
 gunst = S Fach-, Amts- oder Berufswort
 gurt = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
@@ -2674,6 +2675,7 @@ kreuzzug = S Fach-, Amts- oder Berufswort
 krieg = F von den Startwoertern aus nicht erreichbar, gemessen
 krieger = F von den Startwoertern aus nicht erreichbar, gemessen
 kriegsverbrechen = S Fach-, Amts- oder Berufswort
+kriminalität = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 kriminalpolizei = S Fach-, Amts- oder Berufswort
 kripo = S Fach-, Amts- oder Berufswort
 krippe = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
@@ -3160,6 +3162,7 @@ motto = F von den Startwoertern aus nicht erreichbar, gemessen
 mozzarella = F von den Startwoertern aus nicht erreichbar, gemessen
 mulde = N nicht jedem gelaeufig
 multimedia = S Fach-, Amts- oder Berufswort
+mund = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 mundart = L landschaftlich oder mundartlich
 mundharmonika = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
 murmeltier = U Unterbegriff, das Grundwort benennt die Sache
@@ -3194,6 +3197,7 @@ mörtel = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-
 müdigkeit = S Fach-, Amts- oder Berufswort
 mühe = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
 mühle = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
+müll = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 mülleimer = V Variante eines Worts, das schon drin steht (wie muelltonne)
 mündel = S Fach-, Amts- oder Berufswort
 mündung = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
@@ -3300,6 +3304,7 @@ niederlassung = S Fach-, Amts- oder Berufswort
 niederländer = S Fach-, Amts- oder Berufswort
 niederschlag = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
 nieselregen = V Variante eines Worts, das schon drin steht (wie regen) [Durchsicht mit dem Spieler]
+nikotin = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 nische = F von den Startwoertern aus nicht erreichbar, gemessen
 niveau = F von den Startwoertern aus nicht erreichbar, gemessen
 nobelpreis = F von den Startwoertern aus nicht erreichbar, gemessen
@@ -4867,6 +4872,7 @@ untertan = S Fach-, Amts- oder Berufswort
 untertitel = F von den Startwoertern aus nicht erreichbar, gemessen
 unterwelt = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
 unterwerfung = S Fach-, Amts- oder Berufswort
+unterwäsche = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 unterzeichnung = S Fach-, Amts- oder Berufswort
 unverständnis = S Fach-, Amts- oder Berufswort
 unwesen = S Fach-, Amts- oder Berufswort
@@ -4913,6 +4919,7 @@ verbrauch = S Fach-, Amts- oder Berufswort
 verbraucher = S Fach-, Amts- oder Berufswort
 verbraucherschutz = S Fach-, Amts- oder Berufswort
 verbrechen = F von den Startwoertern aus nicht erreichbar, gemessen
+verbrecher = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 verbreitung = S Fach-, Amts- oder Berufswort
 verbund = S Fach-, Amts- oder Berufswort
 verbundenheit = S Fach-, Amts- oder Berufswort
@@ -5307,6 +5314,7 @@ wildkatze = U Unterbegriff, das Grundwort benennt die Sache
 wille = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
 willkür = S Fach-, Amts- oder Berufswort
 wimmer = P Eigenname, Ort oder Marke
+windel = J nicht kindgerecht (selbst gesperrt oder mindestens zwei der 19 naechsten Nachbarn gesperrt, gemessen)
 windenergie = S Fach-, Amts- oder Berufswort
 windmühle = U Unterbegriff, das Grundwort benennt die Sache
 windpark = U Unterbegriff, das Grundwort benennt die Sache
