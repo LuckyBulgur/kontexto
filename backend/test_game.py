@@ -398,6 +398,77 @@ class TestEverydayHints:
         assert gs.is_uncounted("apfel") is False
 
 
+class TestHandoutFilter:
+    """The game never names a vulgar or adult word on its own.
+
+    A teacher's fifth grade pressed the tip button on 2026-09-24 and read
+    "pimmel". The word stays a legal guess with its rank; only what the game
+    offers unasked (a tip, the Leiter opening word, the Sudden Death
+    runners-up) skips it. Two sources decide: the profanity engine that guards
+    nicknames, and the hand list ``data/hint_blocklist_de.txt`` for what an
+    insult filter does not cover.
+    """
+
+    @pytest.fixture
+    def adult_dir(self, data_dir):
+        # Rename birne to pimmel (profanity engine) and kirsche to kondom (hand
+        # list). Ranks: apfel 1, pimmel 2, kondom 3, auto 4, haus 5.
+        vocab = {"apfel": 0, "pimmel": 1, "kondom": 2, "auto": 3, "haus": 4}
+        with open(os.path.join(data_dir, "vocabulary.json"), "w", encoding="utf-8") as f:
+            json.dump(vocab, f)
+        bf = BloomFilter(capacity=100, error_rate=0.01)
+        for w in vocab:
+            bf.add(w)
+        with open(os.path.join(data_dir, "bloom.bin"), "wb") as f:
+            pickle.dump(bf, f)
+        core_lexicon.write_core_words(data_dir, list(vocab))
+        core_lexicon.write_everyday_words(data_dir, list(vocab))
+        return data_dir
+
+    def test_both_sources_block(self, adult_dir):
+        state = GameState(adult_dir)
+        assert state.is_handout_blocked("pimmel")
+        assert state.is_handout_blocked("Kondom")
+        assert not state.is_handout_blocked("auto")
+
+    def test_a_tip_skips_blocked_words(self, adult_dir):
+        state = GameState(adult_dir)
+        assert state.get_tip(1, "medium", best_rank=3) == {"word": "auto", "rank": 4}
+        assert state.get_tip(1, "easy", best_rank=4) == {"word": "auto", "rank": 4}
+
+    def test_the_opening_word_skips_blocked_words(self, adult_dir):
+        assert GameState(adult_dir).word_at_rank(1, 2) == {"word": "auto", "rank": 4}
+
+    def test_a_blocked_word_is_still_a_guess_with_its_rank(self, adult_dir):
+        state = GameState(adult_dir)
+        assert state.guess("pimmel", 1)["rank"] == 2
+        assert state.guess("kondom", 1)["rank"] == 3
+
+    def test_the_neighbour_list_is_unchanged(self, adult_dir):
+        words = [e["word"] for e in GameState(adult_dir).get_closest_words(1)]
+        assert words == ["apfel", "pimmel", "kondom", "auto", "haus"]
+
+    def test_sudden_death_skips_a_game_with_a_blocked_runner_up(self, adult_dir):
+        state = GameState(adult_dir)
+        assert state.sudden_death_is_clean(1, [2, 3]) is False
+        assert state.sudden_death_is_clean(1, [4, 5]) is True
+        assert state.random_sudden_death_game({2, 3}, [2, 3]) is None
+        assert state.random_sudden_death_game({2, 3}, [4, 5]) == 1
+
+    def test_without_an_everyday_list_the_filter_still_holds(self, adult_dir):
+        os.remove(os.path.join(adult_dir, core_lexicon.EVERYDAY_FILE))
+        state = GameState(adult_dir)
+        assert state.hint_mask is None
+        assert state.word_at_rank(1, 2) == {"word": "auto", "rank": 4}
+
+    def test_without_a_core_lexicon_the_filter_still_holds(self, adult_dir):
+        os.remove(os.path.join(adult_dir, core_lexicon.EVERYDAY_FILE))
+        os.remove(os.path.join(adult_dir, core_lexicon.CORE_FILE))
+        state = GameState(adult_dir)
+        assert state.core_mask is None
+        assert state.word_at_rank(1, 2) == {"word": "auto", "rank": 4}
+
+
 class TestBuildLexicon:
     VOCAB = ["hund", "hunde", "haus", "xylophon", "und", "ab", "malen", "malt", "mal",
              "liebe", "lieb", "akten", "akte", "akt", "meinem", "mein", "laut"]

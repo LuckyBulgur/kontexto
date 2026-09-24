@@ -179,6 +179,31 @@ class TestSuddenDeath:
         assert resp.status_code == 200
         assert resp.json()["gameNumber"] == 5
 
+    def test_a_game_with_a_blocked_runner_up_is_not_dealt(self, client, monkeypatch):
+        # kirsche is a runner-up everywhere except in game 3, where it is the
+        # solution, so game 3 is the only one left to deal.
+        import main as main_module
+        from game import GameState
+
+        monkeypatch.setattr(GameState, "is_handout_blocked", lambda self, word: word == "kirsche")
+        main_module._game_state = None
+        for _ in range(10):
+            resp = client.get("/api/sudden-death")
+            assert resp.status_code == 200
+            assert resp.json()["gameNumber"] == 3
+        main_module._game_state = None
+
+    def test_no_clean_game_is_a_404(self, client, monkeypatch):
+        # apfel or kirsche is a runner-up in every game but the daily one.
+        import main as main_module
+        from game import GameState
+
+        monkeypatch.setattr(GameState, "is_handout_blocked", lambda self, word: word in {"apfel", "kirsche"})
+        main_module._game_state = None
+        resp = client.get("/api/sudden-death")
+        assert resp.status_code == 404
+        main_module._game_state = None
+
 
 class TestSoloModeAttribution:
     def test_guess_counts_under_the_requested_solo_mode(self, client):

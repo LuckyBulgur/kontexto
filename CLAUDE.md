@@ -234,6 +234,22 @@ write this" and are built on the vendored LDNOOBW German list (622 entries, CC0,
 `profanity_de_raw.txt`). Letting the big list decide the first question would ban harmless
 puzzle words.
 
+**A third question: may the game name this on its own (2026-09-24).** A teacher's fifth
+grade pressed the tip button and read `pimmel`. The engine knew the word, it had just never
+been asked about anything but player text. Since then `GameState.handout_mask` is the hint
+list (everyday ∩ scale) minus every word the engine flags and every entry of
+**`backend/data/hint_blocklist_de.txt`**, which covers what an insult filter does not: sexual
+register, drugs, suicide, fecal language (header lists what deliberately stays, `mord`,
+`leiche`, `brust`, `bier`). It is wider than the nickname rule on purpose, because a tip is
+the game speaking, not the player. It decides the tip, the Leiter opening word and the
+Sudden Death runners-up; since those are ranks 2 to 6 without a gap, a game whose runners-up
+hold a blocked word is not dealt (`random_sudden_death_game`). A blocked word stays a legal
+guess with its rank, and the neighbour list after a round is unchanged. Measured on the
+deployed build: 130 of 14.840 hint words are filtered, 24 of 2.675 curated games leave the
+Sudden Death draw, 0,3 s per worker at startup. Held by `TestHandoutFilter` in
+`test_game.py` and `test_hint_filter.py` (real data: no game offers a blocked word, every
+list entry is a vocabulary word).
+
 **The user‑text list has two tiers, because German compounds.** `profanity_de_strict.txt` is
 matched as a substring, which is how a word list gets evaded (`arschgeige1`, `xxfotzexx`).
 `profanity_de_word.txt` is matched only as a whole token, for entries that sit inside ordinary

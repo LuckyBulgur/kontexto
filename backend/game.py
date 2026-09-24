@@ -18,6 +18,7 @@ import numpy as np
 import core_lexicon
 import spellfix
 from prepare import GERMAN_STOPWORDS
+from wordlists import contains_profanity
 
 # Upper bound for per-process game data. Each cached game holds the displayed
 # rank per vocabulary word plus the core word at each displayed rank, about
@@ -105,6 +106,26 @@ class GameState:
             if mask.any():
                 self.hint_mask = mask
 
+        # What the game may name on its own, tips and opening words and Sudden
+        # Death runners-up: the hint words minus everything a child should not
+        # be shown unasked. A teacher's fifth grade got "pimmel" as a tip on
+        # 2026-09-24; the profanity engine knew the word but only ever read what
+        # players write. The engine runs once per candidate here, 0,3 s over the
+        # everyday list, and the hand list adds what an insult filter does not
+        # cover (sexual register, drugs, suicide, fecal language).
+        self.hint_blocklist = core_lexicon.load_hint_blocklist()
+        if self.hint_mask is not None:
+            candidates = self.hint_mask
+        elif self.core_mask is not None:
+            candidates = self.core_mask
+        else:
+            candidates = np.ones(len(self.vocabulary), dtype=bool)
+        self.handout_mask: np.ndarray = candidates.copy()
+        for index in np.flatnonzero(candidates):
+            if self.is_handout_blocked(self.index_to_word[index]):
+                self.handout_mask[index] = False
+        self._sudden_death_clean: dict[tuple[int, tuple[int, ...]], bool] = {}
+
         self.stopwords = core_lexicon.load_stopwords() | GERMAN_STOPWORDS
 
         self._game_cache: OrderedDict[int, GameView] = OrderedDict()
@@ -142,7 +163,7 @@ class GameState:
         if self.core_mask is None:
             rank_to_index = np.zeros(len(ranks) + 1, dtype=np.uint32)
             rank_to_index[ranks] = np.arange(len(ranks), dtype=np.uint32)
-            return GameView(ranks, rank_to_index, np.sort(ranks[ranks > 1]))
+            return GameView(ranks, rank_to_index, np.sort(ranks[self.handout_mask & (ranks > 1)]))
 
         order = np.argsort(ranks)                       # vocabulary index by rank
         # The solution counts, whatever the lexicon says. It is the word at rank
@@ -164,8 +185,9 @@ class GameState:
         core_rank_to_index = np.zeros(core_size + 1, dtype=np.uint32)
         core_rank_to_index[1:] = order[core_by_rank]
 
-        hints = self.hint_mask if self.hint_mask is not None else counts
-        hint_ranks = np.sort(display[hints])
+        # handout_mask is a subset of the counted words, so every entry has a
+        # displayed rank; the solution is dropped by the rank filter below.
+        hint_ranks = np.sort(display[self.handout_mask])
         return GameView(
             display.astype(np.uint32, copy=False),
             core_rank_to_index,
@@ -431,6 +453,49 @@ class GameState:
         view = self._get_view(game_number)
         last = len(view.rank_to_index) - 1
         return [self._entry(view, rank) for rank in sorted(set(wanted)) if 2 <= rank <= last]
+
+    def is_handout_blocked(self, word: str) -> bool:
+        """Whether the game may never name this word on its own.
+
+        True for anything the profanity engine flags and for the hand list in
+        ``data/hint_blocklist_de.txt``. The word stays a legal guess with its
+        rank; this only decides what a tip, an opening word or a list handed out
+        during an open round may show.
+        """
+        w = word.strip().lower()
+        return w in self.hint_blocklist or contains_profanity(w, collapse_words=True)
+
+    def sudden_death_is_clean(self, game_number: int, ranks: list[int]) -> bool:
+        """Whether none of this game's runners-up is a blocked word.
+
+        The runners-up are shown before the first guess and must be ranks 2 to
+        6 without a gap, so a blocked word cannot be skipped there; the game is
+        not dealt instead. The answer never changes within a process, so it is
+        cached per game and rank set.
+        """
+        key = (game_number, tuple(ranks))
+        cached = self._sudden_death_clean.get(key)
+        if cached is None:
+            cached = not any(
+                self.is_handout_blocked(entry["word"])
+                for entry in self.words_at_ranks(game_number, ranks)
+            )
+            self._sudden_death_clean[key] = cached
+        return cached
+
+    def random_sudden_death_game(self, exclude: set[int], ranks: list[int]) -> int | None:
+        """A random game whose runners-up are clean, skipping ``exclude``.
+
+        Draws like :meth:`random_game_number` and walks on past a game whose
+        runners-up include a blocked word. None when no game is left.
+        """
+        candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
+                      if n not in exclude]
+        random.shuffle(candidates)
+        for number in candidates:
+            if self.sudden_death_is_clean(number, ranks):
+                return number
+        return None
 
     def _entry(self, view: GameView, rank: int) -> dict:
         return {"word": self.index_to_word[int(view.rank_to_index[rank])], "rank": rank}

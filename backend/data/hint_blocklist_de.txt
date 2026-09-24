@@ -1,0 +1,95 @@
+# Words the game never names on its own: tips, the Leiter opening word and the
+# Sudden Death runners-up.
+#
+# Why this file exists: on 2026-09-24 a teacher playing with a fifth grade
+# pressed the tip button and got "pimmel". The profanity engine in wordlists.py
+# knew the word, but it only guarded what players write (nicknames, survey text,
+# the live overlay), never what the game hands out. The tip list is the everyday
+# list (everyday_words.json); measured on the deployed build, 77 of its 15.466
+# words are flagged by that engine, and those are now filtered by it directly.
+#
+# This file covers what the engine does not know, because the engine answers
+# "is this an insult" and a tip has to answer "may a ten-year-old be shown this
+# by the game". So it is wider on purpose, in four groups:
+#   sexual register, drugs and intoxication, suicide, and fecal language.
+#
+# A word here stays a legal guess and keeps its rank. It only stops being
+# offered: the tip names the nearest clean word instead, and a Sudden Death
+# round whose runners-up include one is not dealt.
+#
+# Built by scanning the everyday list with seed patterns and reading every hit
+# by hand. Deliberately absent, because they are ordinary neighbours of
+# ordinary solutions or have a second, harmless meaning:
+#   violence and history (mord, leiche, töten, umbringen, krieg, holocaust,
+#   galgen), the body in everyday words (brust, po, popo, hintern, urin),
+#   underwear (slip, unterhose, tanga, string), alcohol and tobacco (bier, wein,
+#   schnaps, zigarette, rauchen), identity (homosexuell, bisexuell), and words
+#   whose main sense is elsewhere (lust, lecken, lutschen, stöhnen, verführen,
+#   vorspiel, potenz, ständer, speed, crystal, erregen, erreger, befriedigung).
+#
+# One lowercase word per line, exact match. test_hint_filter.py checks that
+# every entry is a word of the vocabulary, so a typo here fails a test.
+
+# sexual register
+analsex
+beischlaf
+bumsen
+busen
+dessous
+domina
+erektion
+erotik
+erotisch
+geile
+geilen
+geschlechtsverkehr
+glied
+intim
+nackt
+nippel
+kondom
+poppen
+prostitution
+seitensprung
+selbstbefriedigung
+sex
+sexspielzeug
+sexualität
+sexuell
+spermien
+strapse
+strip
+strippen
+stripper
+swinger
+viagra
+zuhälter
+
+# drugs and intoxication
+besoffen
+cannabis
+crack
+dealer
+droge
+drogenhandel
+heroin
+joint
+junkie
+kiffen
+kokain
+koks
+marihuana
+opium
+saufen
+überdosis
+
+# suicide
+selbstmord
+suizid
+
+# fecal language
+durchfall
+furz
+kot
+kotzen
+popel

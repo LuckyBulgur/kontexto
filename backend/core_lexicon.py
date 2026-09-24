@@ -175,6 +175,11 @@ EVERYDAY_FILE = "everyday_words.json"
 #: build. See the file's header for where every entry comes from.
 STOPWORD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "stopwords_de.txt")
 
+#: The words the game never names on its own (tips, the Leiter opening word,
+#: the Sudden Death runners-up), on top of what the profanity engine flags.
+#: Shipped with the code for the same reason as the stop list.
+HINT_BLOCKLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "hint_blocklist_de.txt")
+
 
 class Lexicon(NamedTuple):
     """What a build decides about the vocabulary."""
@@ -192,8 +197,18 @@ class Lexicon(NamedTuple):
 @functools.cache
 def load_stopwords() -> frozenset[str]:
     """The words refused as too general, read once per process."""
+    return _read_word_file(STOPWORD_FILE)
+
+
+@functools.cache
+def load_hint_blocklist() -> frozenset[str]:
+    """The words a tip may not name beyond the profanity engine, read once."""
+    return _read_word_file(HINT_BLOCKLIST_FILE)
+
+
+def _read_word_file(path: str) -> frozenset[str]:
     words: set[str] = set()
-    with open(STOPWORD_FILE, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             word = line.strip()
             if word and not word.startswith("#"):

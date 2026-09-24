@@ -675,13 +675,15 @@ async def sudden_death(exclude: str = Query("")):
     """Hand out a Sudden Death round: a game plus its five runners-up.
 
     The daily game is excluded for the same reason as everywhere else, and the
-    solution itself never leaves the server here.
+    solution itself never leaves the server here. A game whose runners-up
+    include a word the game never names on its own is not dealt, because the
+    list is shown before the first guess and cannot skip a rank.
     """
     gs = _get_game_state()
     base_exclude = {_get_current_game_number()}
-    chosen = gs.random_game_number(base_exclude | _parse_exclude(exclude))
+    chosen = gs.random_sudden_death_game(base_exclude | _parse_exclude(exclude), SUDDEN_DEATH_RANKS)
     if chosen is None:
-        chosen = gs.random_game_number(base_exclude)
+        chosen = gs.random_sudden_death_game(base_exclude, SUDDEN_DEATH_RANKS)
     if chosen is None:
         return JSONResponse(
             status_code=404,
