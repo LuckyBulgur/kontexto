@@ -7,7 +7,7 @@ export const metadata = buildMetadata({
   path: "/datenschutz/",
   title: "Datenschutz",
   description:
-    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies, Werbung durch Adcash nur mit Einwilligung und vorgesehene Google-AdSense-Werbung.",
+    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies und vorgesehene Google-AdSense-Werbung mit Einwilligung vor der Auslieferung.",
 });
 
 export default function DatenschutzPage() {
@@ -20,7 +20,7 @@ export default function DatenschutzPage() {
               Der Schutz deiner Daten ist uns wichtig. Diese Datenschutzerklärung informiert dich darüber, welche Daten beim Besuch von Kontexto erhoben werden und wie sie verwendet werden.
             </p>
             <p>
-              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Übergangsweise finanzieren wir das Spiel über Werbung von Adcash, später ist Google AdSense vorgesehen. Werbung wird <strong className="text-foreground">nur mit deiner Einwilligung</strong> geladen, die du im Einwilligungsbanner erteilst oder ablehnst. Ohne Einwilligung lädt Kontexto kein Werbeskript, und auf deinem Gerät wird nichts für Werbung gespeichert (siehe den Abschnitt „Werbung durch Adcash“).
+              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Für die spätere Finanzierung ist Google-AdSense-Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Falls Anzeigen freigeschaltet werden, werden werbebezogene Cookies und personalisierte Anzeigen <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner verarbeitet (siehe den Abschnitt zu Google AdSense).
             </p>
           </section>
 
@@ -61,7 +61,6 @@ export default function DatenschutzPage() {
               <li>Schwierigkeitsgrad</li>
               <li>Sortierungspräferenz</li>
               <li>Hinweis, dass die freiwillige Kurzumfrage („Woher kennst du Kontexto?“) bereits gestellt oder beantwortet wurde</li>
-              <li>deine Entscheidung im Einwilligungsbanner zur Werbung (erlaubt oder abgelehnt, mit Zeitpunkt und Fassung des Banners)</li>
             </ul>
             <p>
               Diese Daten werden <strong className="text-foreground">nicht</strong> an unseren Server übertragen und verbleiben vollständig in deinem Browser. Du kannst sie jederzeit löschen, indem du die Browserdaten löschst.
@@ -149,10 +148,7 @@ export default function DatenschutzPage() {
               Für den Betrieb des Spiels und die anonyme Reichweitenmessung (Abschnitt „Anonyme Reichweitenmessung“) setzt Kontexto <strong className="text-foreground">keine Cookies</strong>. Dein Spielstand wird ausschließlich im lokalen Speicher (localStorage) deines Browsers abgelegt; dies ist technisch erforderlich und bedarf keiner Einwilligung (§ 25 Abs. 2 Nr. 2 TDDDG).
             </p>
             <p>
-              Deine Entscheidung im Einwilligungsbanner legen wir ebenfalls im lokalen Speicher ab, damit das Banner dich nicht bei jedem Aufruf erneut fragt. Auch das ist technisch erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Nach zwölf Monaten oder wenn sich der Inhalt des Banners ändert, fragen wir erneut.
-            </p>
-            <p>
-              <strong className="text-foreground">Werbe-Cookies</strong> und vergleichbare Einträge auf deinem Gerät entstehen ausschließlich durch Werbung und <strong className="text-foreground">nur nach deiner ausdrücklichen Einwilligung</strong> über das Einwilligungsbanner, derzeit durch Adcash (siehe den Abschnitt „Werbung durch Adcash“). Ohne deine Einwilligung werden keine werbebezogenen Cookies gesetzt. Welche Einträge das im Einzelnen sind, steht auf der Seite{" "}
+              <strong className="text-foreground">Werbe-Cookies</strong> und vergleichbare Einträge auf deinem Gerät entstehen ausschließlich durch Google AdSense (siehe den Abschnitt zu Google AdSense) und <strong className="text-foreground">nur nach deiner ausdrücklichen Einwilligung</strong> über das Einwilligungsbanner. Ohne deine Einwilligung werden keine werbebezogenen Cookies gesetzt. Was Kontexto selbst auf deinem Gerät ablegt, steht auf der Seite{" "}
               <Link href="/cookies/" className="underline underline-offset-2 hover:no-underline">Cookies und lokaler Speicher</Link>.
             </p>
           </section>
@@ -163,122 +159,12 @@ export default function DatenschutzPage() {
               Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
             <p>
-              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Übergangsweise finanzieren wir das kostenlose Angebot über den Werbedienst <strong className="text-foreground">Adcash</strong>, der nur nach deiner Einwilligung geladen wird (Abschnitt „Werbung durch Adcash“). Später ist <strong className="text-foreground">Google AdSense</strong> als Werbedienst vorgesehen. Dessen Verifizierungscode ist bereits eingebunden, im aktuellen Prüfmodus werden jedoch keine AdSense-Anzeigen ausgeliefert (Abschnitt zu Google AdSense).
-            </p>
-          </section>
-
-          <section id="werbung-adcash" className="space-y-2 scroll-mt-20">
-            <h2 className="text-body font-semibold text-foreground">10. Werbung durch Adcash</h2>
-            <p>
-              Bis Google AdSense für Kontexto freigeschaltet ist, finanzieren wir das Spiel über Werbung
-              von <strong className="text-foreground">Adcash OÜ</strong>, Ahtri 6, 10151 Tallinn, Estland
-              (Registernummer 12141869, E-Mail für Datenschutzfragen:{" "}
-              <a href="mailto:legal@adcash.com" className="underline underline-offset-2 hover:text-foreground">legal@adcash.com</a>), im Folgenden „Adcash“.
-            </p>
-            <p>
-              <strong className="text-foreground">Wann Adcash geladen wird:</strong> nur, wenn du im
-              Einwilligungsbanner „Akzeptieren“ gewählt hast, und nur auf den Spielseiten: der
-              Kontexto-Startseite, der Wördle-Seite, den Solo-Modi (Leiter, Limit, Doppelziel,
-              Sudden Death), den Mehrspieler-Modi Duell, Koop, Arena und Wördle-Duell samt ihren
-              Räumen sowie der Mitspielersuche. Der Stream-Modus unter /live/ gehört nicht dazu, weil
-              sein Bild in einen Livestream übertragen wird. Vorher, nach einer Ablehnung und auf
-              allen anderen Seiten bindet Kontexto kein Adcash-Skript ein, und
-              dein Browser nimmt keine Verbindung zu Adcash auf. Öffnest du eine andere Seite, nachdem
-              Adcash geladen wurde, lädt Kontexto diese Seite neu, und zwar ohne Adcash.
-            </p>
-            <p>
-              <strong className="text-foreground">Welche Werbung erscheint:</strong> Anzeigen in
-              gekennzeichneten Flächen auf den Spielseiten, als Werbebanner oder als kleines
-              Videofenster am Bildschirmrand, das stumm startet und sich schließen lässt. Wo eine
-              Fläche steht und wie groß sie ist, hängt von der Bildschirmbreite ab, etwa neben dem
-              Spiel, als Leiste am unteren Rand oder unter dem Ergebnis einer Runde. Pop-under-Fenster,
-              Vollbildanzeigen und Weiterleitungen ohne deinen Klick nutzt Kontexto nicht. Welche
-              Anzeige in einer Fläche erscheint, entscheidet Adcash.
-            </p>
-            <p>
-              <strong className="text-foreground">Welche Daten verarbeitet werden:</strong> deine
-              IP-Adresse, Angaben zu Browser, Betriebssystem, Gerät, Bildschirmgröße und Sprache, die
-              aufgerufene Seite und die Seite, von der du kamst, der Zeitpunkt sowie deine
-              Interaktionen mit den Anzeigen, etwa Einblendungen und Klicks. Adcash legt dafür Einträge
-              im lokalen Speicher deines Browsers unter kontexto.de ab, unter anderem um Einblendungen
-              zu zählen und zu begrenzen, und kann Cookies unter eigenen Domains setzen und lesen.
-              Beteiligt waren bei unserer Messung vom 23. September 2026 die Domains acscdn.com,
-              adexchangerapid.com, usrpubtrk.com und crcdn.org, von der die Werbebilder geladen
-              werden.
-            </p>
-            <p>
-              <strong className="text-foreground">Zwecke:</strong> Auswahl und Auslieferung der
-              Anzeigen, Begrenzung, wie oft dieselbe Anzeige erscheint, Messung und Abrechnung der
-              Einblendungen und Klicks sowie die Erkennung von Betrug. Nach eigenen Angaben gibt Adcash
-              an Werbekunden nur zusammengefasste Statistiken ohne IP-Adressen weiter.
-            </p>
-            <p>
-              <strong className="text-foreground">Seiten der Werbekunden:</strong> Öffnest du mit einem
-              Klick auf ein Banner die Seite eines Werbekunden, gelten dort dessen eigene
-              Datenschutzerklärung und dessen eigenes Einwilligungsbanner. Für die Verarbeitung auf
-              diesen Seiten ist der jeweilige Werbekunde verantwortlich, nicht Kontexto.
-            </p>
-            <p>
-              <strong className="text-foreground">Rechtsgrundlage:</strong> deine Einwilligung, für
-              das Speichern und Auslesen auf deinem Gerät nach § 25 Abs. 1 TDDDG und für die
-              Verarbeitung der Daten nach Art. 6 Abs. 1 lit. a DSGVO. Die Einwilligung ist freiwillig.
-              Lehnst du ab, gibt es keine Werbung, und das Spiel funktioniert in vollem Umfang.
-            </p>
-            <p>
-              <strong className="text-foreground">Verantwortlichkeit:</strong> Für das Einbinden des
-              Skripts und die dadurch ausgelöste Übermittlung deiner Daten an Adcash sind wir und
-              Adcash gemeinsam verantwortlich. Für die weitere Verarbeitung bei Adcash ist Adcash
-              allein verantwortlich. Deine Rechte aus dem Abschnitt „Deine Rechte“ kannst du bei uns
-              und bei Adcash geltend machen.
-            </p>
-            <p>
-              <strong className="text-foreground">Kein Consent-Framework:</strong> Adcash nimmt nicht
-              am IAB Transparency &amp; Consent Framework teil und liest kein Einwilligungssignal aus.
-              Deshalb fragen wir mit einem eigenen Banner und laden das Skript ohne Einwilligung gar
-              nicht erst, statt ihm eine Ablehnung zu übermitteln. Im Quelltext jeder Seite steht der
-              Einbindungscode von Adcash zwar, damit Adcash die Website prüfen kann, aber als
-              deaktivierter Text: Dein Browser lädt und startet ihn nicht.
-            </p>
-            <p>
-              <strong className="text-foreground">Zählung deiner Entscheidung:</strong> Damit wir
-              wissen, wie viele Besucher Werbung erlauben, meldet das Banner an unseren eigenen
-              Server, dass es angezeigt wurde, wie du dich entschieden hast und ob du die Wahl später
-              änderst. Adcash erfährt davon nichts. Beim ersten Besuch liegt das Banner nur am
-              unteren Rand, und du kannst ohne Antwort spielen. Hast du schon an einem früheren Tag
-              oder mehrere Runden gespielt und noch nicht geantwortet, fragt es als Fenster, das eine
-              Wahl verlangt; „Ablehnen“ bringt dich dabei genauso schnell ins Spiel wie
-              „Akzeptieren“. Ob das so ist, prüft dein Browser anhand der Spielstatistik, die er
-              ohnehin speichert. Diese Statistik verlässt dein Gerät dafür nicht, unser Server erfährt
-              nur, dass das Fenster erschien. Gezählt wird mit demselben anonymen, monatlich
-              wechselnden Hash-Wert wie bei der Reichweitenmessung, und nur, damit dieselbe Meldung
-              nicht doppelt zählt. Dieser Wert wird nach 45 Tagen gelöscht, danach bleiben nur
-              Tagessummen ohne Bezug zu einem Besucher. Auf deinem Gerät wird dafür nichts gespeichert
-              oder ausgelesen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: Das berechtigte
-              Interesse ist, die Finanzierung des Angebots und die Wirkung des Banners beurteilen zu
-              können.
-            </p>
-            <p>
-              <strong className="text-foreground">Ort der Verarbeitung:</strong> Adcash hat seinen Sitz
-              in Estland, also in der Europäischen Union.
-            </p>
-            <p>
-              <strong className="text-foreground">Speicherdauer:</strong> Deine Entscheidung im Banner
-              bleibt zwölf Monate lokal in deinem Browser gespeichert. Wie lange Adcash Daten und
-              Cookies aufbewahrt, legt Adcash fest; die Angaben stehen in Abschnitt 5 der{" "}
-              <a href="https://adcash.com/legal/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Rechtstexte von Adcash</a>.
-            </p>
-            <p>
-              <strong className="text-foreground">Widerruf:</strong> Du kannst deine Einwilligung
-              jederzeit mit Wirkung für die Zukunft widerrufen, über den Link „Cookie-Einstellungen“ in
-              der Fußzeile jeder Seite. Kontexto entfernt dann die Einträge, die Adcash im lokalen
-              Speicher unter kontexto.de abgelegt hat, und lädt die Seite ohne Adcash neu. Cookies, die
-              Adcash unter eigenen Domains gesetzt hat, kann eine Website nicht löschen; die entfernst
-              du in den Einstellungen deines Browsers.
+              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Für die spätere Finanzierung des kostenlosen Angebots ist <strong className="text-foreground">Google AdSense</strong> als Werbedienst vorgesehen. Der Verifizierungscode ist bereits eingebunden, im aktuellen Prüfmodus werden jedoch keine Anzeigenslots ausgeliefert. Einzelheiten dazu stehen im Abschnitt zu Google AdSense.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">11. Vorgesehene Werbung durch Google AdSense</h2>
+            <h2 className="text-body font-semibold text-foreground">10. Vorgesehene Werbung durch Google AdSense</h2>
             <p>
               Für die geplante Finanzierung dieses kostenlosen Angebots ist Google AdSense vorgesehen,
               ein Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House,
@@ -342,12 +228,12 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">12. Minderjährige</h2>
+            <h2 className="text-body font-semibold text-foreground">11. Minderjährige</h2>
             <p>
               Kontexto richtet sich an ein allgemeines Publikum und ist kein Angebot, das sich gezielt an Kinder wendet. Zum Spielen ist keine Anmeldung nötig. Wir fragen weder nach Name, Alter, E-Mail-Adresse noch Anschrift und erheben wissentlich keine personenbezogenen Daten von Kindern unter 16 Jahren.
             </p>
             <p>
-              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden. Werbung lädt Kontexto nur, wenn im Einwilligungsbanner „Akzeptieren“ gewählt wurde. Für die Inhalte der Anzeigen sind die Werbekunden und Adcash verantwortlich. Meldest du uns über die Kontaktseite eine unpassende Anzeige, geben wir sie an Adcash weiter und schließen sie für Kontexto aus, soweit Adcash das zulässt.
+              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden. Falls Werbung freigeschaltet wird, wird sie ohne erteilte Einwilligung nicht personalisiert ausgeliefert.
             </p>
             <p>
               Erziehungsberechtigte, die vermuten, dass ein Kind uns personenbezogene Daten übermittelt hat, erreichen uns über die{" "}
@@ -356,17 +242,17 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">13. Deine Rechte</h2>
+            <h2 className="text-body font-semibold text-foreground">12. Deine Rechte</h2>
             <p>
               Du hast gemäß DSGVO das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten, das Recht auf Datenübertragbarkeit, das Recht auf Widerruf erteilter Einwilligungen sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde. Gegen Verarbeitungen, die auf einem berechtigten Interesse beruhen (Art. 6 Abs. 1 lit. f DSGVO), steht dir zudem das Widerspruchsrecht nach Art. 21 DSGVO zu.
             </p>
             <p>
-              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) und die mit deiner Einwilligung durch Adcash (Abschnitt „Werbung durch Adcash“) oder künftig durch Google AdSense (Abschnitt „Vorgesehene Werbung durch Google AdSense“) verarbeiteten Daten hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die durch Adcash verarbeiteten Daten ist Adcash (mit-)verantwortlich, für die im Rahmen von Google AdSense verarbeiteten Daten Google; die entsprechenden Betroffenenrechte kannst du auch direkt beim jeweiligen Anbieter geltend machen.
+              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) und die mit deiner Einwilligung über Google AdSense (Abschnitt „Vorgesehene Werbung durch Google AdSense“) verarbeiteten Daten hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die im Rahmen von Google AdSense verarbeiteten Daten ist Google (mit-)verantwortlich; die entsprechenden Betroffenenrechte kannst du auch direkt bei Google geltend machen.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">14. Änderungen</h2>
+            <h2 className="text-body font-semibold text-foreground">13. Änderungen</h2>
             <p>
               Diese Datenschutzerklärung kann gelegentlich aktualisiert werden. Die aktuelle Version ist stets auf dieser Seite abrufbar.
             </p>

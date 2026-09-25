@@ -36,7 +36,7 @@ export default function FeedbackFab() {
       }}
       aria-label={highlight ? "Feedback und Wünsche, neue Funktion" : "Feedback und Wünsche"}
       title="Feedback und Wünsche"
-      className="fixed bottom-[calc(1rem+var(--ad-bar-height,0px))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <MessageSquare className="h-5 w-5" aria-hidden />
       {highlight && (

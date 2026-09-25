@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 import analytics
 import auth
 from analytics_models import (
-    AdConsentRequest, AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
+    AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
     RegisterOptionsRequest, RegisterVerifyRequest, ShareClickRequest,
     SurveyAnswerRequest, WebAuthnVerifyRequest, WordRatingRequest, WordRatingSummary,
@@ -2315,29 +2315,6 @@ async def collect_share(req: ShareClickRequest, request: Request):
             user_agent=request.headers.get("user-agent", ""),
             token=req.token,
             mode=req.mode,
-            now=_now(),
-        )
-        return {"ok": accepted}
-    finally:
-        await db.close()
-
-
-@app.post("/api/collect/consent", response_model=BeaconResponse)
-async def collect_consent(req: AdConsentRequest, request: Request):
-    """Count one event of the ad consent banner (shown, answered, changed).
-
-    Token-gated, bot-filtered and deduplicated per fingerprint and kind. A
-    rejected event returns ok=false rather than an error, like the survey,
-    because the visitor can do nothing about it and the banner does not wait.
-    """
-    db = await get_db(_db_path)
-    try:
-        accepted, _reason = await analytics.record_ad_consent(
-            db,
-            ip=_client_ip(request),
-            user_agent=request.headers.get("user-agent", ""),
-            token=req.token,
-            kind=req.kind,
             now=_now(),
         )
         return {"ok": accepted}

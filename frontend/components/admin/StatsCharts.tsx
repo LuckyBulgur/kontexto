@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb, Megaphone,
+  Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb,
   MessageCircleQuestion, PartyPopper, Radio, Repeat, Share2, Sparkles, Target, ThumbsUp, TrendingUp,
   Trophy, Type, Users, Wrench, type LucideIcon,
 } from "lucide-react";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/accordion";
 import {
   AreaTrend, BarRanking, CHART_COLORS, DonutChart, Heatmap, Histogram, KpiCard,
-  GroupedBars, Panel, RangeToggle, SectionHeader, StackedAreaTrend,
+  Panel, RangeToggle, SectionHeader, StackedAreaTrend,
   sliceTimeline, sumTimeline, type RangeKey,
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
@@ -451,68 +451,6 @@ function SurveySection({ stats }: SectionProps) {
   );
 }
 
-const AD_CONSENT_LABELS: Record<string, string> = {
-  shown: "Banner gesehen", required: "Als Pflichtabfrage", granted: "Akzeptiert", denied: "Abgelehnt",
-  regranted: "Später akzeptiert", revoked: "Widerrufen",
-};
-const AD_CONSENT_SERIES = [
-  { key: "granted", label: "Akzeptiert", accent: 1 },
-  { key: "denied", label: "Abgelehnt", accent: 3 },
-];
-
-/** How visitors answer the ad consent banner.
- *
- * The rate is taken over the answers, and the share without an answer is shown
- * next to it, because a banner that most people ignore makes a high acceptance
- * rate mean little. Both come from the same 30 days and the same visitors, since
- * every kind is counted once per visitor and month. */
-function AdConsentSection({ stats }: SectionProps) {
-  const { totals, last_30_days: recent } = stats.ad_consent;
-  // The series starts on the first day anything was counted: ninety empty days
-  // in front of it squeeze the data into the right edge of the chart.
-  const firstActive = stats.ad_consent.daily.findIndex((row) =>
-    Object.entries(row).some(([key, value]) => key !== "date" && typeof value === "number" && value > 0));
-  const daily = firstActive === -1 ? [] : stats.ad_consent.daily.slice(firstActive);
-
-  if (totals.shown === 0 && totals.granted + totals.denied === 0) {
-    return (
-      <Panel title="Werbe-Einwilligung">
-        <p className="py-6 text-center text-small text-muted-foreground">
-          Noch keine Daten. Gezählt wird, sobald das Banner zum ersten Mal erscheint.
-        </p>
-      </Panel>
-    );
-  }
-
-  const answered = recent.granted + recent.denied;
-  const acceptRate = answered > 0 ? recent.granted / answered : null;
-  const unanswered = recent.shown > 0 ? Math.max(0, recent.shown - answered) / recent.shown : null;
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-5">
-        <KpiCard icon={Eye} accent={0} label="Banner gesehen" value={formatNumber(recent.shown)}
-          sub="letzte 30 Tage" />
-        <KpiCard icon={ThumbsUp} accent={1} label="Zustimmungsquote" value={formatPercent(acceptRate)}
-          sub={`${formatNumber(recent.granted)} von ${formatNumber(answered)} Antworten`} />
-        <KpiCard icon={Clock} accent={2} label="Ohne Antwort" value={formatPercent(unanswered)}
-          sub="Banner gesehen, nichts gewählt" />
-        <KpiCard icon={Target} accent={4} label="Pflichtabfrage" value={formatNumber(recent.required)}
-          sub="wiederkehrend, ohne Antwort" />
-        <KpiCard icon={Repeat} accent={3} label="Widerrufen" value={formatNumber(recent.revoked)}
-          sub={`${formatNumber(recent.regranted)} später akzeptiert`} />
-      </div>
-      <Panel title="Antworten pro Tag" hint="seit Beginn, höchstens 90 Tage" className="lg:col-span-2">
-        <GroupedBars data={daily} series={AD_CONSENT_SERIES} xKey="date" />
-      </Panel>
-
-      <Panel title="Seit Beginn der Zählung" hint="gesamt" className="lg:col-span-2">
-        <BarRanking data={totals} accent={0} labelMap={AD_CONSENT_LABELS} />
-      </Panel>
-    </div>
-  );
-}
-
 /** The growth funnel: started versus finished games, sharing, attention.
  *
  * These three answer what the visitor counts cannot: how many games are begun
@@ -769,12 +707,6 @@ const SECTIONS: SectionDef[] = [
     title: "Trichter, Teilen und Aufmerksamkeit",
     description: "Wie viele anfangen, wie viel geteilt wird, wie lange gelesen wird",
     Component: FunnelSection,
-  },
-  {
-    id: "ad-consent", group: "REICHWEITE", label: "Werbung", icon: Megaphone,
-    title: "Werbe-Einwilligung",
-    description: "Wie das Banner beantwortet wird, einmal je Besucher und Monat gezählt",
-    Component: AdConsentSection,
   },
   {
     id: "totals", group: "REICHWEITE", label: "Gesamtzahlen", icon: Award,

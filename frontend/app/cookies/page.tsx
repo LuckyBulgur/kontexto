@@ -99,44 +99,23 @@ export default function CookiesPage() {
         <Prose>
           <h2 id="werbung">Cookies durch Werbung</h2>
           <p>
-            Übergangsweise finanziert sich Kontexto über Werbung von Adcash, bis Google AdSense
-            freigeschaltet ist. Beim ersten Besuch fragt ein Banner, ob du Werbung erlaubst. Deine
-            Antwort merkt sich der Browser, damit die Frage nicht bei jedem Aufruf wiederkommt; nach
-            zwölf Monaten fragen wir erneut. Das Adcash-Skript lädt erst nach „Akzeptieren“ und
-            nur auf den Spielseiten, also Kontexto, Wördle, den Solo-Modi, Duell, Koop, Arena,
-            Wördle-Duell und der Mitspielersuche. Inhaltsseiten, Rechtsseiten und der Stream-Modus
-            bleiben ohne Adcash.
+            Für die spätere Finanzierung des kostenlosen Angebots ist Google AdSense vorgesehen. Im
+            aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Erst wenn Anzeigen nach
+            einer Freischaltung tatsächlich erscheinen, kommen Werbe-Cookies ins Spiel, und zwar
+            ausschließlich nach deiner Einwilligung über das Einwilligungsbanner.
           </p>
-        </Prose>
-        <ComparisonTable
-          columns={["Schlüssel", "Von wem", "Zweck", "Wann"]}
-          rows={[
-            ["kontexto_ad_consent", "Kontexto", "deine Antwort im Banner, mit Zeitpunkt und Fassung des Banners", "sobald du dich entscheidest, zwölf Monate"],
-            ["Einträge von Adcash im lokalen Speicher", "Adcash", "Zählung und Begrenzung von Einblendungen, etwa vast-client-* oder adcsh_*", "nur nach „Akzeptieren“, sofern Adcash sie anlegt"],
-            ["Cookies unter Adcash-Domains", "Adcash", "Auslieferung, Messung und Abrechnung der Anzeigen, Erkennung von Betrug", "nur nach „Akzeptieren“, Dauer legt Adcash fest"],
-          ]}
-          caption="Einträge im Zusammenhang mit Werbung"
-        />
-        <Prose>
           <p>
-            Bei unserer Messung der Werbebanner am 23. September 2026 hat Adcash weder im lokalen
-            Speicher etwas abgelegt noch ein Cookie gesetzt. Nach den eigenen Angaben von Adcash kann
-            sich das ändern, etwa um zu zählen, wie oft du eine Anzeige gesehen hast. Deshalb lädt
-            Kontexto die Werbung trotzdem nur nach deiner Einwilligung.
-          </p>
-        </Prose>
-        <Prose>
-          <p>
-            Öffnest du mit einem Klick auf eine Anzeige die Seite eines Werbekunden, setzt diese Seite ihre eigenen Cookies,
-            unter ihrer eigenen Domain und nach ihrem eigenen Einwilligungsbanner. Darauf hat Kontexto
-            keinen Einfluss. Die Rechtsgrundlagen und die Einzelheiten zu Adcash stehen in der{" "}
-            <Link href="/datenschutz/#werbung-adcash">Datenschutzerklärung</Link>.
+            Wenn Anzeigen ausgeliefert werden, werden die Cookies nicht von uns, sondern von Google
+            und weiteren Anbietern gesetzt, die an der Anzeigenauslieferung beteiligt sind. Sie
+            dienen der Auswahl und Messung von Anzeigen und der Begrenzung, wie oft dieselbe Anzeige
+            erscheint. Welche Anbieter das im Einzelnen sind, listet das Einwilligungsbanner auf;
+            die Rechtsgrundlagen und die Übermittlung in die USA stehen in der{" "}
+            <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
           <p>
             Wichtig: Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt, und das Spiel
             funktioniert vollständig weiter. Die Einwilligung lässt sich jederzeit über den Link
-            „Cookie-Einstellungen“ in der Fußzeile ändern oder widerrufen. Beim Widerruf entfernt
-            Kontexto die Adcash-Einträge aus dem lokalen Speicher und lädt die Seite ohne Adcash neu.
+            „Cookie-Einstellungen“ in der Fußzeile ändern oder widerrufen.
           </p>
         </Prose>
       </Reveal>
@@ -168,9 +147,8 @@ export default function CookiesPage() {
           </p>
           <p>
             Wer nur die Werbeeinwilligung zurücknehmen möchte, braucht dafür nichts zu löschen. Der
-            Link „Cookie-Einstellungen“ in der Fußzeile öffnet das Banner erneut. Cookies, die Adcash
-            unter eigenen Domains gesetzt hat, entfernst du in den Einstellungen deines Browsers; eine
-            Website kommt an sie nicht heran. Mehr dazu steht in der{" "}
+            Link „Cookie-Einstellungen“ in der Fußzeile öffnet das Banner erneut. Wie du
+            personalisierte Werbung darüber hinaus dauerhaft abschaltest, steht in der{" "}
             <Link href="/datenschutz/">Datenschutzerklärung</Link>.
           </p>
         </Prose>

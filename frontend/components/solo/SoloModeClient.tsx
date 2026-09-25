@@ -56,7 +56,6 @@ import {
 } from "@/lib/storage";
 import { Difficulty, SortMode } from "@/lib/types";
 import { Panel } from "@/components/design";
-import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 interface SoloModeClientProps {
   mode: SoloModeId;
@@ -371,7 +370,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
               restarting={restarting}
             />
             <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
-            <AdcashResultSlot className="mt-2" />
           </>
         ) : (
           <>

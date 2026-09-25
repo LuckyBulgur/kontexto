@@ -219,11 +219,11 @@ export default function UeberPage() {
           <h2 id="finanzierung">Wie das Spiel finanziert wird</h2>
           <p>
             Kontexto ist kostenlos und soll es bleiben. Es gibt keine Bezahlschranke, keinen
-            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Der Betrieb finanziert
-            sich über Werbung, übergangsweise von Adcash und später von Google AdSense, und zwar
-            ausschließlich auf den Seiten, auf denen gespielt wird, allein wie zu mehreren.
-            Inhaltsseiten und Rechtsseiten bleiben werbefrei, weil dort gelesen und nicht gespielt
-            wird, und der Stream-Modus, weil sein Bild in einen Livestream übertragen wird.
+            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Der Betrieb soll nach
+            einer Freischaltung über Werbung finanziert werden, und zwar ausschließlich auf den
+            beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume
+            bleiben werbefrei, weil eine
+            Anzeige dort neben zu wenig eigenem Inhalt stünde.
           </p>
           <p>
             Werbe- und Trackingcookies werden erst nach deiner Einwilligung gesetzt. Sie lässt sich

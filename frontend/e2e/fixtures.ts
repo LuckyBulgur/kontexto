@@ -1,5 +1,4 @@
 import { test as base, expect, type BrowserContext } from "@playwright/test";
-import { AD_CONSENT_KEY, AD_CONSENT_VERSION } from "../lib/ad-consent";
 
 /**
  * Gemeinsame Test-Basis: Drittanbieter-Requests werden abgewiesen.
@@ -29,33 +28,9 @@ export async function blockThirdParty(context: BrowserContext): Promise<void> {
   await context.route(THIRD_PARTY, (route) => route.abort());
 }
 
-/**
- * Records a refusal in the ad consent banner before any page script runs, so
- * the banner (fixed to the bottom of every page) does not cover what a spec
- * clicks. Only when nothing is stored yet, which keeps a spec that writes its
- * own decision, or clears storage and reloads, in control. The banner itself is
- * covered by `ad-consent.spec.ts`, which opts out through `adConsent: "unset"`.
- */
-export async function presetAdConsent(context: BrowserContext): Promise<void> {
-  await context.addInitScript(
-    ({ key, version }) => {
-      try {
-        if (window.localStorage.getItem(key) === null) {
-          window.localStorage.setItem(key, JSON.stringify({ v: version, choice: "denied", at: new Date().toISOString() }));
-        }
-      } catch {
-        // Storage blocked: the banner then shows, which is the real behaviour.
-      }
-    },
-    { key: AD_CONSENT_KEY, version: AD_CONSENT_VERSION },
-  );
-}
-
-export const test = base.extend<{ adConsent: "preset" | "unset" }>({
-  adConsent: ["preset", { option: true }],
-  context: async ({ context, adConsent }, use) => {
+export const test = base.extend({
+  context: async ({ context }, use) => {
     await blockThirdParty(context);
-    if (adConsent === "preset") await presetAdConsent(context);
     await use(context);
   },
 });

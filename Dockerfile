@@ -13,10 +13,6 @@ COPY frontend/ .
 # post-approval opt-in through docker-compose's build arg.
 ARG NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
 ENV NEXT_PUBLIC_ADSENSE_REVIEW_MODE=${NEXT_PUBLIC_ADSENSE_REVIEW_MODE}
-# Adcash is the interim ad network until AdSense approves; set false to remove
-# its consent banner and loader from the export (frontend/lib/adcash.ts).
-ARG NEXT_PUBLIC_ADCASH_ENABLED=true
-ENV NEXT_PUBLIC_ADCASH_ENABLED=${NEXT_PUBLIC_ADCASH_ENABLED}
 # pnpm 11 re-verifies deps before running a script and, finding the just-copied
 # project, tries to reinstall, which aborts in a non-interactive build
 # (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). The frozen-lockfile install above

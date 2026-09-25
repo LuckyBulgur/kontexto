@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { test, blockThirdParty, presetAdConsent } from "./fixtures";
+import { test, blockThirdParty } from "./fixtures";
 
 /**
  * The screenshots the README shows, taken from the running application rather
@@ -87,7 +87,6 @@ test.describe("README screenshots", () => {
 
     const guestCtx = await browser.newContext();
     await blockThirdParty(guestCtx);
-    await presetAdConsent(guestCtx);
     const guest = await guestCtx.newPage();
     await guest.goto(`/duel/${duel_id}/`);
     await guest.getByPlaceholder("Dein Nickname...").fill("Jonas");
@@ -96,7 +95,6 @@ test.describe("README screenshots", () => {
 
     const hostCtx = await browser.newContext({ viewport: { width: 1280, height: 470 } });
     await blockThirdParty(hostCtx);
-    await presetAdConsent(hostCtx);
     const host = await hostCtx.newPage();
     await setTheme(host, "dark");
     await host.addInitScript(

@@ -30,7 +30,6 @@ import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
 import RoomLanding from "@/components/RoomLanding";
-import { AdcashResultSlot } from "@/components/AdcashSlots";
 
 function getDuelIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
@@ -466,16 +465,13 @@ export default function DuelPageClient() {
           )}
 
           {solved ? (
-            <>
-              <DuelResultCard
-                gameNumber={solvedGame}
-                guesses={guesses}
-                players={players}
-                currentNickname={nickname ?? ""}
-                onNextGame={handleNextGame}
-              />
-              <AdcashResultSlot />
-            </>
+            <DuelResultCard
+              gameNumber={solvedGame}
+              guesses={guesses}
+              players={players}
+              currentNickname={nickname ?? ""}
+              onNextGame={handleNextGame}
+            />
           ) : (
             <>
               <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">

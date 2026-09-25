@@ -562,58 +562,6 @@ export function StackedAreaTrend({
   );
 }
 
-/**
- * Side-by-side bars per x value, for a few counts that are read against each
- * other (accepted versus refused on a day). Stacking would make the second
- * series read as a total.
- */
-export function GroupedBars({
-  data,
-  series,
-  xKey = "date",
-  height = 220,
-  labelFormatter = shortDate,
-}: {
-  data: Array<Record<string, number | string>>;
-  series: { key: string; label: string; accent: number }[];
-  xKey?: string;
-  height?: number;
-  labelFormatter?: (l: string) => string;
-}) {
-  if (data.length === 0) return <Empty />;
-  return (
-    <div>
-      <div style={{ height }} className="w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <XAxis dataKey={xKey} tickFormatter={(l) => labelFormatter(String(l))} tick={AXIS_TICK}
-              axisLine={false} tickLine={false} minTickGap={20} />
-            <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={32} allowDecimals={false} />
-            <Tooltip
-              content={<ChartTooltip labelFormatter={(l) => labelFormatter(String(l))} />}
-              cursor={{ fill: "var(--color-muted)", opacity: 0.4 }}
-            />
-            {series.map((s) => (
-              <Bar key={s.key} dataKey={s.key} name={s.label}
-                fill={CHART_COLORS[s.accent % CHART_COLORS.length]}
-                radius={[4, 4, 0, 0]} maxBarSize={32} isAnimationActive={false} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-micro">
-        {series.map((s) => (
-          <li key={s.key} className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="inline-block h-2.5 w-2.5 rounded-sm"
-              style={{ background: CHART_COLORS[s.accent % CHART_COLORS.length] }} />
-            {s.label}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 // --- Time-range toggle + timeline slicing helpers ----------------------------
 
 export type RangeKey = "today" | "7d" | "30d" | "all";

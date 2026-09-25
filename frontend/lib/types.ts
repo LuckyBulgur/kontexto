@@ -243,27 +243,6 @@ export interface WordRatingStats {
   details: WordRatingDetailEntry[];
 }
 
-/** Counts per event of the ad consent banner (analytics.AD_CONSENT_KINDS). A type
- *  alias, not an interface, so it passes as the Record the chart helpers take. */
-export type AdConsentCounts = {
-  /** The first ask was on screen. */
-  shown: number;
-  /** A returning player got the ask as a dialog that needs a choice. */
-  required: number;
-  granted: number;
-  denied: number;
-  /** Changed later through "Cookie-Einstellungen". */
-  regranted: number;
-  revoked: number;
-};
-
-export interface AdConsentStats {
-  totals: AdConsentCounts;
-  last_30_days: AdConsentCounts;
-  /** One row per day of the last 90, oldest first, every kind present. */
-  daily: ({ date: string } & AdConsentCounts)[];
-}
-
 /** Started versus finished games (modes that report a start). */
 export interface FunnelStats {
   starts_by_mode: Record<string, number>;
@@ -346,7 +325,6 @@ export interface StatsData {
   monthly: MonthlyPoint[];
   /** Self-reported attribution ("Woher kennst du Kontexto?"). */
   survey: SurveyStats;
-  ad_consent: AdConsentStats;
   word_ratings: WordRatingStats;
   funnel: FunnelStats;
   sharing: SharingStats;

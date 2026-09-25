@@ -24,6 +24,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-25",
+    kind: "Verbessert",
+    title: "Keine Werbung von Adcash mehr",
+    body:
+      "Die Werbung von Adcash ist wieder raus, und mit ihr das Banner, das nach deiner " +
+      "Einwilligung gefragt hat. Kontexto lädt kein Werbeskript mehr, und was der Browser zu " +
+      "dieser Werbung gespeichert hatte, räumt die Seite beim nächsten Besuch selbst auf.",
+  },
+  {
     date: "2026-09-24",
     kind: "Neu",
     title: "Mehr Werbeflächen, auch kleine Videos",

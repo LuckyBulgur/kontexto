@@ -1,37 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { reopenAdConsent } from "@/lib/ad-consent";
-import { ADCASH_ENABLED } from "@/lib/adcash";
 
 /**
- * Footer-Link „Cookie-Einstellungen", der das Einwilligungsbanner von Googles
- * CMP erneut öffnet, damit Nutzer ihre Einwilligung jederzeit ändern oder
- * widerrufen können (DSGVO Art. 7 Abs. 3).
+ * Footer link "Cookie-Einstellungen" that reopens the consent message of
+ * Google's CMP, so visitors can change or withdraw their consent at any time
+ * (GDPR Art. 7(3)).
  *
- * Die `googlefc`-API wird erst injiziert, sobald im AdSense-Dashboard eine
- * Datenschutz-Nachricht (CMP) veröffentlicht ist. Solange sie nicht verfügbar
- * ist (vor der Einrichtung, oder außerhalb der EU ohne Consent-Flow), wird der
- * Link gar nicht angezeigt, so entsteht nie ein toter Klick.
+ * Google injects the `googlefc` API only once a privacy message (CMP) is
+ * published in the AdSense dashboard. While it is unavailable (before that
+ * setup, or outside the EU without a consent flow) the link is not rendered,
+ * so it never becomes a dead click.
  *
- * Referenzen:
+ * References:
  * - https://support.google.com/adsense/answer/10959060
  * - https://developers.google.com/funding-choices/fc-api-docs
  */
 export default function ConsentSettingsLink({ className }: { className?: string }) {
-  // While Adcash is the interim network, the banner in components/AdConsent.tsx
-  // holds the decision, so the link reopens that one and not Google's.
-  if (ADCASH_ENABLED) {
-    return (
-      <button type="button" onClick={reopenAdConsent} className={className}>
-        {"Cookie-Einstellungen"}
-      </button>
-    );
-  }
-  return <GoogleConsentSettingsLink className={className} />;
-}
-
-function GoogleConsentSettingsLink({ className }: { className?: string }) {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
@@ -39,7 +24,7 @@ function GoogleConsentSettingsLink({ className }: { className?: string }) {
       setAvailable(true);
       return;
     }
-    // Die CMP lädt asynchron nach dem AdSense-Loader, kurz darauf warten.
+    // The CMP loads asynchronously after the AdSense loader, so wait briefly.
     let tries = 0;
     const id = window.setInterval(() => {
       tries += 1;
@@ -47,7 +32,7 @@ function GoogleConsentSettingsLink({ className }: { className?: string }) {
         setAvailable(true);
         window.clearInterval(id);
       } else if (tries >= 30) {
-        // ~15s ohne CMP → keine Einwilligung zu widerrufen, Link bleibt aus.
+        // About 15 s without a CMP: no consent to withdraw, the link stays hidden.
         window.clearInterval(id);
       }
     }, 500);
