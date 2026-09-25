@@ -300,6 +300,16 @@ class TestCoreLexicon:
         state.bloom.add("aepfel")
         assert state.guess("aepfel", 1)["word"] == "apfel"
 
+    def test_the_lemma_index_does_not_overrule_the_build(self, data_dir):
+        # A vocabulary word the build left without a place was ruled on, and
+        # the older lemma index must not score it anyway: it read the English
+        # "that", refused on purpose, as the old spelling of "tun".
+        core_lexicon.write_core_words(data_dir, ["apfel", "kirsche"])
+        state = GameState(data_dir)
+        state.lemma_map["haus"] = "apfel"
+        assert state.normalize_word("haus") is None
+        assert state.is_uncounted("haus")
+
     def test_without_a_core_the_whole_vocabulary_counts(self, data_dir):
         state = GameState(data_dir)
         assert state.core_mask is None

@@ -186,6 +186,13 @@ HINT_BLOCKLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "
 SOLUTION_REJECTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "solution_rejects.txt")
 CHILD_UNFIT_CODE = "J"
 
+#: English words the scale does not count, each with the German word it is
+#: scored as, or none when it is a function word and refused. Shipped with the
+#: code for the same reason as the stop list; see the file's header.
+ENGLISH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "english_words_de.txt")
+#: The target that marks an English function word as refused.
+REFUSED = "-"
+
 
 class Lexicon(NamedTuple):
     """What a build decides about the vocabulary."""
@@ -224,6 +231,29 @@ def load_child_unfit_solutions() -> frozenset[str]:
             if reason.split(" ", 1)[0] == CHILD_UNFIT_CODE:
                 words.add(word.strip().lower())
     return frozenset(words)
+
+
+@functools.cache
+def load_english_words() -> dict[str, str | None]:
+    """English word to the German word it is scored as, None where refused.
+
+    Read once per process. A malformed line or an entry listed twice is an
+    error, because a silently skipped line would put an English word back on
+    the scale without anybody noticing.
+    """
+    words: dict[str, str | None] = {}
+    with open(ENGLISH_FILE, encoding="utf-8") as f:
+        for number, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            word, sep, target = (part.strip().lower() for part in line.partition(" = "))
+            if not sep or not word or not target:
+                raise ValueError(f"{ENGLISH_FILE}:{number}: expected 'english = german'")
+            if word in words:
+                raise ValueError(f"{ENGLISH_FILE}:{number}: {word} is listed twice")
+            words[word] = None if target == REFUSED else target
+    return words
 
 
 def _read_word_file(path: str) -> frozenset[str]:
@@ -368,6 +398,7 @@ def build_lexicon(
     second: dict[str, tuple[str, str]] | None = None,
     nouns: dict[str, tuple[bool, tuple[str, ...], bool]] | None = None,
     stopwords: frozenset[str] | set[str] | None = None,
+    english: dict[str, str | None] | None = None,
     min_zipf: float = MIN_ZIPF,
     min_length: int = MIN_LENGTH,
     min_guesses: int = MIN_GUESSES,
@@ -387,6 +418,11 @@ def build_lexicon(
     Wiktionary readings (:func:`read_word_classes`, :func:`read_simplemma`,
     :func:`read_noun_forms`); each is read here when not passed, and passed by
     tests and by measurements that iterate on a rule.
+
+    ``english`` is the list of English words the scale does not count
+    (:func:`load_english_words`, read here when not passed). Each one leaves the
+    scale and folds onto its German word, or is refused where it names none;
+    see :func:`_apply_english`.
 
     ``lemma_map`` is accepted and ignored. It stays in the signature because the
     two build scripts pass it positionally and it is still the game's surface
@@ -808,7 +844,49 @@ def build_lexicon(
         if word not in stop and lemma != word and lemma in scale:
             fold[word] = lemma
 
+    _apply_english(load_english_words() if english is None else english, known, kept, scale, fold)
     return Lexicon(scale=sorted(scale), fold=fold, everyday=sorted(daily))
+
+
+def _apply_english(english: dict[str, str | None], known: set[str], kept: set[str],
+                   scale: set[str], fold: dict[str, str]) -> None:
+    """Take the English words off the scale, in place.
+
+    Each listed word the vocabulary carries leaves the scale and folds onto its
+    German word, or is refused where the list names none. A German target may
+    itself be a form (``data`` names ``datum`` through the fold of ``daten``),
+    so it is followed one step; one that still holds no number is a mistake in
+    the list and stops the build, since dropping the entry would quietly put
+    the English word back. Any other form that folded onto an English word
+    follows it, or is refused with it.
+
+    The everyday list is not touched. An English everyday word stays on it the
+    way ``heute`` does, because the vectors are debiased on that list; the
+    runtime hands out everyday words that hold a number only, so it is never
+    named by a tip.
+    """
+    present = {w: t for w, t in english.items() if w in known}
+    solutions = sorted(present.keys() & kept)
+    if solutions:
+        raise ValueError(f"English words are solutions and must count: {solutions}")
+    for word in present:
+        scale.discard(word)
+        fold.pop(word, None)
+    settled: dict[str, str] = {}
+    for word, target in present.items():
+        if target is None:
+            continue
+        place = fold.get(target, target)
+        if place not in scale:
+            raise ValueError(f"{word} names {target}, which holds no number on the scale")
+        settled[word] = place
+    for form, target in list(fold.items()):
+        if target in present:
+            if target in settled:
+                fold[form] = settled[target]
+            else:
+                del fold[form]
+    fold.update(settled)
 
 
 def _derive_everyday(words, lemmas, kept, counts, is_content, min_length,

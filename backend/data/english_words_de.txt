@@ -1,0 +1,439 @@
+# English words the German scale does not count. Format: english = german
+#
+# Why this file exists
+# --------------------
+# The vectors come from a German Common Crawl model, and German web text carries
+# a good deal of English. So the model knows "village", "cinema" and "captain",
+# and until 2026-09-25 each of them held a number of its own. That put the
+# English translation of a solution among its nearest neighbours (kino next to
+# cinema, kapitän next to captain, telefon next to telephone), and on the day a
+# player asked why the list for cowboy read so oddly, 62 of 2.295 games had at
+# least one purely English word in their top 20. Kontexto is a German game, and
+# a word no German would type has no place on its scale.
+#
+# What an entry does
+# ------------------
+# * ``village = dorf``: the word leaves the scale and is scored as the German
+#   word, the way a plural is scored as its singular. Typed, it shows "dorf" and
+#   carries the rank of "dorf". Every content word takes this form, so a player
+#   who types English is answered, not refused.
+# * ``from = -``: the word leaves the scale and is refused with "es ist zu
+#   allgemein". Only function words take this form, because for them that
+#   message is true: they are the English counterparts of stopwords_de.txt.
+#
+# A form that folded onto an entry (``villages`` onto ``village``) follows it to
+# the German word, or is refused with it.
+#
+# What counts as purely English
+# -----------------------------
+# Found by scripts/find-english-words.py and then read line by line. A candidate
+# is a word on the scale that the German Wiktionary does not list as a German
+# word or a form of one, and that the English Wiktionary or English frequency
+# names as English. The reading pass kept three kinds of candidate, and this
+# file therefore leaves them out on purpose (examples, not the full record):
+#   * loanwords German uses as its own: banking, briefing, caravan, makeup,
+#     freestyle, dribbling, sponsoring, benchmark, governance, investment,
+#     output, headline, goodwill, giveaway, handheld, checkbox, shortcut,
+#     special, trading, mining, setting, borderline, brownie, audition,
+#     franchising, factoring, clearing, clustering, extrusion, fermentation,
+#     developer, gateway, venture, convenience, transmitter;
+#   * names, places and brands, English or not: every first and last name,
+#     every city and country, ford, sky (the broadcaster is typed as often as
+#     the sky), seat (the carmaker), focus, shell, intel, continental, bounty,
+#     sim (the card), jurassic, unreal;
+#   * English spellings that are German words or German names as well: island
+#     (Iceland), main and inn (rivers), wedding (a Berlin district), worms (a
+#     city), storm, lessing, herder, luther and henning (authors and names),
+#     bode, tip (the old spelling of Tipp), blend (the imperative of blenden),
+#     loos, hamlet, mercury (Freddie Mercury more often than the metal).
+# Ranch and farmer are German words (Duden), which is why they are not here.
+#
+# Held by backend/test_english_words.py: every entry's German target holds a
+# number on the real scale, no entry is a solution, and no entry holds a number.
+
+# English function words, refused as too general.
+about = -
+and = -
+both = -
+for = -
+from = -
+into = -
+its = -
+next = -
+that = -
+too = -
+today = -
+else = -
+
+# Nouns, adjectives and verbs, scored as the German word.
+aboriginal = ureinwohner
+academy = akademie
+ache = schmerz
+advertising = werbung
+aerospace = luftfahrt
+africa = afrika
+african = afrikanisch
+afternoon = nachmittag
+agreement = vereinbarung
+akin = verwandt
+alignment = ausrichtung
+allied = verbünden
+american = amerikanisch
+apparent = offensichtlich
+apple = apfel
+approach = ansatz
+area = gebiet
+assessment = bewertung
+association = verband
+attention = aufmerksamkeit
+australian = australisch
+baker = bäcker
+barrier = barriere
+barrister = anwalt
+basement = keller
+bay = bucht
+beer = bier
+begin = beginnen
+beijing = peking
+bells = glocke
+belt = gürtel
+best = gut
+big = groß
+binding = bindung
+bird = vogel
+black = schwarz
+blue = blau
+blueprint = blaupause
+bottom = boden
+boy = junge
+brick = ziegel
+brilliant = brillant
+british = britisch
+broken = kaputt
+brothers = bruder
+brown = braun
+burn = verbrennung
+burns = verbrennung
+bury = begraben
+bush = busch
+cage = käfig
+california = kalifornien
+canadian = kanada
+canal = kanal
+cancer = krebs
+candy = süßigkeit
+captain = kapitän
+card = karte
+care = pflege
+caribbean = karibik
+carnival = karneval
+caterpillar = raupe
+cats = katze
+centre = zentrum
+century = jahrhundert
+certificates = zertifikat
+chairman = vorsitzender
+chapel = kapelle
+chemical = chemisch
+cherry = kirsche
+chief = chef
+cinema = kino
+civil = zivil
+clay = ton
+clone = klon
+coal = kohle
+coalition = koalition
+coast = küste
+cobra = kobra
+commerce = handel
+commercial = werbespot
+commission = kommission
+commissioner = kommissar
+committee = ausschuss
+communications = kommunikation
+composer = komponist
+congress = kongress
+constant = konstant
+control = kontrolle
+cook = koch
+cooperative = genossenschaft
+cork = kork
+council = rat
+countryside = land
+courier = kurier
+crazy = verrückt
+credit = kredit
+criticism = kritik
+critique = kritik
+crystal = kristall
+daily = täglich
+data = datum
+dawn = morgengrauen
+deacon = diakon
+dead = tot
+deep = tief
+delay = verzögerung
+demolition = abriss
+destiny = schicksal
+development = entwicklung
+devices = gerät
+diamond = diamant
+direct = direkt
+disruption = störung
+doe = reh
+downstream = flussabwärts
+duke = herzog
+dutch = niederländisch
+eastern = östlich
+economics = wirtschaft
+economist = ökonom
+editions = ausgabe
+efficiency = effizienz
+electric = elektrisch
+electronic = elektronisch
+elephant = elefant
+encounter = begegnung
+energy = energie
+environment = umwelt
+environmental = umwelt
+essential = wesentlich
+estate = anwesen
+europe = europa
+european = europäisch
+evil = böse
+evolved = entwickeln
+exchange = austausch
+exclusive = exklusiv
+explorer = entdecker
+exposure = belichtung
+expression = ausdruck
+extended = erweitern
+fairy = fee
+fame = ruhm
+far = weit
+federal = bund
+federation = föderation
+fellowship = gemeinschaft
+fidelity = treue
+finance = finanz
+financial = finanziell
+fingerprint = fingerabdruck
+fleet = flotte
+floating = schwimmend
+flush = spülung
+force = kraft
+former = ehemalig
+four = vier
+fox = fuchs
+france = frankreich
+free = frei
+french = französisch
+full = voll
+gale = sturm
+gallery = galerie
+games = spiel
+gap = lücke
+genocide = völkermord
+germany = deutschland
+girl = mädchen
+girls = mädchen
+globe = globus
+goodbye = abschied
+grace = gnade
+grass = gras
+great = großartig
+greatest = groß
+greece = griechenland
+group = gruppe
+grove = hain
+guidelines = richtlinie
+gulf = golf
+hare = hase
+head = kopf
+health = gesundheit
+heap = haufen
+herald = herold
+hill = hügel
+hills = hügel
+holiday = urlaub
+honeymoon = flitterwochen
+hood = kapuze
+horse = pferd
+identity = identität
+impossible = unmöglich
+incident = vorfall
+independent = unabhängig
+individual = individuell
+industries = industrie
+inferior = minderwertig
+infrared = infrarot
+innocence = unschuld
+intelligence = intelligenz
+interpreter = dolmetscher
+interstate = autobahn
+invention = erfindung
+inventor = erfinder
+investigator = ermittler
+invitation = einladung
+irish = irisch
+italian = italienisch
+jar = glas
+july = juli
+june = juni
+justice = gerechtigkeit
+knit = stricken
+korean = koreanisch
+laboratory = labor
+labour = arbeit
+lap = runde
+lay = legen
+learning = lernen
+let = lassen
+liberation = befreiung
+limited = begrenzen
+line = linie
+lion = löwe
+literary = literarisch
+little = klein
+long = lang
+lucky = glücklich
+magic = magie
+majestic = majestätisch
+manufacturing = herstellung
+march = märz
+mature = reif
+maze = labyrinth
+medicine = medizin
+memorial = denkmal
+mile = meile
+mill = mühle
+mock = attrappe
+moonlight = mondlicht
+mother = mutter
+mountain = berg
+mounted = montieren
+much = viel
+music = musik
+naked = nackt
+nations = nation
+network = netzwerk
+nomination = nominierung
+north = norden
+northwest = nordwesten
+notes = notiz
+nuclear = atom
+number = nummer
+observatory = sternwarte
+observer = beobachter
+ocean = ozean
+old = alt
+olympic = olympisch
+one = eins
+optic = optik
+pacific = pazifik
+panic = panik
+paradise = paradies
+parrot = papagei
+pen = stift
+penguin = pinguin
+perfect = perfekt
+photo = foto
+pictures = bild
+pine = kiefer
+place = platz
+point = punkt
+policies = politik
+precious = kostbar
+presidents = präsident
+prince = prinz
+princes = prinz
+printer = drucker
+products = produkt
+project = projekt
+publications = veröffentlichung
+purple = lila
+rail = schiene
+rainbow = regenbogen
+ravens = rabe
+reading = lesen
+reef = riff
+relaxation = entspannung
+republic = republik
+research = forschung
+rice = reis
+river = fluss
+road = straße
+room = zimmer
+roses = rose
+rust = rost
+said = sagen
+saint = heilig
+satellite = satellit
+saturday = samstag
+scene = szene
+school = schule
+science = wissenschaft
+scientist = wissenschaftler
+scotland = schottland
+search = suche
+securities = wertpapier
+seven = sieben
+shin = schienbein
+silence = stille
+smoke = rauch
+society = gesellschaft
+soon = bald
+south = süden
+southern = südlich
+spiritual = spirituell
+state = staat
+steel = stahl
+step = schritt
+stone = stein
+stones = stein
+stories = geschichte
+strategy = strategie
+street = straße
+struck = schlagen
+submission = einreichung
+sunday = sonntag
+sunset = sonnenuntergang
+sustainable = nachhaltig
+sweet = süß
+sweetheart = liebling
+task = aufgabe
+taxation = besteuerung
+telephone = telefon
+telescope = teleskop
+theatre = theater
+thong = tanga
+three = drei
+times = mal
+tiny = winzig
+titanium = titan
+tourism = tourismus
+trade = handel
+transportation = transport
+travel = reise
+turkish = türkisch
+unit = einheit
+university = universität
+unlimited = unbegrenzt
+valley = tal
+vehicle = fahrzeug
+viking = wikinger
+village = dorf
+violent = gewalttätig
+waiting = warten
+warrior = krieger
+warriors = krieger
+watch = uhr
+water = wasser
+white = weiß
+wide = breit
+wit = witz
+works = werk
+world = welt
+worlds = welt
+worth = wert
+young = jung

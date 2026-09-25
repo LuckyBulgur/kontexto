@@ -297,8 +297,11 @@ class GameState:
                 return folded
             # Not counted and not a form of anything counted. A word the
             # vocabulary does not carry at all can still be an inflection the
-            # game derived itself, so the lemma index gets the last word.
-            lemma = self.lemma_map.get(w)
+            # game derived itself, so the lemma index gets the last word. A word
+            # the vocabulary does carry was already ruled on by the build, and
+            # the older lemma index must not overrule it: it read the English
+            # "that", refused on purpose, as the old spelling of "tun".
+            lemma = self.lemma_map.get(w) if index is None else None
             if lemma is not None and lemma != w:
                 lemma_index = self.vocabulary.get(lemma)
                 if lemma_index is not None and self.core_mask[lemma_index]:

@@ -159,7 +159,11 @@ def main() -> int:
         vocab_index, lemma_map, everyday=deployed_everyday, keep=set(targets),
         guess_counts=guess_counts)
     core = lexicon.scale
-    dropped = sorted(deployed_scale - set(core) - set(lexicon.fold) - core_lexicon.load_stopwords())
+    # The English function words are refused on purpose (english_words_de.txt),
+    # the same way a stop word is, so they are no loss to guard against.
+    refused_english = {w for w, t in core_lexicon.load_english_words().items() if t is None}
+    dropped = sorted(deployed_scale - set(core) - set(lexicon.fold)
+                     - core_lexicon.load_stopwords() - refused_english)
     typed = [w for w in dropped if guess_counts.get(w, 0) >= core_lexicon.MIN_GUESSES]
     if dropped:
         log(f"  {len(dropped)} counted words are neither counted nor folded now: {dropped[:20]}")

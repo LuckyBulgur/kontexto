@@ -21,7 +21,9 @@ What must not change
 4. **What a player could type yesterday.** A word that counted and would now be
    neither counted nor folded is refused from tomorrow on. The script lists
    every such word and aborts when one of them was typed on production at
-   least ``core_lexicon.MIN_GUESSES`` times.
+   least ``core_lexicon.MIN_GUESSES`` times. The English function words that
+   ``backend/data/english_words_de.txt`` refuses on purpose are listed apart
+   and never abort.
 
 The manifest records a SHA-256 of every deployed file the build started from,
 and ``scripts/upload-core-pool.sh --lexicon-only`` refuses to ship when
@@ -127,7 +129,15 @@ def main() -> int:
         raise SystemExit(f"ABORT: {len(unplaced)} solutions hold no number of their own: "
                          f"{unplaced[:10]}")
 
-    dropped = sorted(w for w in deployed_scale if w not in scale and w not in lexicon.fold)
+    # The English function words are refused on purpose (english_words_de.txt),
+    # the same way a stop word is: listed for the record, never an abort.
+    refused_english = {w for w, t in core_lexicon.load_english_words().items() if t is None}
+    dropped_all = sorted(w for w in deployed_scale if w not in scale and w not in lexicon.fold)
+    deliberate = [w for w in dropped_all if w in refused_english]
+    dropped = [w for w in dropped_all if w not in refused_english]
+    if deliberate:
+        log(f"{len(deliberate)} English function words are refused on purpose: "
+            + ", ".join(f"{w} ({guess_counts.get(w, 0)})" for w in deliberate))
     if dropped:
         typed = {w: guess_counts.get(w, 0) for w in dropped}
         log(f"{len(dropped)} counted words would be refused from now on: "
@@ -177,6 +187,7 @@ def main() -> int:
             "previous_core_size": len(deployed_scale),
             "fold_size": len(lexicon.fold),
             "dropped": dropped,
+            "refused_english": deliberate,
             "newly_folded": counted(newly_folded),
             "unfolded": [[w, guess_counts.get(w, 0)] for w in unfolded],
             "retargeted": [[w, deployed_fold[w], lexicon.fold[w]] for w in retargeted],
