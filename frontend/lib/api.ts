@@ -25,10 +25,17 @@ export async function submitCreatorClip(data: { clip_url: string; channel_url: s
   if (!res.ok) throw new Error((await res.json()).error ?? "submission_failed");
 }
 
-export async function getCreatorSubmissions(token: string): Promise<CreatorSubmission[]> {
+export async function getCreatorSubmissions(token: string): Promise<{ submissions: CreatorSubmission[]; today_submission_id: number | null }> {
   const res = await fetch(`${API_BASE}/admin/creator-submissions`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return (await res.json()).submissions;
+  return res.json();
+}
+
+export async function showCreatorToday(token: string, id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/creator-submissions/${id}/show-today`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
 }
 
 export async function reviewCreatorSubmission(token: string, id: number, approve: boolean): Promise<void> {

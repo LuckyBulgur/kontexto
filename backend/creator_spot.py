@@ -175,6 +175,38 @@ async def list_submissions(db: aiosqlite.Connection) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+async def day_submission_id(db: aiosqlite.Connection, game_number: int) -> int | None:
+    async with db.execute("SELECT submission_id FROM creator_days WHERE game_number=?", (game_number,)) as cursor:
+        row = await cursor.fetchone()
+    return row[0] if row else None
+
+
+async def show_today(db: aiosqlite.Connection, submission_id: int, game_number: int) -> bool:
+    """Fill an empty daily slot with an approved submission, without replacing a credit."""
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        async with db.execute(
+            "SELECT 1 FROM creator_submissions WHERE id=? AND status='approved'",
+            (submission_id,),
+        ) as cursor:
+            approved = await cursor.fetchone() is not None
+        async with db.execute("SELECT submission_id FROM creator_days WHERE game_number=?", (game_number,)) as cursor:
+            day = await cursor.fetchone()
+        if not approved or (day is not None and day[0] is not None):
+            await db.rollback()
+            return False
+        if day is None:
+            await db.execute("INSERT INTO creator_days(game_number, submission_id) VALUES (?, ?)", (game_number, submission_id))
+        else:
+            await db.execute("UPDATE creator_days SET submission_id=?, assigned_at=CURRENT_TIMESTAMP WHERE game_number=? AND submission_id IS NULL", (submission_id, game_number))
+        await db.execute("UPDATE creator_submissions SET status='shown', email=NULL WHERE id=?", (submission_id,))
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        raise
+
+
 async def review(db: aiosqlite.Connection, submission_id: int, approve: bool) -> bool:
     eligible = (date.today() + timedelta(days=1)).isoformat() if approve else None
     cursor = await db.execute(

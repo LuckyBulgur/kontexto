@@ -2,17 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { getCreatorSubmissions, reviewCreatorSubmission, type CreatorSubmission } from "@/lib/api";
+import { getCreatorSubmissions, reviewCreatorSubmission, showCreatorToday, type CreatorSubmission } from "@/lib/api";
 
 const labels = { pending: "Offen", approved: "Freigegeben", rejected: "Abgelehnt", shown: "Angezeigt" };
 
 export default function CreatorSubmissions({ token }: { token: string }) {
   const [rows, setRows] = useState<CreatorSubmission[]>([]);
+  const [todaySubmissionId, setTodaySubmissionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
-    try { setRows(await getCreatorSubmissions(token)); setError(null); }
+    try {
+      const data = await getCreatorSubmissions(token);
+      setRows(data.submissions);
+      setTodaySubmissionId(data.today_submission_id);
+      setError(null);
+    }
     catch { setError("Einreichungen konnten nicht geladen werden."); }
   }, [token]);
 
@@ -25,16 +31,24 @@ export default function CreatorSubmissions({ token }: { token: string }) {
     finally { setBusy(null); }
   }
 
+  async function showToday(id: number) {
+    setBusy(id);
+    try { await showCreatorToday(token, id); await refresh(); }
+    catch { setError("Der Clip konnte nicht für heute angezeigt werden. Bitte aktualisieren."); }
+    finally { setBusy(null); }
+  }
+
   const active = rows.filter((row) => row.status === "pending" || row.status === "approved").sort((a, b) => a.id - b.id);
   const history = rows.filter((row) => row.status === "shown" || row.status === "rejected");
 
   return (
     <section className="mb-8 rounded-xl border p-4" aria-labelledby="creator-heading">
       <div className="flex items-center justify-between gap-3">
-        <div><h2 id="creator-heading" className="text-h3 font-semibold">Creator-Clips</h2><p className="text-small text-muted-foreground">Einreichungen nach Eingangsreihenfolge prüfen. Freigegebene Clips kommen ab dem nächsten Tagesrätsel in die Warteliste.</p></div>
+        <div><h2 id="creator-heading" className="text-h3 font-semibold">Creator-Clips</h2><p className="text-small text-muted-foreground">Einreichungen nach Eingangsreihenfolge prüfen. Freigegebene Clips kommen ab dem nächsten Tagesrätsel in die Warteliste oder können einen noch freien Platz für heute füllen.</p></div>
         <Button variant="outline" size="sm" onClick={() => void refresh()}>Aktualisieren</Button>
       </div>
       {error && <p role="alert" className="mt-3 text-small text-destructive">{error}</p>}
+      {todaySubmissionId !== null && <p className="mt-3 text-small text-muted-foreground">Heute angezeigt: #{todaySubmissionId}</p>}
       <div className="mt-4 space-y-3">
         {active.length === 0 && <p className="text-small text-muted-foreground">Keine offenen oder freigegebenen Clips.</p>}
         {active.map((row) => (
@@ -42,6 +56,7 @@ export default function CreatorSubmissions({ token }: { token: string }) {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><strong>#{row.id} · {row.channel_name}</strong><span>{row.platform}</span><span className="text-muted-foreground">{labels[row.status]}</span><span className="text-muted-foreground">Eingang: {row.submitted_at}</span></div>
             <div className="mt-2 flex flex-wrap gap-3"><a href={row.clip_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Clip öffnen</a><a href={row.channel_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Kanal öffnen</a>{row.email && <a href={`mailto:${row.email}`} className="text-primary underline">E-Mail</a>}</div>
             {row.status === "pending" && <div className="mt-3 flex gap-2"><Button size="sm" disabled={busy === row.id} onClick={() => void review(row.id, true)}>Freigeben</Button><Button size="sm" variant="outline" disabled={busy === row.id} onClick={() => void review(row.id, false)}>Ablehnen</Button></div>}
+            {row.status === "approved" && todaySubmissionId === null && <div className="mt-3"><Button size="sm" disabled={busy !== null} onClick={() => void showToday(row.id)}>Heute anzeigen</Button></div>}
           </div>
         ))}
       </div>

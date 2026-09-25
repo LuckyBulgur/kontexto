@@ -2497,7 +2497,10 @@ async def admin_creator_submissions(authorization: str = Header(default="")):
         return JSONResponse(status_code=401, content={"error": "unauthorized"})
     db = await get_db(_db_path)
     try:
-        return {"submissions": await creator_spot.list_submissions(db)}
+        return {
+            "submissions": await creator_spot.list_submissions(db),
+            "today_submission_id": await creator_spot.day_submission_id(db, _get_current_game_number()),
+        }
     finally:
         await db.close()
 
@@ -2511,6 +2514,19 @@ async def admin_review_creator(submission_id: int, req: CreatorReviewRequest,
     try:
         if not await creator_spot.review(db, submission_id, req.approve):
             return JSONResponse(status_code=409, content={"error": "not_pending"})
+        return {"ok": True}
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/creator-submissions/{submission_id}/show-today")
+async def admin_show_creator_today(submission_id: int, authorization: str = Header(default="")):
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    db = await get_db(_db_path)
+    try:
+        if not await creator_spot.show_today(db, submission_id, _get_current_game_number()):
+            return JSONResponse(status_code=409, content={"error": "not_approved_or_today_occupied"})
         return {"ok": True}
     finally:
         await db.close()
