@@ -52,7 +52,6 @@ const COPY = {
   columnWord: "Wort",
   columnShare: "Anteil",
   columnVotes: "Stimmen",
-  game: (n: number) => `Spiel ${n}`,
 };
 
 const VERDICT_LABELS: Record<string, string> = {
@@ -89,11 +88,9 @@ function RatingTable({ rows, share, accent }: {
         </thead>
         <tbody>
           {rows.map((entry) => (
-            <tr key={entry.game_number} className="border-b last:border-0">
+            <tr key={entry.word} className="border-b last:border-0">
               <td className="py-2 pr-2">
-                <span className="font-medium">
-                  {entry.word ?? COPY.game(entry.game_number)}
-                </span>
+                <span className="font-medium">{entry.word}</span>
                 <span className="ml-2 text-micro text-muted-foreground" data-numeric>
                   {`#${entry.game_number}`}
                 </span>
@@ -121,7 +118,7 @@ export default function WordQuality({ stats }: { stats: StatsData }) {
     );
   }
 
-  const coverage = ratings.pool_size > 0 ? ratings.games_rated / ratings.pool_size : 0;
+  const coverage = ratings.pool_size > 0 ? ratings.words_rated / ratings.pool_size : 0;
   const hardShare = ratings.votes_total > 0 ? ratings.verdicts.hard / ratings.votes_total : 0;
   const unknownOfHard = ratings.verdicts.hard > 0
     ? ratings.reasons.unknown_word / ratings.verdicts.hard
@@ -133,7 +130,7 @@ export default function WordQuality({ stats }: { stats: StatsData }) {
         <KpiCard icon={MessageCircleQuestion} accent={0} label={COPY.votes}
           value={formatNumber(ratings.votes_total)} />
         <KpiCard icon={Type} accent={2} label={COPY.ratedWords}
-          value={formatNumber(ratings.games_rated)}
+          value={formatNumber(ratings.words_rated)}
           sub={COPY.ratedWordsSub(formatNumber(ratings.pool_size), formatPercent(coverage))} />
         <KpiCard icon={Gamepad2} accent={3} label={COPY.tooHard}
           value={formatPercent(hardShare)} sub={COPY.tooHardSub(ratings.min_votes)} />
@@ -165,12 +162,12 @@ export default function WordQuality({ stats }: { stats: StatsData }) {
         ) : (
           <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
             {ratings.details.map((entry, index) => (
-              <li key={`${entry.game_number}-${index}`}
+              <li key={`${entry.word}-${index}`}
                 className="border-b pb-2 last:border-0 last:pb-0">
                 <p className="text-small">{entry.detail}</p>
                 <p className="text-micro text-muted-foreground">
                   {[
-                    entry.word ?? COPY.game(entry.game_number),
+                    entry.word,
                     VERDICT_LABELS[entry.verdict] ?? entry.verdict,
                     entry.reason ? REASON_LABELS[entry.reason] ?? entry.reason : null,
                     entry.date,

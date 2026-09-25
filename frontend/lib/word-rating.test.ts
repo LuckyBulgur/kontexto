@@ -3,6 +3,7 @@ import {
   RATED_HISTORY_MAX,
   RATING_REASONS,
   RATING_VERDICTS,
+  dropLegacyRatedGames,
   hasRated,
   loadRatedGames,
   nextStep,
@@ -107,14 +108,22 @@ describe("the memory of what was already rated", () => {
 
   it("ignores a stored value that is not a list of numbers", () => {
     const store = memoryStorage();
-    store.setItem("kontexto_word_rating_v1", '{"nope": true}');
+    store.setItem("kontexto_word_rating_v2", '{"nope": true}');
     expect(loadRatedGames(store)).toEqual([]);
   });
 
   it("drops entries that are not numbers rather than the whole list", () => {
     const store = memoryStorage();
-    store.setItem("kontexto_word_rating_v1", '[1, "zwei", 3]');
+    store.setItem("kontexto_word_rating_v2", '[1, "zwei", 3]');
     expect(loadRatedGames(store)).toEqual([1, 3]);
+  });
+
+  it("forgets the v1 list, whose game numbers now name other words", () => {
+    const store = memoryStorage();
+    store.setItem("kontexto_word_rating_v1", "[1091]");
+    dropLegacyRatedGames(store);
+    expect(store.getItem("kontexto_word_rating_v1")).toBeNull();
+    expect(loadRatedGames(store)).toEqual([]);
   });
 });
 
@@ -125,6 +134,10 @@ describe("a storage that throws", () => {
 
   it("swallows the write, so the question simply comes back", () => {
     expect(() => saveRatedGames(throwingStorage(), [1])).not.toThrow();
+  });
+
+  it("swallows the removal of the v1 list as well", () => {
+    expect(() => dropLegacyRatedGames(throwingStorage())).not.toThrow();
   });
 
   it("survives the absence of storage entirely, as on the server", () => {

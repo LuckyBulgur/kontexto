@@ -35,7 +35,17 @@ test.describe("Wortbewertung", () => {
     await page.getByRole("button", { name: "Zu schwer", exact: true }).click();
 
     await expect(page.getByText(REASON_QUESTION)).toBeVisible({ timeout: 10_000 });
+    // The reason goes out in a second request after the vote. The server used
+    // to refuse it as a duplicate vote and answer ok=false, which the page never
+    // shows, so the answer itself is what has to be checked.
+    const reasonResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/rating")
+        && response.request().method() === "POST"
+        && response.request().postData()?.includes("unknown_word") === true,
+    );
     await page.getByRole("button", { name: "Wort nicht gekannt", exact: true }).click();
+    expect(await (await reasonResponse).json()).toEqual({ ok: true });
 
     // The third step thanks and offers the optional field; the tally itself
     // stays silent until enough people have voted, which a fresh fixture never

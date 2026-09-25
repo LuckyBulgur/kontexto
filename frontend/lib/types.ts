@@ -159,11 +159,12 @@ export interface SurveyStats {
   total: number;
 }
 
-/** One rated solution word, as the dashboard reads it. */
+/** One rated solution word, as the dashboard reads it. Votes are counted per
+ *  word, because a pool rebuild hands the game numbers out again. */
 export interface WordRatingEntry {
+  /** The number the word has in the current pool. */
   game_number: number;
-  /** The played solution, or null when the payload carried no word list. */
-  word: string | null;
+  word: string;
   votes: number;
   verdicts: Record<"easy" | "right" | "hard", number>;
   reasons: Record<"unknown_word" | "no_idea" | "bad_neighbours", number>;
@@ -181,8 +182,10 @@ export interface WordRatingEntry {
 }
 
 export interface WordRatingDetailEntry {
+  /** The number the word has in the current pool, not the one it had when the
+   *  comment was written. */
   game_number: number;
-  word: string | null;
+  word: string;
   verdict: string;
   reason: string | null;
   detail: string;
@@ -194,9 +197,10 @@ export interface WordRatingStats {
   min_votes: number;
   /** The higher threshold the player-facing tally uses. */
   player_min_votes: number;
+  /** Words of the current curated pool; only those are reported. */
   pool_size: number;
-  games_with_any_vote: number;
-  games_rated: number;
+  words_with_any_vote: number;
+  words_rated: number;
   votes_total: number;
   verdicts: Record<"easy" | "right" | "hard", number>;
   reasons: Record<"unknown_word" | "no_idea" | "bad_neighbours", number>;

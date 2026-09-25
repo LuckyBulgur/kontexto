@@ -420,29 +420,46 @@ CREATE TABLE IF NOT EXISTS analytics_survey_details (
 CREATE INDEX IF NOT EXISTS idx_analytics_survey_details_ts ON analytics_survey_details(ts);
 
 -- Analytics: dedup ledger for the post-round word rating. One vote per visitor
--- per game number, which is what makes the tally a count of people rather than
--- a count of rounds: the random modes let the same person meet the same word
--- again, and a second opinion on the same word from the same person is not new
--- evidence. Retention matches the survey ledger for the same reason
--- (RATING_SEEN_RETENTION_DAYS): by then the monthly fingerprint salt has
--- rotated so often that the row cannot match anybody anyway.
-CREATE TABLE IF NOT EXISTS analytics_rating_seen (
+-- per solution word, which is what makes the tally a count of people rather
+-- than a count of rounds: the random modes let the same person meet the same
+-- word again, and a second opinion from the same person is not new evidence.
+--
+-- Keyed by the word and not by the game number, because a pool rebuild hands
+-- the numbers out again: game 1091 was the word for dummy on 2026-09-22 and a
+-- meeting three days later. The table replaced analytics_rating_seen, which was
+-- keyed by number and is dropped in init_db.
+--
+-- verdict and reason are held here so the follow-up calls can be checked
+-- against the vote they complete: a reason is only taken next to a "hard"
+-- verdict of the same visitor, and a free text is filed under the verdict that
+-- was counted, not under whatever the client sends with it. Retention matches
+-- the survey ledger (RATING_SEEN_RETENTION_DAYS): by then the monthly
+-- fingerprint salt has rotated so often that the row cannot match anybody.
+CREATE TABLE IF NOT EXISTS analytics_rating_votes (
     fp_hash TEXT NOT NULL,
-    game_number INTEGER NOT NULL,
+    word TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    reason TEXT,
     detail_done INTEGER NOT NULL DEFAULT 0,
     ts TIMESTAMP NOT NULL,
-    PRIMARY KEY (fp_hash, game_number)
+    PRIMARY KEY (fp_hash, word)
 );
-CREATE INDEX IF NOT EXISTS idx_analytics_rating_seen_ts ON analytics_rating_seen(ts);
+CREATE INDEX IF NOT EXISTS idx_analytics_rating_votes_ts ON analytics_rating_votes(ts);
 
 -- Analytics: the optional free text of a word rating, stored without fp_hash so
 -- a comment can never be linked back to a visitor, exactly like the survey
 -- details above. The countable vote lives in analytics_counters (metric
--- word_rating_v1), so this table is purely qualitative and read by a human when
+-- word_rating_v2), so this table is purely qualitative and read by a human when
 -- a word looks wrong in the dashboard. Permanent, never pruned.
+--
+-- word is the solution the comment is about; game_number is only the number it
+-- had when the comment was written. Rows from before the column existed have no
+-- word, and their number cannot be trusted to name one (see
+-- analytics_rating_votes), so the dashboard leaves them out.
 CREATE TABLE IF NOT EXISTS analytics_rating_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_number INTEGER NOT NULL,
+    word TEXT,
     verdict TEXT NOT NULL,
     reason TEXT,
     detail TEXT NOT NULL,
@@ -546,6 +563,13 @@ async def init_db(db_path: str) -> None:
             )
         except Exception:
             pass  # column already exists
+        # Migration word rating v2: comments name their word, and the ledger keyed
+        # by game number is gone, because a pool rebuild renumbers the games.
+        try:
+            await db.execute("ALTER TABLE analytics_rating_details ADD COLUMN word TEXT")
+        except Exception:
+            pass  # column already exists
+        await db.execute("DROP TABLE IF EXISTS analytics_rating_seen")
         # Migration koop "Aufgeben": team-wide give-up flag.
         try:
             await db.execute("ALTER TABLE koops ADD COLUMN gave_up BOOLEAN NOT NULL DEFAULT 0")

@@ -21,6 +21,7 @@ import math
 import os
 import re
 import sqlite3
+from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -144,7 +145,14 @@ AD_CONSENT_TIMELINE_DAYS = 90
 # Post-round word rating ("was this word fair?"). The version lives in the metric
 # name for the same reason the survey's does: a future question is a new survey
 # and not a migration of this one.
-RATING_METRIC = "word_rating_v1"
+#
+# v2 (2026-09-25) counts per solution word, v1 counted per game number. A pool
+# rebuild renumbers the games, so a v1 row cannot say which word it was about;
+# its rows stay in the table and nothing reads them. The reason has its own
+# metric in v2, because it arrives in a second call and is counted without
+# touching the vote it completes.
+RATING_METRIC = "word_rating_v2"
+RATING_REASON_METRIC = "word_rating_reason_v2"
 #: How the round felt. Deliberately three, because a scale invites the middle and
 #: the middle is the answer that carries no decision.
 RATING_VERDICTS = ("easy", "right", "hard")
@@ -153,9 +161,6 @@ RATING_VERDICTS = ("easy", "right", "hard")
 #: from "I could not find it". The first is a word that has to leave the pool,
 #: the second is a good hard round.
 RATING_REASONS = ("unknown_word", "no_idea", "bad_neighbours")
-#: Stands in for "no reason given" inside the counter dimension, which is a flat
-#: string and has no room for NULL.
-RATING_NO_REASON = "none"
 #: Below this the tally is not shown back to the player. A percentage out of four
 #: votes is noise dressed as a measurement, and it would anchor the next voter.
 RATING_MIN_VOTES = 20
@@ -1308,27 +1313,33 @@ async def record_survey_answer(
 # dedup ledger. It touches no authoritative counter.
 
 
-def _rating_dimension(game_number: int, verdict: str, reason: str | None) -> str:
-    """One counter dimension per (game, verdict, reason).
+def _rating_dimension(word: str, suffix: str) -> str:
+    """One counter dimension per (word, verdict) or (word, reason).
 
     A flat string because analytics_counters is (date, metric, dimension); the
-    same shape mode_picks uses. Reading it back is a split on the colon, so the
-    parts may not contain one, which the enums guarantee.
+    same shape mode_picks uses. The suffix is an enum member and never holds a
+    colon, so reading it back is a split on the last one. The word cannot hold
+    one either, ``_rating_word`` refuses it before anything is written.
     """
-    return f"{int(game_number)}:{verdict}:{reason or RATING_NO_REASON}"
+    return f"{word}:{suffix}"
 
 
-def parse_rating_dimension(dimension: str) -> tuple[int, str, str] | None:
+def parse_rating_dimension(dimension: str, allowed: tuple[str, ...]) -> tuple[str, str] | None:
     """The inverse, tolerant of a row written by a future version."""
-    parts = dimension.split(":")
-    if len(parts) != 3 or not parts[0].isdigit():
+    word, sep, suffix = dimension.rpartition(":")
+    if not sep or not word or suffix not in allowed:
         return None
-    game, verdict, reason = int(parts[0]), parts[1], parts[2]
-    if verdict not in RATING_VERDICTS:
+    return word, suffix
+
+
+def _rating_word(target_words: Sequence[str], game: int) -> str | None:
+    """The solution a vote on ``game`` is about, or None for an unknown number."""
+    if not 1 <= game <= len(target_words):
         return None
-    if reason != RATING_NO_REASON and reason not in RATING_REASONS:
+    word = target_words[game - 1]
+    if not word or ":" in word:
         return None
-    return game, verdict, reason
+    return word
 
 
 async def record_word_rating(
@@ -1339,6 +1350,7 @@ async def record_word_rating(
     token: str,
     game_number: int,
     verdict: str,
+    target_words: Sequence[str],
     reason: str | None = None,
     detail: str | None = None,
     first_game: int = 1,
@@ -1346,10 +1358,22 @@ async def record_word_rating(
 ) -> tuple[bool, str]:
     """Record one vote on how a solution word played. Returns (accepted, reason).
 
-    Two calls make one answer, exactly like the attribution survey: the first
-    carries the verdict and books the ledger row, the second may add the free
-    text. A vote without ``detail`` is the first call; a vote with it is the
-    second, and it is only accepted once per visitor and game.
+    Up to three calls make one answer, and the ledger row booked by the first
+    decides what the other two may add:
+
+    1. the verdict, which counts the vote (a ``reason`` may ride along);
+    2. the reason, a call with ``reason`` and no ``detail``, taken once and
+       only when the counted verdict was "hard";
+    3. the free text, a call with ``detail``, taken once and filed under the
+       verdict and reason the ledger holds, not the ones the client repeats.
+
+    The second call used to be refused as a duplicate vote, which is why not a
+    single one of the first 527 "too hard" votes carried a reason.
+
+    The vote is counted against the **word**, which the server reads off
+    ``target_words`` at the moment of the vote. The game number only names it:
+    a pool rebuild hands the numbers out again, and a tally keyed by number
+    mixed the votes of different words under one row.
 
     A ``reason`` only means anything next to the "hard" verdict. Sent with any
     other it is dropped rather than rejected, because it carries no information
@@ -1359,8 +1383,7 @@ async def record_word_rating(
     ``GameState.first_curated_game()``. The games below it kept the words of the
     pool before the core-lexicon rebuild, verbs among them, and the archive
     still serves them. A vote on one of those says nothing about the pool the
-    ratings exist to judge, and the dashboard would print it next to a word no
-    rule of the current pool admitted.
+    ratings exist to judge.
     """
     now = now or datetime.now(timezone.utc)
     fp_hash = compute_fingerprint(ip, user_agent, now)
@@ -1381,83 +1404,134 @@ async def record_word_rating(
         return False, "bad_payload"
     if game < first_game:
         return False, "legacy_game"
+    word = _rating_word(target_words, game)
+    if word is None:
+        return False, "bad_payload"
     if verdict != "hard":
         reason = None
 
     date_str = local_date(now)
+    ts = now.isoformat()
     clean_detail = sanitize_survey_detail(detail)
+    outcome = "duplicate"
 
     if clean_detail is None:
         async def _write_vote(conn: aiosqlite.Connection) -> None:
-            # The primary key enforces dedup atomically; a duplicate raises
-            # IntegrityError before the counter is touched.
-            await conn.execute(
-                "INSERT INTO analytics_rating_seen (fp_hash, game_number, ts) "
-                "VALUES (?, ?, ?)",
-                (fp_hash, game, now.isoformat()),
+            nonlocal outcome
+            # The primary key is the dedup, atomically: of two racing first
+            # calls exactly one inserts, and only that one touches a counter.
+            cur = await conn.execute(
+                "INSERT OR IGNORE INTO analytics_rating_votes "
+                "(fp_hash, word, verdict, reason, ts) VALUES (?, ?, ?, ?, ?)",
+                (fp_hash, word, verdict, reason, ts),
             )
-            await _bump(conn, "analytics_counters", date_str, RATING_METRIC,
-                        _rating_dimension(game, verdict, reason), 1)
+            if cur.rowcount == 1:
+                await _bump(conn, "analytics_counters", date_str, RATING_METRIC,
+                            _rating_dimension(word, verdict), 1)
+                if reason is not None:
+                    await _bump(conn, "analytics_counters", date_str, RATING_REASON_METRIC,
+                                _rating_dimension(word, reason), 1)
+                outcome = "ok"
+                return
+            if reason is None:
+                outcome = "duplicate"
+                return
+            # The follow-up: this visitor already voted on this word. The guard
+            # takes the reason only onto a counted "hard" and only once, so the
+            # reasons of a word can never outnumber its "hard" votes.
+            cur = await conn.execute(
+                "UPDATE analytics_rating_votes SET reason = ? "
+                "WHERE fp_hash = ? AND word = ? AND verdict = 'hard' AND reason IS NULL",
+                (reason, fp_hash, word),
+            )
+            if cur.rowcount == 1:
+                await _bump(conn, "analytics_counters", date_str, RATING_REASON_METRIC,
+                            _rating_dimension(word, reason), 1)
+                outcome = "ok"
+            else:
+                outcome = "duplicate"
 
-        try:
-            accepted = await _commit_with_retry(
-                db, _write_vote, description="record_word_rating")
-        except sqlite3.IntegrityError:
-            await db.rollback()
-            return False, "duplicate"
-        return (True, "ok") if accepted else (False, "write_failed")
+        accepted = await _commit_with_retry(db, _write_vote, description="record_word_rating")
+        if not accepted:
+            return False, "write_failed"
+        return (True, "ok") if outcome == "ok" else (False, outcome)
 
     # An insult is dropped, not rejected, for the reason written at the survey:
     # the ledger still burns this visitor's one comment, so the text cannot be
     # resent in a milder spelling, and the caller still gets "ok", so nobody can
     # probe the filter by watching the response.
     keep_detail = not contains_profanity(clean_detail)
-    stored = False
 
     async def _write_detail(conn: aiosqlite.Connection) -> None:
-        nonlocal stored
+        nonlocal outcome
         cur = await conn.execute(
-            "UPDATE analytics_rating_seen SET detail_done = 1 "
-            "WHERE fp_hash = ? AND game_number = ? AND detail_done = 0",
-            (fp_hash, game),
+            "UPDATE analytics_rating_votes SET detail_done = 1 "
+            "WHERE fp_hash = ? AND word = ? AND detail_done = 0",
+            (fp_hash, word),
         )
         if cur.rowcount != 1:
-            stored = False
+            outcome = "duplicate"
             return
         if keep_detail:
+            async with conn.execute(
+                "SELECT verdict, reason FROM analytics_rating_votes "
+                "WHERE fp_hash = ? AND word = ?",
+                (fp_hash, word),
+            ) as cursor:
+                counted_verdict, counted_reason = await cursor.fetchone()
             await conn.execute(
                 "INSERT INTO analytics_rating_details "
-                "(game_number, verdict, reason, detail, date, ts) VALUES (?, ?, ?, ?, ?, ?)",
-                (game, verdict, reason, clean_detail, date_str, now.isoformat()),
+                "(game_number, word, verdict, reason, detail, date, ts) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (game, word, counted_verdict, counted_reason, clean_detail, date_str, ts),
             )
-        stored = True
+        outcome = "ok"
 
     accepted = await _commit_with_retry(
         db, _write_detail, description="record_word_rating_detail")
     if not accepted:
         return False, "write_failed"
-    return (True, "ok") if stored else (False, "duplicate")
+    return (True, "ok") if outcome == "ok" else (False, outcome)
 
 
-async def get_rating_summary(db: aiosqlite.Connection, game_number: int) -> dict:
-    """The tally shown back to a player who has just voted.
+async def _rating_rows(
+    db: aiosqlite.Connection, metric: str, allowed: tuple[str, ...], word: str | None = None,
+) -> list[tuple[str, str, int]]:
+    """(word, verdict or reason, count), summed over all days.
+
+    With ``word`` the scan is a range over the dimension prefix, which the
+    counter index can serve and which, unlike LIKE, has no wildcard a word
+    could contain.
+    """
+    if word is None:
+        query = ("SELECT dimension, SUM(value) FROM analytics_counters "
+                 "WHERE metric = ? GROUP BY dimension")
+        params: tuple[str, ...] = (metric,)
+    else:
+        # ";" is the character after ":", so the range is exactly the "<word>:" prefix.
+        query = ("SELECT dimension, SUM(value) FROM analytics_counters "
+                 "WHERE metric = ? AND dimension >= ? AND dimension < ? GROUP BY dimension")
+        params = (metric, f"{word}:", f"{word};")
+    rows: list[tuple[str, str, int]] = []
+    async with db.execute(query, params) as cursor:
+        for dimension, value in await cursor.fetchall():
+            parsed = parse_rating_dimension(dimension, allowed)
+            if parsed is None or (word is not None and parsed[0] != word):
+                continue
+            rows.append((parsed[0], parsed[1], int(value or 0)))
+    return rows
+
+
+async def get_rating_summary(db: aiosqlite.Connection, game_number: int, word: str) -> dict:
+    """The tally shown back to a player who has just voted on ``word``.
 
     Silent below RATING_MIN_VOTES: a percentage out of four votes is noise
     dressed as a measurement, and the client would show it to the next voter,
     who would then be anchored on it.
     """
-    prefix = f"{int(game_number)}:"
     counts = {verdict: 0 for verdict in RATING_VERDICTS}
-    async with db.execute(
-        "SELECT dimension, SUM(value) FROM analytics_counters "
-        "WHERE metric = ? AND dimension LIKE ? GROUP BY dimension",
-        (RATING_METRIC, prefix + "%"),
-    ) as cursor:
-        for dimension, value in await cursor.fetchall():
-            parsed = parse_rating_dimension(dimension)
-            if parsed is None or parsed[0] != int(game_number):
-                continue
-            counts[parsed[1]] += int(value or 0)
+    for _word, verdict, count in await _rating_rows(db, RATING_METRIC, RATING_VERDICTS, word):
+        counts[verdict] += count
 
     total = sum(counts.values())
     return {
@@ -1471,7 +1545,7 @@ async def get_rating_summary(db: aiosqlite.Connection, game_number: int) -> dict
 async def get_rating_stats(
     db: aiosqlite.Connection,
     *,
-    target_words: list[str] | None = None,
+    target_words: Sequence[str] | None = None,
     first_game: int = 1,
     min_votes: int = 5,
     limit: int = 40,
@@ -1489,56 +1563,50 @@ async def get_rating_stats(
     sample looks like is better served seeing it, and every row carries its own
     vote count.
 
-    Games below ``first_game`` are left out everywhere, counts, lists and free
-    text alike. They are the legacy games that ``record_word_rating`` refuses
-    now, and the votes they collected before that refusal existed describe
-    words the current pool never admitted.
+    Only words of the current curated pool are reported, the words from
+    ``first_game`` on. A word struck since its votes came in needs no decision
+    any more, and a legacy word below the floor never passed the current rules.
+    Each row carries the game number the word has **now**, for the link to the
+    play figures. Comments written before the word column existed are left out,
+    because their game number no longer reliably names a word.
     """
-    per_game: dict[int, dict] = {}
-    async with db.execute(
-        "SELECT dimension, SUM(value) FROM analytics_counters "
-        "WHERE metric = ? GROUP BY dimension",
-        (RATING_METRIC,),
-    ) as cursor:
-        for dimension, value in await cursor.fetchall():
-            parsed = parse_rating_dimension(dimension)
-            if parsed is None:
-                continue
-            game, verdict, reason = parsed
-            if game < first_game:
-                continue
-            entry = per_game.setdefault(game, {
-                "game_number": game,
-                "word": None,
-                "votes": 0,
-                "verdicts": {v: 0 for v in RATING_VERDICTS},
-                "reasons": {r: 0 for r in RATING_REASONS},
-            })
-            count = int(value or 0)
-            entry["votes"] += count
-            entry["verdicts"][verdict] += count
-            if reason in RATING_REASONS:
-                entry["reasons"][reason] += count
+    words = list(target_words or [])
+    current_game: dict[str, int] = {}
+    for number in range(max(1, first_game), len(words) + 1):
+        current_game.setdefault(words[number - 1], number)
 
-    # The played word next to its number, so the dashboard can be read without
-    # a second lookup. It is the answer to a past puzzle, which reveal() already
-    # serves to anybody, so nothing is disclosed that was not public.
-    if target_words:
-        for game, entry in per_game.items():
-            if 1 <= game <= len(target_words):
-                entry["word"] = target_words[game - 1]
+    per_word: dict[str, dict] = {}
+    for word, verdict, count in await _rating_rows(db, RATING_METRIC, RATING_VERDICTS):
+        game = current_game.get(word)
+        if game is None:
+            continue
+        entry = per_word.setdefault(word, {
+            "game_number": game,
+            "word": word,
+            "votes": 0,
+            "verdicts": {v: 0 for v in RATING_VERDICTS},
+            "reasons": {r: 0 for r in RATING_REASONS},
+        })
+        entry["votes"] += count
+        entry["verdicts"][verdict] += count
+    for word, reason, count in await _rating_rows(db, RATING_REASON_METRIC, RATING_REASONS):
+        entry = per_word.get(word)
+        if entry is not None:
+            entry["reasons"][reason] += count
 
     # Play figures that already exist, so the dashboard can ask whether the vote
-    # says anything the guess count does not.
+    # says anything the guess count does not. They are kept per game number, so
+    # they describe whatever that number named, the word it names now included.
+    by_game = {entry["game_number"]: entry for entry in per_word.values()}
     async with db.execute(
         "SELECT game_number, metric, value FROM analytics_game_stats WHERE mode = 'kontexto'"
     ) as cursor:
         for game, metric, value in await cursor.fetchall():
-            entry = per_game.get(int(game))
+            entry = by_game.get(int(game))
             if entry is not None:
                 entry[f"played_{metric}"] = int(value or 0)
 
-    rated = [e for e in per_game.values() if e["votes"] >= min_votes]
+    rated = [e for e in per_word.values() if e["votes"] >= min_votes]
 
     def share(entry: dict, verdict: str) -> float:
         return entry["verdicts"][verdict] / entry["votes"] if entry["votes"] else 0.0
@@ -1552,27 +1620,31 @@ async def get_rating_stats(
         unknown = entry["reasons"]["unknown_word"]
         entry["share_unknown"] = round(unknown / entry["votes"], 4)
 
+    # The newest comments on words of the current pool. Filtered in Python and
+    # not with an IN list, which would need one parameter per pool word; the
+    # scan stops as soon as the limit is reached.
     details = []
     async with db.execute(
-        "SELECT game_number, verdict, reason, detail, date FROM analytics_rating_details "
-        "WHERE game_number >= ? ORDER BY id DESC LIMIT ?",
-        (first_game, detail_limit),
+        "SELECT word, verdict, reason, detail, date FROM analytics_rating_details "
+        "WHERE word IS NOT NULL ORDER BY id DESC"
     ) as cursor:
-        for game, verdict, reason, detail, date in await cursor.fetchall():
-            word = None
-            if target_words and 1 <= int(game) <= len(target_words):
-                word = target_words[int(game) - 1]
-            details.append({"game_number": int(game), "word": word, "verdict": verdict,
+        async for word, verdict, reason, detail, date in cursor:
+            game = current_game.get(word)
+            if game is None:
+                continue
+            details.append({"game_number": game, "word": word, "verdict": verdict,
                             "reason": reason, "detail": detail, "date": date})
+            if len(details) >= detail_limit:
+                break
 
-    totals = {v: sum(e["verdicts"][v] for e in per_game.values()) for v in RATING_VERDICTS}
-    reason_totals = {r: sum(e["reasons"][r] for e in per_game.values()) for r in RATING_REASONS}
+    totals = {v: sum(e["verdicts"][v] for e in per_word.values()) for v in RATING_VERDICTS}
+    reason_totals = {r: sum(e["reasons"][r] for e in per_word.values()) for r in RATING_REASONS}
     return {
         "min_votes": min_votes,
         "player_min_votes": RATING_MIN_VOTES,
-        "pool_size": len(target_words or []),
-        "games_with_any_vote": len(per_game),
-        "games_rated": len(rated),
+        "pool_size": len(current_game),
+        "words_with_any_vote": len(per_word),
+        "words_rated": len(rated),
         "votes_total": sum(totals.values()),
         "verdicts": totals,
         "reasons": reason_totals,
@@ -1719,7 +1791,7 @@ async def prune_old_events(db: aiosqlite.Connection, now: datetime | None = None
         ((now - timedelta(days=AD_CONSENT_SEEN_RETENTION_DAYS)).isoformat(),),
     )
     await db.execute(
-        "DELETE FROM analytics_rating_seen WHERE ts < ?",
+        "DELETE FROM analytics_rating_votes WHERE ts < ?",
         ((now - timedelta(days=RATING_SEEN_RETENTION_DAYS)).isoformat(),),
     )
     await db.commit()

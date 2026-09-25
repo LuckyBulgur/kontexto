@@ -64,7 +64,11 @@ export const RATING_REASONS: RatingReasonOption[] = [
   { id: "bad_neighbours", label: "Nähe ergab keinen Sinn" },
 ];
 
-export const RATING_STORAGE_KEY = "kontexto_word_rating_v1";
+/** v2 since the server counts per word (2026-09-25). The v1 list named game
+ *  numbers a pool rebuild has since given to other words, so it would keep a
+ *  player from being asked about a word they never rated. */
+export const RATING_STORAGE_KEY = "kontexto_word_rating_v2";
+const LEGACY_RATING_STORAGE_KEY = "kontexto_word_rating_v1";
 
 /** How many answered game numbers are remembered. A player who has rated a
  *  thousand words does not need the first hundred kept; the server dedups
@@ -97,6 +101,15 @@ export function loadRatedGames(store: Storage | undefined): number[] {
     return parsed.filter((n): n is number => typeof n === "number" && Number.isFinite(n));
   } catch {
     return [];
+  }
+}
+
+/** The v1 list is dead weight once v2 exists, so it is removed on first load. */
+export function dropLegacyRatedGames(store: Storage | undefined): void {
+  try {
+    store?.removeItem(LEGACY_RATING_STORAGE_KEY);
+  } catch {
+    // Same as every other access: storage is optional.
   }
 }
 
@@ -178,6 +191,7 @@ export function useWordRating(
   const [detailSent, setDetailSent] = useState(false);
 
   useEffect(() => {
+    dropLegacyRatedGames(storage());
     setRated(loadRatedGames(storage()));
     setReady(true);
   }, []);

@@ -1832,7 +1832,7 @@ async def popular_modes_endpoint():
 # popular-modes cache above: four copies of a read-only answer cost nothing and
 # share no state.
 RATING_CACHE_TTL = 300.0
-_rating_cache: dict[int, tuple[float, dict]] = {}
+_rating_cache: dict[tuple[int, str], tuple[float, dict]] = {}
 _rating_cache_lock = asyncio.Lock()
 
 
@@ -1860,6 +1860,7 @@ async def word_rating(req: WordRatingRequest, request: Request):
             verdict=req.verdict,
             reason=req.reason,
             detail=req.detail,
+            target_words=_get_game_state().target_words,
             first_game=_get_game_state().first_curated_game(),
             now=_now(),
         )
@@ -1893,20 +1894,24 @@ async def word_rating_summary(
             return JSONResponse(status_code=400,
                                 content={"error": "invalid_game", "message": str(e)})
 
+    # The tally belongs to the word; the number only names it until the next
+    # pool rebuild, so the cache is keyed by both.
+    word = _get_game_state().get_target_word(game_num)
+    key = (game_num, word)
     now = time.monotonic()
-    cached = _rating_cache.get(game_num)
+    cached = _rating_cache.get(key)
     if cached and now - cached[0] < RATING_CACHE_TTL:
         return cached[1]
 
     async with _rating_cache_lock:
-        cached = _rating_cache.get(game_num)
+        cached = _rating_cache.get(key)
         now = time.monotonic()
         if cached and now - cached[0] < RATING_CACHE_TTL:
             return cached[1]
 
         db = await get_db(_db_path)
         try:
-            payload = await analytics.get_rating_summary(db, game_num)
+            payload = await analytics.get_rating_summary(db, game_num, word)
         finally:
             await db.close()
 
@@ -1914,7 +1919,7 @@ async def word_rating_summary(
         # limit; the daily word is the only one anybody asks for twice.
         if len(_rating_cache) > 512:
             _rating_cache.clear()
-        _rating_cache[game_num] = (time.monotonic(), payload)
+        _rating_cache[key] = (time.monotonic(), payload)
         return payload
 
 @app.post("/api/matchmaking/cancel", response_model=BeaconResponse)
