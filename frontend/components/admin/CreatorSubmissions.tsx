@@ -42,7 +42,7 @@ export default function CreatorSubmissions({ token }: { token: string }) {
   const history = rows.filter((row) => row.status === "shown" || row.status === "rejected");
 
   return (
-    <section className="mb-8 rounded-xl border p-4" aria-labelledby="creator-heading">
+    <section className="rounded-xl border p-4" aria-labelledby="creator-heading">
       <div className="flex items-center justify-between gap-3">
         <div><h2 id="creator-heading" className="text-h3 font-semibold">Creator-Clips</h2><p className="text-small text-muted-foreground">Einreichungen nach Eingangsreihenfolge prüfen. Freigegebene Clips kommen ab dem nächsten Tagesrätsel in die Warteliste oder können einen noch freien Platz für heute füllen.</p></div>
         <Button variant="outline" size="sm" onClick={() => void refresh()}>Aktualisieren</Button>

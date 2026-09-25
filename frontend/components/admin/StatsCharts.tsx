@@ -22,6 +22,7 @@ import {
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
 import LiveStreams from "@/components/admin/LiveStreams";
+import CreatorSubmissions from "@/components/admin/CreatorSubmissions";
 import WordQuality from "@/components/admin/WordQuality";
 import {
   formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, formatStamp, fullDate, greeting,
@@ -685,7 +686,12 @@ const SECTIONS: SectionDef[] = [
     id: "streams", group: "DASHBOARD", label: "Streams jetzt", icon: Radio,
     title: "Streams, die gerade laufen",
     description: "Stream-Chat-Runden live mitlesen und dem Streamer kurz schreiben",
-    Component: ({ token }) => <LiveStreams token={token} />,
+    Component: ({ token }) => (
+      <div className="space-y-6">
+        <LiveStreams token={token} />
+        <CreatorSubmissions token={token} />
+      </div>
+    ),
   },
   {
     id: "reach", group: "REICHWEITE", label: "Besucher & Reichweite", icon: Users,
