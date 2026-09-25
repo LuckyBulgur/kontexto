@@ -9,6 +9,26 @@ import aiosqlite
 BUSY_TIMEOUT_MS = 5000
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS creator_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    clip_url TEXT NOT NULL UNIQUE,
+    channel_url TEXT NOT NULL,
+    channel_name TEXT NOT NULL,
+    email TEXT,
+    ip_hash TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    eligible_date TEXT,
+    reviewed_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_creator_queue ON creator_submissions(status, eligible_date, id);
+CREATE INDEX IF NOT EXISTS idx_creator_rate ON creator_submissions(ip_hash, submitted_at);
+CREATE TABLE IF NOT EXISTS creator_days (
+    game_number INTEGER PRIMARY KEY,
+    submission_id INTEGER UNIQUE REFERENCES creator_submissions(id),
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,

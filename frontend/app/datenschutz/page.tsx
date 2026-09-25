@@ -72,6 +72,13 @@ export default function DatenschutzPage() {
             <p>
               Wenn du ein Wort eingibst, wird dieses Wort an unseren Server gesendet, um den Rang zu berechnen. Dabei werden keine weiteren personenbezogenen Daten übermittelt. Es gibt keine Benutzerkonten, keine Sitzungs-Cookies und keine Authentifizierung.
             </p>
+            <h3 className="font-semibold text-foreground">Creator-Clips einreichen</h3>
+            <p>
+              Wenn du einen Clip einreichst, speichern wir den Link zum öffentlichen Video, deinen Kanalnamen und Kanallink, den Zeitpunkt der Einreichung und den Prüfstatus. Eine E-Mail-Adresse ist freiwillig und dient nur Rückfragen vor der Entscheidung; sie wird bei Freigabe oder Ablehnung gelöscht. Zur Begrenzung von Mehrfacheinreichungen speichern wir für etwa einen Tag einen mit einem geheimen Schlüssel gebildeten Hash der IP-Adresse, nicht die IP-Adresse selbst.
+            </p>
+            <p>
+              Wir prüfen die Bewerbung von Hand. Abgelehnte Einreichungen werden nach 30 Tagen gelöscht. Freigegebene Clips bleiben bis zur Anzeige in der Warteliste; nach der Anzeige bleiben Clip- und Kanalangaben als Nachweis der Zuordnung zum Spieltag gespeichert. Auf der Spielseite erscheint nur der öffentliche Kanalname mit Link. Für Löschanfragen nutze bitte die <Link href="/kontakt/" className="underline">Kontaktseite</Link>.
+            </p>
           </section>
 
           <section className="space-y-2">

@@ -8,6 +8,7 @@ import { INFINITE_PARAM } from "@/components/ModePickerDialog";
 import GuessInput from "@/components/GuessInput";
 import GuessList from "@/components/GuessList";
 import GameSkeleton from "@/components/GameSkeleton";
+import CreatorSpot from "@/components/CreatorSpot";
 import SettingsModal from "@/components/SettingsModal";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
@@ -469,6 +470,7 @@ export default function GameClient() {
       <div className="flex-1 px-4 py-4 flex flex-col gap-4">
         {gameOver && showResult ? (
           <>
+            {pastGame === null && !infinite && <CreatorSpot />}
             <GameResultCard
               gameNumber={gameNumber}
               guesses={gameState.guesses}
@@ -503,6 +505,7 @@ export default function GameClient() {
               <span>Versuche: <span className="text-lead font-bold text-foreground">{gameState.guesses.length}</span></span>
               <span>Tipps: <span className="text-lead font-bold text-foreground">{gameState.tips}</span></span>
             </div>
+            {pastGame === null && !infinite && <CreatorSpot />}
             <GuessInput onGuess={handleGuess} disabled={gameOver} error={error} placeholder={gameState.guesses.length === 0 ? "Gib dein erstes Wort ein!" : "Wort eingeben..."} />
             {gameState.guesses.length === 0 && !gameOver && !podestError && (
               <Panel>

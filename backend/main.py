@@ -14,9 +14,11 @@ import aiosqlite
 from fastapi import Depends, FastAPI, Header, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 import analytics
 import auth
+import creator_spot
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
@@ -453,6 +455,39 @@ async def game_info():
         "total": gs.display_total(),
         "firstCuratedGame": gs.first_curated_game(),
     }
+
+
+class CreatorSubmissionRequest(BaseModel):
+    clip_url: str = Field(..., max_length=500)
+    channel_url: str = Field(..., max_length=500)
+    channel_name: str = Field(..., max_length=80)
+    email: str | None = Field(default=None, max_length=254)
+
+
+@app.post("/api/creator-submissions", status_code=201)
+async def creator_submission(req: CreatorSubmissionRequest, request: Request):
+    db = await get_db(_db_path)
+    try:
+        try:
+            submission_id = await creator_spot.submit(
+                db, clip_url=req.clip_url, channel_url=req.channel_url,
+                channel_name=req.channel_name, email=req.email,
+                ip=_client_ip(request),
+            )
+        except creator_spot.SubmissionError as exc:
+            return JSONResponse(status_code=429 if str(exc) == "rate_limited" else 400, content={"error": str(exc)})
+        return {"id": submission_id}
+    finally:
+        await db.close()
+
+
+@app.get("/api/creator-spot")
+async def current_creator_spot():
+    db = await get_db(_db_path)
+    try:
+        return {"creator": await creator_spot.today(db, _get_current_game_number(), date.today())}
+    finally:
+        await db.close()
 
 
 @app.get("/api/games", response_model=PastGamesResponse)
@@ -2450,6 +2485,35 @@ async def webauthn_register_verify(req: RegisterVerifyRequest):
 def _verify_admin(authorization: str) -> bool:
     token = authorization[7:] if authorization.lower().startswith("bearer ") else authorization
     return auth.verify_session_token(token)
+
+
+class CreatorReviewRequest(BaseModel):
+    approve: bool
+
+
+@app.get("/api/admin/creator-submissions")
+async def admin_creator_submissions(authorization: str = Header(default="")):
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    db = await get_db(_db_path)
+    try:
+        return {"submissions": await creator_spot.list_submissions(db)}
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/creator-submissions/{submission_id}/review")
+async def admin_review_creator(submission_id: int, req: CreatorReviewRequest,
+                               authorization: str = Header(default="")):
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    db = await get_db(_db_path)
+    try:
+        if not await creator_spot.review(db, submission_id, req.approve):
+            return JSONResponse(status_code=409, content={"error": "not_pending"})
+        return {"ok": True}
+    finally:
+        await db.close()
 
 
 @app.get("/api/admin/live", response_model=LiveStatsResponse)

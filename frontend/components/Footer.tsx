@@ -33,6 +33,7 @@ const readingLinks = [
 const projectLinks = [
   { href: "/ueber/", label: "Über" },
   { href: "/redaktion/", label: "Redaktion" },
+  { href: "/mitmachen/", label: "Clip einreichen" },
   { href: "/kontakt/", label: "Kontakt" },
 ];
 

@@ -71,6 +71,29 @@ def client(data_dir):
     main_module._game_state = None
 
 
+class TestCreatorSpotEndpoints:
+    def test_submit_and_admin_review(self, client):
+        import auth
+
+        assert client.get("/api/creator-spot").json() == {"creator": None}
+        response = client.post("/api/creator-submissions", json={
+            "clip_url": "https://www.youtube.com/shorts/clip123",
+            "channel_url": "https://www.youtube.com/@channel",
+            "channel_name": "Channel",
+        })
+        assert response.status_code == 201
+        submission_id = response.json()["id"]
+        assert client.get("/api/admin/creator-submissions").status_code == 401
+        assert client.post(f"/api/admin/creator-submissions/{submission_id}/review", json={"approve": True}).status_code == 401
+
+        headers = {"Authorization": f"Bearer {auth.issue_session_token()}"}
+        rows = client.get("/api/admin/creator-submissions", headers=headers).json()["submissions"]
+        assert rows[0]["clip_url"] == "https://www.youtube.com/shorts/clip123"
+        assert client.post(f"/api/admin/creator-submissions/{submission_id}/review", json={"approve": True}, headers=headers).status_code == 200
+        assert client.post(f"/api/admin/creator-submissions/{submission_id}/review", json={"approve": False}, headers=headers).status_code == 409
+        assert client.get("/api/creator-spot").json() == {"creator": None}
+
+
 class TestGuessEndpoint:
     def test_valid_guess(self, client):
         resp = client.post("/api/guess", json={"word": "apfel"})

@@ -4,6 +4,41 @@ import { throwGuessNotFound } from "./guess-error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+export type CreatorPlatform = "tiktok" | "youtube" | "twitch" | "instagram";
+export interface CreatorSpot { platform: CreatorPlatform; channel_name: string; channel_url: string }
+export interface CreatorSubmission {
+  id: number; platform: CreatorPlatform; clip_url: string; channel_url: string;
+  channel_name: string; email: string | null; status: "pending" | "approved" | "rejected" | "shown";
+  submitted_at: string; eligible_date: string | null;
+}
+
+export async function getCreatorSpot(): Promise<CreatorSpot | null> {
+  const res = await fetch(`${API_BASE}/creator-spot`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return (await res.json()).creator;
+}
+
+export async function submitCreatorClip(data: { clip_url: string; channel_url: string; channel_name: string; email?: string }): Promise<void> {
+  const res = await fetch(`${API_BASE}/creator-submissions`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error((await res.json()).error ?? "submission_failed");
+}
+
+export async function getCreatorSubmissions(token: string): Promise<CreatorSubmission[]> {
+  const res = await fetch(`${API_BASE}/admin/creator-submissions`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return (await res.json()).submissions;
+}
+
+export async function reviewCreatorSubmission(token: string, id: number, approve: boolean): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/creator-submissions/${id}/review`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ approve }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
 /** Build the `?game=…&infinite=true&mode=…` query shared by all game-scoped
  *  endpoints. `mode` only changes how the request is counted; the backend
  *  validates it against its own allow-list and falls back when it does not
@@ -246,4 +281,3 @@ export async function getAdminLive(token: string): Promise<LiveData> {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
-

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { adminPasskeyLogin, getAdminStats } from "@/lib/api";
 import type { StatsData } from "@/lib/types";
 import StatsSkeleton from "@/components/admin/StatsSkeleton";
+import CreatorSubmissions from "@/components/admin/CreatorSubmissions";
 import { LiveUsers } from "@/components/admin/LiveUsers";
 
 // Recharts (and all chart components) are loaded only when stats data is ready,
@@ -97,6 +98,7 @@ export default function AdminStatsPage() {
 
       {loading && <StatsSkeleton />}
       {error && <p className="text-destructive">{error}</p>}
+      <CreatorSubmissions token={token} />
       {stats && <Dashboard stats={stats} token={token} />}
     </main>
   );
