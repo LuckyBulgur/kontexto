@@ -92,15 +92,24 @@ test("Creator-Anträge stehen unter den aktuellen Streams", async ({ page }, tes
     }],
   } }));
   await page.route("**/api/admin/creator-submissions", (route) => route.fulfill({ json: {
-    submissions: [], today_submission_id: null,
+    submissions: [
+      { id: 2, platform: "youtube", clip_url: "https://www.youtube.com/shorts/abc", channel_url: "https://www.youtube.com/@beispiel", channel_name: "Beispielkanal", email: null, status: "approved", submitted_at: "2026-09-25 12:00:00", eligible_date: "2026-09-26" },
+      { id: 1, platform: "twitch", clip_url: "https://clips.twitch.tv/abc", channel_url: "https://www.twitch.tv/beispiel", channel_name: "Neuer Kanal", email: null, status: "pending", submitted_at: "2026-09-25 11:00:00", eligible_date: null },
+    ], today_submission_id: null,
   } }));
   await page.goto("/admin/stats/#streams");
   const stream = page.getByRole("link", { name: /Testkanal/ });
   const applications = page.getByRole("heading", { name: "Creator-Clips" });
   await expect(stream).toBeVisible();
   await expect(applications).toBeVisible();
+  await expect(page.getByRole("button", { name: "Heute anzeigen" })).toBeVisible();
   expect((await stream.boundingBox())!.y).toBeLessThan((await applications.boundingBox())!.y);
   await page.screenshot({ path: testInfo.outputPath("creator-admin-under-streams.png") });
+  await page.setViewportSize({ width: 320, height: 740 });
+  await expect(applications).toBeVisible();
+  const creatorCard = page.getByRole("region", { name: "Creator-Clips" });
+  await creatorCard.screenshot({ path: testInfo.outputPath("creator-admin-mobile.png") });
+  expect(await creatorCard.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.route("**/api/admin/live-streams", (route) => route.fulfill({ json: {
     server_time: "2026-09-25T12:00:00Z", streams: [],
   } }));
