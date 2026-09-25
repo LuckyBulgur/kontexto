@@ -110,6 +110,10 @@ CREATE TABLE IF NOT EXISTS live_rooms (
     chat_state TEXT NOT NULL DEFAULT 'connecting',
     chat_error TEXT,
     last_chat_at TIMESTAMP,
+    -- The last time the host page asked for this room, raised at most every
+    -- 30 s. A room nobody has had open for HOST_ABSENT_SECONDS is unbound by
+    -- the ingest in the WS worker (live_chat.unbind_absent_rooms).
+    host_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -576,6 +580,17 @@ async def init_db(db_path: str) -> None:
         try:
             await db.execute(
                 "ALTER TABLE live_rooms ADD COLUMN chat_token TEXT NOT NULL DEFAULT ''"
+            )
+        except Exception:
+            pass  # column already exists
+        # Migration live chat presence: when the host page last asked for its
+        # room. SQLite refuses a non-constant default on ADD COLUMN, so the rows
+        # that exist at the moment of the migration are stamped "now": a room
+        # that is on air during a deploy must not look abandoned afterwards.
+        try:
+            await db.execute("ALTER TABLE live_rooms ADD COLUMN host_seen_at TIMESTAMP")
+            await db.execute(
+                "UPDATE live_rooms SET host_seen_at = CURRENT_TIMESTAMP WHERE host_seen_at IS NULL"
             )
         except Exception:
             pass  # column already exists

@@ -10,21 +10,14 @@ import type { LiveHostMessage } from "./live-types";
  * note and the confirmation reaching the server returns the same note again.
  */
 
-/** Shortest and longest time a note stays on screen. */
-export const HOST_MESSAGE_MIN_MS = 6000;
-export const HOST_MESSAGE_MAX_MS = 15000;
-
-/** Extra reading time per character, on top of the minimum. */
-const MS_PER_CHAR = 60;
-
 /**
- * How long a note stays. Long enough to read it between two glances at the
- * chat, capped so a long note does not sit over the board for half a minute.
+ * How long a note stays on screen, whatever its length. Fixed on purpose: the
+ * operator asked for five seconds, and a note that leaves on a predictable beat
+ * is one the streamer learns to glance at. It used to scale with the length and
+ * pause while hovered, and since a pointer coming down from the tab strip lands
+ * exactly where the note drops in, it often never left without a click.
  */
-export function hostMessageDurationMs(text: string): number {
-  const length = [...text].length;
-  return Math.min(HOST_MESSAGE_MAX_MS, HOST_MESSAGE_MIN_MS + length * MS_PER_CHAR);
-}
+export const HOST_MESSAGE_DURATION_MS = 5000;
 
 /**
  * The notes from a poll that have not been queued yet, oldest first.

@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  HOST_MESSAGE_MAX_MS,
-  HOST_MESSAGE_MIN_MS,
-  freshHostMessages,
-  hostMessageDurationMs,
-  needsAckRetry,
-} from "./host-messages";
+import { HOST_MESSAGE_DURATION_MS, freshHostMessages, needsAckRetry } from "./host-messages";
 import type { LiveHostMessage } from "./live-types";
 
 const note = (id: number, text = `note ${id}`): LiveHostMessage => ({
@@ -14,19 +8,9 @@ const note = (id: number, text = `note ${id}`): LiveHostMessage => ({
   sent_at: "2026-09-25T18:00:00Z",
 });
 
-describe("hostMessageDurationMs", () => {
-  it("never goes below the minimum", () => {
-    expect(hostMessageDurationMs("")).toBe(HOST_MESSAGE_MIN_MS);
-    expect(hostMessageDurationMs("Danke")).toBeGreaterThan(HOST_MESSAGE_MIN_MS);
-  });
-
-  it("grows with the text and stops at the cap", () => {
-    expect(hostMessageDurationMs("x".repeat(40))).toBeGreaterThan(hostMessageDurationMs("x".repeat(10)));
-    expect(hostMessageDurationMs("x".repeat(280))).toBe(HOST_MESSAGE_MAX_MS);
-  });
-
-  it("counts characters, not UTF-16 units", () => {
-    expect(hostMessageDurationMs("\u{1F600}")).toBe(hostMessageDurationMs("a"));
+describe("HOST_MESSAGE_DURATION_MS", () => {
+  it("is five seconds", () => {
+    expect(HOST_MESSAGE_DURATION_MS).toBe(5000);
   });
 });
 

@@ -514,3 +514,43 @@ class TestAdminEnd:
         assert res.status_code == 404 and res.json()["error"] == "room_not_found"
         res = client.post("/api/admin/live-streams/fehlt/end", headers=self._admin())
         assert res.status_code == 404
+
+
+class TestHostPresenceApi:
+    def test_the_host_poll_raises_the_stamp(self, client):
+        import asyncio
+
+        import main as main_module
+        from database import get_db
+
+        created = _create(client).json()
+        kid = created["koop_id"]
+
+        async def age_and_read(age: bool):
+            db = await get_db(main_module._db_path)
+            try:
+                if age:
+                    await db.execute(
+                        "UPDATE live_rooms SET host_seen_at = datetime('now', '-4 minutes') "
+                        "WHERE koop_id = ?",
+                        (kid,),
+                    )
+                    await db.commit()
+                cursor = await db.execute(
+                    "SELECT host_seen_at FROM live_rooms WHERE koop_id = ?", (kid,)
+                )
+                return (await cursor.fetchone())["host_seen_at"]
+            finally:
+                await db.close()
+
+        old = asyncio.run(age_and_read(True))
+        main_module._host_touched.clear()
+        res = client.get(f"/api/live/{kid}", params={"token": created["player_token"]})
+        assert res.status_code == 200
+        assert asyncio.run(age_and_read(False)) > old
+
+        # The overlay is not the host page and keeps nothing alive.
+        old = asyncio.run(age_and_read(True))
+        main_module._host_touched.clear()
+        client.get("/api/live/overlay/state", params={"token": created["overlay_token"]})
+        assert asyncio.run(age_and_read(False)) == old

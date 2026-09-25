@@ -224,8 +224,10 @@ note (`live_host_messages`, at most 280 characters after `normalise_host_message
 unseen per room). It rides on the host's own 3 s poll (`GET /api/live/{id}` gains `messages`)
 and drops in from the top of the **host page only** (`components/live/HostMessageBanner.tsx`),
 **never the OBS overlay**, because the overlay is what the audience sees. No click needed: it
-leaves after a length-dependent reading time, pauses on hover or focus, and only starts while
-the tab is visible, so a host tab kept behind OBS gets it on the next look. The host page
+leaves after a fixed 5 s (`HOST_MESSAGE_DURATION_MS`) and only starts while the tab is visible,
+so a host tab kept behind OBS gets it on the next look. It does **not** pause on hover: the first
+version did, and in production it stood until clicked, because a pointer coming down from the
+tab strip lands exactly where it drops in. The host page
 confirms it (`POST /api/live/{id}/messages/seen`, cumulative and idempotent) instead of the read
 implying it, so a lost poll response cannot swallow a note; the admin sees „wartet“ or
 „angekommen“. Notes go with the binding (`stop_live_room`) and with the room (cleanup). e2e
@@ -233,8 +235,15 @@ drives it through the dev-only `debug-host-message` seam. The same card ends a r
 (`POST /api/admin/live-streams/{koop_id}/end`, `live_chat.end_live_room`): the same unbinding as
 the host's own stop, the board stays revealable, the host panel says the round ended, and the
 overlay renders **empty** rather than its setup sentence, because that would be read on air.
-Without it a room only goes through `cleanup_stale_koops` (no connected socket and no guess for
-an hour), so an open host tab keeps a silent room bound, and its TikTok socket, indefinitely. Held by `TestHostMessages` in
+**A room nobody has open is unbound after 5 minutes** (`HOST_ABSENT_SECONDS`): the host page's
+poll raises `live_rooms.host_seen_at` (at most every 30 s, per-worker throttle plus an age guard
+in SQL), and the ingest's reconcile pass in the WS worker runs `unbind_absent_rooms`, the same
+unbinding as a stop. The overlay does not count as presence, or an OBS left running would hold a
+room forever. A hidden tab still polls about once a minute, so only a closed page loses its
+chat. Never in the first 5 minutes after the WS worker starts, because after a deploy every
+stamp is as old as the downtime; the migration stamps existing rooms "now" for the same reason.
+The koop room itself still goes through `cleanup_stale_koops` (no connected socket, no guess for
+an hour). Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
 
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)

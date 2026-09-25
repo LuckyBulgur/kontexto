@@ -169,8 +169,10 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(banner).toBeVisible({ timeout: 20_000 });
     await expect(banner).toContainText(text);
 
-    // It leaves by itself, without a click.
-    await expect(banner).toHaveCount(0, { timeout: 20_000 });
+    // It leaves by itself after five seconds, without a click, and a pointer
+    // resting on it does not hold it: that pause kept it up in production.
+    await banner.hover();
+    await expect(banner).toHaveCount(0, { timeout: 7_000 });
 
     // Shown once: the confirmation took it off the server's list.
     const token = await page.evaluate(

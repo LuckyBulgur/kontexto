@@ -466,3 +466,75 @@ class TestReaderChoice:
         from live_ingest import READERS
 
         assert set(READERS) == set(PLATFORMS)
+
+
+class TestAbsentHost:
+    """The supervisor unbinds a room whose host page is gone, never right after a start."""
+
+    async def _absent_room(self, db):
+        from koop import create_koop
+        from live_chat import create_live_room
+
+        conn = await get_db(db)
+        try:
+            room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+            await create_live_room(
+                conn, room["koop_id"], "twitch", "kontexto", room["player_token"], False,
+            )
+            await conn.execute(
+                "UPDATE live_rooms SET host_seen_at = datetime('now', '-10 minutes')"
+            )
+            await conn.commit()
+            return room["koop_id"]
+        finally:
+            await conn.close()
+
+    async def _bound(self, db, koop_id):
+        from live_chat import get_live_room
+
+        conn = await get_db(db)
+        try:
+            return await get_live_room(conn, koop_id) is not None
+        finally:
+            await conn.close()
+
+    def _ingest(self, db, clock):
+        from live_ingest import LiveChatIngest
+
+        class IdleReader:
+            def __init__(self, platform, channel):
+                pass
+
+            async def run(self, on_message, on_state):
+                await asyncio.sleep(3600)
+
+        return LiveChatIngest(db, lambda n, w: None, reader_factory=IdleReader, clock=clock)
+
+    def test_no_unbinding_inside_the_start_grace(self, db):
+        async def run():
+            koop_id = await self._absent_room(db)
+            now = [1000.0]
+            ingest = self._ingest(db, lambda: now[0])
+            now[0] += 299
+            await ingest.reconcile()
+            assert await self._bound(db, koop_id)
+            assert koop_id in ingest._tasks
+            ingest.shutdown()
+
+        asyncio.run(run())
+
+    def test_an_absent_host_loses_the_chat(self, db):
+        async def run():
+            koop_id = await self._absent_room(db)
+            now = [1000.0]
+            ingest = self._ingest(db, lambda: now[0])
+            await ingest.reconcile()
+            assert koop_id in ingest._tasks
+            now[0] += 300
+            await ingest.reconcile()
+            assert not await self._bound(db, koop_id)
+            # The reader is dropped in the same pass.
+            assert koop_id not in ingest._tasks
+            ingest.shutdown()
+
+        asyncio.run(run())

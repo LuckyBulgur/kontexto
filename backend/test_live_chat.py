@@ -717,3 +717,139 @@ class TestHostMessages:
                 await conn.close()
 
         self._run(run())
+
+
+class TestHostPresence:
+    """A room whose host page has been closed for five minutes loses its chat."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    async def _bound_room(self, conn, channel="kontexto"):
+        from koop import create_koop
+        from live_chat import create_live_room
+
+        room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+        await create_live_room(
+            conn,
+            koop_id=room["koop_id"],
+            platform="twitch",
+            channel=channel,
+            host_token=room["player_token"],
+            require_prefix=False,
+        )
+        return room
+
+    async def _age(self, conn, koop_id, seconds):
+        await conn.execute(
+            "UPDATE live_rooms SET host_seen_at = datetime('now', ?) WHERE koop_id = ?",
+            (f"-{seconds} seconds", koop_id),
+        )
+        await conn.commit()
+
+    async def _seen(self, conn, koop_id):
+        cursor = await conn.execute(
+            "SELECT host_seen_at FROM live_rooms WHERE koop_id = ?", (koop_id,)
+        )
+        return (await cursor.fetchone())["host_seen_at"]
+
+    def test_a_new_room_counts_as_seen(self, db):
+        from live_chat import unbind_absent_rooms
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._bound_room(conn)
+                assert await self._seen(conn, room["koop_id"]) is not None
+                assert await unbind_absent_rooms(conn) == []
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_touch_is_throttled_by_the_stamp_itself(self, db):
+        from live_chat import touch_host
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._bound_room(conn)
+                kid = room["koop_id"]
+                # Fresh stamp: nothing to write.
+                assert await touch_host(conn, kid) is False
+                await self._age(conn, kid, 45)
+                before = await self._seen(conn, kid)
+                assert await touch_host(conn, kid) is True
+                assert await self._seen(conn, kid) > before
+                assert await touch_host(conn, kid) is False
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_only_absent_rooms_are_unbound(self, db):
+        from koop import get_koop_state
+        from live_chat import get_live_room, send_host_message, unbind_absent_rooms
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                gone = await self._bound_room(conn, "kanal_weg")
+                here = await self._bound_room(conn, "kanal_da")
+                await send_host_message(conn, gone["koop_id"], "Danke")
+                await self._age(conn, gone["koop_id"], 301)
+                await self._age(conn, here["koop_id"], 299)
+
+                unbound = await unbind_absent_rooms(conn)
+                assert [r["channel"] for r in unbound] == ["kanal_weg"]
+                assert await get_live_room(conn, gone["koop_id"]) is None
+                assert await get_live_room(conn, here["koop_id"]) is not None
+                # The board stays, the note goes with the binding.
+                assert await get_koop_state(conn, gone["koop_id"]) is not None
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) AS n FROM live_host_messages WHERE koop_id = ?",
+                    (gone["koop_id"],),
+                )
+                assert (await cursor.fetchone())["n"] == 0
+                # A second pass finds nothing.
+                assert await unbind_absent_rooms(conn) == []
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_a_room_from_before_the_migration_is_stamped(self, db_path):
+        import aiosqlite
+
+        from database import init_db
+        from live_chat import unbind_absent_rooms
+
+        async def run():
+            # An old volume: live_rooms without host_seen_at and a room created
+            # an hour ago that is on air right now.
+            conn = await aiosqlite.connect(db_path)
+            await conn.executescript(
+                "CREATE TABLE koops (id TEXT PRIMARY KEY, game_number INTEGER);"
+                "CREATE TABLE live_rooms (koop_id TEXT PRIMARY KEY, platform TEXT NOT NULL,"
+                " channel TEXT NOT NULL, host_token TEXT NOT NULL,"
+                " overlay_token TEXT NOT NULL UNIQUE,"
+                " require_prefix BOOLEAN NOT NULL DEFAULT 0,"
+                " chat_state TEXT NOT NULL DEFAULT 'connecting', chat_error TEXT,"
+                " last_chat_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"
+                "INSERT INTO koops (id, game_number) VALUES ('alt', 1);"
+                "INSERT INTO live_rooms (koop_id, platform, channel, host_token, overlay_token,"
+                " created_at) VALUES ('alt', 'twitch', 'kontexto', 'h', 'o',"
+                " datetime('now', '-1 hour'));"
+            )
+            await conn.commit()
+            await conn.close()
+
+            await init_db(db_path)
+            conn = await get_db(db_path)
+            try:
+                assert await self._seen(conn, "alt") is not None
+                assert await unbind_absent_rooms(conn) == []
+            finally:
+                await conn.close()
+
+        self._run(run())

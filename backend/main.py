@@ -1320,6 +1320,26 @@ async def create_live_endpoint(req: CreateLiveRequest):
         await db.close()
 
 
+# When this worker last raised a room's presence stamp. Per worker on purpose:
+# it only saves the SQL round trip, the stamp's own age check in touch_host is
+# what keeps four workers from writing four times.
+_host_touched: dict[str, float] = {}
+
+
+def _host_touch_due(koop_id: str) -> bool:
+    now = time.monotonic()
+    last = _host_touched.get(koop_id)
+    if last is not None and now - last < live_chat.HOST_TOUCH_SECONDS:
+        return False
+    _host_touched[koop_id] = now
+    # Rooms come and go for weeks in one process; forget the ones long silent.
+    if len(_host_touched) > 1000:
+        horizon = now - live_chat.HOST_ABSENT_SECONDS
+        for key in [k for k, t in _host_touched.items() if t < horizon]:
+            del _host_touched[key]
+    return True
+
+
 @app.get("/api/live/{koop_id}", response_model=LiveRoomResponse)
 async def get_live_endpoint(koop_id: str, token: str = Query(...)):
     db = await get_db(_db_path)
@@ -1332,6 +1352,8 @@ async def get_live_endpoint(koop_id: str, token: str = Query(...)):
                 status_code=404,
                 content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
             )
+        if _host_touch_due(koop_id):
+            await live_chat.touch_host(db, koop_id)
         return _live_room_payload(
             room,
             await live_chat.top_viewers(db, koop_id),

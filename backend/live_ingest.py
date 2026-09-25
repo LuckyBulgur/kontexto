@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 
 import live_chat
 from database import get_db
@@ -58,7 +59,9 @@ def default_reader_factory(platform: str, channel: str):
 class LiveChatIngest:
     """Supervises one reader per bound room and applies what they read."""
 
-    def __init__(self, db_path: str, resolve_guess, reader_factory=None) -> None:
+    def __init__(
+        self, db_path: str, resolve_guess, reader_factory=None, clock=time.monotonic
+    ) -> None:
         self._db_path = db_path
         # Injected from main.py: the word-to-rank path a room guess takes. Passed
         # in rather than imported so this module never reaches into the game
@@ -73,6 +76,12 @@ class LiveChatIngest:
         self._offline: set[str] = set()
         self._rooms: dict[str, dict] = {}
         self._gate = live_chat.GuessGate()
+        # When this supervisor started. Absent hosts are only unbound once it
+        # has been up for a whole absence window: after a deploy or a crash
+        # every stamp is as old as the downtime, and a host page that is open
+        # right now needs a few seconds to be seen again.
+        self._started = clock()
+        self._clock = clock
 
     # --- applying one message ---
 
@@ -195,6 +204,12 @@ class LiveChatIngest:
     async def reconcile(self) -> None:
         db = await get_db(self._db_path)
         try:
+            if self._clock() - self._started >= live_chat.HOST_ABSENT_SECONDS:
+                for gone in await live_chat.unbind_absent_rooms(db):
+                    logger.info(
+                        "live chat unbound, host page closed: %s/%s",
+                        gone["platform"], gone["channel"],
+                    )
             rooms = await live_chat.list_live_rooms(db)
             for room in rooms:
                 known = self._rooms.get(room["koop_id"])

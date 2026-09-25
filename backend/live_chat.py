@@ -331,9 +331,11 @@ async def create_live_room(
     chat_token = _token()
     try:
         await db.execute(
+            # host_seen_at is written explicitly: on a database that got the
+            # column through the migration it has no default.
             "INSERT INTO live_rooms "
             "(koop_id, platform, channel, host_token, chat_token, overlay_token, "
-            "require_prefix) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "require_prefix, host_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
             (
                 koop_id, platform, channel, host_token, chat_token, overlay_token,
                 int(require_prefix),
@@ -439,6 +441,73 @@ async def end_live_room(db: aiosqlite.Connection, koop_id: str) -> bool:
         await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
     await db.commit()
     return ended
+
+
+# --- Host presence ----------------------------------------------------------
+
+# How long a bound room may go without its host page before the chat is
+# unbound. The page polls every 3 s and a hidden tab still polls about once a
+# minute (browsers throttle background timers to that), so five minutes of
+# silence means the page is closed, not merely in the background.
+HOST_ABSENT_SECONDS = 300
+
+# How often the presence stamp is raised. The host polls every 3 s; writing on
+# every poll would take the write lock of a file five workers share twenty
+# times a minute per room for a value that only has to be right to the minute.
+HOST_TOUCH_SECONDS = 30
+
+
+async def touch_host(db: aiosqlite.Connection, koop_id: str) -> bool:
+    """Record that the host page is open. True when the stamp was raised.
+
+    Guarded in SQL by the stamp's own age, so four API workers that each let a
+    call through still write at most once per window between them.
+    """
+    cursor = await db.execute(
+        "UPDATE live_rooms SET host_seen_at = CURRENT_TIMESTAMP WHERE koop_id = ? "
+        "AND (host_seen_at IS NULL OR host_seen_at < datetime('now', ?))",
+        (koop_id, f"-{HOST_TOUCH_SECONDS} seconds"),
+    )
+    if cursor.rowcount:
+        await db.commit()
+        return True
+    return False
+
+
+async def unbind_absent_rooms(
+    db: aiosqlite.Connection, absent_seconds: int = HOST_ABSENT_SECONDS
+) -> list[dict]:
+    """Unbind every room whose host page has not been open for `absent_seconds`.
+
+    The same unbinding as a stop: the chat stops counting, the reader and a
+    TikTok socket slot go on the supervisor's next pass, the overlay goes blank
+    and the koop room stays, so a host who comes back can still reveal the word
+    and start a new round. Read first and deleted only when there is something
+    to delete, because this runs on every pass of the supervisor and an empty
+    DELETE would still take the write lock. The DELETE repeats the age check,
+    so a host whose poll lands between the two statements keeps the room.
+    """
+    window = f"-{int(absent_seconds)} seconds"
+    stale = "COALESCE(host_seen_at, created_at) < datetime('now', ?)"
+    cursor = await db.execute(
+        f"SELECT koop_id, platform, channel FROM live_rooms WHERE {stale}", (window,)
+    )
+    candidates = [dict(row) for row in await cursor.fetchall()]
+    if not candidates:
+        return []
+    unbound = []
+    for room in candidates:
+        cursor = await db.execute(
+            f"DELETE FROM live_rooms WHERE koop_id = ? AND {stale}",
+            (room["koop_id"], window),
+        )
+        if cursor.rowcount:
+            await db.execute(
+                "DELETE FROM live_host_messages WHERE koop_id = ?", (room["koop_id"],)
+            )
+            unbound.append(room)
+    await db.commit()
+    return unbound
 
 
 async def set_chat_state(
