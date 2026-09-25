@@ -34,7 +34,7 @@
 # The list is data, not output. Edit it by hand, keep it sorted, one word per
 # line. scripts/recode-pool.py applies a reviewed pass to both files.
 #
-# 2.326 words, about 6,4 years of daily puzzles.
+# 2.325 words, about 6,4 years of daily puzzles.
 
 abbildung
 abdruck
@@ -499,7 +499,6 @@ essig
 esszimmer
 etage
 etappe
-etui
 eule
 experte
 fabrik

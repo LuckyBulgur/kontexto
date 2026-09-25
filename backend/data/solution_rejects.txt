@@ -29,7 +29,7 @@
 # Text in brackets is the reason an earlier pass wrote down, kept where it says
 # more than the code.
 #
-# 5.509 entries.
+# 5.510 entries.
 
 abbau = S Fach-, Amts- oder Berufswort
 abbild = V Variante eines Worts, das schon drin steht (wie bild)
@@ -1414,6 +1414,7 @@ eth = V Variante eines Worts, das schon drin steht
 ethik = N nicht jedem gelaeufig
 ethnie = S Fach-, Amts- oder Berufswort
 etikett = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Durchgang 2026-09-24]
+etui = N nicht jedem gelaeufig [Jugendlichen kaum bekannt, Spieler 2026-09-25]
 euphorie = S Fach-, Amts- oder Berufswort
 euro = F von den Startwoertern aus nicht erreichbar, gemessen
 europameister = V Variante eines Worts, das schon drin steht (wie weltmeister) [Durchsicht mit dem Spieler]
