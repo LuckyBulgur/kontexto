@@ -97,6 +97,24 @@ export async function stopLive(
   if (!res.ok) throw new Error(`API error: ${res.status}`);
 }
 
+/**
+ * Confirm that the operator's notes up to `upToId` are on screen. Repeating it
+ * is harmless, so a failed call is simply sent again after the next poll.
+ */
+export async function markHostMessagesSeen(
+  koopId: string,
+  playerToken: string,
+  upToId: number
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/live/${koopId}/messages/seen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_token: playerToken, up_to_id: upToId }),
+  });
+  if (res.status === 404) throw new Error("room_not_found");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
 /** What the OBS browser source polls. Its own token, never the host's. */
 export async function getOverlayState(
   overlayToken: string

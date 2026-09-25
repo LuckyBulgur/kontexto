@@ -326,3 +326,138 @@ class TestAdminStats:
         assert totals["rounds"] == 2
         assert {c["channel"] for c in channels} == {"kontexto", "zweiter"}
         assert {a["channel"] for a in active} == {"kontexto", "zweiter"}
+
+
+class TestHostMessages:
+    """The operator's note reaches the host page and nothing the audience sees."""
+
+    def _admin(self):
+        import auth
+
+        return {"Authorization": f"Bearer {auth.issue_session_token()}"}
+
+    def test_admin_endpoints_need_a_session(self, client):
+        created = _create(client).json()
+        assert client.get("/api/admin/live-streams").status_code == 401
+        res = client.post(
+            f"/api/admin/live-streams/{created['koop_id']}/message", json={"text": "Danke"}
+        )
+        assert res.status_code == 401
+        res = client.get(
+            "/api/admin/live-streams", headers={"Authorization": "Bearer falsch"}
+        )
+        assert res.status_code == 401
+
+    def test_the_admin_sees_running_streams(self, client):
+        created = _create(client).json()
+        _create(client, channel="zweiter")
+        res = client.get("/api/admin/live-streams", headers=self._admin())
+        assert res.status_code == 200
+        body = res.json()
+        assert body["server_time"].endswith("Z")
+        channels = {s["channel"]: s for s in body["streams"]}
+        assert set(channels) == {"kontexto", "zweiter"}
+        stream = channels["kontexto"]
+        assert stream["koop_id"] == created["koop_id"]
+        assert stream["messages"] == []
+        # The admin reads along; the answer is not part of that.
+        assert "game_number" not in stream
+        assert "target" not in stream
+
+    def test_note_reaches_the_host_once(self, client):
+        created = _create(client).json()
+        kid, token = created["koop_id"], created["player_token"]
+
+        res = client.post(
+            f"/api/admin/live-streams/{kid}/message",
+            json={"text": "  Danke für\nden Stream!  "},
+            headers=self._admin(),
+        )
+        assert res.status_code == 200
+        message_id = res.json()["id"]
+
+        host = client.get(f"/api/live/{kid}", params={"token": token}).json()
+        assert [(m["id"], m["text"]) for m in host["messages"]] == [
+            (message_id, "Danke für den Stream!")
+        ]
+
+        overlay = client.get(
+            "/api/live/overlay/state", params={"token": created["overlay_token"]}
+        ).json()
+        assert "messages" not in overlay
+        assert "Danke" not in str(overlay)
+
+        admin = client.get("/api/admin/live-streams", headers=self._admin()).json()
+        [entry] = admin["streams"][0]["messages"]
+        assert entry["seen_at"] is None
+
+        res = client.post(
+            f"/api/live/{kid}/messages/seen",
+            json={"player_token": token, "up_to_id": message_id},
+        )
+        assert res.status_code == 200 and res.json()["marked"] == 1
+        # A retry of the same ack changes nothing.
+        res = client.post(
+            f"/api/live/{kid}/messages/seen",
+            json={"player_token": token, "up_to_id": message_id},
+        )
+        assert res.json()["marked"] == 0
+
+        host = client.get(f"/api/live/{kid}", params={"token": token}).json()
+        assert host["messages"] == []
+        admin = client.get("/api/admin/live-streams", headers=self._admin()).json()
+        assert admin["streams"][0]["messages"][0]["seen_at"].endswith("Z")
+
+    def test_a_foreign_token_cannot_ack(self, client):
+        created = _create(client).json()
+        kid = created["koop_id"]
+        message_id = client.post(
+            f"/api/admin/live-streams/{kid}/message", json={"text": "Hallo"},
+            headers=self._admin(),
+        ).json()["id"]
+        res = client.post(
+            f"/api/live/{kid}/messages/seen",
+            json={"player_token": "fremd", "up_to_id": message_id},
+        )
+        assert res.status_code == 404
+        host = client.get(f"/api/live/{kid}", params={"token": created["player_token"]})
+        assert len(host.json()["messages"]) == 1
+
+    def test_refusals(self, client):
+        created = _create(client).json()
+        kid = created["koop_id"]
+        url = f"/api/admin/live-streams/{kid}/message"
+
+        res = client.post(url, json={"text": " ​ "}, headers=self._admin())
+        assert res.status_code == 422 and res.json()["error"] == "bad_message"
+        res = client.post(url, json={"text": "x" * 281}, headers=self._admin())
+        assert res.status_code == 422 and res.json()["error"] == "bad_message"
+        res = client.post(url, json={"text": "a", "extra": 1}, headers=self._admin())
+        assert res.status_code == 422
+
+        for i in range(5):
+            assert client.post(url, json={"text": f"n{i}"}, headers=self._admin()).status_code == 200
+        res = client.post(url, json={"text": "zu viel"}, headers=self._admin())
+        assert res.status_code == 409 and res.json()["error"] == "too_many_pending"
+
+        client.post(f"/api/live/{kid}/stop", json={"player_token": created["player_token"]})
+        res = client.post(url, json={"text": "zu spät"}, headers=self._admin())
+        assert res.status_code == 404 and res.json()["error"] == "room_not_found"
+        res = client.post(
+            "/api/admin/live-streams/fehlt/message", json={"text": "Hallo"},
+            headers=self._admin(),
+        )
+        assert res.status_code == 404
+
+    def test_debug_seam_is_closed_outside_dev(self, client, monkeypatch):
+        created = _create(client).json()
+        monkeypatch.delenv("KONTEXTO_DEV", raising=False)
+        res = client.post(
+            f"/api/live/{created['koop_id']}/debug-host-message", json={"text": "Hallo"}
+        )
+        assert res.status_code == 404
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        res = client.post(
+            f"/api/live/{created['koop_id']}/debug-host-message", json={"text": "Hallo"}
+        )
+        assert res.status_code == 200

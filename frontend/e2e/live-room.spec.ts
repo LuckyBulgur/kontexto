@@ -150,6 +150,50 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByPlaceholder("Wort eingeben...")).toHaveCount(0);
   });
 
+  test("eine Nachricht vom Betreiber erscheint nur beim Streamer", async ({ page }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    // The dev seam runs the same normalisation and insert as the admin route,
+    // which needs a passkey session the suite cannot create.
+    const text = "Danke für den Stream!";
+    const res = await page.request.post(`/api/live/${roomId}/debug-host-message`, {
+      data: { text },
+    });
+    expect(res.ok()).toBe(true);
+
+    const banner = page.getByTestId("host-message");
+    await expect(banner).toBeVisible({ timeout: 20_000 });
+    await expect(banner).toContainText(text);
+
+    // It leaves by itself, without a click.
+    await expect(banner).toHaveCount(0, { timeout: 20_000 });
+
+    // Shown once: the confirmation took it off the server's list.
+    const token = await page.evaluate(
+      (id) => localStorage.getItem(`kontexto_koop_${id}`),
+      roomId
+    );
+    const state = await page.request.get(
+      `/api/live/${roomId}?token=${encodeURIComponent(token!)}`
+    );
+    expect((await state.json()).messages).toEqual([]);
+
+    // The audience's view never carries it.
+    const overlayToken = await page.evaluate(
+      (id) => localStorage.getItem(`kontexto_live_${id}`),
+      roomId
+    );
+    await page.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
+    await expect(page.getByText(/keiner laufenden Runde|Runde \d+/)).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText(text)).toHaveCount(0);
+  });
+
   test("die Einblendung ohne Token zeigt kein Brett", async ({ page }) => {
     await page.goto("/live/overlay/");
     await expect(page.getByText(/keiner laufenden Runde/)).toBeVisible({ timeout: 20_000 });

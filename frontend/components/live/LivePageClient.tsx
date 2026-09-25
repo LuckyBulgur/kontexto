@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
+import HostMessageBanner from "@/components/live/HostMessageBanner";
 import LiveCreateClient from "@/components/live/LiveCreateClient";
 import LiveStatus from "@/components/live/LiveStatus";
 import RoomLanding from "@/components/RoomLanding";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import { getLiveRoom } from "@/lib/live-api";
+import { needsAckRetry } from "@/lib/host-messages";
+import { getLiveRoom, markHostMessagesSeen } from "@/lib/live-api";
 import { LiveRoom } from "@/lib/live-types";
 
 /**
@@ -47,6 +49,9 @@ export default function LivePageClient() {
   const [room, setRoom] = useState<LiveRoom | null>(null);
   const [stale, setStale] = useState(false);
   const [checked, setChecked] = useState(false);
+  // The highest operator note this page has put on screen. Confirmations are
+  // cumulative, so one number is enough to resend a lost one.
+  const shownUpTo = useRef(0);
 
   useEffect(() => {
     const id = getRoomIdFromPath();
@@ -72,6 +77,11 @@ export default function LivePageClient() {
         if (cancelled) return;
         setRoom(next);
         setStale(false);
+        if (needsAckRetry(next.messages, shownUpTo.current)) {
+          markHostMessagesSeen(roomId, token, shownUpTo.current).catch(() => {
+            // Sent again after the next poll; the banner will not repeat it.
+          });
+        }
       } catch {
         // Keep the last known panel and mark it stale instead of dropping it.
         // Clearing it swapped the whole chat sidebar for the ordinary koop
@@ -87,6 +97,19 @@ export default function LivePageClient() {
       clearInterval(timer);
     };
   }, [roomId]);
+
+  const handleMessageShown = useCallback(
+    (id: number) => {
+      if (!roomId) return;
+      const token = localStorage.getItem(`kontexto_koop_${roomId}`);
+      if (!token) return;
+      shownUpTo.current = Math.max(shownUpTo.current, id);
+      markHostMessagesSeen(roomId, token, shownUpTo.current).catch(() => {
+        // The next poll still carries it, and that is what triggers the retry.
+      });
+    },
+    [roomId]
+  );
 
   const handleCopyOverlay = useCallback(async () => {
     if (!room) return;
@@ -112,38 +135,41 @@ export default function LivePageClient() {
   }
 
   return (
-    <KoopPageClient
-      basePath="live"
-      label="Stream-Chat"
-      showInvite={false}
-      shareable={false}
-      createHref="/live/"
-      showNames
-      notFoundMessage="Diese Runde gibt es nicht"
-      tipsDisabledMessage="Tipps sind in dieser Runde ausgeschaltet"
-      giveUpDescription="Bist du sicher? Das Lösungswort steht danach auf dem Brett und in der Einblendung, also auch im Stream. Danach kannst du eine nächste Runde starten."
-      resultLabel="Stream-Chat"
-      resultGroupNoun="aus dem Chat"
-      resultRows={(room?.top ?? []).map((viewer) => ({
-        name: viewer.nickname,
-        detail: `${viewer.hits} Treffer`,
-      }))}
-      sidebar={
-        room ? (
-          <LiveStatus
-            channel={room.channel}
-            platform={room.platform}
-            chatState={stale ? "error" : room.chat_state}
-            chatError={
-              stale ? "Keine Verbindung zum Server. Die Runde läuft weiter." : room.chat_error
-            }
-            requirePrefix={room.require_prefix}
-            top={room.top}
-            overlayUrl={room.overlay_token}
-            onCopyOverlay={handleCopyOverlay}
-          />
-        ) : null
-      }
-    />
+    <>
+      <HostMessageBanner messages={room?.messages ?? []} onShown={handleMessageShown} />
+      <KoopPageClient
+        basePath="live"
+        label="Stream-Chat"
+        showInvite={false}
+        shareable={false}
+        createHref="/live/"
+        showNames
+        notFoundMessage="Diese Runde gibt es nicht"
+        tipsDisabledMessage="Tipps sind in dieser Runde ausgeschaltet"
+        giveUpDescription="Bist du sicher? Das Lösungswort steht danach auf dem Brett und in der Einblendung, also auch im Stream. Danach kannst du eine nächste Runde starten."
+        resultLabel="Stream-Chat"
+        resultGroupNoun="aus dem Chat"
+        resultRows={(room?.top ?? []).map((viewer) => ({
+          name: viewer.nickname,
+          detail: `${viewer.hits} Treffer`,
+        }))}
+        sidebar={
+          room ? (
+            <LiveStatus
+              channel={room.channel}
+              platform={room.platform}
+              chatState={stale ? "error" : room.chat_state}
+              chatError={
+                stale ? "Keine Verbindung zum Server. Die Runde läuft weiter." : room.chat_error
+              }
+              requirePrefix={room.require_prefix}
+              top={room.top}
+              overlayUrl={room.overlay_token}
+              onCopyOverlay={handleCopyOverlay}
+            />
+          ) : null
+        }
+      />
+    </>
   );
 }

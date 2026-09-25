@@ -143,6 +143,39 @@ export interface LiveData {
   generated_at: string;
 }
 
+/** A note the operator sent to a streamer, with its delivery state. */
+export interface AdminHostMessage {
+  id: number;
+  text: string;
+  sent_at: string;
+  /** Set once the host page had it on screen; null while it waits. */
+  seen_at: string | null;
+}
+
+/** One live-chat room bound right now, as the dashboard reads along. */
+export interface AdminLiveStream {
+  koop_id: string;
+  platform: "twitch" | "tiktok";
+  channel: string;
+  chat_state: "connecting" | "live" | "error";
+  created_at: string | null;
+  last_activity: string | null;
+  round: number;
+  best_rank: number | null;
+  solved: boolean;
+  gave_up: boolean;
+  viewers: number;
+  guesses: number;
+  recent_guesses: { nickname: string; word: string; rank: number }[];
+  /** Newest first. */
+  messages: AdminHostMessage[];
+}
+
+export interface AdminLiveStreams {
+  server_time: string;
+  streams: AdminLiveStream[];
+}
+
 export interface SurveyDetailEntry {
   source: string;
   detail: string;

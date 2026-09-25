@@ -533,3 +533,187 @@ class TestOverlaySnapshot:
                 await conn.close()
 
         self._run(run())
+
+
+class TestHostMessages:
+    """Notes from the operator to a streamer: queued, shown once, gone with the room."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    async def _bound_room(self, conn, channel="kontexto"):
+        from koop import create_koop
+        from live_chat import create_live_room
+
+        room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+        await create_live_room(
+            conn,
+            koop_id=room["koop_id"],
+            platform="twitch",
+            channel=channel,
+            host_token=room["player_token"],
+            require_prefix=False,
+        )
+        return room
+
+    def test_normalisation(self):
+        from live_chat import HOST_MESSAGE_MAX_CHARS, normalise_host_message
+
+        assert normalise_host_message("  Danke\nfür den\tStream  ") == "Danke für den Stream"
+        # Zero-width characters sit inside a word and are removed, not spaced.
+        assert normalise_host_message("Dan​ke⁠!") == "Danke!"
+        assert normalise_host_message("a\x00b") == "a b"
+        # NFC: a decomposed umlaut counts as one character.
+        assert normalise_host_message("für") == "für"
+        assert normalise_host_message("") is None
+        assert normalise_host_message(" ​\n ") is None
+        assert normalise_host_message(None) is None
+        assert normalise_host_message("x" * HOST_MESSAGE_MAX_CHARS) is not None
+        assert normalise_host_message("x" * (HOST_MESSAGE_MAX_CHARS + 1)) is None
+
+    def test_send_pending_and_seen(self, db):
+        from live_chat import mark_host_messages_seen, pending_host_messages, send_host_message
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._bound_room(conn)
+                kid = room["koop_id"]
+                first = await send_host_message(conn, kid, "Danke!")
+                second = await send_host_message(conn, kid, "Starker Stream")
+                assert first is not None and second is not None and second > first
+
+                pending = await pending_host_messages(conn, kid)
+                assert [m["text"] for m in pending] == ["Danke!", "Starker Stream"]
+                assert pending[0]["sent_at"].endswith("Z")
+
+                assert await mark_host_messages_seen(conn, kid, first) == 1
+                # Repeating the ack is a no-op.
+                assert await mark_host_messages_seen(conn, kid, first) == 0
+                assert [m["id"] for m in await pending_host_messages(conn, kid)] == [second]
+                assert await mark_host_messages_seen(conn, kid, second) == 1
+                assert await pending_host_messages(conn, kid) == []
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_ack_is_scoped_to_its_room(self, db):
+        from live_chat import mark_host_messages_seen, pending_host_messages, send_host_message
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                a = await self._bound_room(conn, "kanal_a")
+                b = await self._bound_room(conn, "kanal_b")
+                await send_host_message(conn, a["koop_id"], "für A")
+                mid_b = await send_host_message(conn, b["koop_id"], "für B")
+                assert await mark_host_messages_seen(conn, a["koop_id"], mid_b) == 1
+                assert len(await pending_host_messages(conn, b["koop_id"])) == 1
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_unbound_room_gets_nothing(self, db):
+        from koop import create_koop
+        from live_chat import pending_host_messages, send_host_message
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                # A plain koop room is not a stream.
+                room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+                assert await send_host_message(conn, room["koop_id"], "Hallo") is None
+                assert await send_host_message(conn, "fehlt", "Hallo") is None
+                assert await pending_host_messages(conn, room["koop_id"]) == []
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_pending_cap(self, db):
+        from live_chat import (
+            HOST_MESSAGE_MAX_PENDING, TooManyPending, mark_host_messages_seen, send_host_message,
+        )
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._bound_room(conn)
+                kid = room["koop_id"]
+                ids = [
+                    await send_host_message(conn, kid, f"Nachricht {i}")
+                    for i in range(HOST_MESSAGE_MAX_PENDING)
+                ]
+                with pytest.raises(TooManyPending):
+                    await send_host_message(conn, kid, "eine zu viel")
+                await mark_host_messages_seen(conn, kid, ids[0])
+                assert await send_host_message(conn, kid, "wieder Platz") is not None
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_stop_and_cleanup_remove_messages(self, db):
+        from koop import cleanup_stale_koops
+        from live_chat import send_host_message, stop_live_room
+
+        async def count(conn, kid):
+            cursor = await conn.execute(
+                "SELECT COUNT(*) AS n FROM live_host_messages WHERE koop_id = ?", (kid,)
+            )
+            return (await cursor.fetchone())["n"]
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                stopped = await self._bound_room(conn, "kanal_stop")
+                await send_host_message(conn, stopped["koop_id"], "Danke")
+                # A foreign token neither unbinds nor deletes.
+                assert await stop_live_room(conn, stopped["koop_id"], "fremd") is False
+                assert await count(conn, stopped["koop_id"]) == 1
+                assert await stop_live_room(conn, stopped["koop_id"], stopped["player_token"])
+                assert await count(conn, stopped["koop_id"]) == 0
+
+                stale = await self._bound_room(conn, "kanal_alt")
+                await send_host_message(conn, stale["koop_id"], "Danke")
+                await conn.execute(
+                    "UPDATE koops SET last_activity = datetime('now', '-2 hours') WHERE id = ?",
+                    (stale["koop_id"],),
+                )
+                await conn.execute(
+                    "UPDATE koop_players SET connected = 0 WHERE koop_id = ?", (stale["koop_id"],)
+                )
+                await conn.commit()
+                await cleanup_stale_koops(conn)
+                assert await count(conn, stale["koop_id"]) == 0
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_active_streams_read_along_without_the_answer(self, db):
+        from koop import record_koop_guess
+        from live_chat import active_streams
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._bound_room(conn)
+                kid = room["koop_id"]
+                for i in range(7):
+                    await record_koop_guess(conn, kid, room["player_token"], f"wort{i}", 50 - i)
+                [stream] = await active_streams(conn)
+                assert stream["koop_id"] == kid
+                assert stream["guesses"] == 7
+                assert [g["word"] for g in stream["recent_guesses"]] == [
+                    "wort6", "wort5", "wort4", "wort3", "wort2",
+                ]
+                assert stream["created_at"].endswith("Z")
+                assert stream["solved"] is False
+                assert "game_number" not in stream
+            finally:
+                await conn.close()
+
+        self._run(run())

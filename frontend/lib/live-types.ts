@@ -26,6 +26,14 @@ export interface LiveViewer {
   best_rank: number | null;
 }
 
+/** A note from the operator, waiting to be shown on the host page only. */
+export interface LiveHostMessage {
+  id: number;
+  text: string;
+  /** ISO 8601, UTC. */
+  sent_at: string;
+}
+
 export interface LiveRoom {
   koop_id: string;
   platform: LivePlatform;
@@ -36,6 +44,8 @@ export interface LiveRoom {
   /** Belongs in the OBS browser source, nowhere else. */
   overlay_token: string;
   top: LiveViewer[];
+  /** Unseen operator notes, oldest first. Never part of the overlay state. */
+  messages: LiveHostMessage[];
 }
 
 export interface CreateLiveResponse extends LiveRoom {

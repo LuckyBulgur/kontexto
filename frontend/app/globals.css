@@ -393,6 +393,29 @@
   animation: result-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
+/* The operator's note on the live host page (components/live/HostMessageBanner.tsx).
+   It drops in from above the viewport like a phone notification and leaves the
+   same way. One-shot and bound to the arrival of a note; under
+   `prefers-reduced-motion` the global block makes it stand and vanish at once.
+   The leave duration is mirrored as EXIT_MS in the component. */
+@keyframes banner-drop {
+  from { opacity: 0; transform: translateY(calc(-100% - 1rem)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes banner-lift {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(calc(-100% - 1rem)); }
+}
+
+.animate-banner-drop {
+  animation: banner-drop 360ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.animate-banner-lift {
+  animation: banner-lift 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
 /* =========================================================================
    Farbwelten (app settings -> Darstellung -> Farbwelt, lib/palette.ts)
 
@@ -909,6 +932,8 @@
      .animate-wordle-fade-in   kein Einblenden
      .animate-result-in        Ergebniskarte steht sofort da
      .animate-meter-run        Ratebalken steht sofort auf seiner Breite
+     .animate-banner-drop      the operator note on /live/ stands and goes at once
+     .animate-banner-lift
      event-goal                der Torjubel entfaellt
 
    Framer Motion braucht diesen Block nicht, es haengt bereits an derselben

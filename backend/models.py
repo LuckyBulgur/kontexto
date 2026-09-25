@@ -311,6 +311,14 @@ class LiveViewer(BaseModel):
     best_rank: int | None
 
 
+class LiveHostMessage(BaseModel):
+    """A note from the operator, waiting to be shown on the host page."""
+
+    id: int
+    text: str
+    sent_at: str
+
+
 class LiveRoomResponse(BaseModel):
     """What the host sees about the chat connection. No puzzle data at all."""
 
@@ -322,6 +330,9 @@ class LiveRoomResponse(BaseModel):
     chat_error: str | None = None
     overlay_token: str
     top: list[LiveViewer] = []
+    # Unseen notes, oldest first. Host only: the overlay model has no such
+    # field, because the overlay is what the audience sees.
+    messages: list[LiveHostMessage] = []
 
 
 class CreateLiveResponse(LiveRoomResponse):
@@ -366,6 +377,67 @@ class LiveOverlayResponse(BaseModel):
     channel: str | None
     recent: list[LiveOverlayGuess]
     top: list[LiveViewer]
+
+
+class LiveMessagesSeenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    player_token: str = Field(..., min_length=1, max_length=128)
+    up_to_id: int = Field(..., ge=1)
+
+
+class LiveMessagesSeenResponse(BaseModel):
+    marked: int
+
+
+class AdminHostMessageRequest(BaseModel):
+    """A note to a streamer. Length is checked after normalisation, in live_chat."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(..., min_length=1, max_length=2000)
+
+
+class AdminHostMessageResponse(BaseModel):
+    id: int
+
+
+class AdminHostMessageEntry(BaseModel):
+    id: int
+    text: str
+    sent_at: str
+    seen_at: str | None
+
+
+class AdminStreamGuess(BaseModel):
+    nickname: str
+    word: str
+    rank: int
+
+
+class AdminLiveStream(BaseModel):
+    """One bound room as the operator reads along. No game number, no target."""
+
+    koop_id: str
+    platform: str
+    channel: str
+    chat_state: str
+    created_at: str | None
+    # The koop room's own clock: raised by every guess, chat or host.
+    last_activity: str | None
+    round: int
+    best_rank: int | None
+    solved: bool
+    gave_up: bool
+    viewers: int
+    guesses: int
+    recent_guesses: list[AdminStreamGuess]
+    messages: list[AdminHostMessageEntry]
+
+
+class AdminLiveStreamsResponse(BaseModel):
+    server_time: str
+    streams: list[AdminLiveStream]
 
 
 class LiveDebugMessageRequest(BaseModel):

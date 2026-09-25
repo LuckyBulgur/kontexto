@@ -216,6 +216,22 @@ it must never be logged. The AGPL libraries (TikTok-Live-Connector, TikTokLive) 
 deliberately not used, kontexto is FSL. Research and limits:
 `docs/plans/2026-09-23-tiktok-live-chat.md`.
 
+**The operator can read along and write to the streamer (2026-09-25).** The dashboard section
+„Streams jetzt“ (`components/admin/LiveStreams.tsx`) polls `GET /api/admin/live-streams` every
+5 s while visible: every bound room with round, best rank, chatters and the last five guesses,
+never the game number or the target. `POST /api/admin/live-streams/{koop_id}/message` queues a
+note (`live_host_messages`, at most 280 characters after `normalise_host_message`, at most 5
+unseen per room). It rides on the host's own 3 s poll (`GET /api/live/{id}` gains `messages`)
+and drops in from the top of the **host page only** (`components/live/HostMessageBanner.tsx`),
+**never the OBS overlay**, because the overlay is what the audience sees. No click needed: it
+leaves after a length-dependent reading time, pauses on hover or focus, and only starts while
+the tab is visible, so a host tab kept behind OBS gets it on the next look. The host page
+confirms it (`POST /api/live/{id}/messages/seen`, cumulative and idempotent) instead of the read
+implying it, so a lost poll response cannot swallow a note; the admin sees „wartet“ or
+„angekommen“. Notes go with the binding (`stop_live_room`) and with the room (cleanup). e2e
+drives it through the dev-only `debug-host-message` seam. Held by `TestHostMessages` in
+`test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
+
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)
 A name is the only free text the game has, everyone in the room reads it, and an invite link
 gets forwarded, so **one rule guards every door**: `sanitize_nickname` runs in `create_*` and

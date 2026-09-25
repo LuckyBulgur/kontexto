@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity, Award, CalendarDays, Clock, Eye, Gamepad2, Lightbulb, Megaphone,
-  MessageCircleQuestion, PartyPopper, Repeat, Share2, Sparkles, Target, ThumbsUp, TrendingUp,
+  MessageCircleQuestion, PartyPopper, Radio, Repeat, Share2, Sparkles, Target, ThumbsUp, TrendingUp,
   Trophy, Type, Users, Wrench, type LucideIcon,
 } from "lucide-react";
 import {
@@ -21,6 +21,7 @@ import {
   sliceTimeline, sumTimeline, type RangeKey,
 } from "@/components/admin/charts";
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
+import LiveStreams from "@/components/admin/LiveStreams";
 import WordQuality from "@/components/admin/WordQuality";
 import {
   formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, formatStamp, fullDate, greeting,
@@ -242,6 +243,8 @@ function Milestones({ stats }: { stats: StatsData }) {
 interface SectionProps {
   stats: StatsData;
   range: RangeKey;
+  /** The admin session, for sections that poll on their own. */
+  token: string;
 }
 
 /** Time-bound overview: greeting, range-aware KPIs and overall quality metrics. */
@@ -741,6 +744,12 @@ const SECTIONS: SectionDef[] = [
     description: "Zeitbezogene Kennzahlen", usesRange: true, Component: OverviewSection,
   },
   {
+    id: "streams", group: "DASHBOARD", label: "Streams jetzt", icon: Radio,
+    title: "Streams, die gerade laufen",
+    description: "Stream-Chat-Runden live mitlesen und dem Streamer kurz schreiben",
+    Component: ({ token }) => <LiveStreams token={token} />,
+  },
+  {
     id: "reach", group: "REICHWEITE", label: "Besucher & Reichweite", icon: Users,
     description: "Woher sie kommen und wann sie da sind", usesRange: true, Component: ReachSection,
   },
@@ -798,7 +807,7 @@ const SECTIONS: SectionDef[] = [
 
 // --- Shell ------------------------------------------------------------------
 
-export default function Dashboard({ stats }: { stats: StatsData }) {
+export default function Dashboard({ stats, token }: { stats: StatsData; token: string }) {
   const [range, setRange] = useState<RangeKey>("30d");
 
   const availableSections = useMemo(
@@ -857,7 +866,7 @@ export default function Dashboard({ stats }: { stats: StatsData }) {
           <SectionHeader icon={active.icon} title={active.title ?? active.label} description={active.description} />
           {active.usesRange && <RangeToggle value={range} onChange={setRange} />}
         </div>
-        <ActiveSection stats={stats} range={range} />
+        <ActiveSection stats={stats} range={range} token={token} />
       </div>
     </div>
   );

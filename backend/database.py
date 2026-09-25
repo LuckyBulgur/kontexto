@@ -119,6 +119,22 @@ CREATE TABLE IF NOT EXISTS live_rooms (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_live_rooms_channel
     ON live_rooms(platform, channel);
 
+-- A short note from the operator to the streamer ("thanks for the stream"),
+-- delivered through the host's own poll and shown only on the host page, never
+-- on the OBS overlay, which is what the audience sees. seen_at is set by the
+-- host page once the note is on screen, so a lost poll response cannot swallow
+-- it. The rows go with the binding (stop) or with the koop room (cleanup).
+CREATE TABLE IF NOT EXISTS live_host_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    koop_id TEXT NOT NULL REFERENCES koops(id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    seen_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_host_messages_room
+    ON live_host_messages(koop_id, id);
+
 -- Permanent, per-channel rollup: which streams played, how much, how well. This
 -- is the one part of live chat mode that outlives the room.
 --

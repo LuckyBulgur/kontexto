@@ -1,4 +1,4 @@
-import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData, WordAtRankResult, DualNextResponse, DualGuessResult, SuddenDeathRound } from "./types";
+import { GuessResult, TipResult, GameInfo, Difficulty, RevealResult, PastGamesResponse, ClosestWordsResponse, InfiniteNextResponse, StatsData, LiveData, AdminLiveStreams, WordAtRankResult, DualNextResponse, DualGuessResult, SuddenDeathRound } from "./types";
 import { SoloModeId } from "./solo-modes";
 import { throwGuessNotFound } from "./guess-error";
 
@@ -185,6 +185,43 @@ export async function getAdminStats(token: string): Promise<StatsData> {
   if (res.status === 401) throw new Error("unauthorized");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
+}
+
+export async function getAdminLiveStreams(token: string): Promise<AdminLiveStreams> {
+  const res = await fetch(`${API_BASE}/admin/live-streams`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Send a streamer a short note for their host page. Errors come back as the
+ * server's codes: `bad_message`, `room_not_found` (the stream ended),
+ * `too_many_pending` (the host page has not shown the last ones yet).
+ */
+export async function sendHostMessage(
+  token: string,
+  koopId: string,
+  text: string
+): Promise<number> {
+  const res = await fetch(`${API_BASE}/admin/live-streams/${encodeURIComponent(koopId)}/message`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) {
+    const body: unknown = await res.json().catch(() => null);
+    const code =
+      body && typeof body === "object" && "error" in body && typeof body.error === "string"
+        ? body.error
+        : `API error: ${res.status}`;
+    throw new Error(code);
+  }
+  const body = (await res.json()) as { id: number };
+  return body.id;
 }
 
 export async function getAdminLive(token: string): Promise<LiveData> {

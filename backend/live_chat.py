@@ -32,6 +32,7 @@ from __future__ import annotations
 import re
 import secrets
 import time
+import unicodedata
 from dataclasses import dataclass
 
 import aiosqlite
@@ -416,8 +417,12 @@ async def stop_live_room(db: aiosqlite.Connection, koop_id: str, host_token: str
         "DELETE FROM live_rooms WHERE koop_id = ? AND host_token = ?",
         (koop_id, host_token),
     )
+    stopped = cursor.rowcount > 0
+    if stopped:
+        # A note belongs to the binding, not to the koop room that outlives it.
+        await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
     await db.commit()
-    return cursor.rowcount > 0
+    return stopped
 
 
 async def set_chat_state(
@@ -561,15 +566,171 @@ async def stream_totals(db: aiosqlite.Connection) -> dict:
     }
 
 
-async def active_streams(db: aiosqlite.Connection) -> list[dict]:
-    """The rooms bound right now, for the live section of the dashboard."""
+async def active_streams(
+    db: aiosqlite.Connection, guess_limit: int = 5
+) -> list[dict]:
+    """The rooms bound right now, for the live sections of the dashboard.
+
+    Carries the last few guesses so the operator can read along, but never the
+    game number or the target word: nothing on the admin side needs them, and a
+    payload that does not hold the answer cannot leak it.
+    """
     cursor = await db.execute(
-        "SELECT lr.platform, lr.channel, lr.chat_state, lr.created_at, k.round, "
-        "k.best_rank, (SELECT COUNT(*) FROM live_viewers lv WHERE lv.koop_id = lr.koop_id) "
-        "AS viewers FROM live_rooms lr JOIN koops k ON k.id = lr.koop_id "
+        "SELECT lr.koop_id, lr.platform, lr.channel, lr.chat_state, lr.created_at, "
+        "k.last_activity, k.round, k.best_rank, k.solved, k.gave_up, "
+        "(SELECT COUNT(*) FROM live_viewers lv WHERE lv.koop_id = lr.koop_id) AS viewers, "
+        "(SELECT COUNT(*) FROM koop_guesses kg WHERE kg.koop_id = lr.koop_id) AS guesses "
+        "FROM live_rooms lr JOIN koops k ON k.id = lr.koop_id "
         "ORDER BY lr.created_at DESC"
     )
-    return [dict(row) for row in await cursor.fetchall()]
+    streams = []
+    for row in await cursor.fetchall():
+        stream = dict(row)
+        stream["created_at"] = sqlite_utc(stream["created_at"])
+        stream["last_activity"] = sqlite_utc(stream["last_activity"])
+        stream["solved"] = bool(stream["solved"])
+        stream["gave_up"] = bool(stream["gave_up"])
+        guesses = await db.execute(
+            "SELECT nickname, word, rank FROM koop_guesses WHERE koop_id = ? "
+            "ORDER BY id DESC LIMIT ?",
+            (stream["koop_id"], guess_limit),
+        )
+        stream["recent_guesses"] = [dict(g) for g in await guesses.fetchall()]
+        streams.append(stream)
+    return streams
+
+
+# --- Notes from the operator to the streamer --------------------------------
+
+
+def sqlite_utc(raw: str | None) -> str | None:
+    """SQLite's CURRENT_TIMESTAMP (``YYYY-MM-DD HH:MM:SS``, UTC) as ISO 8601.
+
+    The stored form carries no zone, and a browser parses a zoneless date-time
+    as local time, which would put every time on the dashboard two hours off
+    in summer. The marker is added here, once, on the way out.
+    """
+    if not raw:
+        return None
+    return f"{raw.replace(' ', 'T', 1)}Z" if not raw.endswith("Z") else raw
+
+# One short line, the length of a chat message: a thank-you, not a letter.
+HOST_MESSAGE_MAX_CHARS = 280
+
+# Unseen notes one room may hold. The host page shows them one after another,
+# so a double-clicked send or a stuck host tab cannot pile up a queue that then
+# plays for a minute.
+HOST_MESSAGE_MAX_PENDING = 5
+
+# Control characters become a space (a pasted line break or tab separates two
+# words). The invisible ones (zero-width space and joiners, word joiner, bidi
+# overrides, BOM) are removed outright, because they sit inside a word and
+# would let a pasted line render differently from what the operator saw.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+_INVISIBLE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+
+
+class TooManyPending(Exception):
+    """The room already holds HOST_MESSAGE_MAX_PENDING unseen notes."""
+
+
+def normalise_host_message(raw: str | None) -> str | None:
+    """The note as it will be shown, or None when there is nothing to send.
+
+    NFC first, so the length cap counts what a reader sees and not how the
+    input method composed it. Line breaks collapse into spaces: the banner is
+    one short paragraph.
+    """
+    if raw is None:
+        return None
+    text = unicodedata.normalize("NFC", raw)
+    text = _INVISIBLE.sub("", _CONTROL.sub(" ", text))
+    text = " ".join(text.split())
+    if not text or len(text) > HOST_MESSAGE_MAX_CHARS:
+        return None
+    return text
+
+
+async def send_host_message(
+    db: aiosqlite.Connection, koop_id: str, body: str
+) -> int | None:
+    """Queue a note for the host of a bound room. None when the room is not bound.
+
+    The existence check and the insert are one statement, so a stop racing the
+    send cannot leave a note behind for a binding that no longer exists. The
+    pending cap is read first and is advisory: two sends racing for the last
+    slot both pass, which costs one note over a cap that only exists to stop a
+    runaway.
+    """
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS n FROM live_host_messages WHERE koop_id = ? AND seen_at IS NULL",
+        (koop_id,),
+    )
+    row = await cursor.fetchone()
+    if row["n"] >= HOST_MESSAGE_MAX_PENDING:
+        raise TooManyPending(koop_id)
+    cursor = await db.execute(
+        "INSERT INTO live_host_messages (koop_id, body) "
+        "SELECT ?, ? WHERE EXISTS (SELECT 1 FROM live_rooms WHERE koop_id = ?)",
+        (koop_id, body, koop_id),
+    )
+    await db.commit()
+    return cursor.lastrowid if cursor.rowcount == 1 else None
+
+
+async def pending_host_messages(db: aiosqlite.Connection, koop_id: str) -> list[dict]:
+    """The unseen notes of a room, oldest first, in the order they are shown."""
+    cursor = await db.execute(
+        "SELECT id, body, created_at FROM live_host_messages "
+        "WHERE koop_id = ? AND seen_at IS NULL ORDER BY id",
+        (koop_id,),
+    )
+    return [
+        {"id": row["id"], "text": row["body"], "sent_at": sqlite_utc(row["created_at"])}
+        for row in await cursor.fetchall()
+    ]
+
+
+async def mark_host_messages_seen(
+    db: aiosqlite.Connection, koop_id: str, up_to_id: int
+) -> int:
+    """Mark every note of this room up to ``up_to_id`` as shown.
+
+    Guarded by ``seen_at IS NULL``, so a repeated ack (a retry, a second host
+    tab) changes nothing and keeps the first time stamp. Commits only when it
+    wrote, for the same reason ``set_chat_state`` does.
+    """
+    cursor = await db.execute(
+        "UPDATE live_host_messages SET seen_at = CURRENT_TIMESTAMP "
+        "WHERE koop_id = ? AND id <= ? AND seen_at IS NULL",
+        (koop_id, up_to_id),
+    )
+    if cursor.rowcount:
+        await db.commit()
+    return cursor.rowcount
+
+
+async def recent_host_messages(
+    db: aiosqlite.Connection, koop_ids: list[str], limit: int = 5
+) -> dict[str, list[dict]]:
+    """The latest notes per room with their delivery state, for the dashboard."""
+    result: dict[str, list[dict]] = {koop_id: [] for koop_id in koop_ids}
+    for koop_id in koop_ids:
+        cursor = await db.execute(
+            "SELECT id, body, created_at, seen_at FROM live_host_messages "
+            "WHERE koop_id = ? ORDER BY id DESC LIMIT ?",
+            (koop_id, limit),
+        )
+        result[koop_id] = [
+            {
+                "id": row["id"],
+                "text": row["body"],
+                "sent_at": sqlite_utc(row["created_at"]),
+                "seen_at": sqlite_utc(row["seen_at"]),
+            }
+            for row in await cursor.fetchall()
+        ]
+    return result
 
 
 async def reset_viewers(db: aiosqlite.Connection, koop_id: str) -> None:

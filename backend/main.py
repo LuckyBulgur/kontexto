@@ -47,6 +47,7 @@ from arena import (
 )
 from arena import get_player_history as get_arena_player_history
 from arena import get_player_info as get_arena_player_info
+from arena import iso_timestamp as arena_iso_timestamp
 from arena import reveal_context as reveal_arena_context
 from matchmaking import (
     cancel as cancel_match_ticket,
@@ -74,6 +75,8 @@ from models import (
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveStopRequest, LiveStopResponse, LiveOverlayResponse,
     LiveDebugMessageRequest, LivePlatformsResponse,
+    LiveMessagesSeenRequest, LiveMessagesSeenResponse,
+    AdminHostMessageRequest, AdminHostMessageResponse, AdminLiveStreamsResponse,
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
     ArenaStateResponse, ArenaTokenRequest, ArenaGuessRequest, ArenaGuessResponse,
     MatchmakingEnqueueRequest, MatchmakingTicketResponse,
@@ -1194,7 +1197,9 @@ def _resolve_room_guess(game_number: int, word: str) -> dict | None:
     return gs.guess(word, game_number)
 
 
-def _live_room_payload(room: dict, top: list[dict]) -> dict:
+def _live_room_payload(
+    room: dict, top: list[dict], messages: list[dict] | None = None
+) -> dict:
     return {
         "koop_id": room["koop_id"],
         "platform": room["platform"],
@@ -1204,6 +1209,7 @@ def _live_room_payload(room: dict, top: list[dict]) -> dict:
         "chat_error": room["chat_error"],
         "overlay_token": room["overlay_token"],
         "top": top,
+        "messages": messages or [],
     }
 
 
@@ -1326,7 +1332,32 @@ async def get_live_endpoint(koop_id: str, token: str = Query(...)):
                 status_code=404,
                 content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
             )
-        return _live_room_payload(room, await live_chat.top_viewers(db, koop_id))
+        return _live_room_payload(
+            room,
+            await live_chat.top_viewers(db, koop_id),
+            await live_chat.pending_host_messages(db, koop_id),
+        )
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/messages/seen", response_model=LiveMessagesSeenResponse)
+async def live_messages_seen_endpoint(koop_id: str, req: LiveMessagesSeenRequest):
+    """The host page confirms that the operator's notes up to an id are on screen.
+
+    Explicit rather than implied by the read, so a poll response that never
+    arrived cannot swallow a note. Repeating it is harmless.
+    """
+    db = await get_db(_db_path)
+    try:
+        room = await live_chat.get_live_room(db, koop_id)
+        if room is None or not secrets.compare_digest(room["host_token"], req.player_token):
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
+            )
+        marked = await live_chat.mark_host_messages_seen(db, koop_id, req.up_to_id)
+        return {"marked": marked}
     finally:
         await db.close()
 
@@ -1401,6 +1432,52 @@ async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
         ),
     )
     return {"delivered": True}
+
+
+@app.post("/api/live/{koop_id}/debug-host-message", response_model=AdminHostMessageResponse)
+async def live_debug_host_message(koop_id: str, req: AdminHostMessageRequest):
+    """Queue an operator note without a passkey session. Development only.
+
+    The end-to-end suite cannot sign in with a passkey, and it has to prove that
+    a note reaches the host page and never the overlay. Closed unless
+    KONTEXTO_DEV is set, and it runs the same normalisation and the same insert
+    the admin endpoint runs.
+    """
+    if not os.environ.get("KONTEXTO_DEV"):
+        return JSONResponse(status_code=404, content={"error": "not_found"})
+    return await _queue_host_message(koop_id, req.text)
+
+
+async def _queue_host_message(koop_id: str, raw: str):
+    body = live_chat.normalise_host_message(raw)
+    if body is None:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "bad_message",
+                "message": f"Die Nachricht muss 1 bis {live_chat.HOST_MESSAGE_MAX_CHARS} Zeichen haben",
+            },
+        )
+    db = await get_db(_db_path)
+    try:
+        try:
+            message_id = await live_chat.send_host_message(db, koop_id, body)
+        except live_chat.TooManyPending:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "too_many_pending",
+                    "message": "Der Stream hat die letzten Nachrichten noch nicht angezeigt",
+                },
+            )
+        if message_id is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Dieser Stream läuft nicht mehr"},
+            )
+        return {"id": message_id}
+    finally:
+        await db.close()
 
 
 # --- Arena endpoints (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
@@ -2390,6 +2467,38 @@ async def admin_live(authorization: str = Header(default="")):
         return await analytics.get_live_visitors(db, _now())
     finally:
         await db.close()
+
+
+@app.get("/api/admin/live-streams", response_model=AdminLiveStreamsResponse)
+async def admin_live_streams(authorization: str = Header(default="")):
+    """Every live-chat room bound right now, with the notes sent to it.
+
+    Polled by the dashboard's stream section while it is open, so it stays a
+    handful of indexed reads instead of riding on the full stats payload.
+    """
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    db = await get_db(_db_path)
+    try:
+        streams = await live_chat.active_streams(db)
+        messages = await live_chat.recent_host_messages(
+            db, [stream["koop_id"] for stream in streams]
+        )
+        for stream in streams:
+            stream["messages"] = messages.get(stream["koop_id"], [])
+        return {"server_time": arena_iso_timestamp(_now()), "streams": streams}
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/live-streams/{koop_id}/message", response_model=AdminHostMessageResponse)
+async def admin_send_host_message(
+    koop_id: str, req: AdminHostMessageRequest, authorization: str = Header(default="")
+):
+    """Send the streamer a short note. It appears on the host page only."""
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    return await _queue_host_message(koop_id, req.text)
 
 
 @app.get("/api/admin/stats")

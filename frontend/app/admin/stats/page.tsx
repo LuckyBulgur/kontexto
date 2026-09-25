@@ -97,7 +97,7 @@ export default function AdminStatsPage() {
 
       {loading && <StatsSkeleton />}
       {error && <p className="text-destructive">{error}</p>}
-      {stats && <Dashboard stats={stats} />}
+      {stats && <Dashboard stats={stats} token={token} />}
     </main>
   );
 }

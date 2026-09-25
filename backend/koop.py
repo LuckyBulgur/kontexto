@@ -424,9 +424,10 @@ async def cleanup_stale_koops(db: aiosqlite.Connection) -> int:
     for koop_id in stale_ids:
         await db.execute("DELETE FROM koop_guesses WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koop_players WHERE koop_id = ?", (koop_id,))
-        # Live chat mode hangs two more child tables off a koop room. Deleted by
+        # Live chat mode hangs three more child tables off a koop room. Deleted by
         # hand like the others, because this routine does not rely on the foreign
         # keys: an older database file may predate a table's REFERENCES clause.
+        await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_viewers WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koops WHERE id = ?", (koop_id,))
