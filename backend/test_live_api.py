@@ -461,3 +461,56 @@ class TestHostMessages:
             f"/api/live/{created['koop_id']}/debug-host-message", json={"text": "Hallo"}
         )
         assert res.status_code == 200
+
+
+class TestAdminEnd:
+    """The operator ends a stream round: chat and overlay stop, the board stays."""
+
+    def _admin(self):
+        import auth
+
+        return {"Authorization": f"Bearer {auth.issue_session_token()}"}
+
+    def test_needs_a_session(self, client):
+        created = _create(client).json()
+        res = client.post(f"/api/admin/live-streams/{created['koop_id']}/end")
+        assert res.status_code == 401
+        host = client.get(
+            f"/api/live/{created['koop_id']}", params={"token": created["player_token"]}
+        )
+        assert host.status_code == 200
+
+    def test_ends_the_binding_and_keeps_the_board(self, client):
+        created = _create(client).json()
+        kid = created["koop_id"]
+        client.post(
+            f"/api/admin/live-streams/{kid}/message", json={"text": "Danke"},
+            headers=self._admin(),
+        )
+
+        res = client.post(f"/api/admin/live-streams/{kid}/end", headers=self._admin())
+        assert res.status_code == 200 and res.json()["stopped"] is True
+
+        # Gone from the dashboard, from the host's chat panel and from the overlay.
+        admin = client.get("/api/admin/live-streams", headers=self._admin()).json()
+        assert admin["streams"] == []
+        host = client.get(f"/api/live/{kid}", params={"token": created["player_token"]})
+        assert host.status_code == 404
+        overlay = client.get(
+            "/api/live/overlay/state", params={"token": created["overlay_token"]}
+        )
+        assert overlay.status_code == 404
+
+        # The koop room survives, so the streamer can still reveal the word.
+        assert client.get(f"/api/koop/{kid}").status_code == 200
+        # The channel is free for a new round.
+        assert _create(client).status_code == 200
+
+    def test_a_second_end_is_a_404(self, client):
+        created = _create(client).json()
+        url = f"/api/admin/live-streams/{created['koop_id']}/end"
+        assert client.post(url, headers=self._admin()).status_code == 200
+        res = client.post(url, headers=self._admin())
+        assert res.status_code == 404 and res.json()["error"] == "room_not_found"
+        res = client.post("/api/admin/live-streams/fehlt/end", headers=self._admin())
+        assert res.status_code == 404

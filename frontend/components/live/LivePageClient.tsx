@@ -48,6 +48,9 @@ export default function LivePageClient() {
   const [isHost, setIsHost] = useState(false);
   const [room, setRoom] = useState<LiveRoom | null>(null);
   const [stale, setStale] = useState(false);
+  // The chat no longer counts. The board stays playable and revealable, only
+  // the chat panel says so.
+  const [ended, setEnded] = useState(false);
   const [checked, setChecked] = useState(false);
   // The highest operator note this page has put on screen. Confirmations are
   // cumulative, so one number is enough to resend a lost one.
@@ -71,6 +74,7 @@ export default function LivePageClient() {
     if (!token) return;
 
     let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
     const load = async () => {
       try {
         const next = await getLiveRoom(roomId, token);
@@ -82,16 +86,25 @@ export default function LivePageClient() {
             // Sent again after the next poll; the banner will not repeat it.
           });
         }
-      } catch {
+      } catch (error) {
+        if (cancelled) return;
+        // The host holds the room's token, so a 404 cannot mean "not yours":
+        // the chat binding was ended, by the operator or by the host's own
+        // stop. That is final, so the page stops asking.
+        if (error instanceof Error && error.message === "room_not_found") {
+          setEnded(true);
+          clearInterval(timer);
+          return;
+        }
         // Keep the last known panel and mark it stale instead of dropping it.
         // Clearing it swapped the whole chat sidebar for the ordinary koop
         // player list, so a backend that went away for ten seconds looked like
         // a mode that had never been there. The round itself is unaffected.
-        if (!cancelled) setStale(true);
+        setStale(true);
       }
     };
     load();
-    const timer = setInterval(load, POLL_MS);
+    timer = setInterval(load, POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -158,9 +171,13 @@ export default function LivePageClient() {
             <LiveStatus
               channel={room.channel}
               platform={room.platform}
-              chatState={stale ? "error" : room.chat_state}
+              chatState={ended || stale ? "error" : room.chat_state}
               chatError={
-                stale ? "Keine Verbindung zum Server. Die Runde läuft weiter." : room.chat_error
+                ended
+                  ? "Die Stream-Runde wurde beendet. Der Chat rät nicht mehr mit, das Wort kannst du hier noch auflösen."
+                  : stale
+                    ? "Keine Verbindung zum Server. Die Runde läuft weiter."
+                    : room.chat_error
               }
               requirePrefix={room.require_prefix}
               top={room.top}

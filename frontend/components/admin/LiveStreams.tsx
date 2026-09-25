@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ExternalLink, Send } from "lucide-react";
+import { ExternalLink, Send, Square } from "lucide-react";
 import { toast } from "sonner";
 import GuessBar from "@/components/GuessBar";
 import { Panel } from "@/components/admin/charts";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAdminLiveStreams, sendHostMessage } from "@/lib/api";
+import { endLiveStream, getAdminLiveStreams, sendHostMessage } from "@/lib/api";
 import { formatNumber, formatStamp } from "@/lib/format";
 import type { AdminLiveStream, AdminLiveStreams } from "@/lib/types";
 
@@ -128,7 +132,7 @@ export default function LiveStreams({ token }: { token: string }) {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {data.streams.map((stream) => (
-            <StreamCard key={stream.koop_id} stream={stream} token={token} onSent={load} />
+            <StreamCard key={stream.koop_id} stream={stream} token={token} onChange={load} />
           ))}
         </div>
       )}
@@ -139,14 +143,16 @@ export default function LiveStreams({ token }: { token: string }) {
 function StreamCard({
   stream,
   token,
-  onSent,
+  onChange,
 }: {
   stream: AdminLiveStream;
   token: string;
-  onSent: () => Promise<void>;
+  /** Re-reads the list after a send or an end. */
+  onChange: () => Promise<void>;
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [ending, setEnding] = useState(false);
   const trimmed = text.trim();
   const inputId = `host-message-${stream.koop_id}`;
 
@@ -158,12 +164,28 @@ function StreamCard({
       await sendHostMessage(token, stream.koop_id, trimmed);
       setText("");
       toast.success(`Nachricht an ${stream.channel} gesendet`);
-      await onSent();
+      await onChange();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       toast.error(SEND_ERRORS[code] ?? "Die Nachricht konnte nicht gesendet werden.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const end = async () => {
+    setEnding(true);
+    try {
+      await endLiveStream(token, stream.koop_id);
+      toast.success(`Runde von ${stream.channel} beendet`);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "";
+      // Already over is the outcome that was asked for; say so and move on.
+      if (code === "room_not_found") toast.info("Diese Runde war schon beendet.");
+      else toast.error(SEND_ERRORS[code] ?? "Die Runde konnte nicht beendet werden.");
+    } finally {
+      setEnding(false);
+      await onChange();
     }
   };
 
@@ -185,9 +207,33 @@ function StreamCard({
             {`${PLATFORM_NAMES[stream.platform]}, läuft seit ${clockTime(stream.created_at)} Uhr, zuletzt aktiv ${clockTime(stream.last_activity)} Uhr`}
           </p>
         </div>
-        <Badge variant={stream.chat_state === "live" ? "secondary" : "outline"}>
-          {CHAT_STATE_LABELS[stream.chat_state]}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={stream.chat_state === "live" ? "secondary" : "outline"}>
+            {CHAT_STATE_LABELS[stream.chat_state]}
+          </Badge>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" disabled={ending}>
+                <Square className="size-3.5" aria-hidden />
+                {"Beenden"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{`Runde von ${stream.channel} beenden?`}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {"Der Chat rät danach nicht mehr mit, und die Einblendung im Stream wird leer. Das Brett auf der Seite des Streamers bleibt stehen, dort lässt sich das Wort noch auflösen. Der Kanal kann sofort eine neue Runde starten."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{"Abbrechen"}</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={() => void end()}>
+                  {"Runde beenden"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <p className="text-small text-foreground">

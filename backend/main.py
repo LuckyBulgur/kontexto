@@ -2501,6 +2501,27 @@ async def admin_send_host_message(
     return await _queue_host_message(koop_id, req.text)
 
 
+@app.post("/api/admin/live-streams/{koop_id}/end", response_model=LiveStopResponse)
+async def admin_end_live_stream(koop_id: str, authorization: str = Header(default="")):
+    """End a stream round: the chat stops counting and the overlay goes blank.
+
+    The board on the streamer's page stays, like after their own stop, so a
+    round that was nearly solved can still be revealed there.
+    """
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized", "message": "Nicht autorisiert"})
+    db = await get_db(_db_path)
+    try:
+        if not await live_chat.end_live_room(db, koop_id):
+            return JSONResponse(
+                status_code=404,
+                content={"error": "room_not_found", "message": "Dieser Stream läuft nicht mehr"},
+            )
+        return {"stopped": True}
+    finally:
+        await db.close()
+
+
 @app.get("/api/admin/stats")
 async def admin_stats(authorization: str = Header(default="")):
     if not _verify_admin(authorization):

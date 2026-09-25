@@ -224,6 +224,20 @@ export async function sendHostMessage(
   return body.id;
 }
 
+/**
+ * End a stream round: the chat stops counting and the overlay goes blank. The
+ * board on the streamer's page stays. `room_not_found` means it already ended.
+ */
+export async function endLiveStream(token: string, koopId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/live-streams/${encodeURIComponent(koopId)}/end`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("unauthorized");
+  if (res.status === 404) throw new Error("room_not_found");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
 export async function getAdminLive(token: string): Promise<LiveData> {
   const res = await fetch(`${API_BASE}/admin/live`, {
     headers: { Authorization: `Bearer ${token}` },

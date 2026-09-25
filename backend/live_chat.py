@@ -425,6 +425,22 @@ async def stop_live_room(db: aiosqlite.Connection, koop_id: str, host_token: str
     return stopped
 
 
+async def end_live_room(db: aiosqlite.Connection, koop_id: str) -> bool:
+    """Unbind a room on the operator's behalf. No host token, the caller is admin.
+
+    Same effect as the host's own stop: the reader goes on the supervisor's
+    next pass (which also frees a TikTok socket slot), the overlay stops
+    answering, and the koop room stays so the streamer can still reveal the
+    word. False when the room was not bound, so a second click is a no-op.
+    """
+    cursor = await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
+    ended = cursor.rowcount > 0
+    if ended:
+        await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
+    await db.commit()
+    return ended
+
+
 async def set_chat_state(
     db: aiosqlite.Connection,
     koop_id: str,

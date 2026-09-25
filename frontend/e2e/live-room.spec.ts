@@ -194,6 +194,46 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByText(text)).toHaveCount(0);
   });
 
+  test("eine beendete Runde leert die Einblendung und sagt es dem Streamer", async ({
+    page,
+    context,
+  }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    const overlayToken = await page.evaluate(
+      (id) => localStorage.getItem(`kontexto_live_${id}`),
+      roomId
+    );
+    const overlay = await context.newPage();
+    await overlay.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
+    await expect(overlay.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
+
+    // The admin route needs a passkey session; the host's own stop is the
+    // same unbinding and is what reaches the page the same way.
+    const token = await page.evaluate(
+      (id) => localStorage.getItem(`kontexto_koop_${id}`),
+      roomId
+    );
+    const res = await page.request.post(`/api/live/${roomId}/stop`, {
+      data: { player_token: token },
+    });
+    expect(res.ok()).toBe(true);
+
+    await expect(
+      page.getByText(/Stream-Runde wurde beendet/).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    // The board stays, so the word can still be revealed there.
+    await expect(page.getByPlaceholder("Wort eingeben...").first()).toBeVisible();
+
+    await expect(overlay.locator("[data-ended]")).toBeAttached({ timeout: 20_000 });
+    await expect(overlay.getByText(/keiner laufenden Runde/)).toHaveCount(0);
+    await expect(overlay.getByText(/Runde \d+/)).toHaveCount(0);
+  });
+
   test("die Einblendung ohne Token zeigt kein Brett", async ({ page }) => {
     await page.goto("/live/overlay/");
     await expect(page.getByText(/keiner laufenden Runde/)).toBeVisible({ timeout: 20_000 });

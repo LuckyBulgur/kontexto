@@ -67,6 +67,11 @@ export default function LiveOverlay() {
     };
   }, [token]);
 
+  // A round that was running and then ended leaves nothing on the stream. The
+  // sentence below is for the streamer setting the source up, and printing it
+  // into a live broadcast would be the one thing the audience reads.
+  if (missing && state) return <div data-obs data-ended />;
+
   if (!token || missing) {
     return (
       <div data-obs className="p-4 font-sans text-small text-muted-foreground">

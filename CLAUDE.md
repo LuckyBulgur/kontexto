@@ -229,7 +229,12 @@ the tab is visible, so a host tab kept behind OBS gets it on the next look. The 
 confirms it (`POST /api/live/{id}/messages/seen`, cumulative and idempotent) instead of the read
 implying it, so a lost poll response cannot swallow a note; the admin sees „wartet“ or
 „angekommen“. Notes go with the binding (`stop_live_room`) and with the room (cleanup). e2e
-drives it through the dev-only `debug-host-message` seam. Held by `TestHostMessages` in
+drives it through the dev-only `debug-host-message` seam. The same card ends a round
+(`POST /api/admin/live-streams/{koop_id}/end`, `live_chat.end_live_room`): the same unbinding as
+the host's own stop, the board stays revealable, the host panel says the round ended, and the
+overlay renders **empty** rather than its setup sentence, because that would be read on air.
+Without it a room only goes through `cleanup_stale_koops` (no connected socket and no guess for
+an hour), so an open host tab keeps a silent room bound, and its TikTok socket, indefinitely. Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
 
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)
