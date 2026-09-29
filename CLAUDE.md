@@ -216,6 +216,24 @@ it must never be logged. The AGPL libraries (TikTok-Live-Connector, TikTokLive) 
 deliberately not used, kontexto is FSL. Research and limits:
 `docs/plans/2026-09-23-tiktok-live-chat.md`.
 
+**One room, one chat per platform (2026-09-30).** A streamer who multistreams lets Twitch and
+TikTok guess on the same board: the binding moved from `live_rooms` into **`live_channels`**
+(`PRIMARY KEY (koop_id, platform)`, the "one chat, one game" index is on it now), and the
+ingest runs one reader per `(koop_id, platform)`. Still two `koop_players` rows (host plus one
+chat row for every chat), one shared rate cap, one `require_prefix`. The host can **add** a
+chat to a running round, **remove** one of two (a bound room always reads at least one; the
+count sits inside the DELETE so two racing removes cannot empty it) and **pause/resume** each
+chat: the reader stays connected, the ingest drops its lines from its reconcile snapshot, so a
+resume is instant and costs no TikTok connect budget. The overlay never shows a pause.
+`koop_guesses.source` records which chat a word came from, and once two platforms are in play
+(`showsPlatformMarks`) the overlay and the leaderboard put a platform logo next to each name;
+with one chat nothing changes. Per-channel stats count per channel, so a two-chat room is a
+session in each book. `LiveRoomResponse` keeps flat `platform`/`channel`/`chat_state` for the
+oldest chat and `CreateLiveRequest` still takes the single-chat body, because host pages loaded
+before the deploy keep polling for hours. The migration runs under `BEGIN IMMEDIATE` in
+`init_db`, which all five workers run at once. Held by `TestSeveralChats`, `TestTwoChats`
+(ingest and API) and `backend/test_live_migration.py`, plus two cases in `e2e/live-room.spec.ts`.
+
 **The operator can read along and write to the streamer (2026-09-25).** The dashboard section
 „Streams jetzt“ (`components/admin/LiveStreams.tsx`) polls `GET /api/admin/live-streams` every
 5 s while visible: every bound room with round, best rank, chatters and the last five guesses,

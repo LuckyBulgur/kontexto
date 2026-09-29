@@ -75,6 +75,11 @@ export default defineConfig({
         KONTEXTO_LIVE_OFFLINE: "1",
         // A dummy key offers TikTok in the form. OFFLINE means it is never sent.
         KONTEXTO_EULER_API_KEY: "e2e-offline",
+        // The cap guards the provider's socket budget, and offline there is
+        // none. Every run binds a few TikTok chats and nobody unbinds them in
+        // the few minutes a run takes, so on a local database that outlives
+        // runs the production default of 20 fills up within a week.
+        KONTEXTO_TIKTOK_MAX_ROOMS: "100000",
         // Caps every matchmaking grace period (12 to 25 s in production) at
         // 1 s, so a queue test waits one pairing pass instead of the real
         // grace. Honoured only with KONTEXTO_DEV; see backend/matchmaking.py.
