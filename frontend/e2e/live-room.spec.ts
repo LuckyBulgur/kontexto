@@ -21,10 +21,11 @@ async function sendChatMessage(
   page: Page,
   roomId: string,
   viewer: string,
-  text: string
+  text: string,
+  platform?: "twitch" | "tiktok"
 ): Promise<void> {
   const res = await page.request.post(`/api/live/${roomId}/debug-message`, {
-    data: { external_id: viewer, display_name: viewer, text },
+    data: { external_id: viewer, display_name: viewer, text, ...(platform ? { platform } : {}) },
   });
   expect(res.ok()).toBe(true);
 }
@@ -80,6 +81,11 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(tiktok).toBeEnabled({ timeout: 20_000 });
     await tiktok.click();
     await expect(tiktok).toHaveAttribute("aria-pressed", "true");
+    // The chats are toggles; Twitch is ticked by default and goes off here.
+    const twitch = page.getByRole("button", { name: "Twitch" });
+    await twitch.click();
+    await expect(twitch).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByLabel("Dein Twitch-Kanal")).toHaveCount(0);
 
     await page.getByLabel("Dein TikTok-Name").fill(`https://www.tiktok.com/@${handle}/live`);
     await expect(page.getByText(`Gelesen wird tiktok.com/@${handle}`)).toBeVisible();
@@ -102,9 +108,102 @@ test.describe("Stream-Chat-Modus", () => {
     const tiktok = page.getByRole("button", { name: "TikTok" });
     await expect(tiktok).toBeEnabled({ timeout: 20_000 });
     await tiktok.click();
+    await page.getByRole("button", { name: "Twitch" }).click();
     await page.getByLabel("Dein TikTok-Name").fill("endet.");
     await expect(page.getByText(/kein TikTok-Name/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Runde starten" })).toBeDisabled();
+  });
+
+  test("Twitch und TikTok raten zugleich auf einem Brett", async ({ page }) => {
+    const channel = freshChannel();
+    const handle = `tt.${Date.now().toString().slice(-8)}`;
+    await page.goto("/live/");
+    const tiktok = page.getByRole("button", { name: "TikTok" });
+    await expect(tiktok).toBeEnabled({ timeout: 20_000 });
+    await tiktok.click();
+    await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+    // One ticked chat still empty keeps the room closed.
+    await expect(page.getByRole("button", { name: "Runde starten" })).toBeDisabled();
+    await page.getByLabel("Dein TikTok-Name").fill(`@${handle}`);
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByText(`@${handle}`, { exact: true }).filter({ visible: true })
+    ).toBeVisible();
+    await expect(page.getByText("Beide Chats raten mit", { exact: false }).filter({ visible: true }))
+      .toBeVisible();
+
+    await sendChatMessage(page, roomId, "11", "apfel", "twitch");
+    await sendChatMessage(page, roomId, "tt:12", "birne", "tiktok");
+    await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("birne", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+
+    const overlayToken = await page.evaluate(
+      (id) => localStorage.getItem(`kontexto_live_${id}`),
+      roomId
+    );
+    await page.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
+    await expect(page.getByText("birne", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    // Each name carries its chat, as a logo for the eye and as words for a reader.
+    await expect(page.locator(`img[src="/brands/twitch.svg"]`).first()).toBeAttached();
+    await expect(page.locator(`img[src="/brands/tiktok.png"]`).first()).toBeAttached();
+    await expect(page.getByText("auf TikTok").first()).toBeAttached();
+  });
+
+  test("ein Chat wird pausiert, dazugenommen und getrennt", async ({ page }) => {
+    const channel = freshChannel();
+    const handle = `tt.${Date.now().toString().slice(-8)}`;
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    // A room with one chat offers no "Trennen": it always reads at least one.
+    await expect(page.getByRole("button", { name: /Trennen/ }).filter({ visible: true })).toHaveCount(0);
+
+    // TikTok joins the running round.
+    const field = page.getByLabel("Dein TikTok-Name").filter({ visible: true });
+    await expect(field).toBeVisible({ timeout: 20_000 });
+    await field.fill(`@${handle}`);
+    await page.getByRole("button", { name: "Verbinden" }).filter({ visible: true }).click();
+    await expect(
+      page.getByText(`@${handle}`, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    // Paused, TikTok lines do not land, Twitch lines still do.
+    await page.getByRole("button", { name: /Pausieren \(TikTok\)/ }).filter({ visible: true }).click();
+    await expect(page.getByText(/Pausiert\./).filter({ visible: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    // The ingest learns of the pause on its next pass; the seam forces one.
+    await sendChatMessage(page, roomId, "tt:21", "kirsche", "tiktok");
+    await sendChatMessage(page, roomId, "22", "apfel", "twitch");
+    await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("kirsche", { exact: true })).toHaveCount(0);
+
+    // Resumed by the host, it counts again.
+    await page.getByRole("button", { name: /Fortsetzen \(TikTok\)/ }).filter({ visible: true }).click();
+    await expect(page.getByText(/Pausiert\./).filter({ visible: true })).toHaveCount(0, {
+      timeout: 20_000,
+    });
+    await sendChatMessage(page, roomId, "tt:23", "kirsche", "tiktok");
+    await expect(page.getByText("kirsche", { exact: true }).first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Twitch goes, TikTok stays and is now the only chat.
+    await page.getByRole("button", { name: /Trennen \(Twitch\)/ }).filter({ visible: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Trennen" }).click();
+    // Twitch is on offer again, and the last chat cannot be removed.
+    await expect(page.getByText("Twitch dazunehmen").filter({ visible: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByRole("button", { name: /Trennen/ }).filter({ visible: true })).toHaveCount(0);
   });
 
   test("ein Satz im Chat ist kein Versuch", async ({ page }) => {

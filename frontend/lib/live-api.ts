@@ -10,20 +10,61 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 /**
- * Open a room and bind it to a stream chat.
+ * A refusal of the live endpoints. `message` is the error code, like every
+ * other API error in this app, so `e.message === "channel_busy"` keeps
+ * working; `platform` names the chat it is about, so a form with one field
+ * per platform can point at the right one.
+ */
+export class LiveApiError extends Error {
+  readonly platform: LivePlatform | null;
+
+  constructor(code: string, platform: LivePlatform | null = null) {
+    super(code);
+    this.name = "LiveApiError";
+    this.platform = platform;
+  }
+}
+
+const KNOWN_CODES = new Set([
+  "bad_channel",
+  "channel_busy",
+  "last_channel",
+  "platform_bound",
+  "platform_full",
+  "platform_unavailable",
+  "room_not_found",
+]);
+
+/** Turn a refusal into a LiveApiError, or pass a 2xx body through. */
+async function readLive<T>(res: Response): Promise<T> {
+  if (res.ok) return res.json() as Promise<T>;
+  const body: unknown = await res.json().catch(() => null);
+  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const platform = isLivePlatform(record.platform) ? record.platform : null;
+  const code = typeof record.error === "string" ? record.error : "";
+  if (KNOWN_CODES.has(code)) throw new LiveApiError(code, platform);
+  // A pydantic 422 has no code of ours; it is a channel the form let through.
+  if (res.status === 422) throw new LiveApiError("bad_channel", platform);
+  if (res.status === 404) throw new LiveApiError("room_not_found", platform);
+  throw new LiveApiError(`API error: ${res.status}`, platform);
+}
+
+/**
+ * Open a room and bind it to one or more stream chats, one per platform.
  *
- * `channel_busy` means somebody is already playing with that chat, which is the
- * one rule this mode has: one channel, one game. `bad_channel` means the name
- * could not be a login on that platform at all. `platform_unavailable` means the
- * server has no connection to the platform right now, `platform_full` that it
- * has reached its limit of rooms on it.
+ * `channel_busy` means somebody is already playing with one of those chats,
+ * which is the one rule this mode has: one channel, one game. `bad_channel`
+ * means a name could not be a login on its platform at all.
+ * `platform_unavailable` means the server has no connection to the platform
+ * right now, `platform_full` that it has reached its limit of chats on it. Each
+ * refusal names its platform.
  *
- * No nickname: the host plays under their channel name. They already have a name
- * on screen, and a second one would be a field that exists only to be filled in.
+ * No nickname: the host plays under their first channel name. They already
+ * have a name on screen, and a second one would be a field that exists only to
+ * be filled in.
  */
 export async function createLive(
-  platform: LivePlatform,
-  channel: string,
+  channels: { platform: LivePlatform; channel: string }[],
   options: {
     gameSource: RoomGameSource;
     tipsAllowed: boolean;
@@ -34,23 +75,51 @@ export async function createLive(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      platform,
-      channel,
+      channels,
       game_source: options.gameSource,
       tips_allowed: options.tipsAllowed,
       require_prefix: options.requirePrefix,
     }),
   });
-  if (res.status === 409) throw new Error("channel_busy");
-  if (res.status === 422) throw new Error("bad_channel");
-  if (res.status === 503) {
-    const body: unknown = await res.json().catch(() => null);
-    const code =
-      body && typeof body === "object" && "error" in body ? String(body.error) : "";
-    throw new Error(code === "platform_full" ? "platform_full" : "platform_unavailable");
-  }
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  return readLive<CreateLiveResponse>(res);
+}
+
+async function postLive(path: string, body: Record<string, unknown>): Promise<LiveRoom> {
+  const res = await fetch(`${API_BASE}/live/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return readLive<LiveRoom>(res);
+}
+
+/** Bind one more chat to a running room. Host token only. */
+export function addLiveChannel(
+  koopId: string,
+  playerToken: string,
+  platform: LivePlatform,
+  channel: string
+): Promise<LiveRoom> {
+  return postLive(`${koopId}/channels`, { player_token: playerToken, platform, channel });
+}
+
+/** Unbind one chat; the last one is refused with `last_channel`. */
+export function removeLiveChannel(
+  koopId: string,
+  playerToken: string,
+  platform: LivePlatform
+): Promise<LiveRoom> {
+  return postLive(`${koopId}/channels/remove`, { player_token: playerToken, platform });
+}
+
+/** Pause or resume one chat. Its reader stays connected either way. */
+export function setLiveChannelPaused(
+  koopId: string,
+  playerToken: string,
+  platform: LivePlatform,
+  paused: boolean
+): Promise<LiveRoom> {
+  return postLive(`${koopId}/channels/pause`, { player_token: playerToken, platform, paused });
 }
 
 function isLivePlatform(value: unknown): value is LivePlatform {

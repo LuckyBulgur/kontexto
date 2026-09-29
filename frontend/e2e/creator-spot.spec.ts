@@ -85,7 +85,8 @@ test("Creator-Anträge stehen unter den aktuellen Streams", async ({ page }, tes
   await page.route("**/api/admin/live-streams", (route) => route.fulfill({ json: {
     server_time: "2026-09-25T12:00:00Z",
     streams: [{
-      koop_id: "test-stream", platform: "twitch", channel: "Testkanal", chat_state: "live",
+      koop_id: "test-stream",
+      channels: [{ platform: "twitch", channel: "Testkanal", chat_state: "live", paused: false }],
       created_at: "2026-09-25T11:00:00Z", last_activity: "2026-09-25T12:00:00Z",
       round: 1, best_rank: null, solved: false, gave_up: false, viewers: 2,
       guesses: 0, recent_guesses: [], messages: [],

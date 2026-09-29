@@ -155,9 +155,13 @@ export interface AdminHostMessage {
 /** One live-chat room bound right now, as the dashboard reads along. */
 export interface AdminLiveStream {
   koop_id: string;
-  platform: "twitch" | "tiktok";
-  channel: string;
-  chat_state: "connecting" | "live" | "error";
+  /** Every chat the room reads, oldest first. */
+  channels: {
+    platform: "twitch" | "tiktok";
+    channel: string;
+    chat_state: "connecting" | "live" | "error";
+    paused: boolean;
+  }[];
   created_at: string | null;
   last_activity: string | null;
   round: number;

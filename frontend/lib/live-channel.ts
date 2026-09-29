@@ -43,3 +43,40 @@ export function channelAddress(channel: string, platform: LivePlatform): string 
 export function channelLabel(channel: string, platform: LivePlatform): string {
   return platform === "tiktok" ? `@${channel}` : channel;
 }
+
+/**
+ * Whether names carry a platform mark. True once two different platforms are
+ * in play, counted over the chats the room reads and the rows on screen: a
+ * room that drops back to one chat keeps its marks while mixed rows are still
+ * visible, instead of making the same list read differently a second later.
+ * With one platform nothing is marked, and the view looks as it always did.
+ */
+export function showsPlatformMarks(
+  platforms: Iterable<LivePlatform | null | undefined>
+): boolean {
+  const seen = new Set<LivePlatform>();
+  for (const platform of platforms) {
+    if (platform) seen.add(platform);
+    if (seen.size > 1) return true;
+  }
+  return false;
+}
+
+/**
+ * The chats a create form may send: every selected platform with a name that
+ * normalises. Null while one of them is still missing or invalid, so the form
+ * never opens a room with fewer chats than the streamer ticked.
+ */
+export function readyChannels(
+  selected: readonly LivePlatform[],
+  inputs: Partial<Record<LivePlatform, string>>
+): { platform: LivePlatform; channel: string }[] | null {
+  if (selected.length === 0) return null;
+  const channels: { platform: LivePlatform; channel: string }[] = [];
+  for (const platform of selected) {
+    const channel = normaliseChannel(inputs[platform] ?? "", platform);
+    if (!channel) return null;
+    channels.push({ platform, channel });
+  }
+  return channels;
+}

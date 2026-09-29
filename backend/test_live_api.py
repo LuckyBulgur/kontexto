@@ -240,7 +240,7 @@ class TestOverlay:
         assert res.status_code == 200
         body = res.json()
         assert body["round"] == 1
-        assert body["channel"] == "kontexto"
+        assert body["channels"] == [{"platform": "twitch", "channel": "kontexto"}]
         assert body["solved"] is False
         assert body["recent"][0]["word"] == "kirsche"
         assert body["total"] > 0
@@ -325,7 +325,7 @@ class TestAdminStats:
         assert totals["sessions"] == 2
         assert totals["rounds"] == 2
         assert {c["channel"] for c in channels} == {"kontexto", "zweiter"}
-        assert {a["channel"] for a in active} == {"kontexto", "zweiter"}
+        assert {c["channel"] for a in active for c in a["channels"]} == {"kontexto", "zweiter"}
 
 
 class TestHostMessages:
@@ -355,7 +355,7 @@ class TestHostMessages:
         assert res.status_code == 200
         body = res.json()
         assert body["server_time"].endswith("Z")
-        channels = {s["channel"]: s for s in body["streams"]}
+        channels = {s["channels"][0]["channel"]: s for s in body["streams"]}
         assert set(channels) == {"kontexto", "zweiter"}
         stream = channels["kontexto"]
         assert stream["koop_id"] == created["koop_id"]
@@ -554,3 +554,190 @@ class TestHostPresenceApi:
         main_module._host_touched.clear()
         client.get("/api/live/overlay/state", params={"token": created["overlay_token"]})
         assert asyncio.run(age_and_read(False)) == old
+
+
+def _both(client, twitch="kontexto", tiktok="kontexto.de", **extra):
+    return client.post("/api/live", json={
+        "channels": [
+            {"platform": "twitch", "channel": twitch},
+            {"platform": "tiktok", "channel": tiktok},
+        ],
+        "game_source": "today",
+        **extra,
+    })
+
+
+class TestTwoChats:
+    """One room reads Twitch and TikTok at once, and the host manages both."""
+
+    @pytest.fixture(autouse=True)
+    def _tiktok_key(self, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+
+    def test_a_room_binds_both_platforms(self, client):
+        res = _both(client)
+        assert res.status_code == 200
+        body = res.json()
+        assert [(c["platform"], c["channel"]) for c in body["channels"]] == [
+            ("twitch", "kontexto"), ("tiktok", "kontexto.de"),
+        ]
+        # The flat fields describe the oldest chat, for pages from before.
+        assert (body["platform"], body["channel"]) == ("twitch", "kontexto")
+        assert "game_number" not in body
+
+    def test_a_busy_second_chat_refuses_the_whole_room(self, client):
+        assert _create(client, platform="tiktok", channel="belegt").status_code == 200
+        res = _both(client, tiktok="belegt")
+        assert res.status_code == 409
+        assert res.json() == {
+            "error": "channel_busy",
+            "message": "Für diesen Kanal läuft schon eine Runde",
+            "platform": "tiktok",
+        }
+        # The Twitch half did not stay behind: the channel is free again.
+        assert _create(client, channel="kontexto").status_code == 200
+
+    def test_a_refusal_names_its_platform(self, client):
+        res = _both(client, tiktok="endet.")
+        assert res.status_code == 422
+        assert res.json()["platform"] == "tiktok"
+
+    def test_one_chat_per_platform(self, client):
+        res = client.post("/api/live", json={"channels": [
+            {"platform": "twitch", "channel": "erster"},
+            {"platform": "twitch", "channel": "zweiter"},
+        ]})
+        assert res.status_code == 422
+
+    def test_both_forms_at_once_are_refused(self, client):
+        res = client.post("/api/live", json={
+            "channels": [{"platform": "twitch", "channel": "erster"}],
+            "channel": "erster",
+        })
+        assert res.status_code == 422
+
+    def test_the_tiktok_cap_counts_chats(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_TIKTOK_MAX_ROOMS", "1")
+        assert _both(client).status_code == 200
+        res = _both(client, twitch="andere", tiktok="anderer")
+        assert res.status_code == 503
+        assert res.json()["error"] == "platform_full"
+
+    def test_a_chat_is_added_and_removed_during_the_round(self, client):
+        created = _create(client).json()
+        kid, token = created["koop_id"], created["player_token"]
+
+        res = client.post(f"/api/live/{kid}/channels", json={
+            "player_token": token, "platform": "tiktok", "channel": "@Kontexto.de",
+        })
+        assert res.status_code == 200
+        assert [c["platform"] for c in res.json()["channels"]] == ["twitch", "tiktok"]
+
+        res = client.post(f"/api/live/{kid}/channels", json={
+            "player_token": token, "platform": "tiktok", "channel": "noch.einer",
+        })
+        assert res.status_code == 409
+        assert res.json()["error"] == "platform_bound"
+
+        res = client.post(f"/api/live/{kid}/channels/remove", json={
+            "player_token": token, "platform": "twitch",
+        })
+        assert res.status_code == 200
+        body = res.json()
+        assert [c["platform"] for c in body["channels"]] == ["tiktok"]
+        assert body["platform"] == "tiktok"
+
+        res = client.post(f"/api/live/{kid}/channels/remove", json={
+            "player_token": token, "platform": "tiktok",
+        })
+        assert res.status_code == 409
+        assert res.json()["error"] == "last_channel"
+
+    def test_an_added_channel_must_be_free(self, client):
+        _create(client, platform="tiktok", channel="belegt")
+        created = _create(client).json()
+        res = client.post(f"/api/live/{created['koop_id']}/channels", json={
+            "player_token": created["player_token"], "platform": "tiktok", "channel": "belegt",
+        })
+        assert res.status_code == 409
+        assert res.json()["error"] == "channel_busy"
+
+    def test_a_chat_is_paused_and_resumed_by_the_host(self, client):
+        created = _both(client).json()
+        kid, token = created["koop_id"], created["player_token"]
+        res = client.post(f"/api/live/{kid}/channels/pause", json={
+            "player_token": token, "platform": "tiktok", "paused": True,
+        })
+        assert res.status_code == 200
+        assert {c["platform"]: c["paused"] for c in res.json()["channels"]} == {
+            "twitch": False, "tiktok": True,
+        }
+        # The overlay does not say so.
+        overlay = client.get(
+            "/api/live/overlay/state", params={"token": created["overlay_token"]}
+        ).json()
+        assert all(set(c) == {"platform", "channel"} for c in overlay["channels"])
+
+        res = client.post(f"/api/live/{kid}/channels/pause", json={
+            "player_token": token, "platform": "tiktok", "paused": False,
+        })
+        assert not any(c["paused"] for c in res.json()["channels"])
+
+    def test_managing_chats_needs_the_host_token(self, client):
+        created = _both(client).json()
+        kid = created["koop_id"]
+        for path, extra in (
+            ("channels", {"platform": "twitch", "channel": "fremd"}),
+            ("channels/remove", {"platform": "twitch"}),
+            ("channels/pause", {"platform": "twitch", "paused": True}),
+        ):
+            for token in ("fremd", created["overlay_token"]):
+                res = client.post(f"/api/live/{kid}/{path}", json={"player_token": token, **extra})
+                assert res.status_code == 404, path
+                assert res.json()["error"] == "room_not_found"
+        # A platform the room does not read looks the same.
+        single = _create(client, channel="einzeln").json()
+        res = client.post(f"/api/live/{single['koop_id']}/channels/pause", json={
+            "player_token": single["player_token"], "platform": "tiktok", "paused": True,
+        })
+        assert res.status_code == 404
+
+    def test_the_debug_seam_names_the_chat(self, client, monkeypatch):
+        import live_ingest
+        import main as main_module
+
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        # The ingest runs in the WS worker only; the test client is an API
+        # worker, so one is put in place by hand, without chat sockets.
+        monkeypatch.setattr(live_ingest, "OFFLINE", True)
+        monkeypatch.setattr(
+            live_ingest, "_ingest",
+            live_ingest.LiveChatIngest(main_module._db_path, main_module._resolve_room_guess),
+        )
+        created = _both(client).json()
+        kid = created["koop_id"]
+        for platform, word, viewer in (("tiktok", "kirsche", "tt:1"), (None, "birne", "2")):
+            data = {"external_id": viewer, "display_name": "Mara", "text": word}
+            if platform:
+                data["platform"] = platform
+            assert client.post(f"/api/live/{kid}/debug-message", json=data).status_code == 200
+        overlay = client.get(
+            "/api/live/overlay/state", params={"token": created["overlay_token"]}
+        ).json()
+        assert [(g["word"], g["platform"]) for g in overlay["recent"]] == [
+            ("birne", "twitch"), ("kirsche", "tiktok"),
+        ]
+        assert {v["platform"] for v in overlay["top"]} == {"twitch", "tiktok"}
+
+    def test_the_admin_sees_every_chat(self, client):
+        import auth
+
+        _both(client)
+        res = client.get(
+            "/api/admin/live-streams",
+            headers={"Authorization": f"Bearer {auth.issue_session_token()}"},
+        )
+        stream = res.json()["streams"][0]
+        assert [(c["platform"], c["paused"]) for c in stream["channels"]] == [
+            ("twitch", False), ("tiktok", False),
+        ]

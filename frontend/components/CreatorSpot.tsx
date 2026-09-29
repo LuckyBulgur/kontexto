@@ -4,16 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
+import { BRAND_LOGOS } from "@/lib/brand-logos";
 import { getCreatorSpot, type CreatorPlatform, type CreatorSpot as Spot } from "@/lib/api";
 
 const names: Record<CreatorPlatform, string> = {
   tiktok: "TikTok", youtube: "YouTube", twitch: "Twitch", instagram: "Instagram",
 };
 
-const logos: Record<CreatorPlatform, string> = {
-  tiktok: "/brands/tiktok.png", youtube: "/brands/youtube.png",
-  twitch: "/brands/twitch.svg", instagram: "/brands/instagram-black.svg",
-};
+const logos: Record<CreatorPlatform, string> = BRAND_LOGOS;
 
 export default function CreatorSpot() {
   const [spot, setSpot] = useState<Spot | null>(null);

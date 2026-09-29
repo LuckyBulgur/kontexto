@@ -20,6 +20,8 @@ export const PLATFORM_NAMES: Record<LivePlatform, string> = {
 export type ChatState = "connecting" | "live" | "error";
 
 export interface LiveViewer {
+  /** The chat this viewer plays in. One name on two platforms is two people. */
+  platform: LivePlatform;
   nickname: string;
   /** Accepted guesses over the whole session, not just this round. */
   hits: number;
@@ -34,13 +36,21 @@ export interface LiveHostMessage {
   sent_at: string;
 }
 
-export interface LiveRoom {
-  koop_id: string;
+/** One chat a room reads, as the host sees it. */
+export interface LiveChannel {
   platform: LivePlatform;
   channel: string;
-  require_prefix: boolean;
   chat_state: ChatState;
   chat_error: string | null;
+  /** Set by the host: the reader stays connected, the lines stop counting. */
+  paused: boolean;
+}
+
+export interface LiveRoom {
+  koop_id: string;
+  /** Every chat the room reads, oldest first, never empty. */
+  channels: LiveChannel[];
+  require_prefix: boolean;
   /** Belongs in the OBS browser source, nowhere else. */
   overlay_token: string;
   top: LiveViewer[];
@@ -57,6 +67,8 @@ export interface LiveOverlayGuess {
   word: string;
   rank: number;
   is_tip: boolean;
+  /** The chat the word came from; null for the host at the keyboard. */
+  platform: LivePlatform | null;
 }
 
 /**
@@ -71,7 +83,8 @@ export interface LiveOverlayState {
   solved_by: string | null;
   gave_up: boolean;
   chat_state: ChatState;
-  channel: string | null;
+  /** Which chats play. Deliberately without state or pause, like the view. */
+  channels: { platform: LivePlatform; channel: string }[];
   /** Newest first. */
   recent: LiveOverlayGuess[];
   top: LiveViewer[];

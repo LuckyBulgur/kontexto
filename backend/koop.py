@@ -161,6 +161,7 @@ async def _record_shared(
     rank: int,
     is_tip: bool,
     display_name: str | None = None,
+    source: str | None = None,
 ) -> dict | None:
     """Insert a word into the shared list (idempotent on word) and roll up team state.
 
@@ -172,6 +173,9 @@ async def _record_shared(
     player row (the host) but the guesses come from thousands of viewers who must
     not each become a player row. Everywhere else it stays None and the player's
     own nickname is used, which is what every other caller wants.
+
+    ``source`` names the chat a live room's guess came from (``twitch``,
+    ``tiktok``) and stays None for a person at a keyboard.
     """
     cursor = await db.execute(
         "SELECT id, nickname FROM koop_players "
@@ -187,8 +191,9 @@ async def _record_shared(
     # Idempotent on (koop_id, word): a duplicate word from any member is ignored.
     cursor = await db.execute(
         "INSERT OR IGNORE INTO koop_guesses "
-        "(koop_id, player_token, nickname, word, rank, is_tip) VALUES (?, ?, ?, ?, ?, ?)",
-        (koop_id, player_token, shown_name, word, rank, int(is_tip)),
+        "(koop_id, player_token, nickname, word, rank, is_tip, source) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (koop_id, player_token, shown_name, word, rank, int(is_tip), source),
     )
     is_new = cursor.rowcount == 1
 
@@ -244,9 +249,11 @@ async def record_koop_guess(
     word: str,
     rank: int,
     display_name: str | None = None,
+    source: str | None = None,
 ) -> dict | None:
     return await _record_shared(
-        db, koop_id, player_token, word, rank, is_tip=False, display_name=display_name
+        db, koop_id, player_token, word, rank, is_tip=False,
+        display_name=display_name, source=source,
     )
 
 
@@ -429,6 +436,7 @@ async def cleanup_stale_koops(db: aiosqlite.Connection) -> int:
         # keys: an older database file may predate a table's REFERENCES clause.
         await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_viewers WHERE koop_id = ?", (koop_id,))
+        await db.execute("DELETE FROM live_channels WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koops WHERE id = ?", (koop_id,))
 

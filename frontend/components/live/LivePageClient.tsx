@@ -10,8 +10,32 @@ import LiveStatus from "@/components/live/LiveStatus";
 import RoomLanding from "@/components/RoomLanding";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { needsAckRetry } from "@/lib/host-messages";
-import { getLiveRoom, markHostMessagesSeen } from "@/lib/live-api";
-import { LiveRoom } from "@/lib/live-types";
+import {
+  addLiveChannel,
+  fetchLivePlatforms,
+  getLiveRoom,
+  LiveApiError,
+  markHostMessagesSeen,
+  removeLiveChannel,
+  setLiveChannelPaused,
+} from "@/lib/live-api";
+import { showsPlatformMarks } from "@/lib/live-channel";
+import { LivePlatform, LiveRoom, PLATFORM_NAMES } from "@/lib/live-types";
+
+/** What the add form says when the server refuses a second chat. */
+function addRefusal(error: unknown, platform: LivePlatform): string {
+  const code = error instanceof Error ? error.message : "";
+  const name = PLATFORM_NAMES[platform];
+  if (code === "channel_busy") return "Für diesen Kanal läuft schon eine Runde.";
+  if (code === "bad_channel") return `Diesen Kanalnamen gibt es auf ${name} nicht.`;
+  if (code === "platform_bound") return `Diese Runde liest schon einen ${name}-Chat.`;
+  if (code === "platform_full") {
+    return "Gerade laufen zu viele TikTok-Runden gleichzeitig. Versuch es in ein paar Minuten noch mal.";
+  }
+  if (code === "platform_unavailable") return `${name} ist gerade nicht angebunden.`;
+  if (code === "room_not_found") return "Die Stream-Runde wurde beendet.";
+  return "Der Chat konnte nicht verbunden werden.";
+}
 
 /**
  * The one page behind /live/.
@@ -52,6 +76,9 @@ export default function LivePageClient() {
   // the chat panel says so.
   const [ended, setEnded] = useState(false);
   const [checked, setChecked] = useState(false);
+  // What the server can read right now, so the sidebar offers only a second
+  // chat that could actually connect.
+  const [available, setAvailable] = useState<LivePlatform[]>([]);
   // The highest operator note this page has put on screen. Confirmations are
   // cumulative, so one number is enough to resend a lost one.
   const shownUpTo = useRef(0);
@@ -111,6 +138,87 @@ export default function LivePageClient() {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    if (!roomId || !isHost) return;
+    let cancelled = false;
+    fetchLivePlatforms()
+      .then((platforms) => {
+        if (!cancelled) setAvailable(platforms);
+      })
+      .catch(() => {
+        // No offer to add a chat; the chats the room reads are unaffected.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, isHost]);
+
+  /** Runs one chat change and shows the room the server answers with. */
+  const changeChats = useCallback(
+    async (action: (koopId: string, token: string) => Promise<LiveRoom>): Promise<void> => {
+      if (!roomId) return;
+      const token = localStorage.getItem(`kontexto_koop_${roomId}`);
+      if (!token) return;
+      setRoom(await action(roomId, token));
+      setStale(false);
+    },
+    [roomId]
+  );
+
+  const handleAdd = useCallback(
+    async (platform: LivePlatform, channel: string): Promise<string | null> => {
+      try {
+        await changeChats((id, token) => addLiveChannel(id, token, platform, channel));
+        toast.success(`${PLATFORM_NAMES[platform]}-Chat verbunden`);
+        return null;
+      } catch (error) {
+        if (error instanceof LiveApiError && error.message === "platform_unavailable") {
+          setAvailable((current) => current.filter((p) => p !== platform));
+        }
+        if (error instanceof LiveApiError && error.message === "room_not_found") setEnded(true);
+        return addRefusal(error, platform);
+      }
+    },
+    [changeChats]
+  );
+
+  const handleRemove = useCallback(
+    async (platform: LivePlatform) => {
+      try {
+        await changeChats((id, token) => removeLiveChannel(id, token, platform));
+        toast.success(`${PLATFORM_NAMES[platform]}-Chat getrennt`);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        if (code === "room_not_found") setEnded(true);
+        toast.error(
+          code === "last_channel"
+            ? "Die Runde braucht mindestens einen Chat."
+            : "Der Chat konnte nicht getrennt werden."
+        );
+      }
+    },
+    [changeChats]
+  );
+
+  const handlePause = useCallback(
+    async (platform: LivePlatform, paused: boolean) => {
+      try {
+        await changeChats((id, token) => setLiveChannelPaused(id, token, platform, paused));
+        toast.success(
+          paused
+            ? `${PLATFORM_NAMES[platform]}-Chat pausiert`
+            : `${PLATFORM_NAMES[platform]}-Chat rät wieder mit`
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === "room_not_found") setEnded(true);
+        toast.error(
+          paused ? "Der Chat konnte nicht pausiert werden." : "Der Chat konnte nicht fortgesetzt werden."
+        );
+      }
+    },
+    [changeChats]
+  );
+
   const handleMessageShown = useCallback(
     (id: number) => {
       if (!roomId) return;
@@ -169,20 +277,28 @@ export default function LivePageClient() {
         sidebar={
           room ? (
             <LiveStatus
-              channel={room.channel}
-              platform={room.platform}
-              chatState={ended || stale ? "error" : room.chat_state}
-              chatError={
+              channels={room.channels}
+              notice={
                 ended
                   ? "Die Stream-Runde wurde beendet. Der Chat rät nicht mehr mit, das Wort kannst du hier noch auflösen."
                   : stale
                     ? "Keine Verbindung zum Server. Die Runde läuft weiter."
-                    : room.chat_error
+                    : null
               }
               requirePrefix={room.require_prefix}
               top={room.top}
+              marks={showsPlatformMarks([
+                ...room.channels.map((c) => c.platform),
+                ...room.top.map((v) => v.platform),
+              ])}
               overlayUrl={room.overlay_token}
               onCopyOverlay={handleCopyOverlay}
+              addable={available.filter(
+                (platform) => !room.channels.some((c) => c.platform === platform)
+              )}
+              onAdd={handleAdd}
+              onRemove={handleRemove}
+              onPause={handlePause}
             />
           ) : null
         }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { RevealWord } from "@/components/design";
 import GuessBar from "@/components/GuessBar";
+import PlatformMark from "@/components/live/PlatformMark";
+import { showsPlatformMarks } from "@/lib/live-channel";
 import { getOverlayState } from "@/lib/live-api";
 import { LiveOverlayState } from "@/lib/live-types";
 
@@ -12,7 +14,8 @@ import { LiveOverlayState } from "@/lib/live-types";
  * No header, no navigation, no background: it is laid over a video, so anything
  * it draws has to earn the pixels it covers. What it shows is the last few
  * guesses with their ranks, who is carrying the chat, and the solved word when
- * the round ends.
+ * the round ends. Once two chats play, every name carries its platform logo.
+ * A paused chat is not shown as such: the audience would read it as a fault.
  *
  * It polls rather than opening a socket. The koop broadcast reads SQLite once a
  * second itself, so a socket would buy at most one second of freshness and cost
@@ -82,6 +85,14 @@ export default function LiveOverlay() {
 
   if (!state) return <div data-obs />;
 
+  const recent = state.recent.slice(0, 8);
+  const top = state.top.slice(0, 3);
+  const marks = showsPlatformMarks([
+    ...state.channels.map((c) => c.platform),
+    ...recent.map((g) => g.platform),
+    ...top.map((v) => v.platform),
+  ]);
+
   return (
     <div data-obs className="flex w-full max-w-md flex-col gap-3 p-4 font-sans">
       <div className="flex items-baseline justify-between gap-3">
@@ -109,23 +120,29 @@ export default function LiveOverlay() {
       )}
 
       <ol className="flex list-none flex-col gap-1.5">
-        {state.recent.slice(0, 8).map((guess) => (
+        {recent.map((guess) => (
           <li key={`${guess.word}-${guess.rank}`} className="flex flex-col gap-0.5">
-            <div className="flex items-baseline justify-between gap-2 text-small">
+            <div className="flex items-center gap-1.5 text-small">
               <span className="min-w-0 truncate text-muted-foreground">
                 {guess.nickname}
               </span>
+              {marks && guess.platform && <PlatformMark platform={guess.platform} />}
             </div>
             <GuessBar word={guess.word} rank={guess.rank} />
           </li>
         ))}
       </ol>
 
-      {state.top.length > 0 && (
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-micro text-muted-foreground">
-          {state.top.slice(0, 3).map((viewer, index) => (
-            <span key={`${viewer.nickname}-${index}`}>
-              {`${viewer.nickname}: ${viewer.hits}`}
+      {top.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro text-muted-foreground">
+          {top.map((viewer, index) => (
+            <span
+              key={`${viewer.platform}-${viewer.nickname}-${index}`}
+              className="inline-flex items-center gap-1"
+            >
+              {viewer.nickname}
+              {marks && <PlatformMark platform={viewer.platform} className="size-3" />}
+              {`: ${viewer.hits}`}
             </span>
           ))}
         </div>

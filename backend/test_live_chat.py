@@ -155,13 +155,13 @@ class TestGuessGate:
         now = [100.0]
         gate = GuessGate(cooldown=2.0, per_second=100, clock=lambda: now[0])
 
-        assert gate.allow("room", "v1") is True
+        assert gate.allow("room", "twitch", "v1") is True
         now[0] += 0.5
-        assert gate.allow("room", "v1") is False
+        assert gate.allow("room", "twitch", "v1") is False
         # A different viewer is unaffected by someone else's cooldown.
-        assert gate.allow("room", "v2") is True
+        assert gate.allow("room", "twitch", "v2") is True
         now[0] += 2.0
-        assert gate.allow("room", "v1") is True
+        assert gate.allow("room", "twitch", "v1") is True
 
     def test_room_cap_limits_a_flood(self):
         from live_chat import GuessGate
@@ -169,12 +169,12 @@ class TestGuessGate:
         now = [100.0]
         gate = GuessGate(cooldown=0.0, per_second=5, clock=lambda: now[0])
 
-        accepted = sum(gate.allow("room", f"v{i}") for i in range(20))
+        accepted = sum(gate.allow("room", "twitch", f"v{i}") for i in range(20))
         assert accepted == 5
 
         # The bucket refills continuously, so half a second buys two more.
         now[0] += 0.5
-        assert sum(gate.allow("room", f"w{i}") for i in range(10)) == 2
+        assert sum(gate.allow("room", "twitch", f"w{i}") for i in range(10)) == 2
 
     def test_rooms_do_not_share_a_bucket(self):
         from live_chat import GuessGate
@@ -182,8 +182,8 @@ class TestGuessGate:
         now = [100.0]
         gate = GuessGate(cooldown=0.0, per_second=2, clock=lambda: now[0])
 
-        assert sum(gate.allow("a", f"v{i}") for i in range(5)) == 2
-        assert sum(gate.allow("b", f"v{i}") for i in range(5)) == 2
+        assert sum(gate.allow("a", "twitch", f"v{i}") for i in range(5)) == 2
+        assert sum(gate.allow("b", "twitch", f"v{i}") for i in range(5)) == 2
 
     def test_forget_room_drops_its_state(self):
         from live_chat import GuessGate
@@ -191,10 +191,10 @@ class TestGuessGate:
         now = [100.0]
         gate = GuessGate(cooldown=60.0, per_second=100, clock=lambda: now[0])
 
-        assert gate.allow("room", "v1") is True
-        assert gate.allow("room", "v1") is False
+        assert gate.allow("room", "twitch", "v1") is True
+        assert gate.allow("room", "twitch", "v1") is False
         gate.forget_room("room")
-        assert gate.allow("room", "v1") is True
+        assert gate.allow("room", "twitch", "v1") is True
 
 
 class TestViewerNickname:
@@ -241,16 +241,20 @@ class TestRoomBinding:
                 live = await create_live_room(
                     conn,
                     koop_id=room["koop_id"],
-                    platform="twitch",
-                    channel="kontexto",
                     host_token=room["player_token"],
                     require_prefix=False,
+                    channels=[("twitch", "kontexto")],
                 )
-                assert live["chat_state"] == "connecting"
+                assert live["channels"] == [
+                    {
+                        "platform": "twitch", "channel": "kontexto",
+                        "chat_state": "connecting", "chat_error": None, "paused": False,
+                    }
+                ]
                 assert len(live["overlay_token"]) > 20
 
                 by_id = await get_live_room(conn, room["koop_id"])
-                assert by_id["channel"] == "kontexto"
+                assert by_id["channels"][0]["channel"] == "kontexto"
                 assert by_id["host_token"] == room["player_token"]
 
                 by_overlay = await get_live_room_by_overlay(conn, live["overlay_token"])
@@ -271,13 +275,11 @@ class TestRoomBinding:
                 first = await create_koop(conn, game_number=1, nickname="A", tips_allowed=True)
                 second = await create_koop(conn, game_number=1, nickname="B", tips_allowed=True)
                 await create_live_room(
-                    conn, first["koop_id"], "twitch", "kontexto",
-                    first["player_token"], False,
+                    conn, first["koop_id"], first["player_token"], False, [("twitch", "kontexto")],
                 )
                 with pytest.raises(ChannelBusy):
                     await create_live_room(
-                        conn, second["koop_id"], "twitch", "kontexto",
-                        second["player_token"], False,
+                        conn, second["koop_id"], second["player_token"], False, [("twitch", "kontexto")],
                     )
             finally:
                 await conn.close()
@@ -293,8 +295,7 @@ class TestRoomBinding:
             try:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 await create_live_room(
-                    conn, room["koop_id"], "twitch", "kontexto",
-                    room["player_token"], False,
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
                 )
                 assert await stop_live_room(conn, room["koop_id"], "fremd") is False
                 assert await get_live_room(conn, room["koop_id"]) is not None
@@ -320,23 +321,205 @@ class TestRoomBinding:
             try:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 await create_live_room(
-                    conn, room["koop_id"], "twitch", "kontexto",
-                    room["player_token"], False,
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
                 )
-                await set_chat_state(conn, room["koop_id"], "live")
-                assert (await get_live_room(conn, room["koop_id"]))["chat_state"] == "live"
-
-                await set_chat_state(conn, room["koop_id"], "error", "Kanal gesperrt")
+                await set_chat_state(conn, room["koop_id"], "twitch", "live")
                 back = await get_live_room(conn, room["koop_id"])
-                assert back["chat_state"] == "error"
-                assert back["chat_error"] == "Kanal gesperrt"
+                assert back["channels"][0]["chat_state"] == "live"
+
+                await set_chat_state(conn, room["koop_id"], "twitch", "error", "Kanal gesperrt")
+                back = await get_live_room(conn, room["koop_id"])
+                assert back["channels"][0]["chat_state"] == "error"
+                assert back["channels"][0]["chat_error"] == "Kanal gesperrt"
 
                 with pytest.raises(ValueError):
-                    await set_chat_state(conn, room["koop_id"], "erfunden")
+                    await set_chat_state(conn, room["koop_id"], "twitch", "erfunden")
             finally:
                 await conn.close()
 
         self._run(run())
+
+
+class TestSeveralChats:
+    """One room, one chat per platform: Twitch and TikTok on the same board."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    async def _room(self, conn, channels):
+        from koop import create_koop
+        from live_chat import create_live_room
+
+        room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+        await create_live_room(conn, room["koop_id"], room["player_token"], False, channels)
+        return room
+
+    async def _count(self, conn, sql, *args):
+        cursor = await conn.execute(sql, args)
+        return (await cursor.fetchone())[0]
+
+    def test_a_room_reads_both_platforms(self, db):
+        from live_chat import get_live_room, list_live_rooms
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._room(conn, [("twitch", "kontexto"), ("tiktok", "kontexto.de")])
+                live = await get_live_room(conn, room["koop_id"])
+                assert [(c["platform"], c["channel"]) for c in live["channels"]] == [
+                    ("twitch", "kontexto"), ("tiktok", "kontexto.de"),
+                ]
+                listed = await list_live_rooms(conn)
+                assert [c["platform"] for c in listed[0]["channels"]] == ["twitch", "tiktok"]
+                # Still one chat player for all chats: host plus chat, never more.
+                assert await self._count(
+                    conn, "SELECT COUNT(*) FROM koop_players WHERE koop_id = ?", room["koop_id"]
+                ) == 2
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_a_busy_second_chat_leaves_nothing_behind(self, db):
+        from koop import create_koop
+        from live_chat import ChannelBusy, create_live_room
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                await self._room(conn, [("tiktok", "belegt")])
+                second = await create_koop(conn, game_number=1, nickname="B", tips_allowed=True)
+                with pytest.raises(ChannelBusy) as busy:
+                    await create_live_room(
+                        conn, second["koop_id"], second["player_token"], False,
+                        [("twitch", "frei"), ("tiktok", "belegt")],
+                    )
+                assert busy.value.platform == "tiktok"
+                assert await self._count(
+                    conn, "SELECT COUNT(*) FROM live_rooms WHERE koop_id = ?", second["koop_id"]
+                ) == 0
+                assert await self._count(
+                    conn, "SELECT COUNT(*) FROM live_channels WHERE channel = 'frei'"
+                ) == 0
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_a_chat_is_added_during_the_round(self, db):
+        from live_chat import ChannelBusy, PlatformBound, add_live_channel, get_live_room
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                other = await self._room(conn, [("tiktok", "anderer")])
+                room = await self._room(conn, [("twitch", "kontexto")])
+                kid = room["koop_id"]
+                assert await add_live_channel(conn, kid, "tiktok", "kontexto.de") is True
+                live = await get_live_room(conn, kid)
+                assert [c["platform"] for c in live["channels"]] == ["twitch", "tiktok"]
+
+                with pytest.raises(PlatformBound):
+                    await add_live_channel(conn, kid, "tiktok", "noch.einer")
+                with pytest.raises(ChannelBusy):
+                    await add_live_channel(conn, other["koop_id"], "twitch", "kontexto")
+                assert await add_live_channel(conn, "gibtsnicht", "twitch", "frei") is False
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_the_last_chat_cannot_be_removed(self, db):
+        from live_chat import get_live_room, remove_live_channel
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._room(conn, [("twitch", "kontexto"), ("tiktok", "kontexto.de")])
+                kid = room["koop_id"]
+                assert await remove_live_channel(conn, kid, "twitch") == "removed"
+                assert await remove_live_channel(conn, kid, "twitch") == "not_found"
+                assert await remove_live_channel(conn, kid, "tiktok") == "last_channel"
+                live = await get_live_room(conn, kid)
+                assert [c["platform"] for c in live["channels"]] == ["tiktok"]
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_racing_removes_keep_one_chat(self, db):
+        from live_chat import remove_live_channel
+
+        async def run():
+            setup = await get_db(db)
+            try:
+                room = await self._room(setup, [("twitch", "kontexto"), ("tiktok", "kontexto.de")])
+            finally:
+                await setup.close()
+            first, second = await get_db(db), await get_db(db)
+            try:
+                outcomes = await asyncio.gather(
+                    remove_live_channel(first, room["koop_id"], "twitch"),
+                    remove_live_channel(second, room["koop_id"], "tiktok"),
+                )
+                assert sorted(outcomes) == ["last_channel", "removed"]
+                assert await self._count(
+                    first, "SELECT COUNT(*) FROM live_channels WHERE koop_id = ?", room["koop_id"]
+                ) == 1
+            finally:
+                await first.close()
+                await second.close()
+
+        self._run(run())
+
+    def test_pause_and_resume(self, db):
+        from live_chat import get_live_room, set_channel_paused
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._room(conn, [("twitch", "kontexto"), ("tiktok", "kontexto.de")])
+                kid = room["koop_id"]
+                assert await set_channel_paused(conn, kid, "tiktok", True) is True
+                # Idempotent: pausing a paused chat is still an answer, not an error.
+                assert await set_channel_paused(conn, kid, "tiktok", True) is True
+                live = await get_live_room(conn, kid)
+                assert {c["platform"]: c["paused"] for c in live["channels"]} == {
+                    "twitch": False, "tiktok": True,
+                }
+                assert await set_channel_paused(conn, kid, "tiktok", False) is True
+                live = await get_live_room(conn, kid)
+                assert not any(c["paused"] for c in live["channels"])
+                assert await set_channel_paused(conn, "gibtsnicht", "twitch", True) is False
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_a_stop_takes_every_chat_along(self, db):
+        from live_chat import stop_live_room
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await self._room(conn, [("twitch", "kontexto"), ("tiktok", "kontexto.de")])
+                assert await stop_live_room(conn, room["koop_id"], room["player_token"])
+                assert await self._count(conn, "SELECT COUNT(*) FROM live_channels") == 0
+            finally:
+                await conn.close()
+
+        self._run(run())
+
+    def test_aggregate_state(self):
+        from live_chat import aggregate_chat_state
+
+        def of(*states):
+            return [{"chat_state": state} for state in states]
+
+        assert aggregate_chat_state(of("error", "live")) == "live"
+        assert aggregate_chat_state(of("connecting", "error")) == "connecting"
+        assert aggregate_chat_state(of("error", "error")) == "error"
+        assert aggregate_chat_state([]) == "error"
 
 
 class TestViewerGuesses:
@@ -456,7 +639,7 @@ class TestViewerGuesses:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 kid = room["koop_id"]
                 await create_live_room(
-                    conn, kid, "twitch", "kontexto", room["player_token"], False
+                    conn, kid, room["player_token"], False, [("twitch", "kontexto")],
                 )
                 await record_viewer(conn, kid, "twitch", "1", "Mara", 30)
                 await conn.execute(
@@ -483,7 +666,7 @@ class TestOverlaySnapshot:
 
     def test_snapshot_has_no_game_number_and_no_word(self, db):
         from koop import create_koop, record_koop_guess
-        from live_chat import create_live_room, overlay_snapshot, record_viewer
+        from live_chat import create_live_room, overlay_snapshot, record_viewer, set_channel_paused
 
         async def run():
             conn = await get_db(db)
@@ -491,22 +674,35 @@ class TestOverlaySnapshot:
                 room = await create_koop(conn, game_number=7, nickname="Host", tips_allowed=True)
                 kid = room["koop_id"]
                 await create_live_room(
-                    conn, kid, "twitch", "kontexto", room["player_token"], False
+                    conn, kid, room["player_token"], False,
+                    [("twitch", "kontexto"), ("tiktok", "kontexto.de")],
                 )
                 await record_koop_guess(
-                    conn, kid, room["player_token"], "apfel", 42, display_name="Mara"
+                    conn, kid, room["player_token"], "apfel", 42,
+                    display_name="Mara", source="tiktok",
                 )
-                await record_viewer(conn, kid, "twitch", "1", "Mara", 42)
+                await record_koop_guess(conn, kid, room["player_token"], "birne", 50)
+                await record_viewer(conn, kid, "tiktok", "tt:1", "Mara", 42)
+                await set_channel_paused(conn, kid, "tiktok", True)
 
                 snap = await overlay_snapshot(conn, kid)
                 assert "game_number" not in snap
                 assert snap["round"] == 1
                 assert snap["best_rank"] == 42
                 assert snap["solved"] is False
-                assert snap["channel"] == "kontexto"
-                assert snap["recent"][0]["word"] == "apfel"
-                assert snap["recent"][0]["nickname"] == "Mara"
-                assert snap["top"][0]["nickname"] == "Mara"
+                # Which chats play, and nothing about a pause.
+                assert snap["channels"] == [
+                    {"platform": "twitch", "channel": "kontexto"},
+                    {"platform": "tiktok", "channel": "kontexto.de"},
+                ]
+                assert snap["chat_state"] == "connecting"
+                assert [(g["word"], g["platform"]) for g in snap["recent"]] == [
+                    ("birne", None), ("apfel", "tiktok"),
+                ]
+                assert snap["recent"][1]["nickname"] == "Mara"
+                assert snap["top"][0] == {
+                    "platform": "tiktok", "nickname": "Mara", "hits": 1, "best_rank": 42,
+                }
 
                 assert await overlay_snapshot(conn, "fehlt") is None
             finally:
@@ -549,10 +745,9 @@ class TestHostMessages:
         await create_live_room(
             conn,
             koop_id=room["koop_id"],
-            platform="twitch",
-            channel=channel,
             host_token=room["player_token"],
             require_prefix=False,
+            channels=[("twitch", channel)],
         )
         return room
 
@@ -733,10 +928,9 @@ class TestHostPresence:
         await create_live_room(
             conn,
             koop_id=room["koop_id"],
-            platform="twitch",
-            channel=channel,
             host_token=room["player_token"],
             require_prefix=False,
+            channels=[("twitch", channel)],
         )
         return room
 
@@ -801,7 +995,7 @@ class TestHostPresence:
                 await self._age(conn, here["koop_id"], 299)
 
                 unbound = await unbind_absent_rooms(conn)
-                assert [r["channel"] for r in unbound] == ["kanal_weg"]
+                assert [c["channel"] for r in unbound for c in r["channels"]] == ["kanal_weg"]
                 assert await get_live_room(conn, gone["koop_id"]) is None
                 assert await get_live_room(conn, here["koop_id"]) is not None
                 # The board stays, the note goes with the binding.

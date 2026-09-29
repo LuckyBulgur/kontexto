@@ -75,6 +75,7 @@ from models import (
     KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
     RoomRevealRequest, RoomRevealResponse,
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
+    LiveChannelAddRequest, LiveChannelRemoveRequest, LiveChannelPauseRequest,
     LiveStopRequest, LiveStopResponse, LiveOverlayResponse,
     LiveDebugMessageRequest, LivePlatformsResponse,
     LiveMessagesSeenRequest, LiveMessagesSeenResponse,
@@ -1235,13 +1236,18 @@ def _resolve_room_guess(game_number: int, word: str) -> dict | None:
 def _live_room_payload(
     room: dict, top: list[dict], messages: list[dict] | None = None
 ) -> dict:
+    channels = room["channels"]
+    # A bound room always reads at least one chat (remove_live_channel refuses
+    # the last), so there is always an oldest one for the flat fields.
+    first = channels[0]
     return {
         "koop_id": room["koop_id"],
-        "platform": room["platform"],
-        "channel": room["channel"],
+        "channels": channels,
+        "platform": first["platform"],
+        "channel": first["channel"],
+        "chat_state": first["chat_state"],
+        "chat_error": first["chat_error"],
         "require_prefix": room["require_prefix"],
-        "chat_state": room["chat_state"],
-        "chat_error": room["chat_error"],
         "overlay_token": room["overlay_token"],
         "top": top,
         "messages": messages or [],
@@ -1253,10 +1259,10 @@ _PLATFORM_NAMES = {"twitch": "Twitch", "tiktok": "TikTok"}
 
 
 def _tiktok_room_cap() -> int:
-    """How many TikTok rooms may be bound at once.
+    """How many TikTok chats may be bound at once, across all rooms.
 
     The free provider tier holds 25 sockets. The default stays below that, so
-    a room that reconnects still finds a slot, and a paid tier raises it here.
+    a chat that reconnects still finds a slot, and a paid tier raises it here.
     """
     try:
         return max(0, int(os.environ.get("KONTEXTO_TIKTOK_MAX_ROOMS", "20")))
@@ -1271,6 +1277,52 @@ def _available_platforms() -> list[str]:
     ]
 
 
+def _live_refusal(status: int, error: str, message: str, platform: str | None = None):
+    """A refusal of the live endpoints. It names the platform it is about, so a
+    form with one field per platform can point at the right one."""
+    content: dict = {"error": error, "message": message}
+    if platform is not None:
+        content["platform"] = platform
+    return JSONResponse(status_code=status, content=content)
+
+
+def _check_live_channel(platform: str, raw_channel: str) -> tuple[str | None, JSONResponse | None]:
+    """The normalised channel, or the refusal that stands in its way."""
+    if platform not in _available_platforms():
+        return None, _live_refusal(
+            503, "platform_unavailable",
+            f"{_PLATFORM_NAMES[platform]} ist gerade nicht angebunden", platform,
+        )
+    channel = live_chat.normalise_channel(raw_channel, platform)
+    if channel is None:
+        return None, _live_refusal(
+            422, "bad_channel",
+            f"Diesen Kanalnamen gibt es auf {_PLATFORM_NAMES[platform]} nicht", platform,
+        )
+    return channel, None
+
+
+async def _tiktok_full(db, adding: int) -> bool:
+    """Whether `adding` more TikTok chats would pass the cap.
+
+    Checked before the insert, not inside it. Two creates can race for the last
+    slot and both pass; that costs one socket over the cap, which the provider
+    answers with 4429 and the reader waits out.
+    """
+    if adding == 0:
+        return False
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS n FROM live_channels WHERE platform = 'tiktok'"
+    )
+    row = await cursor.fetchone()
+    return row["n"] + adding > _tiktok_room_cap()
+
+
+_PLATFORM_FULL_MESSAGE = "Gerade laufen zu viele TikTok-Runden gleichzeitig"
+_CHANNEL_BUSY_MESSAGE = "Für diesen Kanal läuft schon eine Runde"
+_ROOM_NOT_FOUND = {"error": "room_not_found", "message": "Diese Runde gibt es nicht"}
+
+
 @app.get("/api/live/platforms", response_model=LivePlatformsResponse)
 async def live_platforms_endpoint():
     """What the create form may offer. Read on every opening of the form, so a
@@ -1280,77 +1332,47 @@ async def live_platforms_endpoint():
 
 @app.post("/api/live", response_model=CreateLiveResponse)
 async def create_live_endpoint(req: CreateLiveRequest):
-    if req.platform not in _available_platforms():
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": "platform_unavailable",
-                "message": f"{_PLATFORM_NAMES[req.platform]} ist gerade nicht angebunden",
-            },
-        )
-    channel = live_chat.normalise_channel(req.channel, req.platform)
-    if channel is None:
-        return JSONResponse(
-            status_code=422,
-            content={
-                "error": "bad_channel",
-                "message": f"Diesen Kanalnamen gibt es auf {_PLATFORM_NAMES[req.platform]} nicht",
-            },
-        )
+    channels: list[tuple[str, str]] = []
+    for entry in req.channel_list():
+        channel, refusal = _check_live_channel(entry.platform, entry.channel)
+        if refusal is not None:
+            return refusal
+        channels.append((entry.platform, channel))
 
     game_number = _room_game_number(req.game_source)
     db = await get_db(_db_path)
     try:
-        if req.platform == "tiktok":
-            # Checked before the insert, not inside it. Two creates can race for
-            # the last slot and both pass; that costs one socket over the cap,
-            # which the provider answers with 4429 and the reader waits out.
-            cursor = await db.execute(
-                "SELECT COUNT(*) AS n FROM live_rooms WHERE platform = 'tiktok'"
-            )
-            row = await cursor.fetchone()
-            if row["n"] >= _tiktok_room_cap():
-                return JSONResponse(
-                    status_code=503,
-                    content={
-                        "error": "platform_full",
-                        "message": "Gerade laufen zu viele TikTok-Runden gleichzeitig",
-                    },
-                )
-        # The host plays under their channel name unless they asked for another.
-        # sanitize_nickname runs inside create_koop, so a channel name that is
-        # itself abusive is masked like any other.
-        host_name = req.nickname or channel
+        if await _tiktok_full(db, sum(1 for platform, _ in channels if platform == "tiktok")):
+            return _live_refusal(503, "platform_full", _PLATFORM_FULL_MESSAGE, "tiktok")
+        # The host plays under their (first) channel name unless they asked for
+        # another. sanitize_nickname runs inside create_koop, so a channel name
+        # that is itself abusive is masked like any other.
+        host_name = req.nickname or channels[0][1]
         room = await create_koop(db, game_number, host_name, req.tips_allowed)
         try:
             live = await live_chat.create_live_room(
                 db,
                 koop_id=room["koop_id"],
-                platform=req.platform,
-                channel=channel,
                 host_token=room["player_token"],
                 require_prefix=req.require_prefix,
+                channels=channels,
             )
-        except live_chat.ChannelBusy:
+        except live_chat.ChannelBusy as busy:
             # Roll the empty koop room back rather than leaving an orphan that
             # the cleanup loop would carry for an hour.
             await db.execute("DELETE FROM koop_players WHERE koop_id = ?", (room["koop_id"],))
             await db.execute("DELETE FROM koops WHERE id = ?", (room["koop_id"],))
             await db.commit()
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "error": "channel_busy",
-                    "message": "Für diesen Kanal läuft schon eine Runde",
-                },
-            )
+            return _live_refusal(409, "channel_busy", _CHANNEL_BUSY_MESSAGE, busy.platform)
 
         await analytics.record_action(_db_path, "live_rooms_created", "kontexto")
         await analytics.record_mode_pick(_db_path, "friends", "live")
-        await live_chat.record_stream_event(db, req.platform, channel, "sessions")
-        await live_chat.record_stream_event(db, req.platform, channel, "rounds")
-        full = await live_chat.get_live_room(db, room["koop_id"])
-        return {**_live_room_payload(full, []), "player_token": room["player_token"]}
+        # Per channel: each channel's book counts the room as a session of its
+        # own, because that book is about the channel, not about the room.
+        for platform, channel in channels:
+            await live_chat.record_stream_event(db, platform, channel, "sessions")
+            await live_chat.record_stream_event(db, platform, channel, "rounds")
+        return {**_live_room_payload(live, []), "player_token": room["player_token"]}
     finally:
         await db.close()
 
@@ -1419,6 +1441,102 @@ async def live_messages_seen_endpoint(koop_id: str, req: LiveMessagesSeenRequest
         await db.close()
 
 
+async def _hosted_live_room(db, koop_id: str, token: str) -> dict | None:
+    """The room, if this token is its host's. A foreign token and an unknown
+    room look the same to the caller, as on every other live endpoint."""
+    room = await live_chat.get_live_room(db, koop_id)
+    if room is None or not secrets.compare_digest(room["host_token"], token):
+        return None
+    return room
+
+
+async def _host_payload(db, koop_id: str):
+    room = await live_chat.get_live_room(db, koop_id)
+    if room is None:
+        return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+    return _live_room_payload(
+        room,
+        await live_chat.top_viewers(db, koop_id),
+        await live_chat.pending_host_messages(db, koop_id),
+    )
+
+
+@app.post("/api/live/{koop_id}/channels", response_model=LiveRoomResponse)
+async def add_live_channel_endpoint(koop_id: str, req: LiveChannelAddRequest):
+    """Bind one more chat to a running room, typically TikTok next to Twitch.
+
+    The same checks a create runs for that chat. The chat joins the current
+    round and gets its own session in its channel's book.
+    """
+    channel, refusal = _check_live_channel(req.platform, req.channel)
+    if refusal is not None:
+        return refusal
+    db = await get_db(_db_path)
+    try:
+        if await _hosted_live_room(db, koop_id, req.player_token) is None:
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        if req.platform == "tiktok" and await _tiktok_full(db, 1):
+            return _live_refusal(503, "platform_full", _PLATFORM_FULL_MESSAGE, "tiktok")
+        try:
+            added = await live_chat.add_live_channel(db, koop_id, req.platform, channel)
+        except live_chat.PlatformBound:
+            return _live_refusal(
+                409, "platform_bound",
+                f"Diese Runde liest schon einen {_PLATFORM_NAMES[req.platform]}-Chat",
+                req.platform,
+            )
+        except live_chat.ChannelBusy:
+            return _live_refusal(409, "channel_busy", _CHANNEL_BUSY_MESSAGE, req.platform)
+        if not added:
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        await live_chat.record_stream_event(db, req.platform, channel, "sessions")
+        await live_chat.record_stream_event(db, req.platform, channel, "rounds")
+        return await _host_payload(db, koop_id)
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/channels/remove", response_model=LiveRoomResponse)
+async def remove_live_channel_endpoint(koop_id: str, req: LiveChannelRemoveRequest):
+    """Unbind one chat. The room keeps reading the other one.
+
+    The last chat cannot be removed here: a room that reads no chat is a stop,
+    which is its own endpoint.
+    """
+    db = await get_db(_db_path)
+    try:
+        if await _hosted_live_room(db, koop_id, req.player_token) is None:
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        outcome = await live_chat.remove_live_channel(db, koop_id, req.platform)
+        if outcome == "last_channel":
+            return _live_refusal(
+                409, "last_channel", "Die Runde braucht mindestens einen Chat", req.platform
+            )
+        if outcome == "not_found":
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        return await _host_payload(db, koop_id)
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/channels/pause", response_model=LiveRoomResponse)
+async def pause_live_channel_endpoint(koop_id: str, req: LiveChannelPauseRequest):
+    """Pause or resume one chat. Only the host's token does either.
+
+    The reader stays connected, so a resume counts the very next line; the
+    ingest notices the change on its next pass, within a few seconds.
+    """
+    db = await get_db(_db_path)
+    try:
+        if await _hosted_live_room(db, koop_id, req.player_token) is None:
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        if not await live_chat.set_channel_paused(db, koop_id, req.platform, req.paused):
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        return await _host_payload(db, koop_id)
+    finally:
+        await db.close()
+
+
 @app.post("/api/live/{koop_id}/stop", response_model=LiveStopResponse)
 async def stop_live_endpoint(koop_id: str, req: LiveStopRequest):
     """Unbind the chat. The koop room stays, so the host can still reveal."""
@@ -1480,8 +1598,19 @@ async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
             status_code=503, content={"error": "ingest_not_running"}
         )
     await ingest.reconcile()
+    platform = req.platform
+    if platform is None:
+        # The room's oldest chat, which is its only one unless the host added
+        # a second, so a test written for one chat never names the platform.
+        db = await get_db(_db_path)
+        try:
+            room = await live_chat.get_live_room(db, koop_id)
+        finally:
+            await db.close()
+        platform = room["channels"][0]["platform"] if room and room["channels"] else "twitch"
     await ingest.handle_message(
         koop_id,
+        platform,
         live_chat.ChatMessage(
             external_id=req.external_id,
             display_name=req.display_name,

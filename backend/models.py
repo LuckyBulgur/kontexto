@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Which puzzle a new room is opened on. The client picks the kind, never the
 # number: handing the number in would hand the creator the answer, because
@@ -286,13 +286,27 @@ class KoopGuessesResponse(BaseModel):
 # --- Live chat (a stream chat plays a koop round) ---
 
 
-class CreateLiveRequest(BaseModel):
+LivePlatformName = Literal["twitch", "tiktok"]
+
+
+class LiveChannelRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    platform: Literal["twitch", "tiktok"] = "twitch"
+    platform: LivePlatformName
     # A channel name, a handle or a pasted URL; the server normalises it and
     # refuses anything the platform could not have as a login.
     channel: str = Field(..., min_length=1, max_length=120)
+
+
+class CreateLiveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # The chats this room reads, at most one per platform (two platforms).
+    channels: list[LiveChannelRequest] | None = Field(default=None, min_length=1, max_length=2)
+    # The single-chat form. A create page loaded before rooms could read two
+    # chats still sends it, so it is folded into `channels` instead of refused.
+    platform: LivePlatformName | None = None
+    channel: str | None = Field(default=None, min_length=1, max_length=120)
     game_source: RoomGameSource = "random"
     # Optional, and normally absent. The streamer already has a name on screen,
     # their channel, and asking for a second one would be a field that exists
@@ -304,11 +318,73 @@ class CreateLiveRequest(BaseModel):
     # a busy chat turns this on and only `!k wort` counts.
     require_prefix: bool = False
 
+    @model_validator(mode="after")
+    def _one_channel_list(self) -> "CreateLiveRequest":
+        if self.channels is None:
+            if self.channel is None:
+                raise ValueError("channels is required")
+            self.channels = [
+                LiveChannelRequest(platform=self.platform or "twitch", channel=self.channel)
+            ]
+        elif self.platform is not None or self.channel is not None:
+            raise ValueError("send either channels or platform and channel, not both")
+        platforms = [entry.platform for entry in self.channels]
+        if len(set(platforms)) != len(platforms):
+            raise ValueError("one channel per platform")
+        return self
+
+    def channel_list(self) -> list[LiveChannelRequest]:
+        """The chats as the validator left them: never None past validation."""
+        return self.channels or []
+
+
+class LiveChannelAddRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    player_token: str = Field(..., min_length=1, max_length=128)
+    platform: LivePlatformName
+    channel: str = Field(..., min_length=1, max_length=120)
+
+
+class LiveChannelRemoveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    player_token: str = Field(..., min_length=1, max_length=128)
+    platform: LivePlatformName
+
+
+class LiveChannelPauseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    player_token: str = Field(..., min_length=1, max_length=128)
+    platform: LivePlatformName
+    paused: bool
+
 
 class LiveViewer(BaseModel):
+    # Which chat this viewer plays in. The same name on two platforms is two
+    # people as far as the game can know.
+    platform: str
     nickname: str
     hits: int
     best_rank: int | None
+
+
+class LiveChannelState(BaseModel):
+    """One chat of a room as the host sees it."""
+
+    platform: str
+    channel: str
+    chat_state: str
+    chat_error: str | None = None
+    paused: bool = False
+
+
+class LiveChannelPublic(BaseModel):
+    """One chat of a room as the overlay sees it: no state, no pause."""
+
+    platform: str
+    channel: str
 
 
 class LiveHostMessage(BaseModel):
@@ -320,14 +396,18 @@ class LiveHostMessage(BaseModel):
 
 
 class LiveRoomResponse(BaseModel):
-    """What the host sees about the chat connection. No puzzle data at all."""
+    """What the host sees about the chat connections. No puzzle data at all."""
 
     koop_id: str
+    # Every chat the room reads, oldest first.
+    channels: list[LiveChannelState]
+    # The oldest chat once more, flat. A host page loaded before rooms could
+    # read two chats keeps polling for hours, through a deploy, and reads these.
     platform: str
     channel: str
-    require_prefix: bool
     chat_state: str
     chat_error: str | None = None
+    require_prefix: bool
     overlay_token: str
     top: list[LiveViewer] = []
     # Unseen notes, oldest first. Host only: the overlay model has no such
@@ -358,6 +438,8 @@ class LiveOverlayGuess(BaseModel):
     word: str
     rank: int
     is_tip: bool
+    # The chat it came from; None for the host at the keyboard.
+    platform: str | None = None
 
 
 class LiveOverlayResponse(BaseModel):
@@ -373,8 +455,9 @@ class LiveOverlayResponse(BaseModel):
     solved: bool
     solved_by: str | None
     gave_up: bool
+    # live as soon as one chat is read (live_chat.aggregate_chat_state).
     chat_state: str
-    channel: str | None
+    channels: list[LiveChannelPublic]
     recent: list[LiveOverlayGuess]
     top: list[LiveViewer]
 
@@ -415,13 +498,18 @@ class AdminStreamGuess(BaseModel):
     rank: int
 
 
+class AdminStreamChannel(BaseModel):
+    platform: str
+    channel: str
+    chat_state: str
+    paused: bool
+
+
 class AdminLiveStream(BaseModel):
     """One bound room as the operator reads along. No game number, no target."""
 
     koop_id: str
-    platform: str
-    channel: str
-    chat_state: str
+    channels: list[AdminStreamChannel]
     created_at: str | None
     # The koop room's own clock: raised by every guess, chat or host.
     last_activity: str | None
@@ -448,6 +536,8 @@ class LiveDebugMessageRequest(BaseModel):
     external_id: str = Field(..., min_length=1, max_length=64)
     display_name: str = Field(..., min_length=1, max_length=64)
     text: str = Field(..., min_length=1, max_length=500)
+    # Which chat the line arrives on. Absent means the room's oldest chat.
+    platform: LivePlatformName | None = None
 
 
 # --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---

@@ -5,10 +5,12 @@ the arena clock and the matchmaking loop. That is not a preference: four API
 workers would open four connections to the same chat and count every message four
 times. The throttle is in-process for the same reason, it has one writer.
 
-The supervisor owns one reader task per bound room and reconciles against the
-``live_rooms`` table every few seconds, so a room that is created or stopped on
-any worker is picked up here without any cross-process signal. SQLite is the only
-thing the workers share, and that stays true.
+The supervisor owns one reader task per bound chat, keyed by room and platform,
+so a room that reads Twitch and TikTok has two. It reconciles against the
+``live_rooms`` and ``live_channels`` tables every few seconds, so a room or a chat
+that is created, paused or stopped on any worker is picked up here without any
+cross-process signal. SQLite is the only thing the workers share, and that stays
+true.
 
 A reader is platform specific and knows nothing about rooms: ``twitch_chat.py``
 reads IRC, ``tiktok_chat.py`` reads the Euler Stream socket. Both expose the same
@@ -68,12 +70,16 @@ class LiveChatIngest:
         # state, and so a test can hand it a fake.
         self._resolve = resolve_guess
         self._reader_factory = reader_factory or default_reader_factory
-        self._tasks: dict[str, asyncio.Task] = {}
-        # Rooms handled without a reader, which is what OFFLINE means. Kept
+        # One reader per (room, platform).
+        self._tasks: dict[tuple[str, str], asyncio.Task] = {}
+        # Chats handled without a reader, which is what OFFLINE means. Kept
         # apart from _tasks because there is no task to ask whether it is still
         # running, and without this the supervisor treated every pass as "no
         # reader yet" and wrote the status line again on every one of them.
-        self._offline: set[str] = set()
+        self._offline: set[tuple[str, str]] = set()
+        # Which channel each of those chats reads, so a platform whose channel
+        # was swapped between two passes gets a fresh reader.
+        self._reading: dict[tuple[str, str], str] = {}
         self._rooms: dict[str, dict] = {}
         self._gate = live_chat.GuessGate()
         # When this supervisor started. Absent hosts are only unbound once it
@@ -85,15 +91,23 @@ class LiveChatIngest:
 
     # --- applying one message ---
 
-    async def handle_message(self, koop_id: str, message) -> None:
+    async def handle_message(self, koop_id: str, platform: str, message) -> None:
         room = self._rooms.get(koop_id)
         if room is None:
+            return
+        # The binding as of the last reconcile pass. A chat that was removed or
+        # paused on an API worker stops counting within RECONCILE_SECONDS; a
+        # read per line would cost the database what the throttle saves it.
+        binding = next(
+            (c for c in room["channels"] if c["platform"] == platform), None
+        )
+        if binding is None or binding["paused"]:
             return
 
         word = live_chat.extract_word(message.text, room["require_prefix"])
         if word is None:
             return
-        if not self._gate.allow(koop_id, message.external_id):
+        if not self._gate.allow(koop_id, platform, message.external_id):
             return
 
         db = await get_db(self._db_path)
@@ -114,7 +128,7 @@ class LiveChatIngest:
             nickname = live_chat.viewer_nickname(message.display_name)
             recorded = await record_koop_guess(
                 db, koop_id, room["chat_token"], result["word"], result["rank"],
-                display_name=nickname,
+                display_name=nickname, source=platform,
             )
             if recorded is None or recorded["already_guessed"]:
                 return
@@ -138,21 +152,21 @@ class LiveChatIngest:
             # One transaction for the whole bookkeeping of this line. Five
             # separate commits per chat message is five write locks, and this
             # path runs up to twenty times a second per room.
+            channel = binding["channel"]
             is_new_viewer = await live_chat.record_viewer(
-                db, koop_id, room["platform"], message.external_id, nickname,
+                db, koop_id, platform, message.external_id, nickname,
                 result["rank"], commit=False,
             )
             await live_chat.record_stream_event(
-                db, room["platform"], room["channel"], "guesses",
-                rank=result["rank"], commit=False,
+                db, platform, channel, "guesses", rank=result["rank"], commit=False,
             )
             if is_new_viewer:
                 await live_chat.record_stream_event(
-                    db, room["platform"], room["channel"], "viewers", commit=False,
+                    db, platform, channel, "viewers", commit=False,
                 )
             if result["rank"] == 1 and recorded["solved"]:
                 await live_chat.record_stream_event(
-                    db, room["platform"], room["channel"], "solves", commit=False,
+                    db, platform, channel, "solves", commit=False,
                 )
             await db.commit()
         finally:
@@ -160,44 +174,55 @@ class LiveChatIngest:
 
         await analytics_guess(self._db_path, result["word"], result["rank"], recorded["solved"])
 
-    async def _set_state(self, koop_id: str, state: str, error: str | None) -> None:
+    async def _set_state(
+        self, koop_id: str, platform: str, state: str, error: str | None
+    ) -> None:
         db = await get_db(self._db_path)
         try:
-            await live_chat.set_chat_state(db, koop_id, state, error)
+            await live_chat.set_chat_state(db, koop_id, platform, state, error)
         except Exception:  # noqa: BLE001 - a status line must not kill the reader
-            logger.warning("could not write chat state for %s", koop_id, exc_info=True)
+            logger.warning(
+                "could not write chat state for %s/%s", koop_id, platform, exc_info=True
+            )
         finally:
             await db.close()
 
     # --- supervising ---
 
-    def _start(self, room: dict) -> None:
-        koop_id = room["koop_id"]
+    def _start(self, koop_id: str, binding: dict) -> None:
+        platform = binding["platform"]
+        key = (koop_id, platform)
+        self._reading[key] = binding["channel"]
         if OFFLINE:
-            # No reader, but the room is accepting: that is exactly what the
+            # No reader, but the chat is accepting: that is exactly what the
             # status line should say, because the debug endpoint feeds it.
-            self._offline.add(koop_id)
-            asyncio.create_task(self._set_state(koop_id, "live", None))
+            self._offline.add(key)
+            asyncio.create_task(self._set_state(koop_id, platform, "live", None))
             return
-        reader = self._reader_factory(room["platform"], room["channel"])
+        reader = self._reader_factory(platform, binding["channel"])
 
         async def on_message(message):
-            await self.handle_message(koop_id, message)
+            await self.handle_message(koop_id, platform, message)
 
         async def on_state(state, error):
-            await self._set_state(koop_id, state, error)
+            await self._set_state(koop_id, platform, state, error)
 
-        self._tasks[koop_id] = asyncio.create_task(reader.run(on_message, on_state))
+        self._tasks[key] = asyncio.create_task(reader.run(on_message, on_state))
 
-    def _cancel(self, koop_id: str) -> None:
-        """Drop the reader task. The room's own state is not touched here."""
-        task = self._tasks.pop(koop_id, None)
+    def _cancel(self, key: tuple[str, str]) -> None:
+        """Drop one reader task. The chat's own state is not touched here."""
+        task = self._tasks.pop(key, None)
         if task is not None and not task.done():
             task.cancel()
 
+    def _drop_chat(self, key: tuple[str, str]) -> None:
+        self._cancel(key)
+        self._offline.discard(key)
+        self._reading.pop(key, None)
+
     def _forget(self, koop_id: str) -> None:
-        self._cancel(koop_id)
-        self._offline.discard(koop_id)
+        for key in [k for k in (*self._tasks, *self._offline) if k[0] == koop_id]:
+            self._drop_chat(key)
         self._rooms.pop(koop_id, None)
         self._gate.forget_room(koop_id)
 
@@ -207,18 +232,22 @@ class LiveChatIngest:
             if self._clock() - self._started >= live_chat.HOST_ABSENT_SECONDS:
                 for gone in await live_chat.unbind_absent_rooms(db):
                     logger.info(
-                        "live chat unbound, host page closed: %s/%s",
-                        gone["platform"], gone["channel"],
+                        "live chat unbound, host page closed: %s",
+                        ", ".join(f"{c['platform']}/{c['channel']}" for c in gone["channels"])
+                        or gone["koop_id"],
                     )
             rooms = await live_chat.list_live_rooms(db)
             for room in rooms:
                 known = self._rooms.get(room["koop_id"])
                 # A new round, noticed here rather than in the koop handler, so
                 # it is counted whether or not the chat is talking right now.
+                # Every chat the room reads plays it, so each channel's book
+                # gets it.
                 if known is not None and room["round"] != known.get("round"):
-                    await live_chat.record_stream_event(
-                        db, room["platform"], room["channel"], "rounds",
-                    )
+                    for binding in room["channels"]:
+                        await live_chat.record_stream_event(
+                            db, binding["platform"], binding["channel"], "rounds",
+                        )
                 self._rooms[room["koop_id"]] = room
         finally:
             await db.close()
@@ -227,19 +256,35 @@ class LiveChatIngest:
         for koop_id in list(self._rooms):
             if koop_id not in live_ids:
                 self._forget(koop_id)
-        for koop_id, task in list(self._tasks.items()):
+        for key, task in list(self._tasks.items()):
             if task.done():
-                self._tasks.pop(koop_id, None)
+                self._tasks.pop(key, None)
+
+        # A chat the host unbound, or swapped for another channel on the same
+        # platform, loses its reader here.
+        bound = {
+            (room["koop_id"], binding["platform"]): binding["channel"]
+            for room in rooms
+            for binding in room["channels"]
+        }
+        for key in [
+            k for k in (*self._tasks, *self._offline)
+            if bound.get(k) != self._reading.get(k)
+        ]:
+            self._drop_chat(key)
 
         for room in rooms:
-            if room["koop_id"] in self._tasks or room["koop_id"] in self._offline:
-                continue
-            # A reader that gave up wrote 'error' and is not started again. The
-            # alternative is a reconnect loop against a channel that does not
-            # exist, and a status line that keeps promising it will work.
-            if room["chat_state"] == "error":
-                continue
-            self._start(room)
+            for binding in room["channels"]:
+                key = (room["koop_id"], binding["platform"])
+                if key in self._tasks or key in self._offline:
+                    continue
+                # A reader that gave up wrote 'error' and is not started again.
+                # The alternative is a reconnect loop against a channel that
+                # does not exist, and a status line that keeps promising it will
+                # work. A paused chat keeps its reader, so resuming is instant.
+                if binding["chat_state"] == "error":
+                    continue
+                self._start(room["koop_id"], binding)
 
     async def run(self) -> None:
         while True:
@@ -253,9 +298,10 @@ class LiveChatIngest:
 
     def shutdown(self) -> None:
         """Cancel every reader. The rooms stay in the table and come back."""
-        for koop_id in list(self._tasks):
-            self._cancel(koop_id)
+        for key in list(self._tasks):
+            self._cancel(key)
         self._offline.clear()
+        self._reading.clear()
 
 
 async def analytics_guess(db_path: str, word: str, rank: int, solved: bool) -> None:

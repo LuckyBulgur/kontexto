@@ -164,8 +164,7 @@ class TestIngest:
         try:
             room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
             await create_live_room(
-                conn, room["koop_id"], "twitch", "kontexto",
-                room["player_token"], require_prefix,
+                conn, room["koop_id"], room["player_token"], require_prefix, [("twitch", "kontexto")],
             )
             return room["koop_id"]
         finally:
@@ -195,7 +194,7 @@ class TestIngest:
 
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "Apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "Apfel"))
 
             conn = await get_db(db)
             try:
@@ -212,8 +211,8 @@ class TestIngest:
     def test_conversation_and_unknown_words_are_dropped(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42})
-            await ingest.handle_message(koop_id, self._message("1", "A", "das ist schwer"))
-            await ingest.handle_message(koop_id, self._message("2", "B", "nichtimspiel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "A", "das ist schwer"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "B", "nichtimspiel"))
             assert await self._words(db, koop_id) == []
 
         self._run(run())
@@ -221,8 +220,8 @@ class TestIngest:
     def test_the_cooldown_holds_one_viewer_back(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "apfel"))
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "birne"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "birne"))
             assert await self._words(db, koop_id) == ["apfel"]
 
         self._run(run())
@@ -230,8 +229,8 @@ class TestIngest:
     def test_another_viewer_is_not_held_back(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "apfel"))
-            await ingest.handle_message(koop_id, self._message("2", "Jo", "birne"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "Jo", "birne"))
             assert await self._words(db, koop_id) == ["apfel", "birne"]
 
         self._run(run())
@@ -239,8 +238,8 @@ class TestIngest:
     def test_a_solved_round_takes_no_more_guesses(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"loesung": 1, "apfel": 42})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "loesung"))
-            await ingest.handle_message(koop_id, self._message("2", "Jo", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "loesung"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "Jo", "apfel"))
             assert await self._words(db, koop_id) == ["loesung"]
 
         self._run(run())
@@ -250,8 +249,8 @@ class TestIngest:
             koop_id, ingest = await self._ready(
                 db, {"apfel": 42, "birne": 7}, require_prefix=True
             )
-            await ingest.handle_message(koop_id, self._message("1", "A", "apfel"))
-            await ingest.handle_message(koop_id, self._message("2", "B", "!k birne"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "A", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "B", "!k birne"))
             assert await self._words(db, koop_id) == ["birne"]
 
         self._run(run())
@@ -261,7 +260,7 @@ class TestIngest:
 
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42})
-            await ingest.handle_message(koop_id, self._message("1", "Hurensohn", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Hurensohn", "apfel"))
 
             conn = await get_db(db)
             try:
@@ -276,8 +275,8 @@ class TestIngest:
     def test_a_flagged_word_never_reaches_the_overlay(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"hitler": 312, "apfel": 42})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "Hitler"))
-            await ingest.handle_message(koop_id, self._message("2", "Jo", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "Hitler"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "Jo", "apfel"))
             assert await self._words(db, koop_id) == ["apfel"]
 
         self._run(run())
@@ -286,8 +285,8 @@ class TestIngest:
         """Idiot is a solution and a flagged word; the chat must be able to win."""
         async def run():
             koop_id, ingest = await self._ready(db, {"idiot": 1, "depp": 3})
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "depp"))
-            await ingest.handle_message(koop_id, self._message("2", "Jo", "Idiot"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "depp"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "Jo", "Idiot"))
             assert await self._words(db, koop_id) == ["idiot"]
 
         self._run(run())
@@ -305,7 +304,7 @@ class TestIngest:
                 await conn.close()
 
             await ingest.reconcile()
-            await ingest.handle_message(koop_id, self._message("1", "Mara", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel"))
             assert await self._words(db, koop_id) == []
 
         self._run(run())
@@ -338,6 +337,203 @@ class TestIngest:
                 assert rows[0]["rounds"] == 1
             finally:
                 await conn.close()
+
+        self._run(run())
+
+
+class TestTwoChats:
+    """Twitch and TikTok feed one board; each keeps its own reader and book."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    def _message(self, external_id, name, text):
+        from live_chat import ChatMessage
+
+        return ChatMessage(external_id=external_id, display_name=name, text=text)
+
+    async def _ready(self, db, ranks):
+        from koop import create_koop
+        from live_chat import create_live_room
+        from live_ingest import LiveChatIngest
+
+        conn = await get_db(db)
+        try:
+            room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+            await create_live_room(
+                conn, room["koop_id"], room["player_token"], False,
+                [("twitch", "kontexto"), ("tiktok", "kontexto.de")],
+            )
+        finally:
+            await conn.close()
+
+        started = []
+
+        class IdleReader:
+            def __init__(self, platform, channel):
+                started.append((platform, channel))
+
+            async def run(self, on_message, on_state):
+                await asyncio.sleep(3600)
+
+        def resolve(game_number, word):
+            rank = ranks.get(word)
+            return None if rank is None else {"word": word, "rank": rank}
+
+        ingest = LiveChatIngest(db, resolve, reader_factory=IdleReader)
+        await ingest.reconcile()
+        return room["koop_id"], ingest, started
+
+    async def _query(self, db, sql, *args):
+        conn = await get_db(db)
+        try:
+            cursor = await conn.execute(sql, args)
+            return [tuple(row) for row in await cursor.fetchall()]
+        finally:
+            await conn.close()
+
+    async def _edit(self, db, action):
+        conn = await get_db(db)
+        try:
+            return await action(conn)
+        finally:
+            await conn.close()
+
+    def test_each_chat_has_its_reader(self, db):
+        async def run():
+            koop_id, ingest, started = await self._ready(db, {})
+            assert sorted(started) == [("tiktok", "kontexto.de"), ("twitch", "kontexto")]
+            assert set(ingest._tasks) == {(koop_id, "twitch"), (koop_id, "tiktok")}
+            ingest.shutdown()
+
+        self._run(run())
+
+    def test_both_chats_land_on_one_board_with_their_source(self, db):
+        async def run():
+            koop_id, ingest, _ = await self._ready(db, {"apfel": 42, "birne": 7})
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel"))
+            await ingest.handle_message(koop_id, "tiktok", self._message("tt:1", "Mara", "birne"))
+            ingest.shutdown()
+
+            assert await self._query(
+                db, "SELECT word, nickname, source FROM koop_guesses WHERE koop_id = ? ORDER BY id",
+                koop_id,
+            ) == [("apfel", "Mara", "twitch"), ("birne", "Mara", "tiktok")]
+            # Two people who share a name are two entries, one per platform.
+            assert await self._query(
+                db, "SELECT platform, external_id FROM live_viewers ORDER BY platform"
+            ) == [("tiktok", "tt:1"), ("twitch", "1")]
+            # Each channel's book gets its own guess.
+            assert await self._query(
+                db, "SELECT platform, channel, guesses, viewers FROM live_stream_stats "
+                "ORDER BY platform"
+            ) == [("tiktok", "kontexto.de", 1, 1), ("twitch", "kontexto", 1, 1)]
+
+        self._run(run())
+
+    def test_the_cooldown_is_per_platform_identity(self, db):
+        async def run():
+            koop_id, ingest, _ = await self._ready(db, {"apfel": 42, "birne": 7})
+            # The same raw id on both platforms is not the same person.
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "A", "apfel"))
+            await ingest.handle_message(koop_id, "tiktok", self._message("1", "B", "birne"))
+            ingest.shutdown()
+            assert len(await self._query(db, "SELECT id FROM koop_guesses")) == 2
+
+        self._run(run())
+
+    def test_a_paused_chat_stops_counting_and_resumes_without_a_new_reader(self, db):
+        from live_chat import set_channel_paused
+
+        async def run():
+            koop_id, ingest, started = await self._ready(
+                db, {"apfel": 42, "birne": 7, "kirsche": 3}
+            )
+            await self._edit(db, lambda c: set_channel_paused(c, koop_id, "tiktok", True))
+            await ingest.reconcile()
+
+            await ingest.handle_message(koop_id, "tiktok", self._message("tt:1", "A", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "B", "birne"))
+            assert await self._query(db, "SELECT word FROM koop_guesses") == [("birne",)]
+
+            await self._edit(db, lambda c: set_channel_paused(c, koop_id, "tiktok", False))
+            await ingest.reconcile()
+            await ingest.handle_message(koop_id, "tiktok", self._message("tt:3", "C", "kirsche"))
+            assert await self._query(
+                db, "SELECT word FROM koop_guesses ORDER BY id"
+            ) == [("birne",), ("kirsche",)]
+            # The TikTok reader was never restarted.
+            assert started.count(("tiktok", "kontexto.de")) == 1
+            ingest.shutdown()
+
+        self._run(run())
+
+    def test_a_removed_chat_loses_its_reader_and_its_lines(self, db):
+        from live_chat import remove_live_channel
+
+        async def run():
+            koop_id, ingest, _ = await self._ready(db, {"apfel": 42})
+            tiktok_task = ingest._tasks[(koop_id, "tiktok")]
+            await self._edit(db, lambda c: remove_live_channel(c, koop_id, "tiktok"))
+            await ingest.reconcile()
+            await asyncio.sleep(0)
+            assert (koop_id, "tiktok") not in ingest._tasks
+            assert tiktok_task.cancelled() or tiktok_task.done()
+            assert (koop_id, "twitch") in ingest._tasks
+
+            await ingest.handle_message(koop_id, "tiktok", self._message("tt:1", "A", "apfel"))
+            assert await self._query(db, "SELECT word FROM koop_guesses") == []
+            ingest.shutdown()
+
+        self._run(run())
+
+    def test_a_chat_added_later_gets_a_reader(self, db):
+        from koop import create_koop
+        from live_chat import add_live_channel, create_live_room
+        from live_ingest import LiveChatIngest
+
+        async def run():
+            conn = await get_db(db)
+            try:
+                room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+                await create_live_room(
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
+                )
+            finally:
+                await conn.close()
+            koop_id = room["koop_id"]
+
+            class IdleReader:
+                def __init__(self, platform, channel):
+                    pass
+
+                async def run(self, on_message, on_state):
+                    await asyncio.sleep(3600)
+
+            ingest = LiveChatIngest(db, lambda n, w: None, reader_factory=IdleReader)
+            await ingest.reconcile()
+            assert set(ingest._tasks) == {(koop_id, "twitch")}
+            await self._edit(db, lambda c: add_live_channel(c, koop_id, "tiktok", "kontexto.de"))
+            await ingest.reconcile()
+            assert set(ingest._tasks) == {(koop_id, "twitch"), (koop_id, "tiktok")}
+            ingest.shutdown()
+
+        self._run(run())
+
+    def test_a_new_round_is_counted_for_every_chat(self, db):
+        async def run():
+            koop_id, ingest, _ = await self._ready(db, {})
+            conn = await get_db(db)
+            try:
+                await conn.execute("UPDATE koops SET round = 2 WHERE id = ?", (koop_id,))
+                await conn.commit()
+            finally:
+                await conn.close()
+            await ingest.reconcile()
+            ingest.shutdown()
+            assert await self._query(
+                db, "SELECT platform, rounds FROM live_stream_stats ORDER BY platform"
+            ) == [("tiktok", 1), ("twitch", 1)]
 
         self._run(run())
 
@@ -384,7 +580,7 @@ class TestStreamStats:
             try:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 await create_live_room(
-                    conn, room["koop_id"], "twitch", "kontexto", room["player_token"], False
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
                 )
                 await record_stream_event(conn, "twitch", "kontexto", "guesses", rank=9)
                 await conn.execute(
@@ -412,11 +608,14 @@ class TestStreamStats:
             try:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 await create_live_room(
-                    conn, room["koop_id"], "twitch", "kontexto", room["player_token"], False
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
                 )
                 active = await active_streams(conn)
                 assert len(active) == 1
-                assert active[0]["channel"] == "kontexto"
+                assert active[0]["channels"] == [
+                    {"platform": "twitch", "channel": "kontexto", "chat_state": "connecting",
+                     "paused": False}
+                ]
                 assert active[0]["round"] == 1
 
                 await stop_live_room(conn, room["koop_id"], room["player_token"])
@@ -450,7 +649,7 @@ class TestReaderChoice:
                 for platform, channel in (("twitch", "kontexto"), ("tiktok", "kontexto.de")):
                     room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                     await create_live_room(
-                        conn, room["koop_id"], platform, channel, room["player_token"], False,
+                        conn, room["koop_id"], room["player_token"], False, [(platform, channel)],
                     )
             finally:
                 await conn.close()
@@ -479,7 +678,7 @@ class TestAbsentHost:
         try:
             room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
             await create_live_room(
-                conn, room["koop_id"], "twitch", "kontexto", room["player_token"], False,
+                conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")],
             )
             await conn.execute(
                 "UPDATE live_rooms SET host_seen_at = datetime('now', '-10 minutes')"
@@ -518,7 +717,7 @@ class TestAbsentHost:
             now[0] += 299
             await ingest.reconcile()
             assert await self._bound(db, koop_id)
-            assert koop_id in ingest._tasks
+            assert (koop_id, "twitch") in ingest._tasks
             ingest.shutdown()
 
         asyncio.run(run())
@@ -529,12 +728,12 @@ class TestAbsentHost:
             now = [1000.0]
             ingest = self._ingest(db, lambda: now[0])
             await ingest.reconcile()
-            assert koop_id in ingest._tasks
+            assert (koop_id, "twitch") in ingest._tasks
             now[0] += 300
             await ingest.reconcile()
             assert not await self._bound(db, koop_id)
             # The reader is dropped in the same pass.
-            assert koop_id not in ingest._tasks
+            assert (koop_id, "twitch") not in ingest._tasks
             ingest.shutdown()
 
         asyncio.run(run())

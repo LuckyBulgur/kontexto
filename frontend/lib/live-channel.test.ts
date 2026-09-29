@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { channelAddress, channelLabel, normaliseChannel } from "./live-channel";
+import {
+  channelAddress,
+  channelLabel,
+  normaliseChannel,
+  readyChannels,
+  showsPlatformMarks,
+} from "./live-channel";
 
 describe("Twitch channel names", () => {
   it("takes a plain name", () => {
@@ -59,5 +65,47 @@ describe("TikTok channel names", () => {
     expect(channelLabel("kontexto", "tiktok")).toBe("@kontexto");
     expect(channelAddress("kontexto", "twitch")).toBe("twitch.tv/kontexto");
     expect(channelLabel("kontexto", "twitch")).toBe("kontexto");
+  });
+});
+
+describe("platform marks", () => {
+  it("stay off while one platform plays", () => {
+    expect(showsPlatformMarks([])).toBe(false);
+    expect(showsPlatformMarks(["twitch", "twitch", null, undefined])).toBe(false);
+  });
+
+  it("come on once two platforms are in play, from any source", () => {
+    expect(showsPlatformMarks(["twitch", "tiktok"])).toBe(true);
+    // A room back on one chat still shows mixed rows for a while.
+    expect(showsPlatformMarks(["twitch", null, "tiktok"])).toBe(true);
+  });
+});
+
+describe("the chats a create form sends", () => {
+  it("needs at least one chat", () => {
+    expect(readyChannels([], { twitch: "kontexto" })).toBeNull();
+  });
+
+  it("sends every ticked chat, normalised", () => {
+    expect(
+      readyChannels(["twitch", "tiktok"], {
+        twitch: "https://twitch.tv/Kontexto",
+        tiktok: "@Kontexto.DE",
+      })
+    ).toEqual([
+      { platform: "twitch", channel: "kontexto" },
+      { platform: "tiktok", channel: "kontexto.de" },
+    ]);
+  });
+
+  it("waits until every ticked field is valid", () => {
+    expect(readyChannels(["twitch", "tiktok"], { twitch: "kontexto" })).toBeNull();
+    expect(readyChannels(["twitch", "tiktok"], { twitch: "kontexto", tiktok: "endet." })).toBeNull();
+  });
+
+  it("ignores a name typed for a platform that is not ticked", () => {
+    expect(readyChannels(["tiktok"], { twitch: "kontexto", tiktok: "kontexto" })).toEqual([
+      { platform: "tiktok", channel: "kontexto" },
+    ]);
   });
 });

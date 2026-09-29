@@ -33,12 +33,14 @@ const POLL_MS = 5000;
 /** Mirrors live_chat.HOST_MESSAGE_MAX_CHARS; the server has the last word. */
 const MAX_CHARS = 280;
 
-const PLATFORM_NAMES: Record<AdminLiveStream["platform"], string> = {
+type StreamChannel = AdminLiveStream["channels"][number];
+
+const PLATFORM_NAMES: Record<StreamChannel["platform"], string> = {
   twitch: "Twitch",
   tiktok: "TikTok",
 };
 
-const CHAT_STATE_LABELS: Record<AdminLiveStream["chat_state"], string> = {
+const CHAT_STATE_LABELS: Record<StreamChannel["chat_state"], string> = {
   connecting: "verbindet",
   live: "Chat verbunden",
   error: "Chat getrennt",
@@ -51,10 +53,15 @@ const SEND_ERRORS: Record<string, string> = {
   unauthorized: "Die Anmeldung ist abgelaufen. Bitte neu anmelden.",
 };
 
-function channelUrl(stream: AdminLiveStream): string {
-  return stream.platform === "tiktok"
-    ? `https://www.tiktok.com/@${encodeURIComponent(stream.channel)}/live`
-    : `https://www.twitch.tv/${encodeURIComponent(stream.channel)}`;
+function channelUrl(channel: StreamChannel): string {
+  return channel.platform === "tiktok"
+    ? `https://www.tiktok.com/@${encodeURIComponent(channel.channel)}/live`
+    : `https://www.twitch.tv/${encodeURIComponent(channel.channel)}`;
+}
+
+/** How a toast names a stream: every channel it reads. */
+function streamName(stream: AdminLiveStream): string {
+  return stream.channels.map((c) => c.channel).join(" und ") || stream.koop_id;
 }
 
 /** "18:04" in Berlin time, the part of a stamp that matters within one evening. */
@@ -163,7 +170,7 @@ function StreamCard({
     try {
       await sendHostMessage(token, stream.koop_id, trimmed);
       setText("");
-      toast.success(`Nachricht an ${stream.channel} gesendet`);
+      toast.success(`Nachricht an ${streamName(stream)} gesendet`);
       await onChange();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
@@ -177,7 +184,7 @@ function StreamCard({
     setEnding(true);
     try {
       await endLiveStream(token, stream.koop_id);
-      toast.success(`Runde von ${stream.channel} beendet`);
+      toast.success(`Runde von ${streamName(stream)} beendet`);
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       // Already over is the outcome that was asked for; say so and move on.
@@ -192,25 +199,36 @@ function StreamCard({
   return (
     <Panel>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <a
-            href={channelUrl(stream)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 font-display text-h3 font-bold text-foreground underline-offset-4 hover:underline"
-          >
-            <span className="truncate">{stream.channel}</span>
-            <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="sr-only">{`auf ${PLATFORM_NAMES[stream.platform]} öffnen`}</span>
-          </a>
+        <div className="min-w-0 space-y-1">
+          <ul className="flex list-none flex-col gap-1" aria-label="Chats">
+            {stream.channels.map((channel) => (
+              <li key={channel.platform} className="flex flex-wrap items-center gap-2">
+                <a
+                  href={channelUrl(channel)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-w-0 items-center gap-1.5 font-display text-h3 font-bold text-foreground underline-offset-4 hover:underline"
+                >
+                  <span className="truncate">{channel.channel}</span>
+                  <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="sr-only">{`auf ${PLATFORM_NAMES[channel.platform]} öffnen`}</span>
+                </a>
+                <span className="text-small text-muted-foreground">
+                  {PLATFORM_NAMES[channel.platform]}
+                </span>
+                <Badge
+                  variant={channel.chat_state === "live" && !channel.paused ? "secondary" : "outline"}
+                >
+                  {channel.paused ? "pausiert" : CHAT_STATE_LABELS[channel.chat_state]}
+                </Badge>
+              </li>
+            ))}
+          </ul>
           <p className="text-small text-muted-foreground">
-            {`${PLATFORM_NAMES[stream.platform]}, läuft seit ${clockTime(stream.created_at)} Uhr, zuletzt aktiv ${clockTime(stream.last_activity)} Uhr`}
+            {`Läuft seit ${clockTime(stream.created_at)} Uhr, zuletzt aktiv ${clockTime(stream.last_activity)} Uhr`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={stream.chat_state === "live" ? "secondary" : "outline"}>
-            {CHAT_STATE_LABELS[stream.chat_state]}
-          </Badge>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" disabled={ending}>
@@ -220,7 +238,7 @@ function StreamCard({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{`Runde von ${stream.channel} beenden?`}</AlertDialogTitle>
+                <AlertDialogTitle>{`Runde von ${streamName(stream)} beenden?`}</AlertDialogTitle>
                 <AlertDialogDescription>
                   {"Der Chat rät danach nicht mehr mit, und die Einblendung im Stream wird leer. Das Brett auf der Seite des Streamers bleibt stehen, dort lässt sich das Wort noch auflösen. Der Kanal kann sofort eine neue Runde starten."}
                 </AlertDialogDescription>

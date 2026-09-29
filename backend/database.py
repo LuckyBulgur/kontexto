@@ -97,6 +97,10 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
     word TEXT NOT NULL,
     rank INTEGER NOT NULL,
     is_tip BOOLEAN NOT NULL DEFAULT 0,
+    -- Where a guess came from: NULL for a person at a keyboard, the platform
+    -- name ('twitch', 'tiktok') for a line out of a live room's chat. Read by
+    -- the stream overlay, which marks names by platform once two chats play.
+    source TEXT,
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(koop_id, word)
 );
@@ -104,20 +108,17 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
 -- Live chat mode: a koop room whose second input channel is a livestream chat.
 -- Deliberately a binding table next to `koops` rather than a fourth table
 -- triple, because the round, the shared guess list and the whole broadcast path
--- are koop's and stay koop's. What is new is only the binding of one room to one
--- channel.
+-- are koop's and stay koop's. What is new is only the binding of one room to
+-- its chats (live_channels, one per platform).
 --
 -- A live room has two koop_players rows and never more: the host, and one that
--- stands for the whole chat. Viewers do not become players, because a chat with
--- a few thousand people would produce a few thousand rows and a player_joined
--- frame per row out of the koop poll loop. Their guesses are written under the
--- chat's token with the chatter's display name, and their standing lives in
--- live_viewers.
+-- stands for every chat it reads. Viewers do not become players, because a chat
+-- with a few thousand people would produce a few thousand rows and a
+-- player_joined frame per row out of the koop poll loop. Their guesses are
+-- written under the chat's token with the chatter's display name, and their
+-- standing lives in live_viewers.
 CREATE TABLE IF NOT EXISTS live_rooms (
     koop_id TEXT PRIMARY KEY REFERENCES koops(id) ON DELETE CASCADE,
-    platform TEXT NOT NULL,
-    -- Lowercased channel login, never the display name.
-    channel TEXT NOT NULL,
     host_token TEXT NOT NULL,
     -- The chat writes its guesses as its own koop player, not as the host.
     -- The koop broadcast excludes the author of a guess from the frame it
@@ -126,10 +127,6 @@ CREATE TABLE IF NOT EXISTS live_rooms (
     chat_token TEXT NOT NULL DEFAULT '',
     overlay_token TEXT NOT NULL UNIQUE,
     require_prefix BOOLEAN NOT NULL DEFAULT 0,
-    -- connecting | live | error, written by the reader task in the WS worker.
-    chat_state TEXT NOT NULL DEFAULT 'connecting',
-    chat_error TEXT,
-    last_chat_at TIMESTAMP,
     -- The last time the host page asked for this room, raised at most every
     -- 30 s. A room nobody has had open for HOST_ABSENT_SECONDS is unbound by
     -- the ingest in the WS worker (live_chat.unbind_absent_rooms).
@@ -137,11 +134,30 @@ CREATE TABLE IF NOT EXISTS live_rooms (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- The chats a live room reads, at most one per platform, so a streamer who
+-- multistreams lets Twitch and TikTok guess on the same board. A bound room
+-- always has at least one row here (live_chat.remove_live_channel refuses the
+-- last one); the rows go with the room.
+CREATE TABLE IF NOT EXISTS live_channels (
+    koop_id TEXT NOT NULL REFERENCES live_rooms(koop_id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    -- Lowercased channel login, never the display name.
+    channel TEXT NOT NULL,
+    -- connecting | live | error, written by the reader task in the WS worker.
+    chat_state TEXT NOT NULL DEFAULT 'connecting',
+    chat_error TEXT,
+    -- Set by the host: the reader stays connected, its lines stop counting
+    -- until the host resumes.
+    paused BOOLEAN NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (koop_id, platform)
+);
+
 -- One room per channel at a time. Anybody may open a room by typing a channel
 -- name, so without this two people could bind two rooms to one chat and every
 -- message would be counted twice, in two different games.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_live_rooms_channel
-    ON live_rooms(platform, channel);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_live_channels_channel
+    ON live_channels(platform, channel);
 
 -- A short note from the operator to the streamer ("thanks for the stream"),
 -- delivered through the host's own poll and shown only on the host page, never
@@ -555,6 +571,49 @@ async def configure_connection(db: aiosqlite.Connection) -> None:
     await db.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
 
 
+# The columns a live room carried while it could read only one chat. They moved
+# to live_channels (2026-09-30); last_chat_at was never written and goes too.
+_LEGACY_LIVE_ROOM_COLUMNS = ("platform", "channel", "chat_state", "chat_error", "last_chat_at")
+
+
+async def _live_room_columns(db: aiosqlite.Connection) -> set[str]:
+    cursor = await db.execute("PRAGMA table_info(live_rooms)")
+    return {row[1] for row in await cursor.fetchall()}
+
+
+async def _migrate_live_channels(db: aiosqlite.Connection) -> None:
+    """Move a single-chat live room's binding into live_channels.
+
+    Every worker runs init_db at startup, all five at once after a deploy, so
+    the move happens under BEGIN IMMEDIATE and the column check is repeated
+    inside it: the first worker migrates, the others wait on the busy timeout
+    and then find nothing left to do. A room that is on air during the deploy
+    keeps its chat, with its state, because the rows are copied, not rebuilt.
+    DROP COLUMN needs SQLite 3.35 and refuses an indexed column, hence the
+    index goes first.
+    """
+    if "platform" not in await _live_room_columns(db):
+        return
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        columns = await _live_room_columns(db)
+        if "platform" in columns:
+            await db.execute(
+                "INSERT OR IGNORE INTO live_channels "
+                "(koop_id, platform, channel, chat_state, chat_error, created_at) "
+                "SELECT koop_id, platform, channel, chat_state, chat_error, created_at "
+                "FROM live_rooms"
+            )
+            await db.execute("DROP INDEX IF EXISTS idx_live_rooms_channel")
+            for column in _LEGACY_LIVE_ROOM_COLUMNS:
+                if column in columns:
+                    await db.execute(f"ALTER TABLE live_rooms DROP COLUMN {column}")
+        await db.commit()
+    except BaseException:
+        await db.rollback()
+        raise
+
+
 async def init_db(db_path: str) -> None:
     """Create tables if they don't exist."""
     db = await aiosqlite.connect(db_path)
@@ -602,6 +661,13 @@ async def init_db(db_path: str) -> None:
             )
         except Exception:
             pass  # column already exists
+        # Migration koop "Herkunft": which chat a guess came from.
+        try:
+            await db.execute("ALTER TABLE koop_guesses ADD COLUMN source TEXT")
+        except Exception:
+            pass  # column already exists
+        await db.commit()
+        await _migrate_live_channels(db)
         # Migration word rating v2: comments name their word, and the ledger keyed
         # by game number is gone, because a pool rebuild renumbers the games.
         try:
