@@ -110,6 +110,11 @@ function avgGuessesPerSolveTimeline(
 }
 
 /** Next "round" milestone above n (100, 200, 500, 1k, 2k, 5k, 10k, …). */
+/** Sum of a per-mode counter map; a missing map counts as zero. */
+function sumValues(values: Record<string, number> | undefined): number {
+  return Object.values(values ?? {}).reduce((a, b) => a + b, 0);
+}
+
 function nextMilestone(n: number): number {
   if (n < 100) return 100;
   const pow = 10 ** Math.floor(Math.log10(n));
@@ -637,6 +642,12 @@ function MethodologySection({ stats }: SectionProps) {
                   <span> ({Object.entries(stats.duels_created).map(([k, v]) =>
                     `${MODE_LABELS[k] ?? k}: ${formatNumber(v)}`).join(", ")})</span>
                 )}
+              </li>
+              <li>Zufallsrunden gebildet: <span className="font-medium text-foreground">
+                {formatNumber(sumValues(stats.matchmaking_rooms?.matches_made))}</span>
+                <span>, davon mit Servermitspielern: </span>
+                <span className="font-medium text-foreground">
+                  {formatNumber(sumValues(stats.matchmaking_rooms?.bot_fills))}</span>
               </li>
               <li>Klebrigkeit (Tag/Monat): <span className="font-medium text-foreground">{formatPercent(stats.stickiness)}</span></li>
               <li>Rohdaten-Aufbewahrung: 35 Tage, danach nur aggregierte Werte.</li>

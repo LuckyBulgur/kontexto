@@ -11,3 +11,8 @@ independent.
 import os
 
 os.environ.setdefault("KONTEXTO_SERVER_SECRET", "test-secret")
+
+# The server players (room_bots.py) move on their own once a second in the WS
+# worker. An app booted by a test client must not start that loop behind the
+# test's back; test_room_bots.py drives the functions directly instead.
+os.environ.setdefault("KONTEXTO_BOTS", "0")

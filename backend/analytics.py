@@ -1936,6 +1936,15 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = 'duels_created' GROUP BY dimension"
     )
     duels_created = {dim: v for dim, v in await cur.fetchall()}
+    # Queue rooms, and how many of them the server topped up with its own
+    # players (room_bots.py). Admin only; no public figure reads either.
+    cur = await db.execute(
+        "SELECT metric, dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric IN ('matches_made', 'bot_fills') GROUP BY metric, dimension"
+    )
+    matchmaking_rooms: dict[str, dict[str, int]] = {"matches_made": {}, "bot_fills": {}}
+    for metric, dim, v in await cur.fetchall():
+        matchmaking_rooms[metric][dim] = v
 
     # Client-reported distributions (attempts / time-to-solve / give-up rank / tips).
     distributions: dict[str, dict[str, int]] = {}
@@ -2128,6 +2137,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "solve_rate_timeline": solve_rate_timeline,
         "games_by_mode": games_by_mode,
         "duels_created": duels_created,
+        "matchmaking_rooms": matchmaking_rooms,
         "engagement": engagement,
         "hints_by_difficulty": hints_by_difficulty,
         "distributions": distributions,

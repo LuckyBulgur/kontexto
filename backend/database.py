@@ -289,6 +289,30 @@ CREATE TABLE IF NOT EXISTS matchmaking_queue (
 CREATE INDEX IF NOT EXISTS idx_matchmaking_waiting
     ON matchmaking_queue(mode, matched_room_id, enqueued_at);
 
+-- Server-side players in matchmaking rooms (room_bots.py). A side table and
+-- not a flag on the four player tables, so no existing SELECT on a player
+-- table can carry the distinction into a response or a socket frame.
+-- player_token is NULL while a staggered join is still pending; the join is
+-- then due at next_action_at like any other move.
+CREATE TABLE IF NOT EXISTS room_bots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mode TEXT NOT NULL,
+    room_id TEXT NOT NULL,
+    player_token TEXT UNIQUE,
+    nickname TEXT NOT NULL,
+    skill REAL NOT NULL,
+    openers INTEGER NOT NULL,
+    patience_seconds INTEGER NOT NULL,
+    rounds_left INTEGER NOT NULL,
+    round INTEGER NOT NULL DEFAULT 0,
+    next_action_at TEXT NOT NULL,
+    human_seen_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_room_bots_due ON room_bots(next_action_at);
+CREATE INDEX IF NOT EXISTS idx_room_bots_room ON room_bots(room_id);
+
 CREATE TABLE IF NOT EXISTS wordle_duels (
     id TEXT PRIMARY KEY,
     game_number INTEGER NOT NULL,

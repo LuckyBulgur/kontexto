@@ -84,6 +84,10 @@ export default defineConfig({
         // 1 s, so a queue test waits one pairing pass instead of the real
         // grace. Honoured only with KONTEXTO_DEV; see backend/matchmaking.py.
         KONTEXTO_MATCHMAKING_GRACE_CAP: "1",
+        // No server players in the suite: the queue specs pair two browsers
+        // and count the players in the room, and a seat the server filled
+        // would make that count depend on timing. See backend/room_bots.py.
+        KONTEXTO_BOTS: "0",
       },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,

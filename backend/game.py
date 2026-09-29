@@ -433,14 +433,30 @@ class GameState:
         else:  # hard
             target_rank = random.randint(2, max(2, best_rank - 1))
 
+        return self._nearest_hint(view, target_rank, guessed_set)
+
+    def word_near_rank(self, game_number: int, rank: int, used_ranks: set[int]) -> dict | None:
+        """The everyday word nearest to ``rank`` that is not in ``used_ranks``.
+
+        The same search a tip runs, over the same handout-safe list, so a word
+        chosen this way is one the game would also name on its own. Rank 1 is
+        never returned. Used by the server-side players in ``room_bots``.
+        """
+        view = self._get_view(game_number)
+        if len(view.hint_ranks) == 0:
+            return None
+        return self._nearest_hint(view, max(2, rank), used_ranks)
+
+    def _nearest_hint(self, view: GameView, target_rank: int, skip: set[int]) -> dict | None:
         # Positions in the hint list, not ranks: the everyday words sit between
         # rare ones, so the nearest one may be several ranks away.
+        hints = view.hint_ranks
         lo = bisect.bisect_right(hints, target_rank) - 1
         hi = lo + 1
         while lo >= 0 or hi < len(hints):
-            if lo >= 0 and int(hints[lo]) not in guessed_set:
+            if lo >= 0 and int(hints[lo]) not in skip:
                 return self._entry(view, int(hints[lo]))
-            if hi < len(hints) and int(hints[hi]) not in guessed_set:
+            if hi < len(hints) and int(hints[hi]) not in skip:
                 return self._entry(view, int(hints[hi]))
             lo -= 1
             hi += 1

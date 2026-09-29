@@ -287,6 +287,11 @@ export interface StatsData {
   solve_rate_timeline: TimelinePoint[];
   games_by_mode: Record<string, number>;
   duels_created: Record<string, number>;
+  /** Queue rooms formed, and how many of them got server players. Absent on an older backend. */
+  matchmaking_rooms?: {
+    matches_made: Record<string, number>;
+    bot_fills: Record<string, number>;
+  };
   engagement: {
     guesses_total: number;
     solves_total: number;

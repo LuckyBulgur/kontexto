@@ -16,6 +16,11 @@ the individual modes:
   ticket into two rooms.
 * **A ticket expires.** A tab closed while waiting must not keep a phantom
   player in the queue forever.
+* **Server players top up a room, never make one.** With a ``fill`` policy
+  (``room_bots.FillPolicy``) a player alone in the queue gets company after a
+  short wait, and a party of people sometimes gets one or two more. People are
+  always paired with people first, and nothing here ever builds a room without
+  at least one ticket in it.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Protocol
 
 import aiosqlite
 
@@ -195,6 +201,10 @@ _ROOM_TABLES: tuple[tuple[str, str, str, str], ...] = (
 )
 
 
+# The seats the server fills itself. Kept out of every figure a player reads.
+_SERVER_PLAYERS = "SELECT player_token FROM room_bots WHERE player_token IS NOT NULL"
+
+
 async def playing_counts(db: aiosqlite.Connection) -> dict[str, int]:
     """How many players are in a live room per mode.
 
@@ -204,7 +214,8 @@ async def playing_counts(db: aiosqlite.Connection) -> dict[str, int]:
     leaves behind, since nothing clears the flag on the way out.
 
     Rooms from invite links count as well. The question this answers is how busy
-    a mode is, not how many players came through the queue.
+    a mode is, not how many players came through the queue. Server players
+    (``room_bots``) do not count: this is a figure about people.
     """
     counts: dict[str, int] = {mode: 0 for mode in QUEUE_MODES}
 
@@ -212,7 +223,8 @@ async def playing_counts(db: aiosqlite.Connection) -> dict[str, int]:
         cursor = await db.execute(
             f"SELECT COUNT(*) AS cnt FROM {players} p "
             f"JOIN {rooms} r ON r.id = p.{fk} "
-            "WHERE p.connected = 1 AND r.last_activity > datetime('now', ?)",
+            "WHERE p.connected = 1 AND r.last_activity > datetime('now', ?) "
+            f"AND p.player_token NOT IN ({_SERVER_PLAYERS})",
             (ACTIVE_ROOM_WINDOW,),
         )
         row = await cursor.fetchone()
@@ -225,7 +237,8 @@ async def playing_counts(db: aiosqlite.Connection) -> dict[str, int]:
         "SELECT a.mode AS mode, COUNT(*) AS cnt FROM arena_players p "
         "JOIN arenas a ON a.id = p.arena_id "
         "WHERE p.connected = 1 AND a.status != 'finished' "
-        "AND a.last_activity > datetime('now', ?) GROUP BY a.mode",
+        "AND a.last_activity > datetime('now', ?) "
+        f"AND p.player_token NOT IN ({_SERVER_PLAYERS}) GROUP BY a.mode",
         (ACTIVE_ROOM_WINDOW,),
     )
     for row in await cursor.fetchall():
@@ -267,15 +280,37 @@ async def reset_connected_flags(db: aiosqlite.Connection) -> int:
     return cleared
 
 
+class Fill(Protocol):
+    """What the queue asks of a server-player policy (``room_bots.FillPolicy``)."""
+
+    def lone_delay(self, mode: str, ticket: str) -> float: ...
+    def bots_for_lone(self, mode: str, humans: int, minimum: int, maximum: int, ticket: str) -> int: ...
+    def bots_for_party(self, mode: str, humans: int, maximum: int, ticket: str) -> int: ...
+    def joins_immediately(self, mode: str) -> bool: ...
+    def names(self, count: int) -> list[str]: ...
+    async def capacity(self, db: aiosqlite.Connection) -> int: ...
+    async def attach(
+        self, db: aiosqlite.Connection, mode: str, room_id: str,
+        joined: list[tuple[str, str]], deferred: int, now: datetime,
+    ) -> None: ...
+
+
 async def run_matchmaking(
-    db: aiosqlite.Connection, create_room, now: datetime | None = None
+    db: aiosqlite.Connection,
+    create_room,
+    now: datetime | None = None,
+    fill: Fill | None = None,
 ) -> list[dict]:
     """Form every party that can be formed right now.
 
     ``create_room(db, mode, nicknames)`` builds the actual room and returns
     ``(room_id, tokens)`` with one token per nickname, in the same order; this
     module deliberately knows nothing about duels, koops or arenas. Returns one
-    entry per room created.
+    entry per room created, with ``bots`` set to the server players it got.
+
+    Without ``fill`` only people are paired, exactly as before. With it, a party
+    that formed on its own may get server players on top, and a ticket that has
+    waited alone for the policy's delay gets a room of its own.
     """
     now = now or datetime.now(timezone.utc)
     created: list[dict] = []
@@ -284,14 +319,52 @@ async def run_matchmaking(
         rule = PARTY_RULES[mode]
         while True:
             party = await _next_party(db, mode, rule, now)
+            bots = 0
+            if party:
+                if fill is not None:
+                    bots = fill.bots_for_party(mode, len(party), rule.maximum, party[0]["ticket"])
+            elif fill is not None:
+                party, bots = await _lone_party(db, mode, rule, now, fill)
             if not party:
                 break
-            room = await _claim(db, mode, party, create_room)
+            if bots and fill is not None:
+                bots = min(bots, await fill.capacity(db))
+                if len(party) + bots < rule.minimum:
+                    # The server is at its cap. The ticket keeps waiting for a
+                    # person, which is what it did before server players existed.
+                    break
+            room = await _claim(db, mode, party, create_room, bots, fill, now)
             if room is None:
                 break
             created.append(room)
 
     return created
+
+
+async def _lone_party(
+    db: aiosqlite.Connection, mode: str, rule: PartyRule, now: datetime, fill: Fill
+) -> tuple[list[aiosqlite.Row], int]:
+    """The waiting tickets that get server players because nobody else came.
+
+    Only reached when ``_next_party`` found no party of people, so a second
+    person in the queue always wins the seat over a server player.
+    """
+    cursor = await db.execute(
+        "SELECT ticket, nickname, enqueued_at FROM matchmaking_queue "
+        "WHERE mode = ? AND matched_room_id IS NULL ORDER BY enqueued_at, rowid LIMIT ?",
+        (mode, rule.maximum),
+    )
+    waiting = list(await cursor.fetchall())
+    if not waiting:
+        return [], 0
+    oldest = parse_iso(waiting[0]["enqueued_at"])
+    if oldest is None:
+        return [], 0
+    ticket = waiting[0]["ticket"]
+    if now - oldest < timedelta(seconds=fill.lone_delay(mode, ticket)):
+        return [], 0
+    bots = fill.bots_for_lone(mode, len(waiting), rule.minimum, rule.maximum, ticket)
+    return (waiting, bots) if bots > 0 else ([], 0)
 
 
 async def _next_party(
@@ -319,7 +392,13 @@ async def _next_party(
 
 
 async def _claim(
-    db: aiosqlite.Connection, mode: str, party: list[aiosqlite.Row], create_room
+    db: aiosqlite.Connection,
+    mode: str,
+    party: list[aiosqlite.Row],
+    create_room,
+    bots: int = 0,
+    fill: Fill | None = None,
+    now: datetime | None = None,
 ) -> dict | None:
     """Reserve these tickets, then build the room they were reserved for.
 
@@ -339,7 +418,9 @@ async def _claim(
         if cursor.rowcount == 1:
             claimed.append(row)
 
-    if len(claimed) < PARTY_RULES[mode].minimum:
+    rule = PARTY_RULES[mode]
+    bots = max(0, min(bots, rule.maximum - len(claimed))) if fill is not None else 0
+    if not claimed or len(claimed) + bots < rule.minimum:
         # Not enough of the party was still free. Release what was reserved so
         # the next pass can try again with whoever is actually waiting.
         for row in claimed:
@@ -351,9 +432,13 @@ async def _claim(
         return None
 
     nicknames = [row["nickname"] for row in claimed]
+    # Server players of a pair mode sit in the room from its first second; the
+    # others arrive a few seconds later through the bot loop. Either way the
+    # room is created by a person's ticket, which is always nicknames[0].
+    seated = fill.names(bots) if fill is not None and bots and fill.joins_immediately(mode) else []
     # Tokens come back positionally, not keyed by nickname: two players in the
     # same room may well have typed the same name.
-    room_id, tokens = await create_room(db, mode, nicknames)
+    room_id, tokens = await create_room(db, mode, nicknames + seated)
 
     stamp = iso_timestamp(datetime.now(timezone.utc))
     for row, token in zip(claimed, tokens):
@@ -364,11 +449,18 @@ async def _claim(
         )
     await db.commit()
 
+    if fill is not None and bots:
+        joined = list(zip(tokens[len(claimed):], seated))
+        await fill.attach(
+            db, mode, room_id, joined, bots - len(seated), now or datetime.now(timezone.utc)
+        )
+
     return {
         "mode": mode,
         "room_id": room_id,
         "tickets": [row["ticket"] for row in claimed],
         "nicknames": nicknames,
+        "bots": bots,
         "skipped": [t for t in tickets if t not in {row["ticket"] for row in claimed}],
     }
 

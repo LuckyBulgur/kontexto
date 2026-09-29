@@ -130,6 +130,21 @@ class TestGetTip:
         assert "rank" in result
 
 
+class TestWordNearRank:
+    """The word a server player types (room_bots.py): the tip search, handed a
+    target rank and the ranks already on the board."""
+
+    def test_it_returns_the_word_at_the_rank(self, gs):
+        assert gs.word_near_rank(1, 3, set()) == {"word": "kirsche", "rank": 3}
+
+    def test_it_skips_what_is_already_on_the_board(self, gs):
+        assert gs.word_near_rank(1, 3, {3})["rank"] in (2, 4)
+
+    def test_it_never_names_the_solution(self, gs):
+        assert gs.word_near_rank(1, 1, set())["rank"] == 2
+        assert gs.word_near_rank(1, 1, {2, 3, 4, 5}) is None
+
+
 class TestGetGameNumber:
     def test_game_number_from_date(self, gs):
         from datetime import date

@@ -61,6 +61,7 @@ from matchmaking import (
     ticket_status,
     waiting_counts as matchmaking_waiting,
 )
+import room_bots
 from game import GameState
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
@@ -298,12 +299,23 @@ async def lifespan(app: FastAPI):
             await db.close()
         if cleared:
             logger.info("cleared %d stale connection flags at startup", cleared)
+        # Server players have no socket, so the reset above would leave every
+        # one of them "disconnected" in the room it is still playing in.
+        db = await get_db(_db_path)
+        try:
+            await room_bots.restore_connections(db)
+        finally:
+            await db.close()
 
         tasks.append(asyncio.create_task(ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(wordle_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(koop_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(arena_ws_manager.poll_and_broadcast(_db_path)))
         tasks.append(asyncio.create_task(_matchmaking_loop()))
+        if room_bots.bots_enabled():
+            tasks.append(asyncio.create_task(_bots_loop()))
+        else:
+            logger.info("server players are off (%s=0)", room_bots.BOTS_ENV)
         tasks.append(asyncio.create_task(_cleanup_loop()))
         # Live chat mode. Here and only here, like every other loop: four API
         # workers would open four connections to the same chat and count every
@@ -337,6 +349,7 @@ async def _cleanup_loop():
                 await cleanup_stale_wordle_duels(db)
                 await cleanup_stale_arenas(db)
                 await prune_queue(db)
+                await room_bots.prune_orphans(db)
                 await analytics.aggregate_daily(db)
                 await analytics.prune_old_events(db)
                 await analytics.prune_presence(db)
@@ -1955,17 +1968,40 @@ async def _matchmaking_room(db, mode: str, nicknames: list[str]) -> tuple[str, l
 
 async def _matchmaking_loop():
     """Form parties once a second. Single WS worker, so there is one writer."""
+    fill = room_bots.FillPolicy() if room_bots.bots_enabled() else None
     while True:
         await asyncio.sleep(1)
         try:
             db = await get_db(_db_path)
             try:
-                for room in await run_matchmaking(db, _matchmaking_room):
+                for room in await run_matchmaking(db, _matchmaking_room, fill=fill):
                     await analytics.record_action(_db_path, "matches_made", room["mode"])
+                    # Admin only: how many of those rooms the server topped up.
+                    # A room, not a player, and never a guess or a solve.
+                    if room["bots"]:
+                        await analytics.record_action(_db_path, "bot_fills", room["mode"])
             finally:
                 await db.close()
         except Exception:
             logger.exception("matchmaking cycle failed")
+
+
+async def _bots_loop():
+    """Move the server players once a second (room_bots.py). WS worker only.
+
+    Their guesses go through the room modules directly and never through the
+    handlers above, so no analytics counter and no guess log sees them.
+    """
+    while True:
+        await asyncio.sleep(1)
+        try:
+            db = await get_db(_db_path)
+            try:
+                await room_bots.run_bots(db, _get_game_state(), _wordle_state)
+            finally:
+                await db.close()
+        except Exception:
+            logger.exception("server player cycle failed")
 
 
 @app.post("/api/matchmaking/enqueue", response_model=MatchmakingTicketResponse)
