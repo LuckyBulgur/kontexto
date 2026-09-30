@@ -26,7 +26,7 @@ export default function Graveyard() {
   };
 
   const stone = (s: { top: string; bottom: string }) => (
-    <span className="relative flex h-24 w-20 flex-col items-center justify-center pt-4 text-center">
+    <span className="relative flex h-24 w-24 flex-col items-center justify-center px-2 pt-4 text-center">
       <TombstoneGlyph className="absolute inset-0 h-full w-full" />
       <span className="relative font-display text-micro font-bold leading-tight text-foreground">{s.top}</span>
       <span className="relative text-micro leading-tight text-muted-foreground">{s.bottom}</span>

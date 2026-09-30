@@ -74,7 +74,10 @@ export function WordmarkName({ name }: { name: "Kontexto" | "Wördle" }) {
           "h-[0.52em] w-[0.52em] translate-y-[-0.02em] halloween:hidden",
         )}
       />
-      <PumpkinGlyph className="ml-[0.02em] hidden h-[0.74em] w-[0.74em] translate-y-[0.06em] align-baseline halloween:inline-block" />
+      {/* The pumpkin's body fills the lower two thirds of its box (the stem
+          takes the rest), so the box is larger than the ring to read at the
+          same weight, and it drops a little so the body rests on the baseline. */}
+      <PumpkinGlyph className="ml-[0.02em] hidden h-[0.98em] w-[0.98em] translate-y-[0.1em] align-baseline halloween:inline-block" />
       <span className="sr-only">Kontexto</span>
     </>
   );

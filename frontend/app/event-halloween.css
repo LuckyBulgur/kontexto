@@ -145,9 +145,12 @@
    to transparent at the bottom. `spook-full-moon` drops the disc during the
    witching hour and on Halloween itself. */
 .event-halloween body {
-  --moon-x: calc(100% - 56px);
-  --moon-y: 64px;
-  --moon-r: 18px;
+  /* No moon on a phone: every pixel beside the header is a control or a
+     panel there, and a moon behind the menu buttons reads as clutter. A zero
+     radius paints nothing, so the layers below stay one list. */
+  --moon-x: 100%;
+  --moon-y: 0px;
+  --moon-r: 0px;
   background-image:
     radial-gradient(circle at calc(var(--moon-x) + var(--moon-r) * 0.45) calc(var(--moon-y) - var(--moon-r) * 0.3), var(--background) 0 calc(var(--moon-r) * 0.92), transparent calc(var(--moon-r) * 0.92 + 1px)),
     radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
@@ -300,7 +303,10 @@
 
 /* The wings beat a fixed number of times, then the bat is gone anyway. */
 .spook-wings {
-  transform-origin: 50% 40%;
+  /* Inside an SVG a percentage origin means the viewport unless the box is the
+     group's own; without this the wings fold towards the top of the sprite. */
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
   animation: spook-flap 0.16s ease-in-out 11 alternate;
 }
 
@@ -330,10 +336,21 @@
 @keyframes spook-spider {
   0% { transform: translateY(-80px); }
   32% { transform: translateY(34vh); }
-  40% { transform: translateY(32vh) rotate(8deg); }
-  48% { transform: translateY(33vh) rotate(-8deg); }
-  60% { transform: translateY(33vh) rotate(0deg); }
+  38% { transform: translateY(32vh); }
+  60% { transform: translateY(33vh); }
   100% { transform: translateY(-80px); }
+}
+
+/* The spider looks around while it hangs. Only the body turns, from the point
+   where the thread holds it, so the thread itself stays plumb. */
+.spook-spider svg {
+  transform-origin: 50% 0;
+  animation: spook-look 0.45s ease-in-out 1.7s 4 alternate;
+}
+
+@keyframes spook-look {
+  from { transform: rotate(-9deg); }
+  to { transform: rotate(9deg); }
 }
 
 /* Witch: crosses the sky past the moon, right to left, in an arc. */

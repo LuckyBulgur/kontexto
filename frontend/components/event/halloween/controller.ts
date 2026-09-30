@@ -313,13 +313,23 @@ export function isHalloweenDay(date: Date = new Date()): boolean {
   return parts === "10-31";
 }
 
-let witchingHourToastShown = false;
+/** Once per browser session, not once per page: a ghost on every click would be a nuisance. */
+const WITCHING_HOUR_SEEN_KEY = "kontexto_spooktober_witching_hour";
 
 export function enterWitchingHour(): void {
   const isNew = discover("midnight");
-  if (!isNew && !witchingHourToastShown) {
-    toast("Es ist Geisterstunde", { description: "Bis ein Uhr spukt es hier ein bisschen mehr." });
+  let session: Storage | null = null;
+  try {
+    session = window.sessionStorage;
+  } catch {
+    session = null;
   }
-  witchingHourToastShown = true;
+  if (session?.getItem(WITCHING_HOUR_SEEN_KEY)) return;
+  try {
+    session?.setItem(WITCHING_HOUR_SEEN_KEY, "1");
+  } catch {
+    // Storage full or blocked: the ghost may come back on the next page.
+  }
+  if (!isNew) toast("Es ist Geisterstunde", { description: "Bis ein Uhr spukt es hier ein bisschen mehr." });
   play("ghost");
 }

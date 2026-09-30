@@ -18,7 +18,7 @@ export default function HauntedNotFound() {
   return (
     <div className="hidden flex-col items-center gap-3 halloween:flex">
       <GhostGlyph className="h-20 w-20" />
-      <p className="font-spook text-h2 text-primary-ink">{COPY.lost.line}</p>
+      <p className="font-spook text-h3 text-balance text-primary-ink">{COPY.lost.line}</p>
     </div>
   );
 }

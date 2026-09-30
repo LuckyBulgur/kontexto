@@ -35,25 +35,29 @@ async function foundSecrets(page: Page): Promise<string[]> {
 }
 
 test.describe("Spooktober", () => {
-  test("steht vor der Hydration: Klasse, Kürbis im Namen und Kürbis-Knopf ohne JavaScript", async ({ page }) => {
+  test("steht vor der Hydration: Klasse, Kürbis im Namen und Friedhof ohne JavaScript", async ({ page }) => {
     await forceEvent(page);
     // Every script file is refused. The inline head script is part of the
-    // document and still runs; the skin must not need anything else.
+    // document and still runs; the skin must not need anything else. A content
+    // page, because the game page serves its loading skeleton as static HTML.
     await page.route(/\.js(\?|$)/, (route) => route.abort());
-    await page.goto("/");
+    await page.goto("/anleitung/");
     await expect(page.locator("html")).toHaveClass(new RegExp(EVENT_CLASS));
-    await expect(page.getByTestId("spook-pumpkin").first()).toBeVisible();
-    const ringHidden = await page.evaluate(() => {
-      const ring = document.querySelector("header .rounded-full.border-primary");
-      return ring ? getComputedStyle(ring).display === "none" : true;
-    });
-    expect(ringHidden).toBe(true);
+    await expect(page.locator('a[href="/"] svg[viewBox="0 0 64 64"]').first()).toBeVisible();
+    await expect(page.getByTestId("spook-tombstone")).toBeVisible();
+    const ringsShown = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('a[href="/"] .rounded-full.border-primary')).filter(
+        (el) => getComputedStyle(el).display !== "none",
+      ).length,
+    );
+    expect(ringsShown).toBe(0);
   });
 
   test("folgt dem Kalender: an im Oktober, aus ab dem 1. November", async ({ page }) => {
-    // Runs after the fixture's script, so the key is absent when the head
-    // script reads it and the date alone decides.
-    await page.addInitScript((key) => localStorage.removeItem(key), EVENT_FORCE_KEY);
+    // A value the override does not recognise hands the decision back to the
+    // calendar, and a present key keeps the fixture from writing "off", in
+    // whichever order the two init scripts run.
+    await page.addInitScript((key) => localStorage.setItem(key, "calendar"), EVENT_FORCE_KEY);
 
     await page.clock.setFixedTime(new Date("2026-10-15T12:00:00+02:00"));
     await page.goto("/");

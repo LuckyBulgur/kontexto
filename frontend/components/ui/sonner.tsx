@@ -28,6 +28,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      // Sonner paints a description in a fixed #3f3f3f for its light theme,
+      // and the site's dark mode is a class it never sees, so the line was
+      // dark grey on a dark popover. The token clears 4.5:1 on the popover in
+      // both modes (e2e/design-audit.spec.ts, "muted-foreground on card").
+      toastOptions={{ classNames: { description: "text-muted-foreground!" } }}
       {...props}
     />
   )
