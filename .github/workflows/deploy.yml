@@ -11,7 +11,11 @@ on:
       - 'LICENSE'
 
 jobs:
+  # A commit message containing "[skip tests]" skips both test jobs and still
+  # deploys. For an urgent, date-bound ship only; the suites should have been
+  # run locally before (CLAUDE.md, "Before reporting anything done").
   test:
+    if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -42,6 +46,7 @@ jobs:
           KONTEXTO_SPACY_MODEL: de_core_news_sm
 
   frontend:
+    if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -143,6 +148,9 @@ jobs:
           if-no-files-found: ignore
 
   deploy:
+    # Runs after both test jobs passed, or when the marker above skipped them.
+    # A failed or cancelled test job still blocks it.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     needs: [test, frontend]
 
