@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./event-halloween.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
-@custom-variant event (&:where(.event-wm, .event-wm *));
+/* Seasonal event skin, see lib/event-theme.ts and app/event-halloween.css. */
+@custom-variant halloween (&:where(.event-halloween, .event-halloween *));
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-10px); }
@@ -839,75 +841,6 @@
 }
 
 /* =========================================================================
-   WM-2026 Event-Skin (zeitlich begrenzt, datums-gegatet via .event-wm)
-   Reine Progressive Enhancement über dem neutralen Basis-Theme. Sämtliche
-   Regeln hängen an .event-wm und verschwinden nach dem Finale automatisch.
-   ========================================================================= */
-
-.event-wm {
-  --event-green: #1b7a43;
-  --event-green-deep: #145c33;
-  --event-gold: #c8902f;
-  --event-line: rgba(27, 122, 67, 0.06);
-}
-
-.event-wm.dark {
-  --event-green: #2bb673;
-  --event-green-deep: #1f8a4c;
-  --event-gold: #e0b454;
-  --event-line: rgba(43, 182, 115, 0.08);
-}
-
-/* Charakter-Display-Font nur für Event-Chrome (Body-Font bleibt Inter). */
-.font-event {
-  font-family: var(--font-event), "Arial Narrow", system-ui, sans-serif;
-  font-weight: 400;
-}
-
-/* Dezente Stadion-Atmosphäre: Rasen-Streifen + sanfter Lichtschein oben. */
-.event-wm body {
-  background-image:
-    radial-gradient(120% 60% at 50% -10%, color-mix(in oklab, var(--event-green) 8%, transparent), transparent 60%),
-    repeating-linear-gradient(90deg, var(--event-line) 0 1px, transparent 1px 72px);
-  background-attachment: fixed;
-}
-
-/* Schmaler Turnier-Rahmen oben. */
-.event-wm body::before {
-  content: "";
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--event-green), var(--event-gold), var(--event-green));
-  z-index: 30;
-  pointer-events: none;
-}
-
-/* Kurzer „TOR!"-Moment beim Lösen (imperativ via lib/confetti.ts). */
-.event-goal-flash {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  font-family: var(--font-event), "Arial Narrow", system-ui, sans-serif;
-  font-size: clamp(4rem, 22vw, 15rem);
-  letter-spacing: 0.05em;
-  color: var(--event-gold);
-  -webkit-text-stroke: 2px var(--event-green);
-  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  animation: event-goal 1.4s ease-out forwards;
-}
-
-@keyframes event-goal {
-  0% { opacity: 0; transform: scale(0.4) rotate(-6deg); }
-  18% { opacity: 1; transform: scale(1.12) rotate(-2deg); }
-  35% { transform: scale(1) rotate(0deg); }
-  75% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.05); }
-}
-/* =========================================================================
    prefers-reduced-motion (WCAG 2.3.3)
    Wer die Systemeinstellung gesetzt hat ("Bewegung reduzieren" unter macOS,
    "Animationseffekte anzeigen" aus unter Windows), bekommt keine Bewegung.
@@ -915,9 +848,9 @@
    Dauer und Wiederholung nahe null, NICHT `animation: none`: eine Animation
    mit `animation-fill-mode: forwards` oder `both` springt so zu ihrem
    Endzustand, statt im Anfangszustand haengen zu bleiben. Bei `none` blieben
-   `.animate-wordle-bounce` (fill-mode both) auf halber Hoehe und der
-   WM-Torjubel (`event-goal`, forwards, endet bei opacity 0) dauerhaft
-   sichtbar stehen. Vorbild und dieselbe Begruendung: W3C Technik C39.
+   `.animate-wordle-bounce` (fill-mode both) auf halber Hoehe und die
+   Halloween-Einblendung (`spook-flash`, forwards, endet bei opacity 0)
+   dauerhaft sichtbar stehen. Vorbild und dieselbe Begruendung: W3C Technik C39.
 
    Was das konkret heisst:
      .animate-slideIn          neue Ratezeile erscheint sofort
@@ -931,12 +864,14 @@
      .animate-meter-run        Ratebalken steht sofort auf seiner Breite
      .animate-banner-drop      the operator note on /live/ stands and goes at once
      .animate-banner-lift
-     event-goal                der Torjubel entfaellt
+     spook-*                   the Halloween creatures do not run; the runtime
+                               in components/event/halloween/ does not even
+                               mount them, this is the second line of defence
 
    Framer Motion braucht diesen Block nicht, es haengt bereits an derselben
    Einstellung ueber `MotionConfig reducedMotion="user"` in
    components/motion/MotionProvider.tsx. Ebenso `lib/confetti.ts`,
-   `Reveal.tsx`, `GameDemo.tsx` und `EventBackdrop.tsx`.
+   `Reveal.tsx`, `GameDemo.tsx` und `components/event/halloween/BatBackdrop.tsx`.
 
    Ausgenommen ist `.animate-spin`: ein auf halber Drehung eingefrorener
    Kreisel liest sich als "kaputt" und nicht als "laedt". Das ist die einzige

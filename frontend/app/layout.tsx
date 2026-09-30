@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Figtree, Bricolage_Grotesque, Anton } from "next/font/google";
+import { Figtree, Bricolage_Grotesque, Creepster } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
@@ -11,8 +11,7 @@ import { SITE_SAME_AS } from "@/lib/social";
 import Footer from "@/components/Footer";
 import FeedbackFab from "@/components/FeedbackFab";
 import MotionProvider from "@/components/motion/MotionProvider";
-import EventBackdrop from "@/components/event/EventBackdrop";
-import EventBanner from "@/components/event/EventBanner";
+import EventRuntime from "@/components/event/EventRuntime";
 import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
 import { PALETTE_SCRIPT } from "@/lib/palette";
 import { SITE_URL } from "@/lib/seo";
@@ -33,9 +32,18 @@ const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   display: "swap",
 });
-// Charakter-Display-Font, ausschließlich für die WM-2026-Event-Chrome
-// (Badge, Banner, „TOR!"). Der SEO-Body-Font (Inter) bleibt unangetastet.
-const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-event", display: "swap" });
+// The Spooktober display face, for event chrome only (the flashes, the candy
+// bag's title, the haunted 404). `preload: false`: the file is fetched only by
+// a page that renders it, so no visitor outside the event pays for it. Its
+// "latin" subset covers the umlauts, sharp s and the German quotes (checked
+// against the font's cmap on 2026-10-01).
+const creepster = Creepster({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-spook",
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -62,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="de"
-      className={`${figtree.variable} ${bricolage.variable} ${anton.variable}`}
+      className={`${figtree.variable} ${bricolage.variable} ${creepster.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -102,9 +110,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <MotionProvider>
-          <EventBackdrop />
           {children}
-          <EventBanner />
+          <EventRuntime />
         </MotionProvider>
         <Footer />
         <FeedbackFab />

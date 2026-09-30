@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "./fixtures";
+import { EVENT_FORCE_KEY, expect, test, type Page } from "./fixtures";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -31,20 +31,29 @@ test.describe("design audit", () => {
   // one kind of change that can silently break contrast, so none of them ships
   // on a look.
   const PALETTES = ["tinte", "beere", "indigo", "petrol", "klassisch"] as const;
+  // A seasonal skin overrides every Farbwelt, so it is measured on its own,
+  // over two palettes to prove that the override really wins.
+  const RUNS: { palette: (typeof PALETTES)[number]; event: string | null }[] = [
+    ...PALETTES.map((palette) => ({ palette, event: null })),
+    { palette: "tinte", event: "spooktober-2026" },
+    { palette: "beere", event: "spooktober-2026" },
+  ];
 
-  for (const palette of PALETTES)
+  for (const { palette, event } of RUNS)
   for (const theme of ["light", "dark"] as const) {
-    test(`contrast, ${palette}, ${theme}`, async ({ page }) => {
+    test(`contrast, ${palette}${event ? `, ${event}` : ""}, ${theme}`, async ({ page }) => {
       await setTheme(page, theme);
-      await page.addInitScript((p) => {
+      await page.addInitScript(([p, e, forceKey]) => {
         try {
           localStorage.setItem("kontexto_palette", p);
+          if (e) localStorage.setItem(forceKey, e);
         } catch {
           /* private mode */
         }
-      }, palette);
+      }, [palette, event ?? "", EVENT_FORCE_KEY] as const);
       await page.goto("/");
       await expect(page.locator("html")).toHaveAttribute("data-palette", palette);
+      if (event) await expect(page.locator("html")).toHaveClass(/event-halloween/);
       await page.getByPlaceholder(/Wort/i).fill("Haus");
       await page.getByPlaceholder(/Wort/i).press("Enter");
       await expect(page.locator("[data-slot='card'], .animate-slideIn").first()).toBeVisible();
@@ -133,7 +142,7 @@ test.describe("design audit", () => {
       const failures = rows.filter((r) => !(r.ratio >= 4.5));
       // eslint-disable-next-line no-console
       console.log(
-        `\n  contrast, ${theme}\n` +
+        `\n  contrast, ${palette}${event ? `, ${event}` : ""}, ${theme}\n` +
           rows
             .map((r) => `    ${r.ratio < 4.5 ? "FAIL" : "ok  "}  ${r.ratio.toFixed(2)}:1  ${r.pair}`)
             .join("\n"),

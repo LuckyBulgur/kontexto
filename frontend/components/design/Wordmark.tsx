@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { PumpkinGlyph } from "@/components/event/halloween/art";
 
 /**
  * The name, set once.
@@ -53,6 +54,11 @@ export function Wordmark({
  * used, and it sits on the text baseline rather than being centred, because a
  * geometric circle centred on the cap height reads as too high next to a
  * lowercase o.
+ *
+ * During Spooktober the ring is a jack-o'-lantern. Both are always in the
+ * markup and the `halloween:` variant picks one, so the swap is decided by the
+ * class the head script sets before first paint: no flash, no hydration
+ * difference, and it works on the server-rendered footer and site nav too.
  */
 export function WordmarkName({ name }: { name: "Kontexto" | "Wördle" }) {
   // Only the main name ends in the letter the ring replaces; the Wordle
@@ -65,9 +71,10 @@ export function WordmarkName({ name }: { name: "Kontexto" | "Wördle" }) {
         aria-hidden="true"
         className={cn(
           "ml-[0.06em] inline-block rounded-full border-[0.16em] border-primary align-baseline",
-          "h-[0.52em] w-[0.52em] translate-y-[-0.02em]",
+          "h-[0.52em] w-[0.52em] translate-y-[-0.02em] halloween:hidden",
         )}
       />
+      <PumpkinGlyph className="ml-[0.02em] hidden h-[0.74em] w-[0.74em] translate-y-[0.06em] align-baseline halloween:inline-block" />
       <span className="sr-only">Kontexto</span>
     </>
   );

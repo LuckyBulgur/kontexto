@@ -1,73 +1,84 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
-  EVENT_CLASS,
-  EVENT_END_MS,
   EVENT_FORCE_KEY,
-  EVENT_OPTOUT_KEY,
-  isEventActive,
-  isEventAvailable,
+  SEASONAL_EVENTS,
+  applyEventClass,
+  availableEvent,
+  type SeasonalEvent,
 } from "@/lib/event-theme";
 
-/** Maximaler `setTimeout`-Wert (32-Bit-Signed-Millisekunden). */
+/** Largest `setTimeout` delay (signed 32-bit milliseconds). */
 const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 /**
- * Tab-internes Sync-Signal: das native `storage`-Event feuert nicht im Tab, der
- * die Änderung vorgenommen hat. Damit alle `useEventTheme`-Instanzen (Backdrop,
- * Banner, Einstellungen) im selben Tab sofort reagieren, broadcasten wir den
- * Toggle zusätzlich über dieses Custom-Event.
+ * In-tab sync signal. The native `storage` event does not fire in the tab that
+ * made the change, so every `useEventTheme` instance in the same tab (runtime,
+ * settings, header) listens to this custom event as well.
  */
 const EVENT_CHANGE = "kontexto:event-theme-change";
 
 interface EventThemeState {
-  /** Event-Skin wird gerade angezeigt (Fenster läuft UND nicht abgewählt). */
+  /** The event whose window is open, whether or not the player switched it off. */
+  event: SeasonalEvent | null;
+  /** The skin is showing: window open and not switched off. */
   active: boolean;
-  /** Event-Zeitfenster läuft. Steuert, ob der Opt-out-Schalter angeboten wird. */
+  /** An event window is open. Decides whether the switch is offered. */
   available: boolean;
-  /** User-Präferenz: Event-Design eingeschaltet (nicht abgewählt). */
+  /** Player preference for the open event: not switched off. */
   enabled: boolean;
-  /** Schaltet das Event-Design ein/aus und aktualisiert `<html>` live. */
+  /** Switches the open event on or off and updates `<html>` at once. */
   setEnabled: (enabled: boolean) => void;
 }
 
 /**
- * Liest den Event-Status clientseitig und hält ihn mit `localStorage`
- * (auch tab-übergreifend via `storage`-Event) sowie dem Event-Ende synchron.
+ * Reads the event state on the client and keeps it in sync with localStorage
+ * (across tabs through the `storage` event), with the end of the window and
+ * with client-side navigation into an excluded path.
  *
- * Server und erster Client-Render liefern bewusst `active=false`, damit es
- * keinen Hydration-Mismatch gibt. Die rein CSS-getriebene Skin (Klasse auf
- * `<html>`) ist davon unberührt und bereits vor der Hydration sichtbar.
+ * The server and the first client render deliberately return an inactive
+ * state so there is no hydration mismatch. The CSS skin (class on `<html>`) is
+ * unaffected by that: it is already visible before hydration.
  */
 export function useEventTheme(): EventThemeState {
-  const [available, setAvailable] = useState(false);
-  const [enabled, setEnabledState] = useState(true);
+  const pathname = usePathname();
+  const [event, setEvent] = useState<SeasonalEvent | null>(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
+    // The class on `<html>` is what the player sees, so it is also what the
+    // switch reports. Storage decides the class; a blocked storage then still
+    // yields a switch that matches the page.
     const sync = () => {
-      setAvailable(isEventAvailable());
-      let optedOut = false;
-      try {
-        optedOut = localStorage.getItem(EVENT_OPTOUT_KEY) === "off";
-      } catch {
-        optedOut = false;
-      }
-      setEnabledState(!optedOut);
+      const ev = availableEvent(Date.now(), window.location.pathname);
+      setEvent(ev);
+      setActive(ev !== null && document.documentElement.classList.contains(ev.className));
     };
+    applyEventClass(window.location.pathname);
     sync();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === EVENT_OPTOUT_KEY || e.key === EVENT_FORCE_KEY) sync();
+      if (e.key === EVENT_FORCE_KEY || SEASONAL_EVENTS.some((ev) => ev.optOutKey === e.key)) {
+        applyEventClass();
+        sync();
+      }
     };
     window.addEventListener("storage", onStorage);
     window.addEventListener(EVENT_CHANGE, sync);
 
-    // Läuft die Session über das Finale hinaus, deaktiviert sich die Skin selbst.
+    // A session that outlives the window switches the skin off by itself, and
+    // one that is open when the window opens switches it on.
+    const now = Date.now();
+    const boundaries = SEASONAL_EVENTS.flatMap((e) => [e.startMs, e.endMs]).filter((t) => t > now);
+    const next = boundaries.length > 0 ? Math.min(...boundaries) : null;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const untilEnd = EVENT_END_MS - Date.now();
-    if (untilEnd > 0 && untilEnd <= MAX_TIMEOUT_MS) {
-      timer = setTimeout(sync, untilEnd + 1000);
+    if (next !== null && next - now <= MAX_TIMEOUT_MS) {
+      timer = setTimeout(() => {
+        applyEventClass();
+        sync();
+      }, next - now + 1000);
     }
 
     return () => {
@@ -75,19 +86,28 @@ export function useEventTheme(): EventThemeState {
       window.removeEventListener(EVENT_CHANGE, sync);
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [pathname]);
 
-  const setEnabled = useCallback((next: boolean) => {
-    try {
-      if (next) localStorage.removeItem(EVENT_OPTOUT_KEY);
-      else localStorage.setItem(EVENT_OPTOUT_KEY, "off");
-    } catch {
-      /* localStorage nicht verfügbar, UI-State unten genügt für diese Session */
-    }
-    setEnabledState(next);
-    document.documentElement.classList.toggle(EVENT_CLASS, isEventActive());
-    window.dispatchEvent(new Event(EVENT_CHANGE));
-  }, []);
+  const setEnabled = useCallback(
+    (next: boolean) => {
+      if (!event) return;
+      try {
+        if (next) localStorage.removeItem(event.optOutKey);
+        else localStorage.setItem(event.optOutKey, "off");
+      } catch {
+        // Storage blocked: the class below still applies for this page view.
+      }
+      document.documentElement.classList.toggle(event.className, next);
+      window.dispatchEvent(new Event(EVENT_CHANGE));
+    },
+    [event],
+  );
 
-  return { active: available && enabled, available, enabled, setEnabled };
+  return {
+    event,
+    active,
+    available: event !== null,
+    enabled: active,
+    setEnabled,
+  };
 }

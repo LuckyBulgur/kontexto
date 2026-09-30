@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { reportShare } from "@/lib/analytics";
 import { SITE_URL } from "@/lib/seo";
+import { SPOOKTOBER_2026, isSkinOn } from "@/lib/event-theme";
 
 interface ShareButtonProps {
   gameNumber: number;
@@ -24,9 +25,12 @@ export default function ShareButton({ gameNumber, guesses, tipCount, givenUp, in
     const statusLine = givenUp
       ? `Aufgegeben nach ${guessCount} Versuchen und ${tipCount} Tipps.`
       : `Gelöst in ${guessCount} Versuchen und ${tipCount} Tipps.`;
+    // In October the heading carries a pumpkin after the flag. The squares
+    // stay exactly as they are all year: they are the result's alphabet.
+    const season = isSkinOn(SPOOKTOBER_2026) ? "\u{1f383}" : "";
     const heading = infinite
-      ? `Kontexto Unendlich-Modus \u{1f1e9}\u{1f1ea}`
-      : `Kontexto #${gameNumber} \u{1f1e9}\u{1f1ea}`;
+      ? `Kontexto Unendlich-Modus \u{1f1e9}\u{1f1ea}${season}`
+      : `Kontexto #${gameNumber} \u{1f1e9}\u{1f1ea}${season}`;
     // The link is the point of sharing: without it the result travels and the
     // game does not. The marker also makes those arrivals countable, which no
     // referrer header can do for a link pasted into a messenger.

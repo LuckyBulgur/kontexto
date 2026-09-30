@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -273,6 +274,8 @@ export default function ArenaPageClient() {
       try {
         const result = await submitArenaGuess(arenaId, word, playerToken);
         setLatestWord(result.word);
+        onEventGuess({ word: result.word, rank: result.rank });
+        if (result.rank === 1) onEventSolve(`arena:${arenaId}:${state?.round ?? 0}`);
         setGuesses((prev) =>
           prev.some((g) => g.word === result.word)
             ? prev
@@ -304,7 +307,7 @@ export default function ArenaPageClient() {
         setPendingWord(undefined);
       }
     },
-    [arenaId, playerToken, guesses, refresh]
+    [arenaId, playerToken, guesses, refresh, state?.round]
   );
 
   const handleNextRound = useCallback(async () => {

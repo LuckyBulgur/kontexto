@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
+import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -140,6 +141,14 @@ export default function KoopPageClient({
 
   const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
   const roundOver = solved || gaveUp;
+  const koopRound = koopState?.round ?? 0;
+
+  // A round the team solved pays every member one candy during a seasonal
+  // event, whoever typed the word. Deduplicated by the event's ledger.
+  useEffect(() => {
+    if (!koopId || !solved || gaveUp) return;
+    onEventSolve(`koop:${koopId}:${koopRound}`);
+  }, [koopId, solved, gaveUp, koopRound]);
 
   // Extract koop ID from URL.
   useEffect(() => {
@@ -380,6 +389,7 @@ export default function KoopPageClient({
           return;
         }
         appendGuess(result.word, result.rank, false, result.corrected_from ?? undefined);
+        onEventGuess({ word: result.word, rank: result.rank });
         if (nickname) {
           setPlayers((prev) =>
             prev.map((p) =>

@@ -19,18 +19,41 @@ import { test as base, expect, type BrowserContext } from "@playwright/test";
  */
 const THIRD_PARTY = /^https?:\/\/(?!127\.0\.0\.1|localhost)/;
 
+/** The QA override of lib/event-theme.ts, EVENT_FORCE_KEY. */
+export const EVENT_FORCE_KEY = "kontexto_event_theme_force";
+
 /**
- * Fuer Specs, die sich eigene Kontexte bauen (duel-realtime braucht zwei
- * isolierte Spieler). Die context-Fixture unten greift dort nicht, weil ein
- * ueber `browser.newContext()` erzeugter Kontext an keiner Fixture haengt.
+ * Seasonal skins stay off unless a spec asks for one.
+ *
+ * An event is gated by date alone, so without this a run in October would
+ * test a different site than a run in September: another palette, a pumpkin
+ * in the header, toasts over the page. The override is only written when the
+ * key is absent, so a spec that wants an event sets its own value in a later
+ * init script (see e2e/halloween.spec.ts) and keeps it across reloads.
  */
-export async function blockThirdParty(context: BrowserContext): Promise<void> {
+export async function disableSeasonalEvents(context: BrowserContext): Promise<void> {
+  await context.addInitScript((key) => {
+    try {
+      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, "off");
+    } catch {
+      // Storage blocked: then no override can be read either, and the calendar decides.
+    }
+  }, EVENT_FORCE_KEY);
+}
+
+/**
+ * For specs that build their own contexts (duel-realtime needs two isolated
+ * players). The context fixture below does not reach those, because a context
+ * made through `browser.newContext()` hangs off no fixture.
+ */
+export async function prepareContext(context: BrowserContext): Promise<void> {
   await context.route(THIRD_PARTY, (route) => route.abort());
+  await disableSeasonalEvents(context);
 }
 
 export const test = base.extend({
   context: async ({ context }, use) => {
-    await blockThirdParty(context);
+    await prepareContext(context);
     await use(context);
   },
 });

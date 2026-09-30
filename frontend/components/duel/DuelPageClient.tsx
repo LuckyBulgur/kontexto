@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
+import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -287,8 +288,10 @@ export default function DuelPageClient() {
         };
         setGuesses((prev) => [...prev, newGuess]);
         setLatestWord(result.word);
+        onEventGuess(newGuess);
         if (result.rank === 1) {
           fireConfetti();
+          onEventSolve(`duel:${duelId}:${duelState?.round ?? 0}`);
         }
         // Update own stats in players list
         if (nickname) {
@@ -327,7 +330,7 @@ export default function DuelPageClient() {
         setPendingWord(undefined);
       }
     },
-    [duelId, playerToken, guesses, nickname]
+    [duelId, playerToken, guesses, nickname, duelState?.round]
   );
 
   // Tip

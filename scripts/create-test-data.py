@@ -44,6 +44,9 @@ WORDS = [
     "groß", "klein", "schnell", "langsam", "warm", "kalt", "hell", "dunkel",
     "neu", "alt", "jung", "stark", "laut", "leise", "süß", "sauer",
     "schön", "gut", "schlecht", "richtig", "falsch", "wichtig", "einfach", "schwer",
+    # Seasonal event words (e2e/halloween.spec.ts). Appended, so the targets,
+    # which are drawn from the first 40 entries, stay the same.
+    "spinne", "geist",
 ]
 
 # Five-letter German words for the Wordle mock. `WORDLE_SOLUTIONS` holds a single

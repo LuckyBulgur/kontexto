@@ -24,6 +24,8 @@ import ShareLinkButton from "@/components/ShareLinkButton";
 import ModesButton from "@/components/ModesButton";
 import WordleModeDialog from "@/components/wordle/WordleModeDialog";
 import { WordmarkName } from "@/components/design";
+import PumpkinButton from "@/components/event/halloween/PumpkinButton";
+import CandyBagMenuItem from "@/components/event/halloween/CandyBagMenuItem";
 
 interface WordleHeaderProps {
   /** Spielanleitung öffnen */
@@ -77,6 +79,7 @@ export default function WordleHeader({
               </Button>
             </a>
           )}
+          <PumpkinButton />
         </div>
         <div className="flex shrink-0 items-center gap-1.5 font-display text-lead font-extrabold tracking-tight sm:text-h3">
           <Link href="/" className="text-muted-foreground transition-colors hover:text-foreground">
@@ -131,6 +134,7 @@ export default function WordleHeader({
                   Statistik
                 </DropdownMenuItem>
               )}
+              <CandyBagMenuItem />
               {onSettings && <DropdownMenuSeparator />}
               {onSettings && (
                 <DropdownMenuItem onClick={onSettings}>

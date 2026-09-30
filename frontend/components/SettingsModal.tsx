@@ -40,7 +40,7 @@ export default function SettingsModal({
   sortMode,
   onSortModeChange,
 }: SettingsModalProps) {
-  const { available: eventAvailable, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
+  const { event, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md">
@@ -120,8 +120,9 @@ export default function SettingsModal({
             </div>
           </section>
 
-          {/* Zeitlich begrenztes WM-2026-Event */}
-          {eventAvailable && (
+          {/* The running seasonal event, offered only while its window is
+              open, so a player who switched it off can switch it back on. */}
+          {event && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="text-micro font-medium text-muted-foreground">Limited-Time-Event</span>
@@ -129,10 +130,10 @@ export default function SettingsModal({
               </div>
               <div className="flex items-center justify-between">
                 <div className="pr-4">
-                  <Label className="text-small font-medium">WM-Design</Label>
-                  <p className="text-micro text-muted-foreground">Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt)</p>
+                  <Label className="text-small font-medium">{event.settingsLabel}</Label>
+                  <p className="text-micro text-muted-foreground">{event.settingsHint}</p>
                 </div>
-                <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label="WM-Design" />
+                <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label={event.settingsLabel} />
               </div>
             </section>
           )}

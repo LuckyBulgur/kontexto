@@ -10,6 +10,7 @@ import { getWordleGame, submitWordleGuess } from "@/lib/wordle-api";
 import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
 import { reportCompletion } from "@/lib/analytics";
 import { fireBurst } from "@/lib/confetti";
+import { onEventSolve, onEventWordleRow } from "@/lib/events/hooks";
 import {
   loadWordleState, saveWordleState,
   loadWordleRandomState, saveWordleRandomState, loadHardMode,
@@ -144,6 +145,8 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
       setCurrentGuess("");
       setGameStatus(newStatus);
       updateLetterStates(word, resp.result!);
+      onEventWordleRow({ word, won });
+      if (won) onEventSolve(`wordle:${mode}:${gameNumber}`);
 
       // Save state
       const state: WordleGameState = {

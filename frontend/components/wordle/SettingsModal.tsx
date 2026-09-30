@@ -24,7 +24,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ open, onOpenChange, theme, onThemeChange, hardMode, onHardModeChange, canToggleHardMode }: SettingsModalProps) {
-  const { available: eventAvailable, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
+  const { event, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -74,15 +74,13 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
           </p>
         )}
 
-        {eventAvailable && (
+        {event && (
           <div className="flex items-center justify-between py-3 border-t border-border">
             <div className="pr-4">
-              <Label>WM-Design</Label>
-              <p className="text-micro text-muted-foreground">
-                Fu&szlig;ball-WM-Look mit B&auml;llen im Hintergrund (zeitlich begrenzt).
-              </p>
+              <Label>{event.settingsLabel}</Label>
+              <p className="text-micro text-muted-foreground">{event.settingsHint}</p>
             </div>
-            <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label="WM-Design" />
+            <Switch checked={eventEnabled} onCheckedChange={setEventEnabled} aria-label={event.settingsLabel} />
           </div>
         )}
       </DialogContent>

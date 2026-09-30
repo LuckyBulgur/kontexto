@@ -15,6 +15,7 @@ import SoloRulesCard from "@/components/solo/SoloRulesCard";
 import SoloStatus from "@/components/solo/SoloStatus";
 import { AD_SLOTS } from "@/lib/adsense";
 import { fireConfetti } from "@/lib/confetti";
+import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import { UnknownWordError } from "@/lib/guess-error";
 import { reportCompletion } from "@/lib/analytics";
 import {
@@ -206,7 +207,10 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     if (reportedRef.current === key) return;
     reportedRef.current = key;
 
-    if (state.status === "won") fireConfetti();
+    if (state.status === "won") {
+      fireConfetti();
+      onEventSolve(`solo:${key}`);
+    }
 
     const durationSeconds = state.startedAt
       ? Math.max(0, Math.round((Date.now() - state.startedAt) / 1000))
@@ -247,6 +251,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
             return;
           }
           setLatestWord(result.word);
+          onEventGuess({ word: result.word, rank: Math.min(...result.ranks.map((r) => r.rank)) });
           setState(doppelApplyGuess(state, {
             word: result.word,
             ranks: result.ranks.map((r) => r.rank),
@@ -267,6 +272,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           return;
         }
         setLatestWord(result.word);
+        onEventGuess({ word: result.word, rank: result.rank });
 
         if (state.mode === "leiter") {
           const { state: next, struck } = leiterApplyGuess(state, result);

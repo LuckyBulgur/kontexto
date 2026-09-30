@@ -1,0 +1,440 @@
+/* =========================================================================
+   Spooktober 2026 (lib/event-theme.ts, SPOOKTOBER_2026)
+
+   Everything in this file hangs off `.event-halloween` on <html>, which the
+   inline head script sets before first paint and which disappears on its own
+   when the window closes on 2026-11-01 00:00 Berlin time. The skin is a layer
+   over the design system, not a second design system:
+
+   1. Colour tokens are overridden, the tokens themselves stay the contract.
+      The rank ramp (--rank-near/mid/far) and the Wordle tiles are NOT touched:
+      the shared result text spells them as emoji squares. Only --rank-track
+      and --rank-foreground move, exactly as every Farbwelt does it.
+   2. The event palette beats every Farbwelt in both modes by specificity
+      (:root.event-halloween is 0,2,0 against [data-palette] at 0,1,0, and the
+      dark block is 0,3,0 against .dark[data-palette] at 0,2,0). Both blocks
+      set the same properties, so the result does not depend on source order.
+      The swatches in the palette picker are nested elements and keep painting
+      their own palette.
+   3. Every pair was measured before it was written down and is measured again
+      in e2e/design-audit.spec.ts. Narrowest pairs (light / dark):
+      primary-foreground on primary 5,05 / 7,59, the bar label on
+      rank-far 4,86 / 7,00, destructive on card 5,22 / 4,88.
+   4. Motion is one-shot. Every keyframe here runs once or a fixed number of
+      times and is bound to something the player did (M13).
+   ========================================================================= */
+
+:root.event-halloween {
+  /* "Kerzenschein": parchment by candlelight, aubergine ink, burnt pumpkin. */
+  --background: oklch(0.965 0.02 75);
+  --foreground: oklch(0.23 0.045 305);
+  --card: oklch(0.99 0.008 80);
+  --card-foreground: oklch(0.23 0.045 305);
+  --popover: oklch(0.99 0.008 80);
+  --popover-foreground: oklch(0.23 0.045 305);
+  --primary: oklch(0.55 0.17 45);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --primary-ink: oklch(0.5 0.16 45);
+  --secondary: oklch(0.935 0.025 70);
+  --secondary-foreground: oklch(0.3 0.05 305);
+  --muted: oklch(0.935 0.025 70);
+  --muted-foreground: oklch(0.47 0.04 305);
+  --accent: oklch(0.93 0.03 60);
+  --accent-foreground: oklch(0.3 0.08 40);
+  --border: oklch(0.88 0.03 70);
+  --input: oklch(0.88 0.03 70);
+  --ring: oklch(0.55 0.17 45);
+  --rank-track: oklch(0.925 0.025 70);
+  --rank-foreground: oklch(0.23 0.045 305);
+  --info: oklch(0.5 0.15 300);
+  --info-ink: oklch(0.45 0.15 300);
+  --chart-1: oklch(0.55 0.17 45);
+  --chart-2: oklch(0.5 0.15 300);
+  --chart-3: oklch(0.66 0.15 150);
+  --chart-4: oklch(0.7 0.14 80);
+  --chart-5: oklch(0.45 0.05 305);
+  --sidebar: oklch(0.99 0.008 80);
+  --sidebar-foreground: oklch(0.23 0.045 305);
+  --sidebar-primary: oklch(0.55 0.17 45);
+  --sidebar-primary-foreground: oklch(0.99 0.005 80);
+  --sidebar-accent: oklch(0.93 0.03 60);
+  --sidebar-accent-foreground: oklch(0.3 0.08 40);
+  --sidebar-border: oklch(0.88 0.03 70);
+  --sidebar-ring: oklch(0.55 0.17 45);
+
+  /* Event art. Named for what they paint, never used as text. */
+  --spook-pumpkin: oklch(0.7 0.18 52);
+  --spook-pumpkin-deep: oklch(0.58 0.17 45);
+  --spook-stem: oklch(0.45 0.08 130);
+  --spook-glow: oklch(0.88 0.15 90);
+  --spook-night: oklch(0.22 0.04 300);
+  --spook-ghost: oklch(0.99 0.005 80);
+  --spook-ghost-edge: oklch(0.23 0.045 305 / 35%);
+  --spook-web: oklch(0.23 0.045 305 / 18%);
+  --spook-moon: oklch(0.93 0.06 90 / 70%);
+  --spook-moon-halo: oklch(0.93 0.06 90 / 22%);
+  --spook-fog: oklch(0.55 0.05 300 / 9%);
+  --spook-flash-edge: oklch(0.22 0.04 300);
+}
+
+:root.event-halloween.dark {
+  /* "Mitternacht": purple-black night, moonlight, a glowing lantern. */
+  --background: oklch(0.17 0.035 300);
+  --foreground: oklch(0.95 0.015 85);
+  --card: oklch(0.225 0.04 300);
+  --card-foreground: oklch(0.95 0.015 85);
+  --popover: oklch(0.225 0.04 300);
+  --popover-foreground: oklch(0.95 0.015 85);
+  --primary: oklch(0.74 0.16 60);
+  --primary-foreground: oklch(0.2 0.04 300);
+  --primary-ink: oklch(0.78 0.15 62);
+  --secondary: oklch(0.28 0.04 300);
+  --secondary-foreground: oklch(0.95 0.015 85);
+  --muted: oklch(0.28 0.04 300);
+  --muted-foreground: oklch(0.72 0.03 300);
+  --accent: oklch(0.31 0.05 300);
+  --accent-foreground: oklch(0.95 0.015 85);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.7 0.15 60);
+  --rank-track: oklch(1 0 0 / 9%);
+  --rank-foreground: oklch(0.98 0 0);
+  --info: oklch(0.65 0.15 300);
+  --info-ink: oklch(0.78 0.12 300);
+  --chart-1: oklch(0.74 0.16 60);
+  --chart-2: oklch(0.65 0.15 300);
+  --chart-3: oklch(0.68 0.14 150);
+  --chart-4: oklch(0.78 0.13 85);
+  --chart-5: oklch(0.7 0.04 300);
+  --sidebar: oklch(0.225 0.04 300);
+  --sidebar-foreground: oklch(0.95 0.015 85);
+  --sidebar-primary: oklch(0.74 0.16 60);
+  --sidebar-primary-foreground: oklch(0.2 0.04 300);
+  --sidebar-accent: oklch(0.31 0.05 300);
+  --sidebar-accent-foreground: oklch(0.95 0.015 85);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.7 0.15 60);
+
+  --spook-pumpkin: oklch(0.74 0.17 55);
+  --spook-pumpkin-deep: oklch(0.6 0.16 45);
+  --spook-stem: oklch(0.55 0.09 130);
+  --spook-glow: oklch(0.92 0.16 95);
+  /* A silhouette in true black vanishes on this night; this one stays readable. */
+  --spook-night: oklch(0.36 0.06 300);
+  --spook-ghost: oklch(0.96 0.015 85);
+  --spook-ghost-edge: oklch(1 0 0 / 30%);
+  --spook-web: oklch(0.95 0.015 85 / 16%);
+  --spook-moon: oklch(0.95 0.05 95 / 92%);
+  --spook-moon-halo: oklch(0.95 0.05 95 / 14%);
+  --spook-fog: oklch(0.7 0.05 300 / 10%);
+  --spook-flash-edge: oklch(0.12 0.03 300);
+}
+
+/* The display face for event chrome only: the flashes, the bag's title, the
+   haunted 404. Body text stays Figtree. Loaded with `preload: false`, so the
+   file is only fetched on a page that actually renders it. */
+.font-spook {
+  font-family: var(--font-spook), "Impact", system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ---- The night sky ------------------------------------------------------
+   A page background, which M1 exempts: a crescent moon (the moon plus a
+   disc in the page colour laid over it), its halo, and a fog band that fades
+   to transparent at the bottom. `spook-full-moon` drops the disc during the
+   witching hour and on Halloween itself. */
+.event-halloween body {
+  --moon-x: calc(100% - 56px);
+  --moon-y: 64px;
+  --moon-r: 18px;
+  background-image:
+    radial-gradient(circle at calc(var(--moon-x) + var(--moon-r) * 0.45) calc(var(--moon-y) - var(--moon-r) * 0.3), var(--background) 0 calc(var(--moon-r) * 0.92), transparent calc(var(--moon-r) * 0.92 + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 4.5)),
+    linear-gradient(to top, var(--spook-fog), transparent 28%);
+  background-attachment: fixed;
+}
+
+@media (min-width: 640px) {
+  .event-halloween body {
+    --moon-x: calc(100% - 120px);
+    --moon-y: 110px;
+    --moon-r: 30px;
+  }
+}
+
+.event-halloween.dark body {
+  background-image:
+    radial-gradient(circle at calc(var(--moon-x) + var(--moon-r) * 0.45) calc(var(--moon-y) - var(--moon-r) * 0.3), var(--background) 0 calc(var(--moon-r) * 0.92), transparent calc(var(--moon-r) * 0.92 + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 4.5)),
+    linear-gradient(to top, var(--spook-fog), transparent 28%),
+    url("/event/halloween/stars.svg");
+  background-size: auto, auto, auto, auto, 240px 240px;
+}
+
+.event-halloween.spook-full-moon body {
+  background-image:
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 5.5)),
+    linear-gradient(to top, var(--spook-fog), transparent 28%);
+}
+
+.event-halloween.dark.spook-full-moon body {
+  background-image:
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
+    radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 5.5)),
+    linear-gradient(to top, var(--spook-fog), transparent 28%),
+    url("/event/halloween/stars.svg");
+  background-size: auto, auto, auto, 240px 240px;
+}
+
+/* ---- Bunting along the top edge and a cobweb in the corner --------------
+   Behind the content (z-index -1 paints above the page background and below
+   every in-flow block), never over a control. */
+.event-halloween body::before,
+.event-halloween body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.event-halloween body::before {
+  inset: 0 0 auto 0;
+  height: 18px;
+  background: url("/event/halloween/bunting.svg") repeat-x 0 0 / 72px 18px;
+  opacity: 0.85;
+}
+
+.event-halloween body::after {
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 120px;
+  background-color: var(--spook-web);
+  mask: url("/event/halloween/web.svg") no-repeat 0 0 / 100% 100%;
+}
+
+@media (min-width: 640px) {
+  .event-halloween body::after {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+/* ---- One-shot moments ---------------------------------------------------- */
+
+/* "Süßes!", "Saures!", "Buh!": the full-screen word, the same mechanic the
+   football skin used for its goal. Decorative, aria-hidden, one pass. */
+.spook-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-family: var(--font-spook), "Impact", system-ui, sans-serif;
+  font-size: clamp(3.5rem, 18vw, 12rem);
+  line-height: 1;
+  color: var(--spook-pumpkin);
+  -webkit-text-stroke: 2px var(--spook-flash-edge);
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  animation: spook-flash 1.4s ease-out forwards;
+}
+
+@keyframes spook-flash {
+  0% { opacity: 0; transform: scale(0.5) rotate(-5deg); }
+  20% { opacity: 1; transform: scale(1.06) rotate(-2deg); }
+  38% { transform: scale(1) rotate(0deg); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
+/* The stage every creature is played on. Above the page, under dialogs (z-50)
+   and toasts, never catching a pointer. */
+.spook-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.spook-actor {
+  position: absolute;
+  will-change: transform;
+}
+
+/* Ghost: drifts across the upper half, bobbing twice on the way. */
+.spook-ghost {
+  top: 22vh;
+  left: 0;
+  width: 88px;
+  animation: spook-ghost 6s ease-in-out forwards;
+}
+
+@keyframes spook-ghost {
+  0% { opacity: 0; transform: translate(-120px, 0) rotate(-4deg); }
+  10% { opacity: 0.95; }
+  30% { transform: translate(30vw, -26px) rotate(3deg); }
+  55% { transform: translate(58vw, 18px) rotate(-3deg); }
+  80% { opacity: 0.95; transform: translate(86vw, -14px) rotate(2deg); }
+  100% { opacity: 0; transform: translate(calc(100vw + 40px), 0) rotate(0deg); }
+}
+
+/* Bats: a swarm bursting out of a point, each bat to its own --tx/--ty. */
+.spook-bat {
+  width: 44px;
+  margin: -12px 0 0 -22px;
+  animation: spook-bat 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+
+@keyframes spook-bat {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1); }
+}
+
+/* The wings beat a fixed number of times, then the bat is gone anyway. */
+.spook-wings {
+  transform-origin: 50% 40%;
+  animation: spook-flap 0.16s ease-in-out 11 alternate;
+}
+
+@keyframes spook-flap {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.35); }
+}
+
+/* Spider: lets itself down on a thread, looks around, climbs back. */
+.spook-spider {
+  top: 0;
+  width: 40px;
+  margin-left: -20px;
+  animation: spook-spider 4.6s ease-in-out forwards;
+}
+
+.spook-spider::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 70%;
+  width: 1px;
+  height: 100vh;
+  background: var(--spook-night);
+}
+
+@keyframes spook-spider {
+  0% { transform: translateY(-80px); }
+  32% { transform: translateY(34vh); }
+  40% { transform: translateY(32vh) rotate(8deg); }
+  48% { transform: translateY(33vh) rotate(-8deg); }
+  60% { transform: translateY(33vh) rotate(0deg); }
+  100% { transform: translateY(-80px); }
+}
+
+/* Witch: crosses the sky past the moon, right to left, in an arc. */
+.spook-witch {
+  top: 8vh;
+  left: 0;
+  width: 120px;
+  animation: spook-witch 6.5s linear forwards;
+}
+
+@keyframes spook-witch {
+  0% { opacity: 0; transform: translate(calc(100vw + 20px), 60px); }
+  8% { opacity: 1; }
+  50% { transform: translate(45vw, -10px) rotate(-4deg); }
+  92% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-160px, 50px) rotate(2deg); }
+}
+
+/* Black cat: walks along the bottom edge, right to left. */
+.spook-cat {
+  bottom: 0;
+  left: 0;
+  width: 96px;
+  animation: spook-cat 7s linear forwards;
+}
+
+@keyframes spook-cat {
+  0% { transform: translateX(calc(100vw + 20px)); }
+  100% { transform: translateX(-140px); }
+}
+
+.spook-cat-step {
+  animation: spook-step 0.35s ease-in-out 20 alternate;
+}
+
+@keyframes spook-step {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+/* Skeleton hand: rises out of the bottom edge, waves, sinks back. */
+.spook-hand {
+  bottom: 0;
+  width: 70px;
+  margin-left: -35px;
+  transform-origin: 50% 100%;
+  animation: spook-hand 3.4s ease-in-out forwards;
+}
+
+@keyframes spook-hand {
+  0% { transform: translateY(105%); }
+  22% { transform: translateY(8%); }
+  34% { transform: translateY(8%) rotate(-12deg); }
+  46% { transform: translateY(8%) rotate(12deg); }
+  58% { transform: translateY(8%) rotate(-10deg); }
+  70% { transform: translateY(8%) rotate(0deg); }
+  100% { transform: translateY(105%); }
+}
+
+/* Smoke puff out of the pumpkin when it plays a trick. */
+.spook-smoke {
+  width: 70px;
+  margin: -35px 0 0 -35px;
+  animation: spook-smoke 1.2s ease-out forwards;
+}
+
+@keyframes spook-smoke {
+  0% { opacity: 0.85; transform: scale(0.3); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1.4); }
+}
+
+/* The pumpkin in the header: a wobble per knock, dim while it is empty. */
+.spook-wobble {
+  animation: spook-wobble 0.5s ease-out;
+}
+
+@keyframes spook-wobble {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  50% { transform: rotate(7deg); }
+  75% { transform: rotate(-3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.spook-pumpkin-empty {
+  --spook-glow: var(--spook-night);
+}
+
+/* ---- Flashlight ("Licht aus") --------------------------------------------
+   The page goes dark except for a circle of light at the pointer. The dark
+   is a radial gradient used as a mask shape over a solid fill, which is what
+   M1 allows: it paints nothing but its own shape. */
+.spook-flashlight {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--fx, 50%) var(--fy, 40%),
+    transparent 0,
+    transparent 110px,
+    oklch(0.08 0.02 300 / 94%) 190px
+  );
+}

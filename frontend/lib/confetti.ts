@@ -1,28 +1,26 @@
 /**
- * Zentralisierte Konfetti-Helfer.
+ * Confetti helpers, in one place.
  *
- * Bündelt das zuvor in mehreren Spielkomponenten inline duplizierte
- * `canvas-confetti`-Setup an einer Stelle (DRY) und stellt während des
- * WM-2026-Events eine fußball-themierte Jubel-Variante bereit. Außerhalb des
- * Events ist das Verhalten identisch zum bisherigen Code.
+ * Collects the `canvas-confetti` setup that used to be duplicated inline in
+ * several game components, and gives a running seasonal event its own
+ * celebration. Outside an event the behaviour is exactly the plain one.
  *
- * `canvas-confetti` wird dynamisch importiert, damit es nicht im Haupt-Bundle
- * landet (Lazy-Load wie bisher).
+ * `canvas-confetti` is imported dynamically so it stays out of the main bundle.
  */
 import type * as ConfettiNS from "canvas-confetti";
-import { isEventActive } from "@/lib/event-theme";
+import { SPOOKTOBER_2026, isSkinOn } from "@/lib/event-theme";
 
 type ConfettiOptions = ConfettiNS.Options;
 type ConfettiShape = ConfettiNS.Shape;
 
-/** Nur die hier genutzte Teilmenge der canvas-confetti-API. */
+/** The subset of the canvas-confetti API used here. */
 interface ConfettiApi {
   (options?: ConfettiOptions): Promise<null> | null;
   shapeFromPath(pathData: string | { path: string; matrix?: DOMMatrix }): ConfettiShape;
 }
 
-/** WM-2026-Jubelpalette: Pitch-Grün, Gold, Weiß. */
-const EVENT_COLORS = ["#1f8a4c", "#2bb673", "#d8a23a", "#f4d35e", "#ffffff"];
+/** Pumpkin, witch purple, slime green, candle cream and night. */
+const SPOOK_COLORS = ["#ef7f1a", "#7b4bb3", "#8cc63f", "#fff3d6", "#2a1f33"];
 
 let confettiPromise: Promise<ConfettiApi> | null = null;
 function loadConfetti(): Promise<ConfettiApi> {
@@ -34,19 +32,26 @@ function loadConfetti(): Promise<ConfettiApi> {
 
 let cachedShapes: ConfettiShape[] | null = null;
 /**
- * Mischung aus runden Ball-Körpern und einem Fünfeck-Panel, evoziert
- * Fußbälle, ganz ohne Emojis (Content-Richtlinie). Einmalig gecacht.
+ * A wrapped bonbon, a candy corn and plain drops. Drawn as paths rather than
+ * emoji (content rule M10). Cached after the first use.
  */
-function footballShapes(confetti: ConfettiApi): ConfettiShape[] {
+function candyShapes(confetti: ConfettiApi): ConfettiShape[] {
   if (!cachedShapes) {
-    const pentagon = confetti.shapeFromPath({ path: "M5 0 L10 3.8 L8.1 10 L1.9 10 L0 3.8 Z" });
-    cachedShapes = ["circle", "circle", pentagon];
+    const bonbon = confetti.shapeFromPath({
+      path: "M4 5L0 1.5V8.5ZM14 5L18 1.5V8.5ZM4 5C4 2.5 6.2 1 9 1S14 2.5 14 5 11.8 9 9 9 4 7.5 4 5Z",
+    });
+    const candyCorn = confetti.shapeFromPath({ path: "M5 0L10 12H0Z" });
+    cachedShapes = [bonbon, bonbon, candyCorn, "circle"];
   }
   return cachedShapes;
 }
 
-function eventDefaults(confetti: ConfettiApi): ConfettiOptions {
-  return { colors: EVENT_COLORS, shapes: footballShapes(confetti) };
+function spooky(): boolean {
+  return isSkinOn(SPOOKTOBER_2026);
+}
+
+function spookDefaults(confetti: ConfettiApi): ConfettiOptions {
+  return { colors: SPOOK_COLORS, shapes: candyShapes(confetti), scalar: 1.4 };
 }
 
 function prefersReducedMotion(): boolean {
@@ -58,12 +63,12 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Voller Sieges-Jubel: 3 Sekunden Konfetti-Regen von beiden Seiten.
- * Wird auf den Kontexto-/Duell-/Koop-Lösungen ausgelöst.
+ * The full win: three seconds of confetti from both sides. Fired on the
+ * Kontexto, duel and koop solves.
  */
 export async function fireConfetti(): Promise<void> {
   const confetti = await loadConfetti();
-  const event = isEventActive();
+  const event = spooky();
   const duration = 3000;
   const animationEnd = Date.now() + duration;
   const defaults: ConfettiOptions = {
@@ -72,7 +77,7 @@ export async function fireConfetti(): Promise<void> {
     ticks: 60,
     zIndex: 0,
     disableForReducedMotion: true,
-    ...(event ? eventDefaults(confetti) : {}),
+    ...(event ? spookDefaults(confetti) : {}),
   };
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -85,28 +90,26 @@ export async function fireConfetti(): Promise<void> {
     confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
   }, 250);
 
-  if (event) showGoalFlash();
+  if (event) showSpookFlash("Süßes!");
 }
 
-/**
- * Einzelner zentraler Burst für die Wördle-Lösungen (nach der Flip-Animation).
- */
+/** One central burst for the Wordle solves, after the tile flip. */
 export async function fireBurst(): Promise<void> {
   const confetti = await loadConfetti();
-  const event = isEventActive();
+  const event = spooky();
   confetti({
     particleCount: 150,
     spread: 70,
     origin: { y: 0.6 },
     disableForReducedMotion: true,
-    ...(event ? eventDefaults(confetti) : {}),
+    ...(event ? spookDefaults(confetti) : {}),
   });
-  if (event) showGoalFlash();
+  if (event) showSpookFlash("Süßes!");
 }
 
 /**
- * Kleiner, dezenter Burst für die dekorative Demo auf der Startseite.
- * Kein „Tor!"-Overlay, da rein illustrativ.
+ * A small burst for the decorative demo on the home page. No flash, it is an
+ * illustration and not a win.
  */
 export async function fireDemoBurst(): Promise<void> {
   const confetti = await loadConfetti();
@@ -115,28 +118,72 @@ export async function fireDemoBurst(): Promise<void> {
     spread: 60,
     origin: { y: 0.7 },
     disableForReducedMotion: true,
-    ...(isEventActive() ? eventDefaults(confetti) : {}),
+    ...(spooky() ? spookDefaults(confetti) : {}),
   });
 }
 
 /**
- * Kurzer, vollflächiger „TOR!"-Moment während des WM-Events. Rein dekorativ
- * (aria-hidden), als imperatives Overlay umgesetzt, damit die Aufruferseiten
- * nichts über React durchreichen müssen. Bei reduzierter Bewegung übersprungen.
+ * Candy out of the pumpkin: a short fountain from a point on screen, given in
+ * viewport pixels.
  */
-function showGoalFlash(): void {
+export async function fireCandyBurst(x: number, y: number): Promise<void> {
+  if (typeof window === "undefined") return;
+  const confetti = await loadConfetti();
+  const origin = { x: x / window.innerWidth, y: y / window.innerHeight };
+  const shared: ConfettiOptions = {
+    ...spookDefaults(confetti),
+    particleCount: 18,
+    startVelocity: 24,
+    spread: 50,
+    ticks: 140,
+    gravity: 0.9,
+    zIndex: 41,
+    origin,
+    disableForReducedMotion: true,
+  };
+  confetti({ ...shared, angle: 60 });
+  confetti({ ...shared, angle: 120 });
+}
+
+/** Candy falling from the top edge for a second and a half. */
+export async function fireCandyRain(): Promise<void> {
+  const confetti = await loadConfetti();
+  const end = Date.now() + 1500;
+  const interval = setInterval(() => {
+    if (Date.now() > end) return clearInterval(interval);
+    confetti({
+      ...spookDefaults(confetti),
+      particleCount: 6,
+      angle: 270,
+      spread: 40,
+      startVelocity: 8,
+      gravity: 0.7,
+      ticks: 320,
+      zIndex: 41,
+      origin: { x: Math.random(), y: -0.05 },
+      disableForReducedMotion: true,
+    });
+  }, 120);
+}
+
+/**
+ * A short full-screen word ("Süßes!", "Saures!", "Buh!"). Purely decorative
+ * (aria-hidden), imperative so no caller has to thread it through React.
+ * Skipped under reduced motion.
+ */
+export function showSpookFlash(text: string): void {
   if (typeof document === "undefined") return;
   if (prefersReducedMotion()) return;
-  if (document.querySelector(".event-goal-flash")) return;
+  if (document.querySelector(".spook-flash")) return;
 
   const el = document.createElement("div");
-  el.className = "event-goal-flash";
+  el.className = "spook-flash";
   el.setAttribute("aria-hidden", "true");
-  el.textContent = "TOR!";
+  el.textContent = text;
   document.body.appendChild(el);
 
   const cleanup = () => el.remove();
   el.addEventListener("animationend", cleanup, { once: true });
-  // Fallback, falls die Animation (z. B. ohne CSS) nicht feuert.
+  // Fallback in case the animation never fires (no CSS, a hidden tab).
   window.setTimeout(cleanup, 1600);
 }

@@ -421,6 +421,37 @@ an, dann Karte (`result-in`), dann Konfetti. Die beiden JS-getriebenen Stücke f
 Endzustand vom ersten Rendern an im DOM. Doppelt geprüft in `e2e/motion.spec.ts`: dass es sich
 bewegt, und dass es das bei `reducedMotion: "reduce"` nicht tut.
 
+### Seasonal events (`lib/event-theme.ts`, `app/event-halloween.css`, `components/event/`)
+One registry (`SEASONAL_EVENTS`) holds every limited-time skin with its UTC window, its class on
+`<html>` and **its own opt-out key** (a player who switched one event off has not switched off the
+next; the WM key `kontexto_event_theme` is cleared by `clearRetiredEventStorage`). `EVENT_THEME_SCRIPT`
+sets the class in `<head>` before first paint and **skips `/admin` and `/live/overlay`**. The QA
+override `kontexto_event_theme_force` takes `off`, an event id or `on`; **`e2e/fixtures.ts` sets
+`off` by default** (`disableSeasonalEvents`, inside `prepareContext`), because the gate is the
+date and a run in October would otherwise test another site. The pattern is **CSS-gated
+decoration, lazily loaded behaviour**: what stands in the static HTML (the pumpkin in place of the
+wordmark ring, the header pumpkin button, the footer graveyard, the haunted 404 line) is always in
+the markup as `hidden halloween:…`, so no flash, no hydration difference and no layout shift;
+everything that moves or reacts (`components/event/halloween/`: controller, effect stage, bats,
+flashlight, candy bag) is a chunk of its own, requested by `components/event/EventRuntime.tsx` and
+by the seams in `lib/events/hooks.ts` only while the skin is on. The runtime truth is the class
+(`isSkinOn`), not storage. The game clients call `onEventGuess` (own accepted guesses only, never a
+tip or another player's word), `onEventWordleRow`, `onEventSolve(mode:game)` and `onEventGiveUp`;
+none of them is awaited, and an effect depends only on what the player typed, so it can never
+become a hint.
+
+**Spooktober 2026** (2026-10-01 00:00 to 2026-11-01 00:00 Berlin, WM-2026 skin removed the same
+day): palettes „Kerzenschein“ and „Mitternacht“ that override every Farbwelt by specificity and
+leave the rank ramp and the Wördle tiles alone (share squares), Creepster for event chrome only
+(`preload: false`), bunting, cobweb, moon and fog as page background, bats on a canvas. Thirteen
+secrets and the candy per solved round live in `lib/events/spooktober.ts` (pure, unit-tested,
+progress under `kontexto_spooktober_2026`), copy in `components/event/halloween/copy.ts`. Every
+creature is one CSS keyframe, one pass, at most three at once, a minute of cooldown per kind, and
+nothing under reduced motion, where the toast carries the find. Child-safe on purpose: no blood,
+no gore, a trick never blocks the input or touches a guess. The shared result gets a pumpkin after
+the flag. Held by `lib/event-theme.test.ts`, `lib/events/spooktober.test.ts`,
+`e2e/halloween.spec.ts` and the event runs in `e2e/design-audit.spec.ts`.
+
 ### shadcn/ui: the full set is vendored
 `frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),
 not only the ones in use. They are vendored source, not a dependency, so an unused file

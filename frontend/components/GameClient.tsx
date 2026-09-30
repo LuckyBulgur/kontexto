@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
+import { onEventGiveUp, onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import { prefersReducedMotion } from "@/lib/use-reduced-motion";
 import Header from "@/components/Header";
 import { INFINITE_PARAM } from "@/components/ModePickerDialog";
@@ -185,6 +186,14 @@ export default function GameClient() {
     });
   }, [gameState, pastGame]);
 
+  // A seasonal event pays for a solved round. Keyed by the game number, the
+  // same in the daily, archive and endless paths, and deduplicated by the
+  // event's own ledger, so reloading a solved game pays nothing twice.
+  useEffect(() => {
+    if (gameState.gameNumber <= 0 || !gameState.solved || gameState.givenUp) return;
+    onEventSolve(`kontexto:${gameState.gameNumber}`);
+  }, [gameState.gameNumber, gameState.solved, gameState.givenUp]);
+
   const handleThemeChange = useCallback((t: "light" | "dark") => {
     setTheme(t);
     saveTheme(t);
@@ -209,6 +218,8 @@ export default function GameClient() {
       startedAt: prev.startedAt ?? Date.now(),
     }));
     setLatestWord(guess.word);
+    // A seasonal event reacts to the player's own words, never to a tip.
+    if (!guess.isTip) onEventGuess(guess);
     if (guess.rank === 1) {
       if (pastGame === null && !infinite) {
         recordGamePlayed(new Date().toISOString().slice(0, 10));
@@ -293,6 +304,7 @@ export default function GameClient() {
         givenUp: true,
       }));
       setLatestWord(result.word);
+      onEventGiveUp();
       if (pastGame === null && !infinite) {
         recordGamePlayed(new Date().toISOString().slice(0, 10));
       }

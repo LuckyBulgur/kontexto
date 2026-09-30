@@ -24,6 +24,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-01",
+    kind: "Neu",
+    title: "Spooktober: Kontexto im Gruseldesign",
+    body:
+      "Bis zum 31. Oktober trägt Kontexto Kerzenschein und Mitternacht, im Kopf der Seite steht ein " +
+      "Kürbis voller Süßigkeiten, und jede gelöste Runde legt eine davon in deinen Beutel. Dazu " +
+      "verstecken sich 13 Geheimnisse, manche hinter einem Wort, manche hinter der Uhrzeit. Wem das " +
+      "zu viel ist, schaltet es in den Einstellungen ab.",
+  },
+  {
     date: "2026-09-25",
     kind: "Verbessert",
     title: "Keine Werbung von Adcash mehr",

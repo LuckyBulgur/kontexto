@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { TileColor } from "@/lib/wordle-types";
 import { reportShare } from "@/lib/analytics";
 import { SITE_URL } from "@/lib/seo";
+import { SPOOKTOBER_2026, isSkinOn } from "@/lib/event-theme";
 
 const EMOJI_MAP: Record<TileColor, string> = {
   GREEN: "\u{1F7E9}",
@@ -32,7 +33,8 @@ export default function ShareButton({ gameNumber, guesses, evaluations, won, har
     // Same reason as on the Kontexto card: a shared result without a link is a
     // dead end, and the marker makes the arrivals countable.
     const link = `${SITE_URL}/wordle/?s=${gameNumber}`;
-    const text = `W\u00F6rdle ${gameNumber} ${score}${hm}\n\n${grid}\n${link}`;
+    const season = isSkinOn(SPOOKTOBER_2026) ? " \u{1F383}" : "";
+    const text = `W\u00F6rdle ${gameNumber} ${score}${hm}${season}\n\n${grid}\n${link}`;
     void reportShare("wordle");
     navigator.clipboard.writeText(text).then(() => toast("Kopiert!"));
   };

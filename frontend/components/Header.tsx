@@ -28,6 +28,8 @@ import ShareLinkButton from "@/components/ShareLinkButton";
 import ModePickerDialog from "@/components/ModePickerDialog";
 import ModesButton from "@/components/ModesButton";
 import { WordmarkName } from "@/components/design";
+import PumpkinButton from "@/components/event/halloween/PumpkinButton";
+import CandyBagMenuItem from "@/components/event/halloween/CandyBagMenuItem";
 
 interface HeaderProps {
   onTip: () => void;
@@ -153,6 +155,7 @@ export default function Header({
               </a>
             )
           )}
+          <PumpkinButton />
         </div>
         <div className="flex shrink-0 items-center gap-1.5 font-display text-lead font-extrabold tracking-tight sm:text-h3">
           <Link
@@ -268,6 +271,7 @@ export default function Header({
                 Statistik
               </DropdownMenuItem>
             )}
+            <CandyBagMenuItem />
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onSettingsOpen}>
               <Settings className="h-4 w-4" />
