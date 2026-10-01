@@ -271,7 +271,7 @@ export const liveFaqs: Faq[] = [
   },
   {
     q: `Was passiert bei Bits, Abos und TikTok-Geschenken?`,
-    a: `Sie werden gefeiert: Name und Geschenk erscheinen über dem Brett, größere mit Konfetti, und jede Unterstützung steht in einer eigenen Liste. Am Spiel ändern sie nichts, es gibt keinen gekauften Tipp und keine Rangliste der Spender.`,
+    a: `Jede wird gefeiert: Name und Geschenk erscheinen unten unter dem Brett mit Konfetti, je größer die Unterstützung, desto mehr, bis zum Feuerwerk über den ganzen Bildschirm. Dazu steht jede in einer eigenen Liste. Am Spiel ändern sie nichts, es gibt keinen gekauften Tipp und keine Rangliste der Spender.`,
   },
   {
     q: `Können zwei Leute denselben Kanal benutzen?`,

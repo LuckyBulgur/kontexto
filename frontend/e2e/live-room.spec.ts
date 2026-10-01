@@ -163,10 +163,18 @@ test.describe("Stream-Chat-Modus", () => {
     await sendPaidEvent(page, roomId, {
       kind: "gift_bomb", event_id: `b-${roomId}`, display_name: "Lena", amount: 5,
     });
-    const banner = page.getByTestId("live-celebration");
-    await expect(banner).toBeVisible({ timeout: 20_000 });
-    await expect(banner).toContainText("Lena");
-    await expect(banner).toContainText("verschenkt 5 Abos");
+    const toasts = page.getByTestId("live-support-toast");
+    const bomb = toasts.filter({ hasText: "Lena" });
+    await expect(bomb).toBeVisible({ timeout: 20_000 });
+    await expect(bomb).toHaveAttribute("data-level", "big");
+    await expect(bomb).toContainText("verschenkt 5 Abos");
+
+    // The toast stands at the bottom centre, never over the middle of the board.
+    const viewport = page.viewportSize();
+    const box = await bomb.boundingBox();
+    if (!viewport || !box) throw new Error("no layout");
+    expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+    expect(box.y).toBeGreaterThan(viewport.height / 2);
 
     // The feed lists it, and a duplicate of the same event changes nothing.
     const feed = page.getByTestId("support-feed").filter({ visible: true });
@@ -176,16 +184,58 @@ test.describe("Stream-Chat-Modus", () => {
     });
     expect((await again.json()).stored).toBe(false);
 
-    // A single rose is a row in the feed, not a banner.
-    await expect(banner).toHaveCount(0, { timeout: 10_000 });
+    // Ten Bits are celebrated too, as a small toast, and it leaves by itself.
     await sendPaidEvent(page, roomId, {
       kind: "cheer", event_id: `c-${roomId}`, display_name: "Tom", amount: 10,
     });
-    await expect(feed).toContainText("hat 10 Bits gespendet", { timeout: 20_000 });
-    await expect(banner).toHaveCount(0);
+    const cheer = toasts.filter({ hasText: "Tom" });
+    await expect(cheer).toBeVisible({ timeout: 20_000 });
+    await expect(cheer).toHaveAttribute("data-level", "small");
+    await expect(feed).toContainText("hat 10 Bits gespendet");
+    await expect(cheer).toHaveCount(0, { timeout: 10_000 });
+
+    // Twenty gifted subs are the loudest level.
+    await sendPaidEvent(page, roomId, {
+      kind: "gift_bomb", event_id: `e-${roomId}`, display_name: "Ida", amount: 20,
+    });
+    await expect(toasts.filter({ hasText: "Ida" })).toHaveAttribute("data-level", "epic", {
+      timeout: 20_000,
+    });
 
     // Paid support never touches the round.
     await expect(page.getByText("Versuche:").filter({ visible: true })).toContainText("0");
+  });
+
+  test("das Brett steht mittig, die Seitenleiste verschiebt es nicht", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const channel = freshChannel();
+    await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    const board = await page.getByTestId("koop-board").boundingBox();
+    if (!board) throw new Error("no board");
+    expect(Math.abs(board.x + board.width / 2 - 720)).toBeLessThanOrEqual(2);
+    // The sidebar is beside it, right of the board.
+    const side = await page.getByText("Unterstützung", { exact: true }).filter({ visible: true }).boundingBox();
+    if (!side) throw new Error("no sidebar");
+    expect(side.x).toBeGreaterThan(board.x + board.width);
+  });
+
+  test("bei reduzierter Bewegung kommt der Toast ohne Konfetti", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    await sendPaidEvent(page, roomId, {
+      kind: "gift_bomb", event_id: `r-${roomId}`, display_name: "Ruhig", amount: 20,
+    });
+    await expect(page.getByTestId("live-support-toast")).toContainText("verschenkt 20 Abos", {
+      timeout: 20_000,
+    });
+    await expect(page.locator("canvas")).toHaveCount(0);
   });
 
   test("der Finder steht groß da, und die Bestenliste hat drei Ansichten", async ({

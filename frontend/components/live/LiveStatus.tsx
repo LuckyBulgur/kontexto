@@ -209,7 +209,7 @@ function SupportFeed({ feed, catalog }: { feed: LiveEvent[]; catalog: LiveBadgeC
       </div>
       {feed.length === 0 ? (
         <p className="text-micro text-muted-foreground/80">
-          {"Bits, Abos und TikTok-Geschenke erscheinen hier und oben über dem Brett."}
+          {"Bits, Abos und TikTok-Geschenke erscheinen hier und mit Konfetti unter dem Brett."}
         </p>
       ) : (
         <ol className="flex list-none flex-col gap-1.5" data-testid="support-feed">

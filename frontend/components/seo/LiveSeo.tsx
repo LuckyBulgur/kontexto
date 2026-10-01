@@ -51,8 +51,8 @@ export default function LiveSeo() {
           Stream. Er schreibt nichts in deinen Chat und braucht keine Rechte an deinem Kanal.`}
         </FeatureCard>
         <FeatureCard icon={HandCoins} title="Unterstützung wird gefeiert">
-          {`Bits, Abos, verschenkte Abos und TikTok-Geschenke erscheinen mit Namen über dem Brett
-          und in einer eigenen Liste. Am Spiel ändern sie nichts: kein gekaufter Tipp, kein
+          {`Bits, Abos, verschenkte Abos und TikTok-Geschenke erscheinen mit Namen und Konfetti
+          unter dem Brett und in einer eigenen Liste. Am Spiel ändern sie nichts: kein gekaufter Tipp, kein
           Vorteil, nur Applaus.`}
         </FeatureCard>
         <FeatureCard icon={ShieldCheck} title="Gegen Spam gebaut">

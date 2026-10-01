@@ -21,11 +21,14 @@ export function CountUp({
   durationMs = 700,
   delayMs = 0,
   className,
+  format,
 }: {
   value: number;
   durationMs?: number;
   delayMs?: number;
   className?: string;
+  /** How a number is written, e.g. with a de-DE thousands separator. */
+  format?: (value: number) => string;
 }) {
   const reduced = useReducedMotion();
   const [shown, setShown] = React.useState(value);
@@ -57,7 +60,7 @@ export function CountUp({
 
   return (
     <span data-numeric className={className}>
-      {shown}
+      {format ? format(shown) : shown}
     </span>
   );
 }

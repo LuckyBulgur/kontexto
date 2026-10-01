@@ -308,10 +308,19 @@ duplicate frame is an `INSERT OR IGNORE`; totals `bits`, `subs`, `gift_subs`,
 `tiktok_diamonds` on `live_stream_stats` rise only when the row was new), the actor through the
 nickname rule, **no free text of an event**, pruned after 24 h and gone with the binding. The host
 poll takes `events_after` and returns at most 20; the first poll of a page fills the
-„Unterstützung“ feed and plays no banner. Loudness is one unit scale across both platforms
-(`lib/live-events.ts`, about 100 Bits = 100 diamonds = 1, a Tier 1 sub 5): under 1 a feed row,
-from 1 a banner over the board (`LiveCelebration.tsx`, 4 s, queued, only while visible), from
-25 confetti. **Deliberately not**: no gift buys a tip, a cooldown or a rank, and there is **no
+„Unterstützung“ feed and plays nothing. **Every paid event is celebrated** (2026-10-01, the
+streamer's request), as a toast at the **bottom centre**, as wide as the board, because most
+streamers capture only the board region (`components/live/SupportToasts.tsx`: at most 3 at once,
+a small one gives way first, only while the tab is visible, **no sound** because streamers run
+their own alerts, and nothing ever over the middle of the board). Loudness is one unit scale
+across both platforms (`lib/live-events.ts`, about 100 Bits = 100 diamonds = 1, a Tier 1 sub 5)
+and lives in the confetti (`fireSupportCelebration` in `lib/confetti.ts`): under 1 a small
+burst, from 1 a strong one, from 25 three seconds of corner cannons, from 100 five seconds of
+firework over the whole screen. Each category has its look, bound to the platform's own
+(`celebrationStyle`): Bits gems in Twitch's tier colours, purple stars for subs, a star rain for
+a sub bomb, TikTok diamonds, gold coins for a chest. The live board stands centred like every
+other mode (`KoopPageClient` `centerBoard`: from `xl` the sidebar sits in the right gutter,
+below it under the board). **Deliberately not**: no gift buys a tip, a cooldown or a rank, and there is **no
 ranking of givers**, because TikTok forbids gift-driven score tallying and kids play this. The
 mode picker's „Du streamst?“ row carries both platform logos. Held by
 `backend/test_live_events.py`, `backend/test_twitch_badges.py`, `TestViewerBoards` and

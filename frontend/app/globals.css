@@ -415,26 +415,36 @@
   animation: banner-lift 220ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
-/* Paid support on the live host page (components/live/LiveCelebration.tsx).
-   The same gesture as the note, mirrored: it rises from below the viewport,
-   because the top of the page is where the host types. One-shot per event;
-   the leave duration is mirrored as EXIT_MS in the component. */
-@keyframes celebration-rise {
-  from { opacity: 0; transform: translateY(calc(100% + 1rem)); }
+/* Paid support on the live host page (components/live/SupportToasts.tsx).
+   A toast rises from below at the bottom centre and sinks back, its icon pops
+   in once. All one-shot and bound to an event; under `prefers-reduced-motion`
+   the global block makes them stand and vanish at once. The leave duration is
+   mirrored as EXIT_MS in the component. Ease-out only, no overshoot (M7). */
+@keyframes support-in {
+  from { opacity: 0; transform: translateY(1.5rem); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes celebration-sink {
+@keyframes support-out {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(calc(100% + 1rem)); }
+  to { opacity: 0; transform: translateY(1rem); }
 }
 
-.animate-celebration-rise {
-  animation: celebration-rise 360ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+@keyframes support-pop {
+  from { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
-.animate-celebration-sink {
-  animation: celebration-sink 220ms cubic-bezier(0.4, 0, 1, 1) both;
+.animate-support-in {
+  animation: support-in 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.animate-support-out {
+  animation: support-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.animate-support-pop {
+  animation: support-pop 420ms cubic-bezier(0.22, 0.61, 0.36, 1) 120ms both;
 }
 
 /* =========================================================================

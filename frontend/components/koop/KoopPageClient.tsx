@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
+import { onEventGuess } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -35,6 +35,7 @@ import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, sav
 import { toast } from "sonner";
 import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
+import { cn } from "@/lib/utils";
 
 function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
@@ -63,6 +64,13 @@ export interface KoopPageClientProps {
    *  stream chat sets it: its sidebar is long (chats, three boards, the
    *  support feed), and a streamer on a phone needs the board first. */
   sidebarBelowOnMobile?: boolean;
+  /** Keep the board exactly where the solo game puts it (`max-w-lg`, centred)
+   *  and give the sidebar the right-hand gutter, so the sidebar never pushes
+   *  the board off centre. The stream chat sets it: streamers crop their
+   *  capture to the board, and every other mode has it in the middle. Below
+   *  `xl` there is no gutter wide enough, and the sidebar goes under the board
+   *  (or above it, see `sidebarBelowOnMobile`). */
+  centerBoard?: boolean;
   /** Whether to offer the invite link while the room is still alone. A stream
    *  chat needs no invite: the audience is already there. */
   showInvite?: boolean;
@@ -101,6 +109,7 @@ export default function KoopPageClient({
   label = "Koop",
   sidebar,
   sidebarBelowOnMobile = false,
+  centerBoard = false,
   showInvite = true,
   landing,
   createHref = "/koop/create/",
@@ -158,14 +167,6 @@ export default function KoopPageClient({
 
   const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
   const roundOver = solved || gaveUp;
-  const koopRound = koopState?.round ?? 0;
-
-  // A round the team solved pays every member one candy during a seasonal
-  // event, whoever typed the word. Deduplicated by the event's ledger.
-  useEffect(() => {
-    if (!koopId || !solved || gaveUp) return;
-    onEventSolve(`koop:${koopId}:${koopRound}`);
-  }, [koopId, solved, gaveUp, koopRound]);
 
   // Extract koop ID from URL.
   useEffect(() => {
@@ -600,7 +601,8 @@ export default function KoopPageClient({
   }
 
   return (
-    <div className="max-w-4xl mx-auto min-h-screen flex flex-col">
+    <div className={cn("mx-auto min-h-screen flex flex-col", centerBoard ? "w-full" : "max-w-4xl")}>
+      <div className={centerBoard ? "mx-auto w-full max-w-lg" : undefined}>
       <Header
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
@@ -614,12 +616,26 @@ export default function KoopPageClient({
         hidePastGames
         backHref="/"
       />
+      </div>
 
-      <div className="flex flex-col md:flex-row flex-1 px-4 py-4 gap-4">
-        <div className="flex-1 flex flex-col gap-4">
+      <div
+        className={cn(
+          "flex-1 px-4 py-4 gap-4",
+          centerBoard
+            ? "grid grid-cols-1 items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)_minmax(0,1fr)] xl:gap-6"
+            : "flex flex-col md:flex-row"
+        )}
+      >
+        <div
+          data-testid="koop-board"
+          className={cn(
+            "flex flex-col gap-4",
+            centerBoard ? "mx-auto w-full max-w-lg xl:col-start-2" : "flex-1"
+          )}
+        >
           {/* Mobile sidebar */}
           {!sidebarBelowOnMobile && (
-            <div className="md:hidden">
+            <div className={centerBoard ? "xl:hidden" : "md:hidden"}>
               {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
             </div>
           )}
@@ -676,14 +692,18 @@ export default function KoopPageClient({
           />
 
           {sidebarBelowOnMobile && (
-            <div className="md:hidden">
+            <div className={centerBoard ? "xl:hidden" : "md:hidden"}>
               {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
             </div>
           )}
         </div>
 
         {/* Desktop sidebar */}
-        <div className="hidden md:block">
+        <div
+          className={
+            centerBoard ? "hidden xl:block xl:col-start-3 xl:max-w-[19rem]" : "hidden md:block"
+          }
+        >
           {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
         </div>
       </div>

@@ -6,9 +6,9 @@ import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
 import ChatIdentity from "@/components/live/ChatIdentity";
 import HostMessageBanner from "@/components/live/HostMessageBanner";
-import LiveCelebration from "@/components/live/LiveCelebration";
 import LiveCreateClient from "@/components/live/LiveCreateClient";
 import LiveStatus from "@/components/live/LiveStatus";
+import SupportToasts from "@/components/live/SupportToasts";
 import RoomLanding from "@/components/RoomLanding";
 import { needsAckRetry } from "@/lib/host-messages";
 import { freshEvents, mergeFeed } from "@/lib/live-events";
@@ -104,7 +104,7 @@ export default function LivePageClient() {
   // cumulative, so one number is enough to resend a lost one.
   const shownUpTo = useRef(0);
   // The newest paid event this page holds. 0 until the first poll answers;
-  // that first answer fills the feed and plays no banner, because a host who
+  // that first answer fills the feed and plays no toast, because a host who
   // reopens the page should not get the last hour played back.
   const eventCursor = useRef(0);
   const [feed, setFeed] = useState<LiveEvent[]>([]);
@@ -326,7 +326,7 @@ export default function LivePageClient() {
   return (
     <>
       <HostMessageBanner messages={room?.messages ?? []} onShown={handleMessageShown} />
-      <LiveCelebration events={celebrate} catalog={catalog} />
+      <SupportToasts events={celebrate} catalog={catalog} />
       <KoopPageClient
         basePath="live"
         label="Stream-Chat"
@@ -335,6 +335,7 @@ export default function LivePageClient() {
         createHref="/live/"
         showNames
         sidebarBelowOnMobile
+        centerBoard
         renderBy={renderBy}
         renderFinder={renderFinder}
         notFoundMessage="Diese Runde gibt es nicht"

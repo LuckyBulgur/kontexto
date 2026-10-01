@@ -9,6 +9,7 @@
  */
 import type * as ConfettiNS from "canvas-confetti";
 import { SPOOKTOBER_2026, isSkinOn } from "@/lib/event-theme";
+import type { Celebration, CelebrationShape, CelebrationStyle } from "@/lib/live-events";
 
 type ConfettiOptions = ConfettiNS.Options;
 type ConfettiShape = ConfettiNS.Shape;
@@ -164,6 +165,124 @@ export async function fireCandyRain(): Promise<void> {
       disableForReducedMotion: true,
     });
   }, 120);
+}
+
+/* ------------------------------------------------------------------------- *
+ * Paid support on the live host page (components/live/SupportToasts.tsx).
+ *
+ * Every event is celebrated out of its toast at the bottom centre; the level
+ * decides how much. The category colours win over the seasonal skin here,
+ * because they carry meaning (platform, Bits tier). The canvas sits under the
+ * toasts and over the board, and canvas-confetti draws it with
+ * `pointer-events: none`, so the host keeps typing through the party.
+ * ------------------------------------------------------------------------- */
+
+/** Matches `z-40` minus one: over the board, under the toast stack. */
+const SUPPORT_Z = 39;
+
+/** One heavy effect (cannons, firework) at a time. */
+let heavyUntil = 0;
+/** At most one small burst per this many milliseconds. */
+const SMALL_GAP_MS = 400;
+let lastSmall = 0;
+
+const supportShapeCache = new Map<CelebrationShape, ConfettiShape[]>();
+function supportShapes(confetti: ConfettiApi, shape: CelebrationShape): ConfettiShape[] {
+  const cached = supportShapeCache.get(shape);
+  if (cached) return cached;
+  let shapes: ConfettiShape[];
+  switch (shape) {
+    case "gem":
+      shapes = [confetti.shapeFromPath({ path: "M3 0h6l3 4-6 8-6-8Z" })];
+      break;
+    case "star":
+      shapes = [
+        confetti.shapeFromPath({
+          path: "M6 0l1.8 3.9 4.2.5-3.1 2.9.8 4.2L6 9.4 2.3 11.5l.8-4.2L0 4.4l4.2-.5Z",
+        }),
+      ];
+      break;
+    case "diamond":
+      shapes = [confetti.shapeFromPath({ path: "M5 0l5 7-5 7-5-7Z" }), "circle"];
+      break;
+    case "coin":
+      shapes = ["circle"];
+      break;
+  }
+  supportShapeCache.set(shape, shapes);
+  return shapes;
+}
+
+/**
+ * Celebrate one paid event, starting from its toast.
+ *
+ * `origin` is the toast's rectangle in viewport pixels. Skipped entirely under
+ * reduced motion; the toast still says who gave what.
+ */
+export async function fireSupportCelebration(
+  level: Celebration,
+  style: CelebrationStyle,
+  origin: { left: number; top: number; width: number; height: number },
+  rainCount: number
+): Promise<void> {
+  if (typeof window === "undefined" || prefersReducedMotion()) return;
+  const confetti = await loadConfetti();
+  const base: ConfettiOptions = {
+    colors: [...style.colors],
+    shapes: supportShapes(confetti, style.shape),
+    scalar: 1.15,
+    zIndex: SUPPORT_Z,
+    disableForReducedMotion: true,
+  };
+  const x = (origin.left + origin.width / 2) / window.innerWidth;
+  const now = Date.now();
+
+  if (level === "small") {
+    if (now - lastSmall < SMALL_GAP_MS) return;
+    lastSmall = now;
+    const y = (origin.top + origin.height / 2) / window.innerHeight;
+    confetti({ ...base, particleCount: 30, spread: 70, startVelocity: 26, ticks: 110, origin: { x, y } });
+  } else {
+    const y = origin.top / window.innerHeight;
+    confetti({ ...base, particleCount: 90, angle: 90, spread: 80, startVelocity: 45, ticks: 160, origin: { x, y } });
+  }
+
+  if ((level === "big" || level === "epic") && now >= heavyUntil) {
+    const duration = level === "epic" ? 5000 : 3000;
+    heavyUntil = now + duration;
+    const end = now + duration;
+    const interval = setInterval(() => {
+      const left = end - Date.now();
+      if (left <= 0) return clearInterval(interval);
+      if (level === "epic") {
+        const at = { x: 0.12 + Math.random() * 0.76, y: 0.12 + Math.random() * 0.4 };
+        confetti({ ...base, particleCount: 70, spread: 360, startVelocity: 32, ticks: 90, gravity: 0.8, origin: at });
+      } else {
+        const n = Math.max(8, Math.round(40 * (left / duration)));
+        confetti({ ...base, particleCount: n, angle: 60, spread: 55, startVelocity: 60, origin: { x: 0, y: 0.9 } });
+        confetti({ ...base, particleCount: n, angle: 120, spread: 55, startVelocity: 60, origin: { x: 1, y: 0.9 } });
+      }
+    }, level === "epic" ? 320 : 250);
+  }
+
+  if (style.rain) {
+    const duration = level === "epic" ? 4000 : 2000;
+    const end = Date.now() + duration;
+    const perTick = Math.max(2, Math.round(rainCount / (duration / 120)));
+    const interval = setInterval(() => {
+      if (Date.now() > end) return clearInterval(interval);
+      confetti({
+        ...base,
+        particleCount: perTick,
+        angle: 270,
+        spread: 50,
+        startVelocity: 6,
+        gravity: 0.6,
+        ticks: 360,
+        origin: { x: Math.random(), y: -0.05 },
+      });
+    }, 120);
+  }
 }
 
 /**
