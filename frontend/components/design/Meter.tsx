@@ -67,6 +67,8 @@ export interface MeterProps {
   emphasis?: boolean;
   /** Accessible name for the whole row, when the visible label is not enough. */
   "aria-label"?: string;
+  /** The rank as a number, for decoration that keys on it (the Halloween skin's rank 13 and 666). */
+  "data-rank"?: number;
   className?: string;
 }
 
@@ -86,6 +88,7 @@ export function Meter({
 
   return (
     <div
+      data-slot="meter"
       className={cn(
         "relative flex items-center overflow-hidden rounded-lg bg-rank-track",
         emphasis ? "h-12" : "h-10",

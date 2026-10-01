@@ -11,7 +11,6 @@ import {
   loadProgress,
   matchSpookyWord,
   recordSecret,
-  recordSolve,
   saveProgress,
   secretById,
   secretForEffect,
@@ -21,7 +20,7 @@ import {
 import { addActor, getStage, setStage, type ActorKind } from "./stage-store";
 
 /**
- * The Spooktober game master: decides what a knock, a guess or a solve sets
+ * The Spooktober game master: decides what a knock, a guess or a scroll sets
  * off, records what was found and tells the player about it.
  *
  * Loaded lazily (through `lib/events/hooks.ts`) and only while the skin is on,
@@ -44,6 +43,16 @@ const EMPTY_FOR_MS = 60_000;
 const TRICK_CHANCE = 0.2;
 /** How long the flashlight stays on before the lights come back by themselves. */
 export const FLASHLIGHT_MS = 30_000;
+/** How long a word keeps the full moon up. */
+const MOON_WORD_MS = 30_000;
+/** Class on `<html>` for a full moon a word called up, apart from the clock's own. */
+const MOON_WORD_CLASS = "spook-moon-word";
+/**
+ * Now and then an ordinary guess wakes something anyway, so the page stays
+ * surprising after the words are known. Rare on purpose: one in 25.
+ */
+const SURPRISE_CHANCE = 1 / 25;
+const SURPRISE_CAST: readonly ActorKind[] = ["ghost", "bats", "spider", "owl", "cat"];
 
 function storage(): Storage | null {
   try {
@@ -65,15 +74,6 @@ export function hydrateProgress(): void {
 function commitProgress(progress: ReturnType<typeof getStage>["progress"]): void {
   saveProgress(storage(), progress);
   setStage({ progress });
-}
-
-export function openBag(): void {
-  hydrateProgress();
-  setStage({ bagOpen: true });
-}
-
-export function closeBag(): void {
-  setStage({ bagOpen: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +115,28 @@ function playEffect(effect: EffectKind, x?: number, y?: number): void {
     case "flashlight":
       startFlashlight();
       return;
+    case "wolf":
+      play("wolf", x, y);
+      raiseMoon();
+      return;
+    case "owl":
+    case "fog":
+    case "bubbles":
+      play(effect, x, y);
+      return;
+    case "moon":
+      raiseMoon();
+      return;
   }
+}
+
+let moonTimer: number | undefined;
+
+/** A full moon for half a minute. A colour change, so it also shows under reduced motion. */
+function raiseMoon(): void {
+  window.clearTimeout(moonTimer);
+  document.documentElement.classList.add(MOON_WORD_CLASS);
+  moonTimer = window.setTimeout(() => document.documentElement.classList.remove(MOON_WORD_CLASS), MOON_WORD_MS);
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +155,6 @@ export function discover(id: SecretId): boolean {
   const count = progress.secrets.length;
   toast.success(`Geheimnis entdeckt: ${secret.name}`, {
     description: `${secret.found} ${count} von ${SECRETS.length}.`,
-    action: { label: "Beutel öffnen", onClick: openBag },
   });
 
   if (isComplete(progress)) finale();
@@ -145,8 +165,7 @@ export function discover(id: SecretId): boolean {
 function finale(): void {
   window.setTimeout(() => {
     toast("Alle 13 Geheimnisse gefunden", {
-      description: "Der ganze Spuk verbeugt sich. Im Beutel liegt jetzt ein goldenes Bonbon.",
-      action: { label: "Beutel öffnen", onClick: openBag },
+      description: "Der ganze Spuk kommt noch einmal heraus und verbeugt sich.",
       duration: 10_000,
     });
     if (prefersReducedMotion()) return;
@@ -213,20 +232,14 @@ export function knockPumpkin(x: number, y: number): KnockResult {
   return "treat";
 }
 
-let tombstoneKnocks = 0;
-let tombstoneTimer: number | undefined;
+let bottomReached = false;
 
-/** A knock on the tombstone in the footer. Three in a row wake its tenant. */
-export function knockTombstone(x: number): void {
-  tombstoneKnocks += 1;
-  window.clearTimeout(tombstoneTimer);
-  tombstoneTimer = window.setTimeout(() => {
-    tombstoneKnocks = 0;
-  }, 2000);
-  if (tombstoneKnocks < 3) return;
-  tombstoneKnocks = 0;
-  play("hand", x, window.innerHeight, true);
-  discover("tombstone");
+/** The player scrolled to the very end of a page: a hand waves from below, once per page load. */
+export function reachBottom(): void {
+  if (bottomReached) return;
+  bottomReached = true;
+  play("hand", window.innerWidth * (0.3 + Math.random() * 0.4), window.innerHeight, true);
+  discover("bottom");
 }
 
 export interface GuessInput {
@@ -247,7 +260,24 @@ export function handleGuess({ word, rank, won }: GuessInput): void {
   if (rank === UNLUCKY_RANK && !won) {
     play("cat", 0, 0, true);
     discover("cat13");
+    return;
   }
+  if (!effect && !won && Math.random() < SURPRISE_CHANCE) {
+    play(SURPRISE_CAST[Math.floor(Math.random() * SURPRISE_CAST.length)]);
+  }
+}
+
+let eyesShown = false;
+
+/**
+ * The player has sat still for a while: two eyes blink once out of a dark
+ * corner. Once per page load; the runtime keeps it to once per session.
+ */
+export function peekEyes(): void {
+  if (eyesShown) return;
+  eyesShown = true;
+  const left = Math.random() < 0.5;
+  play("eyes", left ? 24 : window.innerWidth - 104, window.innerHeight * (0.45 + Math.random() * 0.3), true);
 }
 
 /** An accepted Wordle row of the player's own. */
@@ -255,20 +285,6 @@ export function handleWordleRow({ word, won }: { word: string; won: boolean }): 
   if (!isSpookyWordleWord(word)) return;
   if (!won) play("ghost");
   discover("wordle");
-}
-
-/** A solved round pays one candy, once. */
-export function handleSolve(solveKey: string): void {
-  hydrateProgress();
-  const { progress, isNew, candy } = recordSolve(getStage().progress, solveKey);
-  if (!isNew) return;
-  commitProgress(progress);
-  // After the result card has arrived, so the two do not speak at once.
-  window.setTimeout(() => {
-    toast(`Süßes für den Beutel: ${candy.name}`, {
-      action: { label: "Beutel öffnen", onClick: openBag },
-    });
-  }, 2200);
 }
 
 /** A round given up: the pumpkin answers with the other half of the saying. */

@@ -75,6 +75,11 @@
   --spook-moon-halo: oklch(0.93 0.06 90 / 22%);
   --spook-fog: oklch(0.55 0.05 300 / 9%);
   --spook-flash-edge: oklch(0.22 0.04 300);
+  --spook-glow-hot: oklch(0.97 0.18 100);
+  --spook-fog-word: oklch(0.55 0.05 300 / 22%);
+  --spook-potion: oklch(0.6 0.15 145);
+  --spook-web-row: oklch(0.23 0.045 305 / 30%);
+  --spook-wax: url("/event/halloween/wax-light.svg");
 }
 
 :root.event-halloween.dark {
@@ -128,6 +133,11 @@
   --spook-moon-halo: oklch(0.95 0.05 95 / 14%);
   --spook-fog: oklch(0.7 0.05 300 / 10%);
   --spook-flash-edge: oklch(0.12 0.03 300);
+  --spook-glow-hot: oklch(0.98 0.18 100);
+  --spook-fog-word: oklch(0.75 0.04 300 / 20%);
+  --spook-potion: oklch(0.75 0.17 145);
+  --spook-web-row: oklch(0.95 0.015 85 / 28%);
+  --spook-wax: url("/event/halloween/wax-dark.svg");
 }
 
 /* The display face for event chrome only: the flashes, the bag's title, the
@@ -177,14 +187,16 @@
   background-size: auto, auto, auto, auto, 240px 240px;
 }
 
-.event-halloween.spook-full-moon body {
+.event-halloween.spook-full-moon body,
+.event-halloween.spook-moon-word body {
   background-image:
     radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
     radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 5.5)),
     linear-gradient(to top, var(--spook-fog), transparent 28%);
 }
 
-.event-halloween.dark.spook-full-moon body {
+.event-halloween.dark.spook-full-moon body,
+.event-halloween.dark.spook-moon-word body {
   background-image:
     radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon) 0 var(--moon-r), transparent calc(var(--moon-r) + 1px)),
     radial-gradient(circle at var(--moon-x) var(--moon-y), var(--spook-moon-halo) 0, transparent calc(var(--moon-r) * 5.5)),
@@ -454,4 +466,240 @@
     transparent 110px,
     oklch(0.08 0.02 300 / 94%) 190px
   );
+}
+
+/* ---- Creatures added on 2026-10-01 -------------------------------------- */
+
+/* Owl (eule, rabe): flies across the upper half in a shallow arc. */
+.spook-owl {
+  top: 14vh;
+  left: 0;
+  width: 80px;
+  animation: spook-owl 5s ease-in-out forwards;
+}
+
+@keyframes spook-owl {
+  0% { opacity: 0; transform: translate(-100px, 60px); }
+  12% { opacity: 1; }
+  50% { transform: translate(45vw, 0); }
+  88% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(100vw + 20px), 40px); }
+}
+
+/* Wolf (werwolf): sits up in the bottom corner, howls, sinks back. */
+.spook-wolf {
+  bottom: 0;
+  left: auto;
+  right: 6vw;
+  width: 130px;
+  transform-origin: 30% 100%;
+  animation: spook-wolf 4s ease-out forwards;
+}
+
+@keyframes spook-wolf {
+  0% { opacity: 0; transform: translateY(40px); }
+  18% { opacity: 1; transform: translateY(0); }
+  30% { transform: rotate(-6deg); }
+  70% { opacity: 1; transform: rotate(-6deg); }
+  100% { opacity: 0; transform: translateY(40px); }
+}
+
+/* Eulenblick: two eyes fade in, blink twice, fade out. */
+.spook-eyes {
+  width: 72px;
+  animation: spook-eyes 3.2s ease-in-out forwards;
+}
+
+.spook-lids {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: spook-blink 3.2s ease-in-out forwards;
+}
+
+@keyframes spook-eyes {
+  0%, 100% { opacity: 0; }
+  12%, 85% { opacity: 1; }
+}
+
+@keyframes spook-blink {
+  0%, 30%, 36%, 62%, 68%, 100% { transform: scaleY(1); }
+  33%, 65% { transform: scaleY(0.08); }
+}
+
+/* Fog (nebel): one bank drifts across the bottom of the screen. */
+.spook-fog {
+  left: -40vw;
+  bottom: -10px;
+  width: 180vw;
+  height: 34vh;
+  animation: spook-fog 7s ease-in-out forwards;
+}
+
+@keyframes spook-fog {
+  0% { opacity: 0; transform: translateX(-15vw); }
+  25%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(12vw); }
+}
+
+/* Bubbles (kessel, zaubertrank): rise from the bottom edge, staggered. */
+.spook-bubble {
+  bottom: -30px;
+  border-radius: 9999px;
+  border: 2px solid var(--spook-potion);
+  background-color: color-mix(in oklch, var(--spook-potion) 18%, transparent);
+  opacity: 0;
+  animation: spook-bubble 2.4s ease-in forwards;
+}
+
+@keyframes spook-bubble {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-60vh) scale(1.2); }
+}
+
+/* ---- Kerzenschein details and the hover layer -----------------------------
+   Decoration only: nothing here changes the box of a control (M6). Every
+   hover effect is a colour change or an opacity change on a pseudo element;
+   the one that moves (the flame) runs once per hover. All of it sits behind
+   `hover: hover`, so a tap on a phone never leaves an effect stuck on.
+   Pseudo elements carry no text, so nothing reaches a screen reader. */
+
+/* Selection and scrollbar in the event accent; the pair is the measured
+   primary on primary-foreground. */
+.event-halloween ::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.event-halloween {
+  scrollbar-color: var(--primary) transparent;
+}
+
+/* Wax that ran down the top edge of every lying panel. A background image,
+   not a positioned layer, so no panel changes how it lays out its children.
+   Only panels with padding, so the drips never sit on content. */
+.event-halloween [data-slot="card"][data-tone="card"]:is([data-padding="sm"], [data-padding="md"]) {
+  background-image: var(--spook-wax);
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: 120px 12px;
+}
+
+/* The face of the pumpkin lights up, in the wordmark and on the header button. */
+.spook-face {
+  transition: fill 0.25s ease-out;
+}
+
+.event-halloween :is(a, button):focus-visible .spook-face {
+  fill: var(--spook-glow-hot);
+}
+
+@media (hover: hover) {
+  .event-halloween :is(a, button):hover .spook-face {
+    fill: var(--spook-glow-hot);
+  }
+
+  /* Links in running text and lists draw a wavy spider thread. */
+  .event-halloween :is(p, li) a:not([data-slot="button"]):hover {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: var(--spook-pumpkin);
+    text-underline-offset: 3px;
+  }
+
+  /* A small cobweb fades into the corner of a guess row. */
+  .event-halloween [data-slot="meter"]:hover::after {
+    opacity: 1;
+  }
+
+  /* A candle flame flickers up over a main button, once per hover. */
+  .event-halloween [data-slot="button"][data-variant="default"]:not(:disabled):hover::after {
+    animation: spook-flame 1.4s ease-out;
+  }
+
+  /* A footer link gets a tiny bat beside it. */
+  .event-halloween footer li > a:hover::after {
+    opacity: 0.8;
+  }
+}
+
+.event-halloween [data-slot="meter"]::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  background-color: var(--spook-web-row);
+  mask: url("/event/halloween/web.svg") no-repeat 0 0 / 100% 100%;
+  transform: scaleX(-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+}
+
+.event-halloween [data-slot="button"][data-variant="default"] {
+  position: relative;
+}
+
+.event-halloween [data-slot="button"][data-variant="default"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 12px;
+  height: 18px;
+  margin: 0 0 1px -6px;
+  background: url("/event/halloween/flame.svg") no-repeat center / contain;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes spook-flame {
+  0% { opacity: 0; transform: scale(0.4); }
+  20% { opacity: 1; transform: scale(1.1); }
+  35% { transform: scale(0.9) rotate(-4deg); }
+  50% { transform: scale(1.05) rotate(3deg); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+.event-halloween footer li > a::after {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 7px;
+  margin-left: 6px;
+  background-color: currentColor;
+  mask: url("/event/halloween/bat.svg") no-repeat center / contain;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+}
+
+/* Rank 13: a black cat sits in the track of the bar (the secret "Pechzahl" is
+   the cat walking by; this one stays). Rank 666 grows two little horns. */
+.event-halloween [data-slot="meter"][data-rank="13"]::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 3.25rem;
+  bottom: 2px;
+  width: 36px;
+  height: 21px;
+  background-color: var(--spook-night);
+  mask: url("/event/halloween/cat.svg") no-repeat center / contain;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.event-halloween [data-slot="meter"][data-rank="666"] [data-numeric]::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 9px;
+  margin-right: 4px;
+  background-color: currentColor;
+  mask: url("/event/halloween/horns.svg") no-repeat center / contain;
 }

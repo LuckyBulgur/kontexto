@@ -5,15 +5,27 @@ import { emptyProgress, type SpooktoberProgress } from "@/lib/events/spooktober"
 
 /**
  * State of the Spooktober runtime that React components render: the creatures
- * currently on stage, the flashlight, the candy bag and the player's progress.
+ * currently on stage, the flashlight and the player's progress.
  *
  * A plain external store rather than a context, because the controller that
  * writes it is called from outside React (the lazy hooks in
  * `lib/events/hooks.ts`), and the components that read it are mounted in
- * different trees (the layout's runtime, a header button, the footer).
+ * different trees (the layout's runtime and the header buttons).
  */
 
-export type ActorKind = "ghost" | "bats" | "spider" | "witch" | "cat" | "hand" | "smoke";
+export type ActorKind =
+  | "ghost"
+  | "bats"
+  | "spider"
+  | "witch"
+  | "cat"
+  | "hand"
+  | "smoke"
+  | "owl"
+  | "wolf"
+  | "eyes"
+  | "fog"
+  | "bubbles";
 
 export interface Actor {
   id: number;
@@ -27,7 +39,6 @@ export interface Actor {
 export interface StageState {
   actors: readonly Actor[];
   flashlight: boolean;
-  bagOpen: boolean;
   /** The pumpkin has been emptied and relights at this time (ms), or 0. */
   pumpkinEmptyUntil: number;
   progress: SpooktoberProgress;
@@ -36,7 +47,6 @@ export interface StageState {
 let state: StageState = {
   actors: [],
   flashlight: false,
-  bagOpen: false,
   pumpkinEmptyUntil: 0,
   progress: emptyProgress(),
 };

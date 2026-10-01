@@ -492,13 +492,13 @@ override `kontexto_event_theme_force` takes `off`, an event id or `on`; **`e2e/f
 `off` by default** (`disableSeasonalEvents`, inside `prepareContext`), because the gate is the
 date and a run in October would otherwise test another site. The pattern is **CSS-gated
 decoration, lazily loaded behaviour**: what stands in the static HTML (the pumpkin in place of the
-wordmark ring, the header pumpkin button, the footer graveyard, the haunted 404 line) is always in
+wordmark ring, the header pumpkin button, the haunted 404 line) is always in
 the markup as `hidden halloween:…`, so no flash, no hydration difference and no layout shift;
 everything that moves or reacts (`components/event/halloween/`: controller, effect stage, bats,
-flashlight, candy bag) is a chunk of its own, requested by `components/event/EventRuntime.tsx` and
+flashlight) is a chunk of its own, requested by `components/event/EventRuntime.tsx` and
 by the seams in `lib/events/hooks.ts` only while the skin is on. The runtime truth is the class
 (`isSkinOn`), not storage. The game clients call `onEventGuess` (own accepted guesses only, never a
-tip or another player's word), `onEventWordleRow`, `onEventSolve(mode:game)` and `onEventGiveUp`;
+tip or another player's word), `onEventWordleRow` and `onEventGiveUp`;
 none of them is awaited, and an effect depends only on what the player typed, so it can never
 become a hint.
 
@@ -506,12 +506,28 @@ become a hint.
 day): palettes „Kerzenschein“ and „Mitternacht“ that override every Farbwelt by specificity and
 leave the rank ramp and the Wördle tiles alone (share squares), Creepster for event chrome only
 (`preload: false`), bunting, cobweb, moon and fog as page background, bats on a canvas. Thirteen
-secrets and the candy per solved round live in `lib/events/spooktober.ts` (pure, unit-tested,
-progress under `kontexto_spooktober_2026`), copy in `components/event/halloween/copy.ts`. Every
+secrets live in `lib/events/spooktober.ts` (pure, unit-tested, progress under
+`kontexto_spooktober_2026`), copy in `components/event/halloween/copy.ts`. Every
 creature is one CSS keyframe, one pass, at most three at once, a minute of cooldown per kind, and
 nothing under reduced motion, where the toast carries the find. Child-safe on purpose: no blood,
 no gore, a trick never blocks the input or touches a guess. The shared result gets a pumpkin after
-the flag. Held by `lib/event-theme.test.ts`, `lib/events/spooktober.test.ts`,
+the flag.
+
+**Reworked on 2026-10-02, the player's decisions.** Out: the footer graveyard and the candy bag
+(dialog, menu entry, a sweet per solved round, `onEventSolve` and its seven call sites), and the
+Konami code ("viel zu schwer"). A find is said by a toast only ("4 von 13"); the stored progress
+keeps its `v: 1` shape, `parseProgress` drops the old `solves` list and the retired secret
+`tombstone`, whose place went to **Bodenlos** (scroll to the end of a page at least 1,5 screens
+tall). Eight looks were shown as a preview artifact first and the player chose „Kerzenschein“, so
+the palette stayed and gained detail: wax drips on every padded panel (`data-padding` on `Panel`,
+a background image so no layout changes), a flame over a main button on hover, a glowing pumpkin
+face under the pointer, a cobweb in a guess row (`data-slot="meter"`), a wavy link underline, a bat
+beside a footer link, rank 13 with a cat and 666 with horns (`data-rank` on `Meter`), the
+placeholder switched to a whispered prompt (`GuessInput`, default placeholder only). Everything hangs off
+words, hover and chance: free extras for `werwolf`, `eule`/`rabe`, `nebel`, `mond`, `kessel` (the
+count stays 13), one ordinary guess in 25 wakes a random creature, and 25 s without input two
+eyes blink once per session (Eulenblick). The hover layer sits behind `hover: hover` and changes
+colour or opacity only, never the box of a control (M6). Held by `lib/event-theme.test.ts`, `lib/events/spooktober.test.ts`,
 `e2e/halloween.spec.ts` and the event runs in `e2e/design-audit.spec.ts`.
 
 ### Quips (`lib/quips.ts`, `lib/use-quips.ts`, 2026-10-01)

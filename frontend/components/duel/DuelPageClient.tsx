@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
+import { onEventGuess } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -298,7 +298,6 @@ export default function DuelPageClient() {
         onEventGuess(newGuess);
         if (result.rank === 1) {
           fireConfetti();
-          onEventSolve(`duel:${duelId}:${duelState?.round ?? 0}`);
         }
         // Update own stats in players list
         if (nickname) {

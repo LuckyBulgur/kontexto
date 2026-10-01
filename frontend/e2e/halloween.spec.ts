@@ -35,7 +35,7 @@ async function foundSecrets(page: Page): Promise<string[]> {
 }
 
 test.describe("Spooktober", () => {
-  test("steht vor der Hydration: Klasse, Kürbis im Namen und Friedhof ohne JavaScript", async ({ page }) => {
+  test("steht vor der Hydration: Klasse und Kürbis im Namen ohne JavaScript", async ({ page }) => {
     await forceEvent(page);
     // Every script file is refused. The inline head script is part of the
     // document and still runs; the skin must not need anything else. A content
@@ -44,7 +44,6 @@ test.describe("Spooktober", () => {
     await page.goto("/anleitung/");
     await expect(page.locator("html")).toHaveClass(new RegExp(EVENT_CLASS));
     await expect(page.locator('a[href="/"] svg[viewBox="0 0 64 64"]').first()).toBeVisible();
-    await expect(page.getByTestId("spook-tombstone")).toBeVisible();
     const ringsShown = await page.evaluate(() =>
       Array.from(document.querySelectorAll('a[href="/"] .rounded-full.border-primary')).filter(
         (el) => getComputedStyle(el).display !== "none",
@@ -81,7 +80,7 @@ test.describe("Spooktober", () => {
     await expect.poll(() => foundSecrets(page)).toContain("pumpkin");
   });
 
-  test("Gruselwort: die Spinne seilt sich ab, der Beutel zeigt den Fund", async ({ page }) => {
+  test("Gruselwort: die Spinne seilt sich ab, der Toast zählt den Fund", async ({ page }) => {
     await forceEvent(page);
     await page.goto("/");
     const input = page.getByRole("textbox");
@@ -97,13 +96,31 @@ test.describe("Spooktober", () => {
     });
     expect(motion).toEqual({ name: "spook-spider", count: "1" });
     await expect(page.getByText("Geheimnis entdeckt: Abgeseilt")).toBeVisible();
+    await expect(page.getByText(/1 von 13\./)).toBeVisible();
+    // "midnight" joins on its own when the suite runs between 00:00 and 01:00.
+    await expect.poll(async () => (await foundSecrets(page)).filter((id) => id !== "midnight")).toEqual(["spider"]);
 
     await page.getByRole("button", { name: /Men/ }).click();
-    await page.getByRole("menuitem", { name: "Süßigkeiten-Beutel" }).click();
-    const bag = page.getByRole("dialog");
-    await expect(bag.getByRole("heading", { name: "Dein Süßigkeiten-Beutel" })).toBeVisible();
-    await expect(bag.locator('[data-secret="spider"][data-found="true"]')).toBeVisible();
-    await expect(bag.locator('[data-secret="ghost"][data-found="false"]')).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /Beutel/ })).toHaveCount(0);
+  });
+
+  test("neue Gruselwörter: Nebel zieht einmal auf und zählt nicht als Geheimnis", async ({ page }) => {
+    await forceEvent(page);
+    await page.goto("/");
+    await expect(page.getByRole("textbox")).toHaveAttribute("placeholder", "Flüstere dein erstes Wort …");
+    const input = page.getByRole("textbox");
+    await input.fill("nebel");
+    await input.press("Enter");
+
+    const fog = page.locator(".spook-fog");
+    await expect(fog).toBeAttached();
+    const motion = await fog.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { name: cs.animationName, count: cs.animationIterationCount };
+    });
+    expect(motion).toEqual({ name: "spook-fog", count: "1" });
+    await expect(page.locator('[data-slot="meter"][data-rank]').first()).toBeVisible();
+    expect((await foundSecrets(page)).filter((id) => id !== "midnight")).toEqual([]);
   });
 
   test("bei reduzierter Bewegung kein Geist, aber der Fund zählt", async ({ page }) => {

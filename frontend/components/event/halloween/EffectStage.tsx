@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { BatGlyph, CatGlyph, GhostGlyph, HandGlyph, SmokeGlyph, SpiderGlyph, WitchGlyph } from "./art";
+import {
+  BatGlyph,
+  CatGlyph,
+  EyesGlyph,
+  FogGlyph,
+  GhostGlyph,
+  HandGlyph,
+  OwlGlyph,
+  SmokeGlyph,
+  SpiderGlyph,
+  WitchGlyph,
+  WolfGlyph,
+} from "./art";
 import { removeActor, useStage, type Actor, type ActorKind } from "./stage-store";
 
 /**
@@ -23,9 +35,17 @@ const DURATION_MS: Record<ActorKind, number> = {
   cat: 7000,
   hand: 3400,
   smoke: 1200,
+  owl: 5000,
+  wolf: 4000,
+  eyes: 3200,
+  fog: 7000,
+  // The last of the seven bubbles starts 960 ms late and rises for 2,4 s.
+  bubbles: 3400,
 };
 
 const SWARM_SIZE = 6;
+const BUBBLE_COUNT = 7;
+const BUBBLE_STAGGER_MS = 160;
 
 type BatFlight = { tx: number; ty: number; delay: number };
 
@@ -49,6 +69,14 @@ function ActorView({ actor }: { actor: Actor }) {
     actor.kind === "bats" ? swarm(actor.y < window.innerHeight * 0.25) : [],
   );
   const [spiderX] = useState(() => (actor.x > 0 ? actor.x : window.innerWidth * (0.2 + Math.random() * 0.6)));
+  const [bubbles] = useState<{ x: number; size: number }[]>(() =>
+    actor.kind === "bubbles"
+      ? Array.from({ length: BUBBLE_COUNT }, () => ({
+          x: window.innerWidth * (0.15 + Math.random() * 0.7),
+          size: 14 + Math.round(Math.random() * 14),
+        }))
+      : [],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => removeActor(actor.id), DURATION_MS[actor.kind] + 250);
@@ -70,6 +98,30 @@ function ActorView({ actor }: { actor: Actor }) {
       );
     case "hand":
       return <HandGlyph className="spook-actor spook-hand" />;
+    case "owl":
+      return <OwlGlyph className="spook-actor spook-owl" />;
+    case "wolf":
+      return <WolfGlyph className="spook-actor spook-wolf" />;
+    case "fog":
+      return <FogGlyph className="spook-actor spook-fog" />;
+    case "eyes":
+      return (
+        <div className="spook-actor spook-eyes" style={{ left: actor.x, top: actor.y }}>
+          <EyesGlyph className="block w-full" />
+        </div>
+      );
+    case "bubbles":
+      return (
+        <>
+          {bubbles.map((b, i) => (
+            <span
+              key={i}
+              className="spook-actor spook-bubble"
+              style={{ left: b.x, width: b.size, height: b.size, animationDelay: `${i * BUBBLE_STAGGER_MS}ms` }}
+            />
+          ))}
+        </>
+      );
     case "smoke":
       return (
         <div className="spook-actor spook-smoke" style={{ left: actor.x, top: actor.y }}>

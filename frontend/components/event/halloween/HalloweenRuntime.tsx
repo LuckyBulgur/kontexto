@@ -9,15 +9,14 @@ import {
   hydrateProgress,
   isHalloweenDay,
   isWitchingHour,
-  openBag,
-  startFlashlight,
+  peekEyes,
+  reachBottom,
 } from "./controller";
 import { saveProgress } from "@/lib/events/spooktober";
 import { COPY } from "./copy";
 import BatBackdrop from "./BatBackdrop";
 import EffectStage from "./EffectStage";
 import Flashlight from "./Flashlight";
-import CandyBagDialog from "./CandyBagDialog";
 
 /**
  * Everything Spooktober does on its own, mounted once in the root layout by
@@ -31,12 +30,12 @@ const HALLOWEEN_TOAST_KEY = "kontexto_spooktober_halloween_toast";
 const FAVICON_ATTR = "data-spooktober";
 /** The page colours of the event palette, for the browser chrome on phones. */
 const THEME_COLOR = { light: "#fcf2e5", dark: "#120c1c" };
-const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
-
-function isTyping(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-}
+/** Quiet this long, and something looks back. */
+const IDLE_EYES_MS = 25_000;
+const EYES_SEEN_KEY = "kontexto_spooktober_eyes";
+/** A page has to be this many screens tall before its end counts as "ganz unten". */
+const BOTTOM_MIN_PAGES = 1.5;
+const BOTTOM_SLACK_PX = 4;
 
 function safeStorage(kind: "local" | "session"): Storage | null {
   try {
@@ -61,7 +60,6 @@ export default function HalloweenRuntime() {
         setStage({ progress: next });
         toast(COPY.announce.title, {
           description: COPY.announce.description,
-          action: { label: COPY.announce.action, onClick: openBag },
           duration: 9000,
         });
         return;
@@ -72,7 +70,6 @@ export default function HalloweenRuntime() {
         session?.setItem(HALLOWEEN_TOAST_KEY, "1");
         toast(COPY.announce.halloweenTitle, {
           description: COPY.announce.halloweenDescription,
-          action: { label: COPY.announce.action, onClick: openBag },
           duration: 8000,
         });
       }
@@ -147,36 +144,63 @@ export default function HalloweenRuntime() {
     };
   }, [pathname]);
 
-  // The Konami code switches the lights off. Ignored while typing, so a word
-  // with "b" and "a" in it never trips it.
+  // The very end of a long page: a hand waves from below (secret "Bodenlos").
+  // Only on a page that really scrolls, or a short page would set it off on
+  // load, and not on the live pages, which a streamer may be capturing.
   useEffect(() => {
-    let position = 0;
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      if (key === KONAMI[position]) {
-        position += 1;
-        if (position === KONAMI.length) {
-          position = 0;
-          startFlashlight();
-        }
-      } else if (key === "ArrowUp") {
-        // A third up after two ups still leaves the last two as a valid start.
-        position = position === 2 ? 2 : 1;
-      } else {
-        position = 0;
-      }
+    if (pathname.startsWith("/live")) return;
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight > window.innerHeight * BOTTOM_MIN_PAGES;
+      if (scrollable && window.scrollY + window.innerHeight >= doc.scrollHeight - BOTTOM_SLACK_PX) reachBottom();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    const onScroll = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(check);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+    };
+  }, [pathname]);
+
+  // Eulenblick: after a while without any input, two eyes blink once out of a
+  // dark corner. Once per browser session, and not on the live pages.
+  useEffect(() => {
+    if (pathname.startsWith("/live")) return;
+    const session = safeStorage("session");
+    if (session?.getItem(EYES_SEEN_KEY)) return;
+    let timer = 0;
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (document.hidden) return;
+        try {
+          session?.setItem(EYES_SEEN_KEY, "1");
+        } catch {
+          // Storage blocked: the eyes may come back on the next page.
+        }
+        peekEyes();
+        detach();
+      }, IDLE_EYES_MS);
+    };
+    const events = ["pointermove", "pointerdown", "keydown", "scroll", "touchstart"] as const;
+    const detach = () => {
+      window.clearTimeout(timer);
+      for (const e of events) window.removeEventListener(e, arm);
+    };
+    for (const e of events) window.addEventListener(e, arm, { passive: true });
+    arm();
+    return detach;
+  }, [pathname]);
 
   return (
     <>
       <BatBackdrop busy={busy} />
       <EffectStage />
       <Flashlight />
-      <CandyBagDialog />
     </>
   );
 }

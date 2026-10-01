@@ -47,20 +47,8 @@ export function onEventWordleRow(row: { word: string; won: boolean }): void {
   withController((c) => c.handleWordleRow(row));
 }
 
-/**
- * A round this player solved. `solveKey` names the round (`mode:game`) so a
- * reload of a solved game never pays a second candy.
- */
-export function onEventSolve(solveKey: string): void {
-  withController((c) => c.handleSolve(solveKey));
-}
-
 export function onEventGiveUp(): void {
   withController((c) => c.handleGiveUp());
-}
-
-export function openCandyBag(): void {
-  withController((c) => c.openBag());
 }
 
 /** Knock on the header pumpkin. Resolves with what happened, or null when the skin is off. */
@@ -72,10 +60,6 @@ export async function knockPumpkin(x: number, y: number): Promise<"treat" | "tri
   } catch {
     return null;
   }
-}
-
-export function knockTombstone(x: number): void {
-  withController((c) => c.knockTombstone(x));
 }
 
 export function reportLostPage(): void {

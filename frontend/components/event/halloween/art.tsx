@@ -1,5 +1,3 @@
-import type { CandyId } from "@/lib/events/spooktober";
-
 /**
  * The Spooktober cast, drawn once as inline SVG.
  *
@@ -22,6 +20,7 @@ export function PumpkinGlyph({ className }: GlyphProps) {
       <ellipse cx="43.5" cy="38" rx="15.5" ry="20" fill="var(--spook-pumpkin-deep)" />
       <ellipse cx="32" cy="38" rx="17" ry="22" fill="var(--spook-pumpkin)" />
       <path
+        className="spook-face"
         d="M18.5 34.5l6-8 5.5 8zM34 34.5l5.5-8 6 8zM29.8 40.5l2.2-3.2 2.2 3.2zM16.5 44c7.5 11.5 23.5 11.5 31 0l-4.2 1.4-2 3.3-3.6-2.1-3.7 3.9-3.7-3.9-3.6 2.1-2-3.3z"
         fill="var(--spook-glow)"
       />
@@ -142,72 +141,54 @@ export function SmokeGlyph({ className }: GlyphProps) {
   );
 }
 
-export function TombstoneGlyph({ className }: GlyphProps) {
+export function OwlGlyph({ className }: GlyphProps) {
   return (
-    <svg viewBox="0 0 80 90" className={className} aria-hidden="true" focusable="false" preserveAspectRatio="none">
-      <path d="M8 88V36C8 18 22 4 40 4s32 14 32 32v52z" fill="var(--muted)" stroke="var(--border)" strokeWidth="2" />
-      <path d="M0 88h80" stroke="var(--border)" strokeWidth="3" />
+    <svg viewBox="0 0 80 60" className={className} aria-hidden="true" focusable="false">
+      <g fill="var(--spook-night)">
+        <path d="M40 14c-8 0-13 6-13 14 0 10 6 18 13 18s13-8 13-18c0-8-5-14-13-14z" />
+        <path d="M28 18l-2-8 7 5zM52 18l2-8-7 5z" />
+        <path d="M28 30C18 22 8 22 0 28c8 0 12 4 14 10 4-4 9-6 14-4zM52 30c10-8 20-8 28-2-8 0-12 4-14 10-4-4-9-6-14-4z" />
+      </g>
+      <circle cx="35" cy="26" r="4" fill="var(--spook-glow)" />
+      <circle cx="45" cy="26" r="4" fill="var(--spook-glow)" />
+      <circle cx="35" cy="26" r="1.6" fill="var(--spook-night)" />
+      <circle cx="45" cy="26" r="1.6" fill="var(--spook-night)" />
+      <path d="M38.5 31l1.5 3 1.5-3z" fill="var(--spook-pumpkin)" />
     </svg>
   );
 }
 
-/** One figure per candy, drawn in the candy's own colours. */
-export function CandyGlyph({ candy, className }: GlyphProps & { candy: CandyId | "golden" }) {
-  switch (candy) {
-    case "drop":
-      return (
-        <svg viewBox="0 0 48 32" className={className} aria-hidden="true" focusable="false">
-          <path d="M14 16L2 6v20zM34 16l12-10v20z" fill="oklch(0.62 0.2 330)" />
-          <ellipse cx="24" cy="16" rx="12" ry="10" fill="oklch(0.7 0.18 350)" />
-          <path d="M18 12c3-3 9-3 12 0" stroke="oklch(1 0 0 / 60%)" strokeWidth="2" fill="none" strokeLinecap="round" />
-        </svg>
-      );
-    case "lollipop":
-      return (
-        <svg viewBox="0 0 32 48" className={className} aria-hidden="true" focusable="false">
-          <path d="M15 26h2v21h-2z" fill="oklch(0.85 0.02 80)" />
-          <circle cx="16" cy="14" r="12" fill="oklch(0.6 0.19 300)" />
-          <path d="M16 14m-7 0a7 7 0 1 0 7-7" stroke="oklch(0.95 0.03 90)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        </svg>
-      );
-    case "chocolate":
-      return (
-        <svg viewBox="0 0 48 28" className={className} aria-hidden="true" focusable="false">
-          <rect x="2" y="4" width="44" height="20" rx="3" fill="oklch(0.4 0.07 50)" />
-          <rect x="16" y="4" width="30" height="20" rx="3" fill="oklch(0.62 0.17 45)" />
-          <path d="M8 6v16M13 6v16" stroke="oklch(0.3 0.06 50)" strokeWidth="1.5" />
-        </svg>
-      );
-    case "gummyWorm":
-      return (
-        <svg viewBox="0 0 48 28" className={className} aria-hidden="true" focusable="false">
-          <path d="M4 18c6-12 12 4 18-6s12 4 22-6" stroke="oklch(0.72 0.19 140)" strokeWidth="7" fill="none" strokeLinecap="round" />
-          <path d="M4 18c6-12 12 4 18-6" stroke="oklch(0.7 0.19 45)" strokeWidth="7" fill="none" strokeLinecap="round" />
-        </svg>
-      );
-    case "licorice":
-      return (
-        <svg viewBox="0 0 40 40" className={className} aria-hidden="true" focusable="false">
-          <circle cx="20" cy="20" r="17" fill="oklch(0.25 0.02 300)" />
-          <path d="M20 20m-4 0a4 4 0 1 1 4 4 8 8 0 1 1 8-8 12 12 0 1 1-12-12" stroke="oklch(0.4 0.03 300)" strokeWidth="2.5" fill="none" />
-          <circle cx="20" cy="20" r="3" fill="oklch(0.65 0.2 350)" />
-        </svg>
-      );
-    case "caramel":
-      return (
-        <svg viewBox="0 0 48 32" className={className} aria-hidden="true" focusable="false">
-          <path d="M12 16L2 8v16zM36 16l10-8v16z" fill="oklch(0.9 0.04 85)" />
-          <rect x="11" y="7" width="26" height="18" rx="4" fill="oklch(0.66 0.13 65)" />
-          <path d="M16 11h16" stroke="oklch(1 0 0 / 50%)" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "golden":
-      return (
-        <svg viewBox="0 0 48 32" className={className} aria-hidden="true" focusable="false">
-          <path d="M14 16L2 6v20zM34 16l12-10v20z" fill="oklch(0.72 0.14 80)" />
-          <ellipse cx="24" cy="16" rx="12" ry="10" fill="oklch(0.84 0.15 90)" />
-          <path d="M24 9l2 5h5l-4 3 1.5 5-4.5-3-4.5 3 1.5-5-4-3h5z" fill="oklch(0.97 0.05 95)" />
-        </svg>
-      );
-  }
+/** A wolf sitting with its head raised, howling. */
+export function WolfGlyph({ className }: GlyphProps) {
+  return (
+    <svg viewBox="0 0 120 90" className={className} aria-hidden="true" focusable="false">
+      <g fill="var(--spook-night)">
+        <path d="M30 90c2-14 6-26 14-34l-6-10c4 0 8 1 11 3l4-18 6 14c4-6 8-14 10-24 2 8 1 16-1 22l10 6c-4 2-9 2-13 1 4 8 8 18 9 30 6 2 12 6 16 10z" />
+        <path d="M40 90H26c4-8 10-12 18-14z" />
+      </g>
+    </svg>
+  );
+}
+
+/** Two eyes in the dark. The lids are a group of their own, so they can blink. */
+export function EyesGlyph({ className }: GlyphProps) {
+  return (
+    <svg viewBox="0 0 64 24" className={className} aria-hidden="true" focusable="false">
+      <g className="spook-lids">
+        <ellipse cx="18" cy="12" rx="8" ry="5" fill="var(--spook-glow)" />
+        <ellipse cx="46" cy="12" rx="8" ry="5" fill="var(--spook-glow)" />
+        <circle cx="19" cy="12" r="2.2" fill="var(--spook-night)" />
+        <circle cx="47" cy="12" r="2.2" fill="var(--spook-night)" />
+      </g>
+    </svg>
+  );
+}
+
+export function FogGlyph({ className }: GlyphProps) {
+  return (
+    <svg viewBox="0 0 420 140" preserveAspectRatio="none" className={className} aria-hidden="true" focusable="false">
+      <path fill="var(--spook-fog-word)" d="M0 140V50c60-30 120 20 200-6s150-14 220 10v86z" />
+      <path fill="var(--spook-fog-word)" d="M0 140V90c70-20 140 10 210-4s140-6 210 8v46z" />
+    </svg>
+  );
 }

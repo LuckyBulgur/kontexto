@@ -46,7 +46,7 @@ WORDS = [
     "schön", "gut", "schlecht", "richtig", "falsch", "wichtig", "einfach", "schwer",
     # Seasonal event words (e2e/halloween.spec.ts). Appended, so the targets,
     # which are drawn from the first 40 entries, stay the same.
-    "spinne", "geist",
+    "spinne", "geist", "nebel",
 ]
 
 # Five-letter German words for the Wordle mock. `WORDLE_SOLUTIONS` holds a single

@@ -17,7 +17,7 @@ import SoloRulesCard from "@/components/solo/SoloRulesCard";
 import SoloStatus from "@/components/solo/SoloStatus";
 import { AD_SLOTS } from "@/lib/adsense";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventGiveUp, onEventGuess, onEventSolve } from "@/lib/events/hooks";
+import { onEventGiveUp, onEventGuess } from "@/lib/events/hooks";
 import { UnknownWordError } from "@/lib/guess-error";
 import { refusalText } from "@/lib/quips";
 import { useQuips } from "@/lib/use-quips";
@@ -254,7 +254,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
 
     if (state.status === "won") {
       fireConfetti();
-      onEventSolve(`solo:${key}`);
     }
 
     const durationSeconds = state.startedAt

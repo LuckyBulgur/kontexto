@@ -2,7 +2,19 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SPOOKTOBER_2026 } from "@/lib/event-theme";
+import { useEventTheme } from "@/lib/use-event-theme";
 import { isKnockWord, playKnock } from "@/lib/knock-sound";
+
+const DEFAULT_PLACEHOLDER = "Wort eingeben...";
+/**
+ * The generic placeholders and what they read while the Halloween skin shows.
+ * A placeholder that says something about the mode (solo rules, live room) is kept.
+ */
+const SPOOKY_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  [DEFAULT_PLACEHOLDER]: "Flüstere ein Wort …",
+  "Gib dein erstes Wort ein!": "Flüstere dein erstes Wort …",
+};
 
 interface GuessInputProps {
   onGuess: (word: string) => void;
@@ -11,8 +23,11 @@ interface GuessInputProps {
   placeholder?: string;
 }
 
-export default function GuessInput({ onGuess, disabled, error, placeholder = "Wort eingeben..." }: GuessInputProps) {
+export default function GuessInput({ onGuess, disabled, error, placeholder = DEFAULT_PLACEHOLDER }: GuessInputProps) {
   const [value, setValue] = useState("");
+  const { event, active } = useEventTheme();
+  const spooky = active && event?.id === SPOOKTOBER_2026.id;
+  const shownPlaceholder = (spooky && SPOOKY_PLACEHOLDERS[placeholder]) || placeholder;
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     // Keep keyboard users ready to type, but prevent mobile browsers from
@@ -37,7 +52,7 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
+          placeholder={shownPlaceholder}
           disabled={disabled}
           autoComplete="off"
           autoCapitalize="off"

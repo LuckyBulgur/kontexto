@@ -21,7 +21,7 @@ import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wo
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { fireBurst } from "@/lib/confetti";
-import { onEventSolve, onEventWordleRow } from "@/lib/events/hooks";
+import { onEventWordleRow } from "@/lib/events/hooks";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -277,7 +277,6 @@ export default function WordleDuelPageClient() {
       setCurrentGuess("");
       setGameStatus(won ? "won" : lost ? "lost" : "playing");
       onEventWordleRow({ word, won });
-      if (won) onEventSolve(`wordle-duel:${duelId}:${round ?? 0}`);
 
       // Update letter states
       setLetterStates((prev) => {

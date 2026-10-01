@@ -56,12 +56,13 @@ export function Panel({
       <Slot.Root
         data-slot="card"
         data-tone={tone}
+        data-padding={padding}
         className={cn("flex flex-col border text-card-foreground", classes)}
         {...props}
       />
     );
   }
-  return <Card data-tone={tone} className={classes} {...props} />;
+  return <Card data-tone={tone} data-padding={padding} className={classes} {...props} />;
 }
 
 type Level = "h1" | "h2" | "h3" | "h4";

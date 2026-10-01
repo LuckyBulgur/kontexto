@@ -25,7 +25,6 @@ import ModesButton from "@/components/ModesButton";
 import WordleModeDialog from "@/components/wordle/WordleModeDialog";
 import { WordmarkName } from "@/components/design";
 import PumpkinButton from "@/components/event/halloween/PumpkinButton";
-import CandyBagMenuItem from "@/components/event/halloween/CandyBagMenuItem";
 
 interface WordleHeaderProps {
   /** Spielanleitung öffnen */
@@ -134,7 +133,6 @@ export default function WordleHeader({
                   Statistik
                 </DropdownMenuItem>
               )}
-              <CandyBagMenuItem />
               {onSettings && <DropdownMenuSeparator />}
               {onSettings && (
                 <DropdownMenuItem onClick={onSettings}>

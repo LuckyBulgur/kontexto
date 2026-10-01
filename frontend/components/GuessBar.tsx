@@ -41,6 +41,7 @@ export default function GuessBar({
       isNew={isNew}
       highlight={isNew}
       emphasis={size === "lg"}
+      data-rank={rank}
       className="mb-1"
     />
   );

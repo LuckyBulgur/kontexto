@@ -52,7 +52,7 @@ export const SPOOKTOBER_2026: SeasonalEvent = {
   endMs: Date.UTC(2026, 9, 31, 23, 0, 0),
   optOutKey: "kontexto_event_off_spooktober_2026",
   settingsLabel: "Halloween-Design",
-  settingsHint: "Gruseliges Aussehen, ein Kürbis voller Süßigkeiten und 13 Geheimnisse. Nur bis 31. Oktober.",
+  settingsHint: "Gruseliges Aussehen, kleine Überraschungen und 13 versteckte Geheimnisse. Nur bis 31. Oktober.",
 };
 
 /** Every event the site knows, newest first. */
