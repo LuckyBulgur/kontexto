@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { channelAddress, channelLabel, normaliseChannel } from "@/lib/live-channel";
-import { PLATFORM_COPY, STOP_HINT_AHEAD, TIKTOK_NOTE } from "@/lib/live-copy";
+import { PLATFORM_COPY, STOP_HINT_AHEAD } from "@/lib/live-copy";
 import { eventAction, eventDetail } from "@/lib/live-events";
 import {
   ChatState, LiveBadgeCatalog, LiveBoardId, LiveChannel, LiveEvent, LivePlatform, LiveViewer,
@@ -399,7 +399,7 @@ function AddChannelPanel({
             ? copy.invalid
             : normalised
               ? `Gelesen wird ${channelAddress(normalised, platform)}`
-              : `Dann raten beide Chats auf diesem Brett. ${platform === "tiktok" ? TIKTOK_NOTE : ""}`}
+              : "Dann raten beide Chats auf diesem Brett."}
         </p>
         {error && <p className="text-micro text-destructive">{error}</p>}
         <Button type="submit" variant="outline" size="sm" disabled={!normalised || sending}>
