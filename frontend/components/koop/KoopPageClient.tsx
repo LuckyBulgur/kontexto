@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
 import { cn } from "@/lib/utils";
+import { knocksForArrival, playKnock } from "@/lib/knock-sound";
 
 function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
@@ -332,6 +333,9 @@ export default function KoopPageClient({
       if (msg.type === "state") {
         setPlayers(msg.players);
       } else if (msg.type === "guess_added") {
+        if (knocksForArrival({ word: msg.word, by: msg.nickname, isTip: msg.is_tip }, nickname)) {
+          playKnock();
+        }
         appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname, {
           source: msg.source ?? null,
           badges: msg.badges ?? [],
@@ -379,7 +383,7 @@ export default function KoopPageClient({
         );
       }
     },
-    [appendGuess, resetForNextGame, koopId]
+    [appendGuess, resetForNextGame, koopId, nickname]
   );
 
   const { connected: wsConnected } = useKoopWebSocket({

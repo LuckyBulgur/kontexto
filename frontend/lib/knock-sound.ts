@@ -1,9 +1,14 @@
 /**
  * An easter egg: whoever types "klopfen" as a guess hears a knock on a door.
  *
- * Played on submit, in every mode that uses `GuessInput`, before the server
- * has answered, so the knock lands on the Enter key and not a round trip
- * later. It has nothing to do with the round: the guess goes on exactly as
+ * It knocks however the word got onto the board: typed here, played by a
+ * teammate in a koop, or written in the stream chat of a live room, where the
+ * host page plays it and the stream carries it. Typed here it plays on
+ * submit, before the server has answered, so the knock lands on the Enter key
+ * and not a round trip later; another player's word knocks when it arrives
+ * (`knocksForArrival`). Duel and arena never send an opponent's word to the
+ * client, which is the point of those modes, so there only your own typing
+ * knocks. It has nothing to do with the round: the guess goes on exactly as
  * any other.
  *
  * The file (`public/sounds/klopfen.mp3`) is prepared for this, not used raw:
@@ -23,6 +28,20 @@ export const KNOCK_VOLUME = 0.6;
 /** Whether a typed guess is the knock word, in any case and with stray spaces. */
 export function isKnockWord(input: string): boolean {
   return input.trim().toLocaleLowerCase("de-DE") === KNOCK_WORD;
+}
+
+/**
+ * Whether a word that arrived on a shared board from somebody else knocks.
+ * Your own word already knocked on submit, and a tip is the game's word, not
+ * a player's. A koop board takes each word once, so a chat that spams the
+ * word knocks once per round.
+ */
+export function knocksForArrival(
+  arrival: { word: string; by: string | null | undefined; isTip: boolean },
+  ownNickname: string | null
+): boolean {
+  if (arrival.isTip || !isKnockWord(arrival.word)) return false;
+  return !ownNickname || arrival.by !== ownNickname;
 }
 
 let audio: HTMLAudioElement | null = null;
