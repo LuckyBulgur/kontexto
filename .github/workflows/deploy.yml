@@ -10,26 +10,48 @@ on:
       - '.gitignore'
       - 'LICENSE'
 
+# Lowercase, because registry names must be. docker-compose.yml names the same
+# image, so `docker compose pull` on the server finds what this run pushed.
+env:
+  IMAGE: ghcr.io/luckybulgur/kontexto
+
 jobs:
   # A commit message containing "[skip tests]" skips both test jobs and still
   # deploys. For an urgent, date-bound ship only; the suites should have been
-  # run locally before (CLAUDE.md, "Before reporting anything done").
+  # run locally before (CLAUDE.md, "Before reporting anything done"). The image
+  # job never skips, because the deploy has nothing to pull without it.
+  #
+  # Every job but the deploy gives way to a newer push: a superseded commit is
+  # never deployed (see the guard in the deploy script), so testing it to the
+  # end only costs runners.
   test:
     if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-test
+      cancel-in-progress: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The runner's Python with pip in it, because `spacy download` below
+      # installs the model through pip.
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-          cache: 'pip'
+
+      # uv instead of pip: the same pinned requirements in a fraction of the
+      # time, from a cache keyed on the requirements file.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt
+        run: uv pip install --system -r backend/requirements.txt
 
       # test_prepare_integration runs the real data pipeline, which reads word
       # classes with spaCy. The production build uses de_core_news_lg (570 MB,
@@ -45,9 +67,53 @@ jobs:
           PYTHONPATH: backend
           KONTEXTO_SPACY_MODEL: de_core_news_sm
 
-  frontend:
+  # The E2E job runs inside Playwright's own image, whose tag has to name the
+  # exact version in the lockfile. Read here, so a Playwright bump moves the
+  # image with it and nobody has to remember a second place.
+  playwright-version:
     if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+
+    steps:
+      - name: Checkout the lockfile
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: frontend/pnpm-lock.yaml
+          sparse-checkout-cone-mode: false
+
+      - name: Read the Playwright version
+        id: read
+        run: |
+          versions=$(grep -oP "^  '@playwright/test@\K[0-9]+\.[0-9]+\.[0-9]+(?=':)" frontend/pnpm-lock.yaml | sort -u)
+          if [ "$(printf '%s\n' "$versions" | grep -c .)" -ne 1 ]; then
+            echo "Expected exactly one @playwright/test version in the lockfile, found: ${versions:-none}" >&2
+            exit 1
+          fi
+          echo "version=$versions" >> "$GITHUB_OUTPUT"
+
+  frontend:
+    needs: playwright-version
+    runs-on: ubuntu-latest
+    # Chromium and every library it needs come with the image. Installing the
+    # libraries per run used to take 18 s and, on 2026-10-01, over five
+    # minutes, because the Ubuntu mirror served them at 104 kB/s. --user 1001
+    # is the runner's own uid, so the checkout stays writable; --ipc=host is
+    # what Playwright recommends for Chromium in Docker.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --user 1001 --ipc=host
+    # Two shards, each on its own runner with its own backend and SQLite file,
+    # so the serial single-worker rule in playwright.config.ts holds inside
+    # each of them. Sharding is by file, the suite is not fullyParallel.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    concurrency:
+      group: ci-frontend-${{ matrix.shard }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout
@@ -66,23 +132,29 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      # The image has no Python 3.12 of its own. uv provides one, creates a
+      # virtual environment and puts it on PATH, which is where
+      # playwright.config.ts finds `python -m uvicorn` in CI.
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v10
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.txt
 
       # Backend deps are needed to generate the mock dataset and to run the
       # API/WS process that the Playwright webServer boots for the E2E suite.
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: uv pip install -r backend/requirements.txt
 
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # Neither depends on the shard, so one shard runs it.
       - name: Unit tests (vitest)
+        if: ${{ matrix.shard == 1 }}
         working-directory: frontend
         run: pnpm test
 
@@ -96,44 +168,16 @@ jobs:
           NEXT_PUBLIC_ADSENSE_REVIEW_MODE: "true"
 
       - name: SEO checks
+        if: ${{ matrix.shard == 1 }}
         working-directory: frontend
         run: pnpm seo:check
 
       - name: Generate E2E mock data
         run: python scripts/create-test-data.py --output data-e2e
 
-      # Cache the ~150 MB Chromium download across runs. Actions cache storage
-      # (10 GB/repo, auto-evicted) does NOT count against the Actions storage
-      # quota, so this only saves time + bandwidth. Keyed on the resolved
-      # Playwright version so a version bump invalidates it automatically.
-      - name: Resolve Playwright version
-        id: pw
-        working-directory: frontend
-        run: echo "version=$(pnpm exec playwright --version | sed 's/^Version //')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        id: pw-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
-
-      # On a cache hit the browser binary is restored but the OS libraries are not
-      # (they live on the runner image, not in the cache), so install just those;
-      # on a miss, download the browser too.
-      - name: Install Playwright browser + OS deps
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        working-directory: frontend
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Install Playwright OS deps (cached browser)
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        working-directory: frontend
-        run: pnpm exec playwright install-deps chromium
-
       - name: E2E tests (Playwright)
         working-directory: frontend
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/2
 
       - name: Upload Playwright report
         # Only on failure: a green run's report is never looked at, and artifacts
@@ -142,17 +186,83 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: frontend/playwright-report/
           retention-days: 7
           if-no-files-found: ignore
 
-  deploy:
-    # Runs after both test jobs passed, or when the marker above skipped them.
-    # A failed or cancelled test job still blocks it.
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+  # The production image is built here, next to the tests, and not on the
+  # server after them: the server took 55 to 94 s for the Next build alone and
+  # did it while serving players. The deploy only pulls the result.
+  image:
     runs-on: ubuntu-latest
-    needs: [test, frontend]
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: ci-image
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # One tag per commit, so the server runs exactly what was tested and a
+      # rollback is a tag. The build cache lives in the registry rather than in
+      # the 10 GB Actions cache, where the Python layer (about 1 GB) would push
+      # the pnpm and uv caches out. provenance and sbom are off: one plain
+      # manifest per push, nothing untagged that the cleanup below could
+      # orphan. The source label links the package to this repository, which
+      # is what gives GITHUB_TOKEN access to it on the next run.
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          # Keep the production image review-safe. This must be changed
+          # deliberately after Google has approved the site.
+          build-args: NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
+          provenance: false
+          sbom: false
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
+
+      # Every push of the build cache leaves the previous cache manifest behind
+      # untagged. Only those go; commit tags stay as rollback targets.
+      - name: Remove untagged image versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: kontexto
+          package-type: container
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 0
+
+  deploy:
+    # Runs once the image exists and both test jobs passed, or when the marker
+    # above skipped them. A failed or cancelled job blocks it.
+    if: ${{ !cancelled() && needs.image.result == 'success' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-latest
+    needs: [test, frontend, image]
+    permissions:
+      contents: read
+      packages: read
+    # One deploy at a time on the server, and never cancelled halfway through
+    # `docker compose up`.
+    concurrency:
+      group: production
+      cancel-in-progress: false
 
     steps:
       - name: Deploy via SSH
@@ -162,42 +272,67 @@ jobs:
           # secret and written into the server .env on every deploy, so the key
           # lives in one place and a rotation is one `gh secret set` away.
           EULER_API_KEY: ${{ secrets.EULER_API_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+          # Valid for this job only, used for one pull and logged out again,
+          # so no registry credential stays on the server.
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: EULER_API_KEY
+          envs: EULER_API_KEY,DEPLOY_SHA,REGISTRY_USER,REGISTRY_TOKEN
           script: |
             set -e
             cd /opt/kontexto
             git fetch origin master
-            git reset --hard origin/master
-            # Upsert the Euler Stream key into .env (gitignored, untouched by the
-            # reset above). An empty secret leaves .env alone, so removing the
-            # secret never wipes a key that was set by hand on the server.
-            if [ -n "$EULER_API_KEY" ]; then
+            # A newer push has its own run, and that one deploys. Going ahead
+            # here could put an older commit back over a newer one, because
+            # runs do not finish in push order.
+            if [ "$(git rev-parse origin/master)" != "$DEPLOY_SHA" ]; then
+              echo "Superseded by $(git rev-parse --short origin/master), not deploying ${DEPLOY_SHA}."
+              exit 0
+            fi
+            # The tested commit, not whatever master is by now: compose file
+            # and Caddyfile have to match the image.
+            git reset --hard "$DEPLOY_SHA"
+            # .env is gitignored and untouched by the reset above.
+            upsert_env() {
               umask 077
               touch .env
-              grep -v '^KONTEXTO_EULER_API_KEY=' .env > .env.next || true
-              printf 'KONTEXTO_EULER_API_KEY=%s\n' "$EULER_API_KEY" >> .env.next
+              grep -v "^$1=" .env > .env.next || true
+              printf '%s=%s\n' "$1" "$2" >> .env.next
               mv .env.next .env
               chmod 600 .env
+            }
+            # Upsert the Euler Stream key. An empty secret leaves .env alone,
+            # so removing the secret never wipes a key that was set by hand.
+            if [ -n "$EULER_API_KEY" ]; then
+              upsert_env KONTEXTO_EULER_API_KEY "$EULER_API_KEY"
             fi
-            # --force-recreate ensures the running container restarts with the
-            # freshly built image (plain `up --build` can leave the old container).
-            # Keep the production image review-safe even if an old server .env
-            # still contains NEXT_PUBLIC_ADSENSE_REVIEW_MODE=false. This must be
-            # changed deliberately after Google has approved the site.
-            NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true docker compose up -d --build --force-recreate
-            docker image prune -f
-            # Cap the BuildKit build cache so it cannot grow unbounded across
-            # deploys (every --build adds layers; it had ballooned to ~19 GB).
-            # Keeps recent layers warm for fast incremental builds, prunes the
-            # oldest beyond 5 GB.
+            # docker-compose.yml reads the image tag from .env, so a manual
+            # `docker compose up -d` on the server runs what was deployed, and
+            # a rollback is this one line set to an older commit.
+            upsert_env KONTEXTO_IMAGE_TAG "$DEPLOY_SHA"
+            echo "Deploying image tag ${DEPLOY_SHA}"
+            printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+            pull_status=0
+            docker compose pull kontexto || pull_status=$?
+            docker logout ghcr.io
+            if [ "$pull_status" -ne 0 ]; then exit "$pull_status"; fi
+            # The server never builds. --force-recreate restarts both containers,
+            # so Caddy rereads the Caddyfile from the checkout above.
+            docker compose up -d --no-build --force-recreate
+            # Every deploy leaves the previous commit's image behind with its tag,
+            # so a plain prune never removes it. A week of images stays for
+            # rollbacks; whatever a container uses is never pruned.
+            docker image prune -af --filter "until=168h"
+            # Cap the BuildKit build cache in case somebody builds by hand here
+            # (before CI built the image it had ballooned to ~19 GB).
             docker builder prune -f --max-used-space=5GB
-            sleep 5
-            # Health checks fail the deploy loudly (set -e) if old code is still live.
-            curl -fsS http://localhost/api/game > /dev/null
+            # Health checks fail the deploy loudly (set -e) if old code is still
+            # live. The first one waits for the container to come up.
+            curl -fsS --retry 30 --retry-delay 1 --retry-connrefused --retry-all-errors http://localhost/api/game > /dev/null
             curl -fsS http://localhost/api/collect/token > /dev/null
             # Public review invariants: the container must serve the new
             # review-safe export, not merely a healthy API behind an old proxy.
@@ -254,9 +389,9 @@ jobs:
             # Both are allow-lists so a functional path cannot become an indexed
             # one by accident, and both have to move when a public page is added.
             # This one guards the deployed site, seo:check guards the build.
-            # 52 since /solo/kategorien/ was added (51 since /live/).
+            # 51 since /live/ was added; the stream chat page is public.
             functional='/(duel|koop|wordle/duel|arena)/create/|/suche/'
-            if [ "$sitemap_count" -ne 52 ] || echo "$sitemap" | grep -Eq "$functional"; then
+            if [ "$sitemap_count" -ne 51 ] || echo "$sitemap" | grep -Eq "$functional"; then
               echo "Unexpected public sitemap: ${sitemap_count} URLs or a functional create URL" >&2
               exit 1
             fi
