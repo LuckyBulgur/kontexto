@@ -102,24 +102,30 @@ test.describe("Stream-Chat-Modus", () => {
     await page.evaluate((id) => localStorage.removeItem(`kontexto_koop_${id}`), roomId);
     await page.reload();
     await expect(page.getByText(/Ist das deine Runde/)).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText(/„stop“ in deinen eigenen Chat/)).toBeVisible();
+    await expect(page.getByTestId("channel-busy-word")).toHaveText("stop");
 
-    // The form refuses the busy channel and says the same.
+    // The form refuses the busy channel: the word to type takes the place of the
+    // start button, and the form waits for it.
     await page.goto("/live/");
     await page.getByLabel("Dein Twitch-Kanal").fill(channel);
     await page.getByRole("button", { name: "Runde starten" }).click();
-    await expect(page.getByText(/läuft schon eine Runde\. Schreib „stop“/)).toBeVisible({
-      timeout: 20_000,
-    });
+    const notice = page.getByTestId("channel-busy");
+    await expect(notice).toBeVisible({ timeout: 20_000 });
+    await expect(notice).toHaveAttribute("data-state", "waiting");
+    await expect(page.getByTestId("channel-busy-word")).toHaveText("stop");
+    await expect(page.getByRole("button", { name: "Runde starten" })).toHaveCount(0);
 
-    // A viewer typing stop has no authority over the round.
+    // A viewer typing stop has no authority over the round: the form keeps
+    // waiting through more than one question to the server.
     await sendChatMessage(page, roomId, "61", "stop", undefined, "jemand");
-    await page.getByRole("button", { name: "Runde starten" }).click();
-    await expect(page.getByText(/läuft schon eine Runde/)).toBeVisible();
+    for (let question = 0; question < 2; question += 1) {
+      await page.waitForResponse((res) => res.url().includes("/api/live/channel-status"));
+    }
+    await expect(page).toHaveURL(/\/live\/$/);
+    await expect(notice).toHaveAttribute("data-state", "waiting");
 
-    // The streamer's own stop frees the channel, and the form goes through.
+    // The streamer's own stop frees the channel, and the round starts by itself.
     await sendChatMessage(page, roomId, "62", "Stop", undefined, channel);
-    await page.getByRole("button", { name: "Runde starten" }).click();
     await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
     const fresh = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
     expect(fresh).not.toBe(roomId);
@@ -518,7 +524,12 @@ test.describe("Stream-Chat-Modus", () => {
     await page.goto("/live/");
     await page.getByLabel("Dein Twitch-Kanal").fill(channel);
     await page.getByRole("button", { name: "Runde starten" }).click();
-    await expect(page.getByText(/läuft schon eine Runde/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("channel-busy")).toBeVisible({ timeout: 20_000 });
+
+    // Cancel leaves the wait and gives the form back.
+    await page.getByRole("button", { name: "Abbrechen" }).click();
+    await expect(page.getByTestId("channel-busy")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Runde starten" })).toBeEnabled();
   });
 
   test("ein unmöglicher Kanalname wird sofort beanstandet", async ({ page }) => {

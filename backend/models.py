@@ -531,6 +531,17 @@ class LivePlatformsResponse(BaseModel):
     platforms: list[str]
 
 
+class LiveChannelStatusResponse(BaseModel):
+    """Whether a channel is bound to a live room right now.
+
+    Asked by the create form after a ``channel_busy`` refusal, so the page can
+    wait for the streamer's ``stop`` and start the round by itself. It says no
+    more than that refusal already did.
+    """
+
+    busy: bool
+
+
 class LiveStopRequest(BaseModel):
     player_token: str
 

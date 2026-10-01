@@ -7,7 +7,8 @@ import KoopSkeleton from "@/components/koop/KoopSkeleton";
 import ChatIdentity from "@/components/live/ChatIdentity";
 import HostMessageBanner from "@/components/live/HostMessageBanner";
 import LiveCreateClient from "@/components/live/LiveCreateClient";
-import LiveStatus from "@/components/live/LiveStatus";
+import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
+import LiveStatus, { type AddRefusal } from "@/components/live/LiveStatus";
 import SupportToasts from "@/components/live/SupportToasts";
 import RoomLanding from "@/components/RoomLanding";
 import { needsAckRetry } from "@/lib/host-messages";
@@ -21,7 +22,7 @@ import {
   removeLiveChannel,
   setLiveChannelPaused,
 } from "@/lib/live-api";
-import { STOP_HINT } from "@/lib/live-copy";
+import { CHANNEL_BUSY_COPY } from "@/lib/live-copy";
 import {
   LIVE_PLATFORMS,
   type LiveEvent,
@@ -44,10 +45,13 @@ function asPlatform(source: string | null | undefined): LivePlatform | null {
 }
 
 /** What the add form says when the server refuses a second chat. */
-function addRefusal(error: unknown, platform: LivePlatform): string {
+function addRefusal(error: unknown, platform: LivePlatform): AddRefusal {
   const code = error instanceof Error ? error.message : "";
-  const name = PLATFORM_NAMES[platform];
-  if (code === "channel_busy") return `Für diesen Kanal läuft schon eine Runde. ${STOP_HINT}`;
+  if (code === "channel_busy") return { busy: true };
+  return { busy: false, message: addRefusalText(code, PLATFORM_NAMES[platform]) };
+}
+
+function addRefusalText(code: string, name: string): string {
   if (code === "bad_channel") return `Diesen Kanalnamen gibt es auf ${name} nicht.`;
   if (code === "platform_bound") return `Diese Runde liest schon einen ${name}-Chat.`;
   if (code === "platform_full") {
@@ -203,7 +207,7 @@ export default function LivePageClient() {
   );
 
   const handleAdd = useCallback(
-    async (platform: LivePlatform, channel: string): Promise<string | null> => {
+    async (platform: LivePlatform, channel: string): Promise<AddRefusal | null> => {
       try {
         await changeChats((id, token) => addLiveChannel(id, token, platform, channel));
         toast.success(`${PLATFORM_NAMES[platform]}-Chat verbunden`);
@@ -318,7 +322,15 @@ export default function LivePageClient() {
         description="Mitraten geht im Chat des Kanals, nicht auf dieser Seite. Du kannst aber selbst eine Runde für deinen eigenen Stream starten."
         createHref="/live/"
         createLabel="Eigene Runde starten"
-        note={`Ist das deine Runde und du kommst hier nicht mehr rein? ${STOP_HINT}`}
+        aside={
+          <ChannelBusyNotice
+            platform={null}
+            state="static"
+            headline={CHANNEL_BUSY_COPY.landingHeadline}
+            footnote={CHANNEL_BUSY_COPY.landingFootnote}
+            autoFocus={false}
+          />
+        }
       />
     );
   }

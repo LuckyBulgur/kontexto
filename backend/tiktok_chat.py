@@ -392,12 +392,15 @@ def _is_follow(data: dict) -> bool:
     """Whether a social frame is a follow, not a share or a repost.
 
     TikTok tells them apart only by the key of the sentence it would show
-    (``pm_main_follow_message_viewer_2``, ``pm_mt_guidance_share``); the field
-    sits under ``common.displayText`` in the current schema and was a flat
-    ``displayType`` before, so both are read.
+    (``pm_main_follow_message_viewer_2``, ``pm_mt_guidance_share``). Where it
+    sits depends on the schema the provider decodes with: ``common.displayText``
+    holds it as ``displayType`` in v2, which is what Euler sends by default, and
+    as ``key`` in v3; older payloads carried a flat ``displayType``. All of them
+    are read, because a follow that matches none is silently lost.
     """
     common = _field(data, "common")
-    key = _as_str(_field(_field(common, "displayText"), "key"))
+    display_text = _field(common, "displayText")
+    key = _as_str(_field(display_text, "key", "displayType"))
     if not key:
         key = _as_str(_field(data, "displayType")) or _as_str(_field(common, "displayType"))
     key = key.lower()

@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { HandCoins, Pause, Play, Plus, Radio, Trophy, Unplug } from "lucide-react";
 import { Panel } from "@/components/design";
+import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import ChatIdentity from "@/components/live/ChatIdentity";
 import PlatformMark from "@/components/live/PlatformMark";
 import {
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { channelAddress, channelLabel, normaliseChannel } from "@/lib/live-channel";
-import { PLATFORM_COPY, STOP_HINT_AHEAD } from "@/lib/live-copy";
+import { CHANNEL_BUSY_COPY, PLATFORM_COPY, STOP_HINT_AHEAD } from "@/lib/live-copy";
 import { eventAction, eventDetail } from "@/lib/live-events";
 import {
   ChatState, LiveBadgeCatalog, LiveBoardId, LiveChannel, LiveEvent, LivePlatform, LiveViewer,
@@ -42,7 +43,7 @@ interface LiveStatusProps {
   /** Platforms the server offers that this room does not read yet. */
   addable: LivePlatform[];
   /** Resolves to a sentence for the form, or null when the chat was added. */
-  onAdd: (platform: LivePlatform, channel: string) => Promise<string | null>;
+  onAdd: (platform: LivePlatform, channel: string) => Promise<AddRefusal | null>;
   onRemove: (platform: LivePlatform) => Promise<void>;
   onPause: (platform: LivePlatform, paused: boolean) => Promise<void>;
 }
@@ -346,17 +347,21 @@ function ChannelRow({
   );
 }
 
+/** Why a chat could not be added: a bound channel, or anything else in a sentence. */
+export type AddRefusal = { busy: true } | { busy: false; message: string };
+
 function AddChannelPanel({
   platform,
   onAdd,
 }: {
   platform: LivePlatform;
-  onAdd: (platform: LivePlatform, channel: string) => Promise<string | null>;
+  onAdd: (platform: LivePlatform, channel: string) => Promise<AddRefusal | null>;
 }) {
   const id = useId();
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const copy = PLATFORM_COPY[platform];
   const normalised = normaliseChannel(value, platform);
   const touched = value.trim().length > 0;
@@ -366,14 +371,29 @@ function AddChannelPanel({
     if (!normalised || sending) return;
     setSending(true);
     setError(null);
+    setBusy(false);
     try {
       const refusal = await onAdd(platform, normalised);
-      if (refusal) setError(refusal);
+      if (refusal?.busy) setBusy(true);
+      else if (refusal) setError(refusal.message);
       else setValue("");
     } finally {
       setSending(false);
     }
   };
+
+  // A bound channel is not an error line: the way out is a word in the
+  // streamer's own chat, and it is said where it cannot be read past.
+  if (busy) {
+    return (
+      <ChannelBusyNotice
+        platform={platform}
+        state="static"
+        footnote={CHANNEL_BUSY_COPY.addChat}
+        onCancel={() => setBusy(false)}
+      />
+    );
+  }
 
   return (
     <Panel padding="sm" className="gap-2">

@@ -142,6 +142,21 @@ export async function fetchLivePlatforms(): Promise<LivePlatform[]> {
   return Array.isArray(platforms) ? platforms.filter(isLivePlatform) : [];
 }
 
+/**
+ * Whether a channel is bound to a live room right now. Asked by the create form
+ * while it waits for the streamer's `stop` after a `channel_busy` refusal; it
+ * tells nothing that refusal did not already.
+ */
+export async function fetchChannelBusy(platform: LivePlatform, channel: string): Promise<boolean> {
+  const query = new URLSearchParams({ platform, channel });
+  const res = await fetch(`${API_BASE}/live/channel-status?${query.toString()}`);
+  const body = await readLive<unknown>(res);
+  if (!body || typeof body !== "object" || !("busy" in body)) {
+    throw new Error("API error: malformed channel status");
+  }
+  return (body as { busy: unknown }).busy === true;
+}
+
 /** The chat status and the leaderboard. Host token only. */
 export async function getLiveRoom(
   koopId: string,

@@ -21,6 +21,7 @@ export default function RoomLanding({
   createHref,
   createLabel,
   note,
+  aside,
 }: {
   title: string;
   description: string;
@@ -28,6 +29,8 @@ export default function RoomLanding({
   createLabel: string;
   /** A second, quieter sentence for the reader the description is not about. */
   note?: string;
+  /** A second panel under the first, for a reader who needs more than a sentence. */
+  aside?: React.ReactNode;
 }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-4">
@@ -41,6 +44,7 @@ export default function RoomLanding({
           <ModesDialogButton className="flex-1">Alle Modi ansehen</ModesDialogButton>
         </div>
       </Panel>
+      {aside && <div className="mt-4 w-full">{aside}</div>}
     </div>
   );
 }

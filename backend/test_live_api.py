@@ -257,6 +257,53 @@ class TestStop:
         assert res.status_code == 404
 
 
+class TestChannelStatus:
+    """The create form waits on this for the streamer's stop."""
+
+    def _status(self, client, channel="kontexto", platform="twitch"):
+        return client.get(
+            "/api/live/channel-status", params={"platform": platform, "channel": channel}
+        )
+
+    def test_a_free_channel_is_not_busy(self, client):
+        res = self._status(client)
+        assert res.status_code == 200
+        assert res.json() == {"busy": False}
+
+    def test_a_bound_channel_is_busy_in_any_spelling(self, client):
+        assert _create(client).status_code == 200
+        assert self._status(client).json() == {"busy": True}
+        assert self._status(client, channel="https://www.twitch.tv/Kontexto").json() == {
+            "busy": True
+        }
+
+    def test_the_channel_turns_free_when_the_round_ends(self, client):
+        created = _create(client).json()
+        client.post(f"/api/live/{created['koop_id']}/stop", json={
+            "player_token": created["player_token"],
+        })
+        assert self._status(client).json() == {"busy": False}
+
+    def test_platforms_are_apart(self, client, monkeypatch):
+        monkeypatch.setenv("KONTEXTO_EULER_API_KEY", "test-key")
+        assert _create(client).status_code == 200
+        assert self._status(client, platform="tiktok").json() == {"busy": False}
+
+    def test_a_bad_channel_is_refused_like_the_create_call(self, client):
+        res = self._status(client, channel="a")
+        assert res.status_code == 422
+        assert res.json()["error"] == "bad_channel"
+
+    def test_an_unavailable_platform_is_refused(self, client, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_EULER_API_KEY", raising=False)
+        res = self._status(client, platform="tiktok")
+        assert res.status_code == 503
+        assert res.json()["error"] == "platform_unavailable"
+
+    def test_an_unknown_platform_is_a_422(self, client):
+        assert self._status(client, platform="youtube").status_code == 422
+
+
 class TestAdminStats:
     def test_stream_figures_reach_the_dashboard(self, client):
         _create(client)

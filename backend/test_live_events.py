@@ -261,10 +261,19 @@ class TestTikTokEvents:
         share = {"common": {"msgId": "401", "displayText": {"key": "pm_mt_guidance_share"}},
                  "user": _tt_user()}
         legacy = {"displayType": "pm_main_follow_message_viewer_2", "user": _tt_user(user_id="12")}
+        # Schema v2, what Euler sends by default: the Text message calls the
+        # field displayType, not key.
+        v2_follow = {"common": {"msgId": "402",
+                                "displayText": {"displayType": "pm_main_follow_message_viewer_2"}},
+                     "user": _tt_user(user_id="13")}
+        v2_share = {"common": {"msgId": "403", "displayText": {"displayType": "pm_mt_guidance_share"}},
+                    "user": _tt_user(user_id="14")}
         _, events = self._parse(("WebcastSocialMessage", follow), ("WebcastSocialMessage", share),
-                                ("WebcastSocialMessage", legacy))
+                                ("WebcastSocialMessage", legacy), ("WebcastSocialMessage", v2_follow),
+                                ("WebcastSocialMessage", v2_share))
         assert [(e.kind, e.event_id, e.actor_name) for e in events] == [
             ("tiktok_follow", "follow-11", "Mara"), ("tiktok_follow", "follow-12", "Mara"),
+            ("tiktok_follow", "follow-13", "Mara"),
         ]
 
     def test_a_follower_without_a_numeric_id_keeps_a_valid_event_id(self):

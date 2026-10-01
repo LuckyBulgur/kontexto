@@ -80,7 +80,7 @@ from models import (
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveChannelAddRequest, LiveChannelRemoveRequest, LiveChannelPauseRequest,
     LiveStopRequest, LiveStopResponse, LiveDebugEventRequest,
-    LiveDebugMessageRequest, LivePlatformsResponse,
+    LiveDebugMessageRequest, LivePlatformsResponse, LiveChannelStatusResponse,
     LiveMessagesSeenRequest, LiveMessagesSeenResponse,
     AdminHostMessageRequest, AdminHostMessageResponse, AdminLiveStreamsResponse,
     CreateArenaRequest, CreateArenaResponse, JoinArenaRequest, JoinArenaResponse,
@@ -1527,6 +1527,32 @@ async def live_platforms_endpoint():
     """What the create form may offer. Read on every opening of the form, so a
     key added on the server shows up without a new frontend build."""
     return {"platforms": _available_platforms()}
+
+
+@app.get("/api/live/channel-status", response_model=LiveChannelStatusResponse)
+async def live_channel_status_endpoint(
+    platform: str = Query(..., pattern="^(twitch|tiktok)$"),
+    channel: str = Query(..., min_length=1, max_length=120),
+):
+    """Whether a channel is bound to a live room right now. Read only.
+
+    The create form asks this every few seconds after a ``channel_busy``
+    refusal, while the streamer writes ``stop`` in their own chat, and starts
+    the round itself once the answer turns. It discloses nothing the create
+    call does not: that refusal already names a bound channel to anybody.
+    """
+    normalised, refusal = _check_live_channel(platform, channel)
+    if refusal is not None:
+        return refusal
+    db = await get_db(_db_path)
+    try:
+        cursor = await db.execute(
+            "SELECT 1 FROM live_channels WHERE platform = ? AND channel = ?",
+            (platform, normalised),
+        )
+        return {"busy": await cursor.fetchone() is not None}
+    finally:
+        await db.close()
 
 
 @app.post("/api/live", response_model=CreateLiveResponse)

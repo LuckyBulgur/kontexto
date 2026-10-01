@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
 import CategoryPicker from "@/components/categories/CategoryPicker";
+import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import {
   CategorySetup,
   DEFAULT_CATEGORY_SETUP,
@@ -16,9 +17,15 @@ import {
   saveCategorySetup,
 } from "@/lib/categories";
 import { useCategoryCatalogue } from "@/lib/use-category-catalogue";
-import { createLive, fetchLivePlatforms, LiveApiError } from "@/lib/live-api";
+import {
+  busyChannelOf,
+  CHANNEL_POLL_MS,
+  waitExpired,
+  type BusyChannel,
+} from "@/lib/channel-busy";
+import { createLive, fetchChannelBusy, fetchLivePlatforms, LiveApiError } from "@/lib/live-api";
 import { channelAddress, normaliseChannel, readyChannels } from "@/lib/live-channel";
-import { PLATFORM_COPY, STOP_HINT, TIKTOK_NOTE } from "@/lib/live-copy";
+import { PLATFORM_COPY, TIKTOK_NOTE } from "@/lib/live-copy";
 import { LIVE_PLATFORMS, LivePlatform, PLATFORM_NAMES } from "@/lib/live-types";
 
 /**
@@ -40,6 +47,11 @@ import { LIVE_PLATFORMS, LivePlatform, PLATFORM_NAMES } from "@/lib/live-types";
  * There is no nickname field. The host already has a name on this screen, the
  * channel, and it is the name their audience knows them by; a second one would
  * be a field that exists only so that something can be typed into it.
+ *
+ * A channel that still holds a round is not a dead end: the form shows the word
+ * to type in the streamer's own chat (`ChannelBusyNotice`) in place of the
+ * start button, asks the server every few seconds whether the channel is free,
+ * and starts the round by itself once it is.
  */
 export default function LiveCreateClient() {
   // Which chats play. Toggles rather than a single choice, because a stream
@@ -67,6 +79,14 @@ export default function LiveCreateClient() {
   const [requirePrefix, setRequirePrefix] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The chat a refusal said is still bound, while the form waits for its `stop`.
+  // `attempt` counts the refusals, so a second one for the same chat restarts
+  // the questions that the first auto-start ended.
+  const [busy, setBusy] = useState<
+    (BusyChannel & { since: number; expired: boolean; attempt: number }) | null
+  >(null);
+  // One create call at a time, whether the button or the wait started it.
+  const starting = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,12 +113,12 @@ export default function LiveCreateClient() {
       current.includes(next) ? current.filter((p) => p !== next) : [...current, next]
     );
     setError(null);
+    setBusy(null);
   };
 
-  const handleCreate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!ready || loading) return;
-
+  const startRound = useCallback(async () => {
+    if (!ready || starting.current) return;
+    starting.current = true;
     setLoading(true);
     setError(null);
     const categories = usesCategories ? categorySetup : null;
@@ -114,6 +134,7 @@ export default function LiveCreateClient() {
       // and the board is the same component.
       localStorage.setItem(`kontexto_koop_${room.koop_id}`, room.player_token);
       window.location.href = `/live/${room.koop_id}/`;
+      return;
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       // The refusal names its chat; with one chat ticked it can only be that one.
@@ -122,29 +143,95 @@ export default function LiveCreateClient() {
         (chosen.length === 1 ? chosen[0] : null);
       const name = about ? PLATFORM_NAMES[about] : null;
       if (code === "channel_busy") {
-        setError(
-          name && chosen.length > 1
-            ? `Für diesen ${name}-Kanal läuft schon eine Runde. ${STOP_HINT}`
-            : `Für diesen Kanal läuft schon eine Runde. ${STOP_HINT}`
-        );
+        const target = busyChannelOf(about, ready);
+        if (target) {
+          // A second refusal while waiting (a race, or the other of two chats)
+          // keeps the clock of the wait that is already running.
+          setBusy((current) =>
+            current && current.platform === target.platform && current.channel === target.channel
+              ? { ...current, attempt: current.attempt + 1 }
+              : { ...target, since: Date.now(), expired: false, attempt: 0 }
+          );
+        } else {
+          setError("Für einen deiner Kanäle läuft schon eine Runde. Schreib „stop“ in deinen eigenen Chat.");
+        }
       } else if (code === "bad_channel") {
+        setBusy(null);
         setError(
           name ? `Diesen Kanalnamen gibt es auf ${name} nicht.` : "Einen der Kanalnamen gibt es nicht."
         );
       } else if (code === "platform_full") {
+        setBusy(null);
         setError(
           "Gerade laufen zu viele TikTok-Runden gleichzeitig. Versuch es in ein paar Minuten noch mal."
         );
       } else if (code === "platform_unavailable" && about) {
+        setBusy(null);
         setError(`${PLATFORM_NAMES[about]} ist gerade nicht angebunden.`);
         setAvailable((current) => current.filter((p) => p !== about));
         setSelected((current) => current.filter((p) => p !== about));
       } else {
+        setBusy(null);
         setError("Die Runde konnte nicht gestartet werden");
       }
-      setLoading(false);
     }
+    starting.current = false;
+    setLoading(false);
+  }, [ready, usesCategories, categorySetup, gameSource, tipsAllowed, requirePrefix, chosen]);
+
+  const handleCreate = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    void startRound();
   };
+
+  // The wait: ask whether the busy chat is free, start the round once it is.
+  // It runs in a hidden tab too, because the streamer is in their chat typing
+  // the word. A failed question is asked again on the next tick, never shown.
+  const startRoundRef = useRef(startRound);
+  useEffect(() => {
+    startRoundRef.current = startRound;
+  }, [startRound]);
+  const waiting = busy !== null && !busy.expired;
+  const waitPlatform = busy?.platform;
+  const waitChannel = busy?.channel;
+  const waitSince = busy?.since;
+  const waitAttempt = busy?.attempt;
+  useEffect(() => {
+    if (!waiting || !waitPlatform || !waitChannel || waitSince === undefined) return;
+    const platform = waitPlatform;
+    const channel = waitChannel;
+    const since = waitSince;
+    let cancelled = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      if (waitExpired(since, Date.now())) {
+        setBusy((current) => (current ? { ...current, expired: true } : current));
+        return;
+      }
+      try {
+        const stillBusy = await fetchChannelBusy(platform, channel);
+        if (cancelled) return;
+        if (!stillBusy) {
+          await startRoundRef.current();
+          return;
+        }
+      } catch {
+        if (cancelled) return;
+      }
+      timer = window.setTimeout(tick, CHANNEL_POLL_MS);
+    };
+    timer = window.setTimeout(tick, CHANNEL_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [waiting, waitPlatform, waitChannel, waitSince, waitAttempt]);
+
+  const retryWait = () =>
+    setBusy((current) =>
+      current ? { ...current, since: Date.now(), expired: false, attempt: current.attempt + 1 } : current
+    );
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
@@ -211,7 +298,10 @@ export default function LiveCreateClient() {
                 key={platform}
                 platform={platform}
                 value={inputs[platform] ?? ""}
-                onChange={(value) => setInputs((current) => ({ ...current, [platform]: value }))}
+                onChange={(value) => {
+                  setInputs((current) => ({ ...current, [platform]: value }));
+                  setBusy(null);
+                }}
               />
             ))}
 
@@ -281,15 +371,26 @@ export default function LiveCreateClient() {
               <Switch id="tips" checked={tipsAllowed} onCheckedChange={setTipsAllowed} />
             </div>
 
-            {error && <p className="text-small text-destructive">{error}</p>}
+            {busy ? (
+              <ChannelBusyNotice
+                platform={busy.platform}
+                state={busy.expired ? "expired" : "waiting"}
+                onRetry={retryWait}
+                onCancel={() => setBusy(null)}
+              />
+            ) : (
+              <>
+                {error && <p className="text-small text-destructive">{error}</p>}
 
-            <Button
-              type="submit"
-              disabled={loading || !ready || (usesCategories && !catalogue)}
-              className="w-full"
-            >
-              {loading ? "Wird gestartet..." : "Runde starten"}
-            </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !ready || (usesCategories && !catalogue)}
+                  className="w-full"
+                >
+                  {loading ? "Wird gestartet..." : "Runde starten"}
+                </Button>
+              </>
+            )}
           </Panel>
         </form>
       </main>
