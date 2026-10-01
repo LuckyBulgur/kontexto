@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { isKnockWord, playKnock } from "@/lib/knock-sound";
 
 interface GuessInputProps {
   onGuess: (word: string) => void;
@@ -23,6 +24,7 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = "Wo
     e.preventDefault();
     const word = value.trim();
     if (!word || disabled) return;
+    if (isKnockWord(word)) playKnock();
     onGuess(word);
     setValue("");
   };
