@@ -11,6 +11,12 @@ import { test, expect } from "./fixtures";
  */
 const FOOD = ["melone", "birne", "himbeere", "zitrone"];
 
+/** A channel nobody else in this run uses: a bound channel stays bound across
+ *  runs on the shared e2e database, and a second bind of it is a 409. */
+function freshChannel(prefix: string): string {
+  return `${prefix}${Date.now().toString().slice(-8)}`;
+}
+
 test.describe("Kategorien", () => {
   test("der Solo-Modus fragt zuerst und zieht nur aus der Auswahl", async ({ page }) => {
     await page.goto("/solo/kategorien/");
@@ -52,7 +58,7 @@ test.describe("Kategorien", () => {
     await page.getByRole("button", { name: "Duell erstellen" }).click();
 
     // Not /duel/create/ itself, which the plain pattern would also match.
-    await expect(page).toHaveURL(/\/duel\/(?!create\/)[^/]+\/$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/duel\/(?!create\/)[^/]+\/?$/, { timeout: 30_000 });
     await expect(page.getByText("Kategorie:")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Essen und Trinken", { exact: true })).toBeVisible();
 
@@ -65,25 +71,25 @@ test.describe("Kategorien", () => {
   });
 
   test("eine Live-Runde bringt die Kategorie nur auf Wunsch ins Overlay", async ({ page }) => {
-    const shown = await (
-      await page.request.post("/api/live", {
-        data: {
-          platform: "twitch",
-          channel: "kategorieshown",
-          categories: ["food"],
-          show_category: true,
-        },
-      })
-    ).json();
+    const shownRes = await page.request.post("/api/live", {
+      data: {
+        platform: "twitch",
+        channel: freshChannel("katshown"),
+        categories: ["food"],
+        show_category: true,
+      },
+    });
+    expect(shownRes.status()).toBe(200);
+    const shown = await shownRes.json();
     await page.goto(`/live/overlay/?token=${encodeURIComponent(shown.overlay_token)}`);
     await expect(page.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Essen und Trinken", { exact: true })).toBeVisible();
 
-    const hidden = await (
-      await page.request.post("/api/live", {
-        data: { platform: "twitch", channel: "kategoriehidden", categories: ["food", "home"] },
-      })
-    ).json();
+    const hiddenRes = await page.request.post("/api/live", {
+      data: { platform: "twitch", channel: freshChannel("kathidden"), categories: ["food", "home"] },
+    });
+    expect(hiddenRes.status()).toBe(200);
+    const hidden = await hiddenRes.json();
     await page.goto(`/live/overlay/?token=${encodeURIComponent(hidden.overlay_token)}`);
     await expect(page.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Kategorie:")).toHaveCount(0);
