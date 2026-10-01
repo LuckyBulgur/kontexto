@@ -737,3 +737,166 @@ class TestAbsentHost:
             ingest.shutdown()
 
         asyncio.run(run())
+
+
+class TestStreamerStop:
+    """The streamer ends the round by writing stop in their own chat."""
+
+    def _message(self, external_id, name, text, login=""):
+        from live_chat import ChatMessage
+
+        return ChatMessage(external_id=external_id, display_name=name, text=text, login=login)
+
+    async def _ready(self, db, channels, ranks=None):
+        from koop import create_koop
+        from live_chat import create_live_room
+        from live_ingest import LiveChatIngest
+
+        ranks = ranks or {}
+        conn = await get_db(db)
+        try:
+            room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
+            await create_live_room(conn, room["koop_id"], room["player_token"], False, channels)
+        finally:
+            await conn.close()
+
+        def resolve(game_number, word):
+            rank = ranks.get(word)
+            return None if rank is None else {"word": word, "rank": rank}
+
+        ingest = LiveChatIngest(db, resolve)
+        await ingest.reconcile()
+        # No reader is wanted, only the rules.
+        ingest.shutdown()
+        return room["koop_id"], ingest
+
+    async def _bound(self, db, koop_id):
+        from live_chat import get_live_room
+
+        conn = await get_db(db)
+        try:
+            return await get_live_room(conn, koop_id) is not None
+        finally:
+            await conn.close()
+
+    async def _words(self, db, koop_id):
+        from koop import get_koop_guesses
+
+        conn = await get_db(db)
+        try:
+            return [g["word"] for g in await get_koop_guesses(conn, koop_id)]
+        finally:
+            await conn.close()
+
+    def test_the_streamer_ends_the_round(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")], {"stop": 900})
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("9", "Kontexto", "Stop", login="kontexto")
+            )
+            assert not await self._bound(db, koop_id)
+            # A command, not a guess.
+            assert await self._words(db, koop_id) == []
+            # The ingest lets go of the room at once, not on its next pass.
+            assert koop_id not in ingest._rooms
+
+        asyncio.run(run())
+
+    def test_the_channel_is_free_for_a_new_round(self, db):
+        from koop import create_koop
+        from live_chat import create_live_room
+
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")])
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("9", "Kontexto", "!stop", login="kontexto")
+            )
+            conn = await get_db(db)
+            try:
+                room = await create_koop(conn, game_number=2, nickname="Host", tips_allowed=True)
+                fresh = await create_live_room(
+                    conn, room["koop_id"], room["player_token"], False, [("twitch", "kontexto")]
+                )
+            finally:
+                await conn.close()
+            assert fresh["channels"][0]["channel"] == "kontexto"
+
+        asyncio.run(run())
+
+    def test_a_viewer_saying_stop_is_an_ordinary_guess(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")], {"stop": 900})
+            # The display name is the channel's, the login is not: no authority.
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("1", "kontexto", "stop", login="mara")
+            )
+            assert await self._bound(db, koop_id)
+            assert await self._words(db, koop_id) == ["stop"]
+
+        asyncio.run(run())
+
+    def test_a_streamer_word_still_counts_as_a_guess(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")], {"apfel": 42})
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("9", "Kontexto", "apfel", login="kontexto")
+            )
+            assert await self._bound(db, koop_id)
+            assert await self._words(db, koop_id) == ["apfel"]
+
+        asyncio.run(run())
+
+    def test_stop_works_while_the_chat_is_paused(self, db):
+        from live_chat import set_channel_paused
+
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")])
+            conn = await get_db(db)
+            try:
+                await set_channel_paused(conn, koop_id, "twitch", True)
+            finally:
+                await conn.close()
+            await ingest.reconcile()
+            ingest.shutdown()
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("9", "Kontexto", "stop", login="kontexto")
+            )
+            assert not await self._bound(db, koop_id)
+
+        asyncio.run(run())
+
+    def test_stop_works_after_the_round_is_solved(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, [("twitch", "kontexto")], {"loesung": 1})
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "loesung"))
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("9", "Kontexto", "stop", login="kontexto")
+            )
+            assert not await self._bound(db, koop_id)
+
+        asyncio.run(run())
+
+    def test_the_streamer_of_either_chat_ends_the_whole_room(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(
+                db, [("twitch", "kontexto"), ("tiktok", "kontexto.de")]
+            )
+            await ingest.handle_message(
+                koop_id, "tiktok", self._message("tt:9", "Kontexto", "Stopp", login="kontexto.de")
+            )
+            assert not await self._bound(db, koop_id)
+
+        asyncio.run(run())
+
+    def test_the_twitch_login_on_tiktok_is_not_the_streamer(self, db):
+        """A login is only compared with the channel of the chat it came from."""
+        async def run():
+            koop_id, ingest = await self._ready(
+                db, [("twitch", "kontexto"), ("tiktok", "kontexto.de")]
+            )
+            await ingest.handle_message(
+                koop_id, "tiktok", self._message("tt:5", "K", "stop", login="kontexto")
+            )
+            assert await self._bound(db, koop_id)
+
+        asyncio.run(run())

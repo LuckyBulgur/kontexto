@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
 import { createLive, fetchLivePlatforms, LiveApiError } from "@/lib/live-api";
 import { channelAddress, normaliseChannel, readyChannels } from "@/lib/live-channel";
-import { PLATFORM_COPY, TIKTOK_NOTE } from "@/lib/live-copy";
+import { PLATFORM_COPY, STOP_HINT, TIKTOK_NOTE } from "@/lib/live-copy";
 import { LIVE_PLATFORMS, LivePlatform, PLATFORM_NAMES } from "@/lib/live-types";
 
 /**
@@ -100,8 +100,8 @@ export default function LiveCreateClient() {
       if (code === "channel_busy") {
         setError(
           name && chosen.length > 1
-            ? `Für diesen ${name}-Kanal läuft schon eine Runde. Warte, bis sie vorbei ist.`
-            : "Für diesen Kanal läuft schon eine Runde. Warte, bis sie vorbei ist."
+            ? `Für diesen ${name}-Kanal läuft schon eine Runde. ${STOP_HINT}`
+            : `Für diesen Kanal läuft schon eine Runde. ${STOP_HINT}`
         );
       } else if (code === "bad_channel") {
         setError(

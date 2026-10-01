@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
 import { UnknownWordError } from "@/lib/guess-error";
+import { podestErrorRemaining } from "@/lib/podest";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import SettingsModal from "@/components/SettingsModal";
 import GiveUpDialog from "@/components/GiveUpDialog";
@@ -111,7 +112,11 @@ export default function KoopPageClient({
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [solvedBy, setSolvedBy] = useState<string | null>(null);
-  const [podestError, setPodestError] = useState<PodestError | undefined>();
+  const [podestError, setPodestErrorState] = useState<PodestError | undefined>();
+  // When the refusal on the podest went up, and the one timer that takes it
+  // down once a newer word is waiting (lib/podest.ts).
+  const podestErrorAt = useRef<number | null>(null);
+  const podestErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -223,6 +228,39 @@ export default function KoopPageClient({
       });
   }, [koopId, playerToken]);
 
+  const setPodestError = useCallback((next: PodestError | undefined) => {
+    if (podestErrorTimer.current !== null) {
+      clearTimeout(podestErrorTimer.current);
+      podestErrorTimer.current = null;
+    }
+    podestErrorAt.current = next ? performance.now() : null;
+    setPodestErrorState(next);
+  }, []);
+
+  // A newer word on the list takes the podest back from a refusal, once the
+  // refusal has been up long enough to be read. Without this, one unknown word
+  // from the host hid every word the others typed after it.
+  const yieldPodestError = useCallback(() => {
+    const shownAt = podestErrorAt.current;
+    if (shownAt === null || podestErrorTimer.current !== null) return;
+    const remaining = podestErrorRemaining(shownAt, performance.now());
+    if (remaining === 0) {
+      setPodestError(undefined);
+      return;
+    }
+    podestErrorTimer.current = setTimeout(() => {
+      podestErrorTimer.current = null;
+      setPodestError(undefined);
+    }, remaining);
+  }, [setPodestError]);
+
+  useEffect(
+    () => () => {
+      if (podestErrorTimer.current !== null) clearTimeout(podestErrorTimer.current);
+    },
+    []
+  );
+
   // Append a word to the shared list, de-duplicating by word.
   const appendGuess = useCallback((word: string, rank: number, isTip: boolean, correctedFrom?: string, by?: string) => {
     setGuesses((prev) => {
@@ -230,9 +268,10 @@ export default function KoopPageClient({
       return [...prev, { word, rank, isTip, correctedFrom, by }];
     });
     setLatestWord(word);
+    yieldPodestError();
     // No win-confetti for a revealed (gave-up) word.
     if (rank === 1 && !gaveUpRef.current) fireConfetti();
-  }, []);
+  }, [yieldPodestError]);
 
   // Reset all local round state for a freshly advanced koop game (triggered by
   // the rematch button locally or via the next_round broadcast for the others).
@@ -252,7 +291,7 @@ export default function KoopPageClient({
         : prev
     );
     setPlayers((prev) => prev.map((p) => ({ ...p, contribution_count: 0 })));
-  }, []);
+  }, [setPodestError]);
 
   // Ask for the game number once the round is over, once per round. While it
   // runs the server refuses, which is the whole reason this endpoint exists.
@@ -415,7 +454,7 @@ export default function KoopPageClient({
         setPendingWord(undefined);
       }
     },
-    [koopId, playerToken, guesses, nickname, appendGuess]
+    [koopId, playerToken, guesses, nickname, appendGuess, setPodestError]
   );
 
   // Tip, shared with the whole team. best_rank/guessed_ranks are derived

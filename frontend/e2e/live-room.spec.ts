@@ -22,10 +22,17 @@ async function sendChatMessage(
   roomId: string,
   viewer: string,
   text: string,
-  platform?: "twitch" | "tiktok"
+  platform?: "twitch" | "tiktok",
+  login?: string
 ): Promise<void> {
   const res = await page.request.post(`/api/live/${roomId}/debug-message`, {
-    data: { external_id: viewer, display_name: viewer, text, ...(platform ? { platform } : {}) },
+    data: {
+      external_id: viewer,
+      display_name: viewer,
+      text,
+      ...(platform ? { platform } : {}),
+      ...(login ? { login } : {}),
+    },
   });
   expect(res.ok()).toBe(true);
 }
@@ -41,6 +48,62 @@ async function openRoom(page: Page, channel: string): Promise<string> {
 }
 
 test.describe("Stream-Chat-Modus", () => {
+  test("nach einem abgelehnten Wort des Hosts kommen die Chat-Wörter wieder nach oben", async ({
+    page,
+  }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    const input = page.getByPlaceholder("Wort eingeben...").first();
+    await input.fill("qxzvbnmw");
+    await input.press("Enter");
+    const refusal = page.getByText("Dieses Wort kenne ich leider nicht");
+    await expect(refusal).toBeVisible({ timeout: 20_000 });
+
+    await sendChatMessage(page, roomId, "51", "birne");
+    // The refusal holds for a moment so it can be read, then the chat's word
+    // takes the slot above the list: once there, once in the list.
+    await expect(refusal).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.getByText("birne", { exact: true })).toHaveCount(2);
+  });
+
+  test("der Streamer beendet mit stop im eigenen Chat die Runde", async ({ page }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    // Locked out: the same link without the host token says how to get free.
+    await page.evaluate((id) => localStorage.removeItem(`kontexto_koop_${id}`), roomId);
+    await page.reload();
+    await expect(page.getByText(/Ist das deine Runde/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/„stop“ in deinen eigenen Chat/)).toBeVisible();
+
+    // The form refuses the busy channel and says the same.
+    await page.goto("/live/");
+    await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await expect(page.getByText(/läuft schon eine Runde\. Schreib „stop“/)).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // A viewer typing stop has no authority over the round.
+    await sendChatMessage(page, roomId, "61", "stop", undefined, "jemand");
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await expect(page.getByText(/läuft schon eine Runde/)).toBeVisible();
+
+    // The streamer's own stop frees the channel, and the form goes through.
+    await sendChatMessage(page, roomId, "62", "Stop", undefined, channel);
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const fresh = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+    expect(fresh).not.toBe(roomId);
+  });
+
   test("der Chat rät mit, und die Einblendung zeigt es", async ({ page }) => {
     const channel = freshChannel();
     const roomId = await openRoom(page, channel);

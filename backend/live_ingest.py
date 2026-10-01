@@ -101,7 +101,17 @@ class LiveChatIngest:
         binding = next(
             (c for c in room["channels"] if c["platform"] == platform), None
         )
-        if binding is None or binding["paused"]:
+        if binding is None:
+            return
+        # The streamer's own "stop" ends the round before anything else is
+        # asked: a paused chat, a solved round and the throttle must not stand
+        # between a streamer who lost the host page and a free channel.
+        if live_chat.is_streamer(message, binding["channel"]) and live_chat.is_stop_command(
+            message.text
+        ):
+            await self._end_by_streamer(koop_id, platform, binding["channel"])
+            return
+        if binding["paused"]:
             return
 
         word = live_chat.extract_word(message.text, room["require_prefix"])
@@ -173,6 +183,23 @@ class LiveChatIngest:
             await db.close()
 
         await analytics_guess(self._db_path, result["word"], result["rank"], recorded["solved"])
+
+    async def _end_by_streamer(self, koop_id: str, platform: str, channel: str) -> None:
+        """Unbind a room because its streamer wrote stop in their own chat.
+
+        The whole room goes, every chat it reads, because only the host chose
+        those chats and the point is that one word frees the streamer. It is the
+        operator's unbinding: the overlay goes blank, the koop room stays, and an
+        open host page reads the round as ended on its next poll.
+        """
+        db = await get_db(self._db_path)
+        try:
+            ended = await live_chat.end_live_room(db, koop_id)
+        finally:
+            await db.close()
+        if ended:
+            logger.info("live chat ended by streamer: %s/%s", platform, channel)
+        self._forget(koop_id)
 
     async def _set_state(
         self, koop_id: str, platform: str, state: str, error: str | None

@@ -109,6 +109,45 @@ class TestIrcParsing:
         assert parse_irc_line(":a!a@a.tmi.twitch.tv JOIN #kontexto") is None
         assert parse_irc_line("@msg-id=x :tmi.twitch.tv NOTICE #k :nope") is None
 
+    def test_the_login_comes_from_the_prefix_lowercased(self):
+        from live_chat import parse_irc_line
+
+        msg = parse_irc_line(
+            "@display-name=Kontexto;user-id=9 :Kontexto!kontexto@k.tmi.twitch.tv PRIVMSG #kontexto :stop"
+        )
+        assert msg is not None
+        assert msg.login == "kontexto"
+
+
+class TestStopCommand:
+    @pytest.mark.parametrize("text", [
+        "stop", "Stop", "STOP", "  stop  ", "stopp", "Stopp", "!stop", "!Stopp", "!k stop", "!K Stopp",
+    ])
+    def test_the_command_is_read(self, text):
+        from live_chat import is_stop_command
+
+        assert is_stop_command(text)
+
+    @pytest.mark.parametrize("text", [
+        "", "stoppen", "stop bitte", "bitte stop", "!k", "!k stop jetzt", "halt", "st op",
+    ])
+    def test_anything_else_is_not_the_command(self, text):
+        from live_chat import is_stop_command
+
+        assert not is_stop_command(text)
+
+    def test_only_the_channel_owner_is_the_streamer(self):
+        from live_chat import ChatMessage, is_streamer
+
+        owner = ChatMessage(external_id="9", display_name="Kontexto", text="stop", login="kontexto")
+        viewer = ChatMessage(external_id="1", display_name="kontexto", text="stop", login="mara")
+        unknown = ChatMessage(external_id="2", display_name="kontexto", text="stop")
+        assert is_streamer(owner, "kontexto")
+        # The display name is chosen by the viewer and proves nothing.
+        assert not is_streamer(viewer, "kontexto")
+        assert not is_streamer(unknown, "kontexto")
+        assert not is_streamer(unknown, "")
+
 
 class TestWordExtraction:
     def test_free_mode_takes_a_single_word(self):

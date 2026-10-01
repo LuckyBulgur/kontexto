@@ -93,11 +93,18 @@ class ChatMessage:
     ``external_id`` is the platform's user id and never the display name: a name
     can change between two messages, the id cannot, and the id is what the
     cooldown and the leaderboard are keyed on.
+
+    ``login`` is the author's platform handle, lowercased, as the platform's own
+    server reports it (the IRC prefix on Twitch, ``uniqueId`` on TikTok). It is
+    compared with the bound channel to recognise the streamer, which is the one
+    person who may end the round from the chat. Empty when unknown, and an empty
+    login is never the streamer.
     """
 
     external_id: str
     display_name: str
     text: str
+    login: str = ""
 
 
 def normalise_channel(raw: str | None, platform: str = "twitch") -> str | None:
@@ -193,7 +200,10 @@ def parse_irc_line(line: str) -> ChatMessage | None:
     display_name = tags.get("display-name") or login
     if not external_id or not display_name:
         return None
-    return ChatMessage(external_id=external_id, display_name=display_name, text=text)
+    return ChatMessage(
+        external_id=external_id, display_name=display_name, text=text,
+        login=login.lower(),
+    )
 
 
 def extract_word(text: str, require_prefix: bool) -> str | None:
@@ -214,6 +224,30 @@ def extract_word(text: str, require_prefix: bool) -> str | None:
             return None
         text = rest.strip()
     return text.lower() if _WORD.match(text) else None
+
+
+# What the streamer types into their own chat to end the bound round. Both
+# spellings, because German writes "Stopp" and the command reads as English, and
+# with or without the bang streamers know from chat bots.
+STOP_COMMANDS: frozenset[str] = frozenset({"stop", "stopp", "!stop", "!stopp"})
+
+
+def is_stop_command(text: str) -> bool:
+    """Whether a chat line is the stop command, alone on its line.
+
+    ``!k stop`` counts too, so a streamer who turned the prefix on does not have
+    to remember that the command is the one line without it. Whether the author
+    may stop the round is decided by the caller, this only reads the text.
+    """
+    words = text.strip().casefold().split()
+    if len(words) == 2 and words[0] == _PREFIX:
+        words = words[1:]
+    return len(words) == 1 and words[0] in STOP_COMMANDS
+
+
+def is_streamer(message: ChatMessage, channel: str) -> bool:
+    """Whether a line was written by the owner of the channel it was read from."""
+    return bool(message.login) and message.login == channel
 
 
 def is_showable_guess(typed: str, scored: str, rank: int) -> bool:

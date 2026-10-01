@@ -20,16 +20,20 @@ export default function RoomLanding({
   description,
   createHref,
   createLabel,
+  note,
 }: {
   title: string;
   description: string;
   createHref: string;
   createLabel: string;
+  /** A second, quieter sentence for the reader the description is not about. */
+  note?: string;
 }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-4">
       <Panel className="w-full">
         <ResultHero headline={title} support={description} />
+        {note && <p className="text-small text-muted-foreground">{note}</p>}
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button className="flex-1" asChild>
             <Link href={createHref}>{createLabel}</Link>

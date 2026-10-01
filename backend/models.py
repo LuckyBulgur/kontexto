@@ -538,6 +538,9 @@ class LiveDebugMessageRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=500)
     # Which chat the line arrives on. Absent means the room's oldest chat.
     platform: LivePlatformName | None = None
+    # The author's platform login. Set it to the bound channel to speak as the
+    # streamer, which is what the stop command needs.
+    login: str = Field("", max_length=64)
 
 
 # --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---

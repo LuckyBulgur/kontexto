@@ -80,6 +80,10 @@ class TestFrames:
     def test_a_broken_frame_is_dropped_without_raising(self, raw):
         assert parse_euler_frame(raw) == []
 
+    def test_the_login_is_the_handle_lowercased(self):
+        [message] = parse_euler_frame(_frame(_chat("stop", unique_id="Mara.K")))
+        assert message.login == "mara.k"
+
     def test_the_handle_stands_in_for_a_missing_id(self):
         [message] = parse_euler_frame(_frame(_chat("apfel", user_id="", unique_id="mara.k")))
         assert message.external_id == "tt:mara.k"

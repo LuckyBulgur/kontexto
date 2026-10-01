@@ -20,13 +20,14 @@ import {
   setLiveChannelPaused,
 } from "@/lib/live-api";
 import { showsPlatformMarks } from "@/lib/live-channel";
+import { STOP_HINT } from "@/lib/live-copy";
 import { LivePlatform, LiveRoom, PLATFORM_NAMES } from "@/lib/live-types";
 
 /** What the add form says when the server refuses a second chat. */
 function addRefusal(error: unknown, platform: LivePlatform): string {
   const code = error instanceof Error ? error.message : "";
   const name = PLATFORM_NAMES[platform];
-  if (code === "channel_busy") return "Für diesen Kanal läuft schon eine Runde.";
+  if (code === "channel_busy") return `Für diesen Kanal läuft schon eine Runde. ${STOP_HINT}`;
   if (code === "bad_channel") return `Diesen Kanalnamen gibt es auf ${name} nicht.`;
   if (code === "platform_bound") return `Diese Runde liest schon einen ${name}-Chat.`;
   if (code === "platform_full") {
@@ -251,6 +252,7 @@ export default function LivePageClient() {
         description="Mitraten geht im Chat des Kanals, nicht auf dieser Seite. Du kannst aber selbst eine Runde für deinen eigenen Stream starten."
         createHref="/live/"
         createLabel="Eigene Runde starten"
+        note={`Ist das deine Runde und du kommst hier nicht mehr rein? ${STOP_HINT}`}
       />
     );
   }

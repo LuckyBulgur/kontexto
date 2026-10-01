@@ -263,7 +263,14 @@ room forever. A hidden tab still polls about once a minute, so only a closed pag
 chat. Never in the first 5 minutes after the WS worker starts, because after a deploy every
 stamp is as old as the downtime; the migration stamps existing rooms "now" for the same reason.
 The koop room itself still goes through `cleanup_stale_koops` (no connected socket, no guess for
-an hour). Held by `TestHostMessages` in
+an hour). **The streamer can end the round from their own chat (2026-10-01)**: a line that reads
+`stop`, `stopp`, `!stop` or `!k stop` (`live_chat.is_stop_command`) from the channel owner
+(`ChatMessage.login`, the IRC prefix on Twitch and `uniqueId` on TikTok, equal to the bound
+channel) runs `end_live_room` for the whole room, before the pause check and the throttle. That is
+the way out for a streamer who lost the host page and is refused with `channel_busy`; every
+refusal of a busy channel and the tokenless room page say so (`STOP_HINT` in `lib/live-copy.ts`).
+A viewer's `stop` stays an ordinary guess. Held by `TestStreamerStop` in `test_live_ingest.py`
+and `TestStopCommand` in `test_live_chat.py`. Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
 
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)

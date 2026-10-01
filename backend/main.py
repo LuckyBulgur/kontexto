@@ -1628,6 +1628,7 @@ async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
             external_id=req.external_id,
             display_name=req.display_name,
             text=req.text,
+            login=req.login.strip().lower(),
         ),
     )
     return {"delivered": True}

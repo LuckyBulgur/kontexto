@@ -231,6 +231,7 @@ def _chat_message(event: object) -> live_chat.ChatMessage | None:
         return None
     return live_chat.ChatMessage(
         external_id=f"tt:{external_id}", display_name=display_name, text=comment,
+        login=unique_id.strip().lower(),
     )
 
 

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { channelAddress, channelLabel, normaliseChannel } from "@/lib/live-channel";
-import { PLATFORM_COPY, TIKTOK_NOTE } from "@/lib/live-copy";
+import { PLATFORM_COPY, STOP_HINT_AHEAD, TIKTOK_NOTE } from "@/lib/live-copy";
 import {
   ChatState, LiveChannel, LivePlatform, LiveViewer, PLATFORM_NAMES,
 } from "@/lib/live-types";
@@ -93,6 +93,7 @@ export default function LiveStatus({
             requirePrefix ? "!k wort" : "ein Wort pro Nachricht"
           }`}
         </p>
+        {!locked && <p className="text-micro text-muted-foreground/80">{STOP_HINT_AHEAD}</p>}
       </Panel>
 
       {!locked &&
