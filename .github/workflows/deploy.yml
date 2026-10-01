@@ -104,13 +104,18 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
       options: --user 1001 --ipc=host
-    # Two shards, each on its own runner with its own backend and SQLite file,
+    # Six shards, each on its own runner with its own backend and SQLite file,
     # so the serial single-worker rule in playwright.config.ts holds inside
-    # each of them. Sharding is by file, the suite is not fullyParallel.
+    # each of them. Sharding is by test (fullyParallel), cut into contiguous
+    # runs: by file, one of two shards ran 107 s against 45 s. Measured locally
+    # on 2026-10-02, the longest shard takes 77 s at four and 50 s at six,
+    # because the live-room tests wait for real toast timings and only split
+    # once the cut falls inside that file. The repository is public, so the
+    # extra runners cost nothing but a place in the 20-job queue.
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4, 5, 6]
     concurrency:
       group: ci-frontend-${{ matrix.shard }}
       cancel-in-progress: true
@@ -160,6 +165,16 @@ jobs:
 
       # Same-origin API base as production behind nginx; the build is the primary
       # type-check + static-export gate and produces out/ for seo:check + E2E.
+      # Next's own build cache: a push that leaves most modules alone compiles
+      # only what changed. Keyed on the lockfile and the sources, restored from
+      # the newest entry for the same lockfile when the sources moved.
+      - name: Restore the Next build cache
+        uses: actions/cache@v6
+        with:
+          path: frontend/.next/cache
+          key: next-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/app/**', 'frontend/components/**', 'frontend/lib/**', 'frontend/content/**') }}
+          restore-keys: next-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Build static export
         working-directory: frontend
         run: pnpm build
@@ -177,7 +192,7 @@ jobs:
 
       - name: E2E tests (Playwright)
         working-directory: frontend
-        run: pnpm test:e2e --shard=${{ matrix.shard }}/2
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload Playwright report
         # Only on failure: a green run's report is never looked at, and artifacts

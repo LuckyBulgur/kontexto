@@ -41,10 +41,23 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
+  // The two opt-in specs leave the run entirely unless asked for. Skipped in
+  // place, as they used to be, their 60-odd tests still counted when the shards
+  // were cut, and one CI shard got six real tests while another got forty.
+  // Each spec keeps its own test.skip for a direct `playwright test <file>`.
+  testIgnore: [
+    ...(process.env.KONTEXTO_DESIGN_AUDIT ? [] : ["**/design-audit.spec.ts"]),
+    ...(process.env.KONTEXTO_README_SHOTS ? [] : ["**/readme-shots.spec.ts"]),
+  ],
   // Single backend + one SQLite file is shared state; run serially so the smoke
   // suite stays deterministic and easy to debug.
   workers: 1,
-  fullyParallel: false,
+  // With one worker this changes nothing about how tests run, one after the
+  // other in file order. It changes how CI shards: per test instead of per
+  // file. Per file, live-room.spec.ts alone (42 s) kept one shard running
+  // twice as long as the other. Every test therefore has to stand on its own,
+  // which it already must, because a retry runs it alone too.
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
