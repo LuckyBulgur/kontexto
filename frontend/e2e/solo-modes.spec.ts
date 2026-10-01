@@ -24,8 +24,12 @@ test.describe("Solo-Modi", () => {
     await expect(page.getByText("Versuche übrig")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/^20 von 20$/)).toBeVisible();
 
+    // Never a solution word here: the mock data (scripts/create-test-data.py)
+    // draws its targets from the first 40 words only. "birne" used to stand
+    // here and is one of them, so one round in nine ended on the first guess
+    // and the counter this test waits for never appeared.
     const input = page.getByRole("textbox");
-    await input.fill("birne");
+    await input.fill("musik");
     await input.press("Enter");
     await expect(page.getByText(/^19 von 20$/)).toBeVisible({ timeout: 20_000 });
   });
