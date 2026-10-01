@@ -266,8 +266,15 @@ an hour). **The streamer can end the round from their own chat (2026-10-01)**: a
 `stop`, `stopp`, `!stop` or `!k stop` (`live_chat.is_stop_command`) from the channel owner
 (`ChatMessage.login`, the IRC prefix on Twitch and `uniqueId` on TikTok, equal to the bound
 channel) runs `end_live_room` for the whole room, before the pause check and the throttle. That is
-the way out for a streamer who lost the host page and is refused with `channel_busy`; every
-refusal of a busy channel and the tokenless room page say so (`STOP_HINT` in `lib/live-copy.ts`).
+the way out for a streamer who lost the host page and is refused with `channel_busy`. It was
+one red sentence under the form, and streamers read past it, so since 2026-10-02 every refusal of
+a busy channel and the tokenless room page show **`components/live/ChannelBusyNotice.tsx`** (copy
+in `CHANNEL_BUSY_COPY`, `lib/live-copy.ts`): the word `stop` as the largest thing on the screen,
+in place of the start button, focused and scrolled into view. The create form then **waits by
+itself**: it asks the read-only `GET /api/live/channel-status?platform=&channel=` (`{busy}`, no
+more than the refusal already says) every 3 s for up to 15 minutes, in a hidden tab too, and
+starts the round once the channel is free (`lib/channel-busy.ts`), which also catches the
+5-minute unbinding of a closed host page.
 A viewer's `stop` stays an ordinary guess. Held by `TestStreamerStop` in `test_live_ingest.py`
 and `TestStopCommand` in `test_live_chat.py`. Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
@@ -314,7 +321,11 @@ gifted sub, sub bomb (the single gift lines are folded into the bomb by
 readable by the anonymous IRC login; TikTok gifts (only when a streak ends,
 `diamondCount * repeatCount`), subscriptions and treasure chests through Euler. Field names
 follow the `tiktok-live-proto` schema in both of its spellings (v2 `userId`/`giftDetails`, v3
-`id`/`gift`), read as facts only, the AGPL package is not a dependency. Stored in
+`id`/`gift`), read as facts only, the AGPL package is not a dependency. A TikTok follow is a
+`WebcastSocialMessage` whose sentence key names a follow; that key is
+`common.displayText.displayType` in v2, **which is what Euler sends by default**, and
+`common.displayText.key` in v3. Reading only `key` dropped every follow from 268c2dc until the
+fix on 2026-10-02, while the v3-shaped test passed. Stored in
 **`live_events`** (`UNIQUE (koop_id, platform, event_id)` on the platform's own message id, so a
 duplicate frame is an `INSERT OR IGNORE`; totals `bits`, `subs`, `gift_subs`,
 `tiktok_diamonds` on `live_stream_stats` rise only when the row was new), the actor through the
