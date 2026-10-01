@@ -208,7 +208,7 @@ One `matchmaking_queue` table in front of every multiplayer mode. A table and no
 **Server players (`room_bots.py`, 2026-09-30).** Queue rounds rarely filled, so matchmaking rooms are topped up with players the server runs itself. They are **not marked anywhere a player can see** (the player's decision): names come from the same generator plus typed-looking first names, they join through `join_*`, guess through `record_*` and reach the room through the ordinary DB-polling broadcast. `run_matchmaking(..., fill=FillPolicy())` gives a lone ticket company after `FILL_RULES[mode].lone_after` (always past the mode's grace, so a second person wins the seat) and tops up 40% of human parties by one to three; pair modes seat the bot at once, group modes let it join the lobby 1 to 6 s later. The state lives in the side table **`room_bots`**, never as a column on a player table, so no existing SELECT can leak it. `_bots_loop` (WS worker only) moves them once a second. The limits are the point: only rooms a person's ticket created, never invite or live rooms, never a bot-only room or a phantom ticket; **they count nowhere** (no analytics counter, no guess log, which the lexicon build reads as evidence, and `playing_counts` excludes them); they take no tip, never give up, never press "Nächstes Spiel", and one presses start in an arena lobby after 15 to 40 s. They leave 20 to 60 s after the last person, after 1 to 5 rounds, or after 3 h. The model plays only from ranks (`GameState.word_near_rank`, the handout-safe tip list, so a bot never types a blocked word) and is calibrated by `scripts/simulate-bots.py`: median 43 guesses against the production median of 35, a person wins 62,7% of duels. Admin sees `bot_fills` next to `matches_made`. Switch: `KONTEXTO_BOTS=0` (set by `playwright.config.ts` and `backend/conftest.py`). Held by `backend/test_room_bots.py`.
 
 ### Stream chat (`live_chat.py`, `live_ingest.py`, `twitch_chat.py`, `tiktok_chat.py`)
-`/live/` binds a koop room to a Twitch or TikTok chat; every one-word message is a guess. The
+`/live/` binds a koop room to a Twitch or TikTok chat; every word of a message is a guess (see below). The
 ingest runs in the WS worker only (one reader per room, reconciled against `live_rooms` every
 5 s). Readers are per platform behind one `run(on_message, on_state)` seam: Twitch is anonymous
 IRC, **TikTok goes through the Euler Stream cloud WebSocket** because TikTok has no chat API and,
@@ -272,6 +272,18 @@ A viewer's `stop` stays an ordinary guess. Held by `TestStreamerStop` in `test_l
 and `TestStopCommand` in `test_live_chat.py`. Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
 
+**Every word of a chat line is a guess (2026-10-02, the streamer's request).** Until then
+only a line of exactly one word counted, so `Apfel!`, a word with an emoji and `ist es apfel?`
+were all dropped. `live_chat.extract_words` NFKC-normalises the line, removes invisible
+characters, drops reply mentions and links whole, and takes every run of letters in what is
+left (punctuation, digits, emoji, hyphens all separate), lower-cased, 2 to 30 characters,
+deduplicated, at most `MAX_WORDS_PER_LINE` (8). Prefix mode takes every word after `!k`. Junk
+needs no filter of its own: an unknown word, a stop word or a flagged word is dropped by the
+resolver and `is_showable_guess` exactly as before. The throttle counts a line once for the
+viewer's 2 s cooldown and one room token per word (`GuessGate.admit`); a solve ends the line, a
+word already on the board does not. Held by `TestWordExtraction` and `TestGuessGate` in
+`test_live_chat.py`, the sentence cases in `test_live_ingest.py` and `e2e/live-room.spec.ts`.
+
 **There is no OBS overlay (removed 2026-10-01).** The player's decision: everything a stream
 shows is the host page, `/live/<id>/`. Route, `GET /api/live/overlay/state`, its models and
 the nginx block are gone; `live_rooms.overlay_token` stays as a column (SQLite cannot drop a
@@ -309,9 +321,11 @@ duplicate frame is an `INSERT OR IGNORE`; totals `bits`, `subs`, `gift_subs`,
 nickname rule, **no free text of an event**, pruned after 24 h and gone with the binding. The host
 poll takes `events_after` and returns at most 20; the first poll of a page fills the
 „Unterstützung“ feed and plays nothing. **Every paid event is celebrated** (2026-10-01, the
-streamer's request), as a toast at the **bottom centre**, as wide as the board, because most
-streamers capture only the board region (`components/live/SupportToasts.tsx`: at most 3 at once,
-a small one gives way first, only while the tab is visible, **no sound** because streamers run
+streamer's request), as a toast at the **top centre**, as wide as the board, because most
+streamers capture only the board region (`components/live/SupportToasts.tsx`: **one at a time**
+since 2026-10-02, the rest waits in one queue, paid before follows, a full queue of 12 lets a
+follow and then a small one give way, from 3 waiting each toast stands shorter (`queuedToastMs`),
+only while the tab is visible, **no sound** because streamers run
 their own alerts, and nothing ever over the middle of the board). Loudness is one unit scale
 across both platforms (`lib/live-events.ts`, about 100 Bits = 100 diamonds = 1, a Tier 1 sub 5)
 and lives in the confetti (`fireSupportCelebration` in `lib/confetti.ts`): under 1 a small
@@ -319,8 +333,10 @@ burst, from 1 a strong one, from 25 three seconds of corner cannons, from 100 fi
 firework over the whole screen. Each category has its look, bound to the platform's own
 (`celebrationStyle`): Bits gems in Twitch's tier colours, purple stars for subs, a star rain for
 a sub bomb, TikTok diamonds, gold coins for a chest. The live board stands centred like every
-other mode (`KoopPageClient` `centerBoard`: from `xl` the sidebar sits in the right gutter,
-below it under the board). **Deliberately not**: no gift buys a tip, a cooldown or a rank, and there is **no
+other mode (`KoopPageClient` `centerBoard`, bands in `lib/board-layout.ts`): from 70rem the
+sidebar sits in the right gutter, from `md` board and sidebar stand side by side as a centred
+pair, only on a phone does the sidebar go under the board (2026-10-02, the streamer's request:
+the cards stay in view on a half-screen window). The toast overlay mirrors the same columns. **Deliberately not**: no gift buys a tip, a cooldown or a rank, and there is **no
 ranking of givers**, because TikTok forbids gift-driven score tallying and kids play this. The
 mode picker's „Du streamst?“ row carries both platform logos. Held by
 `backend/test_live_events.py`, `backend/test_twitch_badges.py`, `TestViewerBoards` and
@@ -500,7 +516,12 @@ by the seams in `lib/events/hooks.ts` only while the skin is on. The runtime tru
 (`isSkinOn`), not storage. The game clients call `onEventGuess` (own accepted guesses only, never a
 tip or another player's word), `onEventWordleRow` and `onEventGiveUp`;
 none of them is awaited, and an effect depends only on what the player typed, so it can never
-become a hint.
+become a hint. One exception, the live room (2026-10-02, the streamer's request): a word from the
+stream chat calls `onEventArrival` (`KoopPageClient` prop `arrivalEffects`), which plays the word
+effect alone through `ArrivalGate` in `lib/events/spooktober.ts`: 90 s cooldown per effect kind
+on top of the stage limits, never the flashlight (it would black out the board on stream), never
+on the winning word, never a secret, a surprise creature or the rank-13 cat. Invited koop rooms
+keep the old rule.
 
 **Spooktober 2026** (2026-10-01 00:00 to 2026-11-01 00:00 Berlin, WM-2026 skin removed the same
 day): palettes „Kerzenschein“ and „Mitternacht“ that override every Farbwelt by specificity and

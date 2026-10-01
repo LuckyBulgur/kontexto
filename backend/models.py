@@ -385,8 +385,8 @@ class CreateLiveRequest(RoomCategoryOptions):
     # appear under something else than the channel they are streaming to.
     nickname: str | None = Field(default=None, min_length=1, max_length=20)
     tips_allowed: bool = True
-    # Free guessing is the default: a single word in chat counts. A streamer with
-    # a busy chat turns this on and only `!k wort` counts.
+    # Free guessing is the default: every word of every chat line counts. A
+    # streamer with a busy chat turns this on and only lines after `!k` count.
     require_prefix: bool = False
 
     @model_validator(mode="after")

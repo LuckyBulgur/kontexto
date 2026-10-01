@@ -255,6 +255,24 @@ class TestTikTokEvents:
             ("tt-moderator", "1"), ("tt-subscriber", "1"), ("tt-fan", "7"), ("tt-supporter", "1"),
         ]
 
+    def test_a_follow_is_an_event_and_a_share_is_not(self):
+        follow = {"common": {"msgId": "400", "displayText": {"key": "pm_main_follow_message_viewer_2"}},
+                  "user": _tt_user()}
+        share = {"common": {"msgId": "401", "displayText": {"key": "pm_mt_guidance_share"}},
+                 "user": _tt_user()}
+        legacy = {"displayType": "pm_main_follow_message_viewer_2", "user": _tt_user(user_id="12")}
+        _, events = self._parse(("WebcastSocialMessage", follow), ("WebcastSocialMessage", share),
+                                ("WebcastSocialMessage", legacy))
+        assert [(e.kind, e.event_id, e.actor_name) for e in events] == [
+            ("tiktok_follow", "follow-11", "Mara"), ("tiktok_follow", "follow-12", "Mara"),
+        ]
+
+    def test_a_follower_without_a_numeric_id_keeps_a_valid_event_id(self):
+        follow = {"common": {"displayText": {"key": "pm_main_follow_message_viewer_2"}},
+                  "user": {"uniqueId": "mara.tt", "nickname": "Mara"}}
+        _, [event] = self._parse(("WebcastSocialMessage", follow))
+        assert event.event_id == "follow-mara_tt"
+
     def test_unknown_shapes_are_ignored(self):
         messages, events = self._parse(
             ("WebcastGiftMessage", {"user": "nope"}),
@@ -355,6 +373,56 @@ class TestStoredEvents:
                 assert await events_after(conn, koop_id, first[-1]["id"]) == []
             finally:
                 await conn.close()
+
+        self._run(run())
+
+    def _follow(self, follower="11", name="Mara"):
+        from live_chat import make_event
+
+        return make_event(platform="tiktok", event_id=f"follow-{follower}", kind="tiktok_follow",
+                          actor_external_id=f"tt:{follower}", actor_name=name)
+
+    def test_a_viewer_is_thanked_for_a_follow_once_per_room(self, db):
+        from live_chat import events_after
+
+        async def run():
+            koop_id, ingest = await self._ready(db, (("tiktok", "kontexto.de"),))
+            assert await ingest.handle_event(koop_id, "tiktok", self._follow()) is True
+            # Unfollow and follow again is a tap: no second toast.
+            assert await ingest.handle_event(koop_id, "tiktok", self._follow()) is False
+            conn = await get_db(db)
+            try:
+                events = await events_after(conn, koop_id, 0)
+            finally:
+                await conn.close()
+            assert [(e["kind"], e["actor"]) for e in events] == [("tiktok_follow", "Mara")]
+            totals = (await self._totals(db)).get(("tiktok", "kontexto.de"))
+            # A follow is free and raises no total.
+            assert totals is None or (totals["subs"], totals["tiktok_diamonds"]) == (0, 0)
+
+        self._run(run())
+
+    def test_a_wave_of_follows_never_pushes_a_gift_out_of_a_poll(self, db):
+        from live_chat import EVENTS_PER_POLL, FOLLOWS_PER_POLL, events_after, make_event
+
+        async def run():
+            koop_id, ingest = await self._ready(db, (("tiktok", "kontexto.de"),))
+            gift = make_event(platform="tiktok", event_id="g1", kind="tiktok_gift",
+                              actor_external_id="tt:1", actor_name="Lena", amount=5)
+            assert await ingest.handle_event(koop_id, "tiktok", gift)
+            for i in range(EVENTS_PER_POLL + FOLLOWS_PER_POLL + 5):
+                await ingest.handle_event(koop_id, "tiktok", self._follow(follower=str(100 + i)))
+            conn = await get_db(db)
+            try:
+                events = await events_after(conn, koop_id, 0)
+            finally:
+                await conn.close()
+            kinds = [e["kind"] for e in events]
+            assert kinds.count("tiktok_gift") == 1
+            assert kinds.count("tiktok_follow") == FOLLOWS_PER_POLL
+            assert [e["id"] for e in events] == sorted(e["id"] for e in events)
+            # The newest follows are the ones kept.
+            assert events[-1]["actor"] == "Mara"
 
         self._run(run())
 

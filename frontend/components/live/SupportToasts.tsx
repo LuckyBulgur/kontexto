@@ -1,61 +1,70 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Coins, Gem, Gift, Star, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Coins, Gem, Gift, Star, UserPlus, type LucideIcon } from "lucide-react";
 import { CountUp } from "@/components/design";
 import ChatIdentity from "@/components/live/ChatIdentity";
+import { BOARD_COLUMN, BOARD_GRID } from "@/lib/board-layout";
 import { fireSupportCelebration } from "@/lib/confetti";
 import {
-  MAX_TOASTS,
+  FOLLOW_TOAST_MS,
+  MAX_FOLLOWS_WAITING,
+  TOAST_GAP_MS,
   TOAST_MS,
   admitToast,
   celebrationOf,
   celebrationStyle,
   eventActionParts,
   eventDetail,
+  followAction,
+  isFreeEvent,
+  queuedToastMs,
   rainParticles,
+  takeFollowToast,
   type Celebration,
   type CelebrationIcon,
+  type FollowToast as FollowToastData,
 } from "@/lib/live-events";
 import type { LiveBadgeCatalog, LiveEvent } from "@/lib/live-types";
 import { cn } from "@/lib/utils";
 
 /**
- * Paid support on the host page: every event is a toast at the bottom centre
+ * Paid support on the host page: every event is a toast at the top centre
  * with confetti, louder the more it cost (`celebrationOf`).
  *
- * Bottom centre and as wide as the board, because most streamers capture the
+ * One toast at a time, the streamer's decision: everything else waits in one
+ * queue and drops in after the one before has left, TOAST_GAP_MS later. Paid
+ * support goes first, in arrival order; follows come when no paid toast is
+ * waiting, and a long run of them folds into one toast that names the first and
+ * counts the rest (`takeFollowToast`). A full queue lets a follow and then a small one
+ * give way (`admitToast`), and a long queue shortens each toast
+ * (`queuedToastMs`) so the last gift of a burst is thanked while it is news.
+ *
+ * Top centre and as wide as the board, because most streamers capture the
  * board region only and a corner would fall outside the picture. Nothing
  * stands over the middle of the board, and there is no timer bar: the toast
- * leaves by itself.
- *
- * At most MAX_TOASTS at once; a small one gives way first (`admitToast`). Only
- * while the tab is visible: what arrives in a hidden tab waits, capped at
- * MAX_WAITING, and plays when the host looks again. It celebrates and nothing
- * else: the round, the ranks and the tips never see an event.
+ * leaves by itself. Only while the tab is visible: what arrives in a hidden tab
+ * waits and plays when the host looks again. It celebrates and nothing else:
+ * the round, the ranks and the tips never see an event.
  */
 
 /** Matched to `animate-support-out`. */
 const EXIT_MS = 200;
-
-/** A page that slept through an hour should not play the hour back. */
-const MAX_WAITING = 8;
-
-/** Gap between two waiting toasts played after the tab comes back. */
-const STAGGER_MS = 350;
 
 const ICONS: Record<CelebrationIcon, LucideIcon> = {
   gem: Gem,
   star: Star,
   gift: Gift,
   coins: Coins,
+  follow: UserPlus,
 };
 
-interface Toast {
-  event: LiveEvent;
-  level: Celebration;
-  leaving: boolean;
-}
+type PaidToast = { type: "paid"; id: number; event: LiveEvent; level: Celebration; leaving: boolean };
+type FollowToastItem = { type: "follow"; id: number; follow: FollowToastData; level: "follow"; leaving: boolean };
+type Toast = PaidToast | FollowToastItem;
+
+/** TikTok's pink, the colour the platform gives its own follow notice. */
+const FOLLOW_COLOR = "#fe2c55";
 
 const numberFormat = new Intl.NumberFormat("de-DE");
 const formatNumber = (value: number) => numberFormat.format(value);
@@ -67,7 +76,35 @@ const LEVEL_CLASS: Record<Celebration, { box: string; glyph: string; name: strin
   epic: { box: "gap-4 p-4", glyph: "size-12", name: "font-display text-h2 font-bold", action: "text-body" },
 };
 
-function SupportToast({ toast, catalog }: { toast: Toast; catalog: LiveBadgeCatalog }) {
+function FollowToast({ toast, catalog }: { toast: FollowToastItem; catalog: LiveBadgeCatalog }) {
+  const { follow, leaving } = toast;
+  return (
+    <div
+      data-testid="live-follow-toast"
+      data-others={follow.others}
+      className={cn(
+        "flex w-full items-center gap-2.5 rounded-2xl bg-popover px-3 py-2 text-popover-foreground shadow-lg",
+        leaving ? "animate-support-out" : "animate-support-in"
+      )}
+    >
+      <UserPlus aria-hidden className="size-5 shrink-0" style={{ color: FOLLOW_COLOR }} />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5">
+        <ChatIdentity
+          name={follow.actor}
+          platform={follow.platform}
+          badges={follow.badges}
+          catalog={catalog}
+          size="sm"
+          nameClassName="font-semibold"
+          className="max-w-full"
+        />
+        <span className="text-small text-foreground">{followAction(follow.others)}</span>
+      </div>
+    </div>
+  );
+}
+
+function SupportToast({ toast, catalog }: { toast: PaidToast; catalog: LiveBadgeCatalog }) {
   const ref = useRef<HTMLDivElement>(null);
   const { event, level, leaving } = toast;
   const style = celebrationStyle(event);
@@ -138,6 +175,8 @@ function SupportToast({ toast, catalog }: { toast: Toast; catalog: LiveBadgeCata
   );
 }
 
+type WaitingPaid = { event: LiveEvent; level: Celebration };
+
 export default function SupportToasts({
   events,
   catalog,
@@ -147,10 +186,12 @@ export default function SupportToasts({
   catalog: LiveBadgeCatalog;
 }) {
   const known = useRef<Set<number>>(new Set());
-  const timers = useRef<Map<number, number[]>>(new Map());
-  const [waiting, setWaiting] = useState<LiveEvent[]>([]);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [waiting, setWaiting] = useState<WaitingPaid[]>([]);
+  const [waitingFollows, setWaitingFollows] = useState<LiveEvent[]>([]);
+  const [current, setCurrent] = useState<{ toast: Toast; duration: number } | null>(null);
   const [visible, setVisible] = useState(true);
+  // When the last toast was gone, so the next keeps TOAST_GAP_MS from it.
+  const lastGoneAt = useRef(0);
 
   useEffect(() => {
     const sync = () => setVisible(document.visibilityState === "visible");
@@ -160,71 +201,95 @@ export default function SupportToasts({
   }, []);
 
   useEffect(() => {
-    const all = timers.current;
-    return () => {
-      for (const ids of all.values()) ids.forEach((id) => window.clearTimeout(id));
-      all.clear();
-    };
-  }, []);
-
-  useEffect(() => {
     const fresh = events.filter((event) => !known.current.has(event.id));
     for (const event of events) known.current.add(event.id);
     if (fresh.length === 0) return;
-    setWaiting((pending) => [...pending, ...fresh].slice(-MAX_WAITING));
+    const paid = fresh.filter((event) => !isFreeEvent(event));
+    const follows = fresh.filter(isFreeEvent);
+    if (paid.length > 0) {
+      setWaiting((pending) =>
+        paid.reduce<WaitingPaid[]>(
+          (queue, event) => admitToast(queue, { event, level: celebrationOf(event) }),
+          pending
+        )
+      );
+    }
+    if (follows.length > 0) {
+      setWaitingFollows((pending) => [...pending, ...follows].slice(-MAX_FOLLOWS_WAITING));
+    }
   }, [events]);
 
-  const forget = useCallback((id: number) => {
-    timers.current.get(id)?.forEach((timer) => window.clearTimeout(timer));
-    timers.current.delete(id);
-  }, []);
-
-  const show = useCallback(
-    (event: LiveEvent) => {
-      const level = celebrationOf(event);
-      setToasts((current) => {
-        const next = admitToast(current, { event, level, leaving: false });
-        for (const gone of current) {
-          if (!next.includes(gone)) forget(gone.event.id);
-        }
-        return next;
-      });
-      const leave = window.setTimeout(() => {
-        setToasts((current) =>
-          current.map((toast) => (toast.event.id === event.id ? { ...toast, leaving: true } : toast))
-        );
-      }, TOAST_MS[level]);
-      const remove = window.setTimeout(() => {
-        setToasts((current) => current.filter((toast) => toast.event.id !== event.id));
-        timers.current.delete(event.id);
-      }, TOAST_MS[level] + EXIT_MS);
-      timers.current.set(event.id, [leave, remove]);
-    },
-    [forget]
-  );
-
-  // One waiting event per step, so a burst that arrived in one poll (or while
-  // the tab was hidden) plays as a short sequence instead of all at once.
+  // The next toast takes the one place once it is free, TOAST_GAP_MS after the
+  // last one left, and only while somebody can see it.
   useEffect(() => {
-    if (!visible || waiting.length === 0) return;
+    if (current || !visible) return;
+    if (waiting.length === 0 && waitingFollows.length === 0) return;
+    const wait = Math.max(0, lastGoneAt.current + TOAST_GAP_MS - Date.now());
     const timer = window.setTimeout(() => {
-      const [next, ...rest] = waiting;
-      setWaiting(rest);
-      show(next);
-    }, toasts.length === 0 ? 0 : STAGGER_MS);
+      if (waiting.length > 0) {
+        const [next, ...rest] = waiting;
+        const behind = rest.length + (waitingFollows.length > 0 ? 1 : 0);
+        setWaiting(rest);
+        setCurrent({
+          toast: { type: "paid", id: next.event.id, event: next.event, level: next.level, leaving: false },
+          duration: queuedToastMs(TOAST_MS[next.level], behind),
+        });
+        return;
+      }
+      const taken = takeFollowToast(waitingFollows);
+      if (!taken) return;
+      setWaitingFollows(taken.rest);
+      setCurrent({
+        toast: { type: "follow", id: taken.toast.id, follow: taken.toast, level: "follow", leaving: false },
+        duration: queuedToastMs(FOLLOW_TOAST_MS, taken.rest.length),
+      });
+    }, wait);
     return () => window.clearTimeout(timer);
-  }, [visible, waiting, show, toasts.length]);
+  }, [current, visible, waiting, waitingFollows]);
 
+  // Stand, then leave, then free the place. Keyed by the toast id, so a state
+  // update that keeps the same toast does not restart its clock.
+  const currentId = current?.toast.id;
+  const currentDuration = current?.duration;
+  const currentLeaving = current?.toast.leaving ?? false;
+  useEffect(() => {
+    if (currentId === undefined || currentDuration === undefined) return;
+    if (!currentLeaving) {
+      const timer = window.setTimeout(() => {
+        setCurrent((shown) =>
+          shown && shown.toast.id === currentId
+            ? { ...shown, toast: { ...shown.toast, leaving: true } }
+            : shown
+        );
+      }, currentDuration);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      lastGoneAt.current = Date.now();
+      setCurrent((shown) => (shown && shown.toast.id === currentId ? null : shown));
+    }, EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [currentId, currentDuration, currentLeaving]);
+
+  const toast = current?.toast;
   return (
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom,0px)]"
+      className={cn(
+        "pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-4 pt-[env(safe-area-inset-top,0px)]",
+        BOARD_GRID
+      )}
     >
-      <div className="flex w-full max-w-lg flex-col items-stretch gap-2">
-        {toasts.map((toast) => (
-          <SupportToast key={toast.event.id} toast={toast} catalog={catalog} />
-        ))}
+      {/* The same columns as the page, so the toast is as wide as the board and
+          stands over it, wherever the board sits in this band. */}
+      <div className={cn("flex flex-col items-stretch", BOARD_COLUMN)}>
+        {toast &&
+          (toast.type === "follow" ? (
+            <FollowToast key={toast.id} toast={toast} catalog={catalog} />
+          ) : (
+            <SupportToast key={toast.id} toast={toast} catalog={catalog} />
+          ))}
       </div>
     </div>
   );

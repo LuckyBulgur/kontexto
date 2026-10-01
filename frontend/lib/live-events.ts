@@ -12,11 +12,20 @@
  * The figures are deliberately round: they order events, they do not price them.
  */
 
-import type { LiveEvent, LiveEventKind } from "./live-types";
+import type { LiveBadge, LiveEvent, LiveEventKind, LivePlatform } from "./live-types";
+
+/**
+ * Whether an event cost nothing. A follow is thanked for with a quiet toast of
+ * its own: no confetti, no place in the support feed, and it never pushes a
+ * paid toast off the screen.
+ */
+export function isFreeEvent(event: Pick<LiveEvent, "kind">): boolean {
+  return event.kind === "tiktok_follow";
+}
 
 /**
  * How loud an event is. Every event is celebrated, because every one cost
- * somebody money: each is a toast at the bottom centre with confetti, and the
+ * somebody money: each is a toast at the top centre with confetti, and the
  * level decides how big the toast is, how long it stays and how much confetti
  * comes with it. `small` is a burst out of the toast, `banner` a strong one,
  * `big` adds cannons from both lower corners, `epic` a firework over the whole
@@ -57,6 +66,8 @@ export function eventUnits(event: Pick<LiveEvent, "kind" | "amount" | "tier">): 
       return event.amount / 100;
     case "tiktok_sub":
       return 5;
+    case "tiktok_follow":
+      return 0;
   }
 }
 
@@ -72,7 +83,7 @@ export function celebrationOf(event: Pick<LiveEvent, "kind" | "amount" | "tier">
 export type CelebrationShape = "gem" | "star" | "diamond" | "coin";
 
 /** The icon a category carries, when the platform sends no picture of its own. */
-export type CelebrationIcon = "gem" | "star" | "gift" | "coins";
+export type CelebrationIcon = "gem" | "star" | "gift" | "coins" | "follow";
 
 export interface CelebrationStyle {
   /** Confetti colours. The first one also colours the icon. */
@@ -132,6 +143,8 @@ export function celebrationStyle(event: Pick<LiveEvent, "kind" | "amount" | "tie
       return { colors: TIKTOK_COLORS, shape: "star", icon: "star", rain: false };
     case "tiktok_chest":
       return { colors: CHEST_COLORS, shape: "coin", icon: "coins", rain: true };
+    case "tiktok_follow":
+      return { colors: TIKTOK_COLORS, shape: "star", icon: "follow", rain: false };
   }
 }
 
@@ -143,26 +156,113 @@ export const TOAST_MS: Record<Celebration, number> = {
   epic: 6000,
 };
 
-/** At most this many toasts stand at once. */
-export const MAX_TOASTS = 3;
+/**
+ * Paid toasts held in the queue. One toast stands at a time, so the queue is
+ * what a burst turns into; a page that slept through an hour should still not
+ * play the hour back.
+ */
+export const MAX_WAITING_TOASTS = 12;
+
+/** A toast's weight: a paid level, or a follow below all of them. */
+export type ToastLevel = Celebration | "follow";
 
 /**
- * The toasts that stay when a new one arrives: the oldest small one gives way
- * first, so a streak of roses cannot push a sub bomb off the screen, and only
- * when every toast is large does the oldest of them go.
+ * The queue after a paid toast joins it: when it is full, a follow gives way
+ * first, then the oldest small one, so neither a wave of follows nor a streak
+ * of roses can push a sub bomb out; only when every waiting toast is large does
+ * the oldest of them go.
  */
-export function admitToast<T extends { level: Celebration }>(
-  shown: readonly T[],
+export function admitToast<T extends { level: ToastLevel }>(
+  waiting: readonly T[],
   incoming: T,
-  max: number = MAX_TOASTS
+  max: number = MAX_WAITING_TOASTS
 ): T[] {
-  const next = [...shown];
+  const next = [...waiting];
   while (next.length >= max) {
+    const follow = next.findIndex((toast) => toast.level === "follow");
     const small = next.findIndex((toast) => toast.level === "small");
-    next.splice(small >= 0 ? small : 0, 1);
+    next.splice(follow >= 0 ? follow : small >= 0 ? small : 0, 1);
   }
   next.push(incoming);
   return next;
+}
+
+/** The pause between one toast leaving and the next dropping in. */
+export const TOAST_GAP_MS = 300;
+
+/** From this many toasts behind the current one, each stands shorter. */
+export const HURRY_BACKLOG = 3;
+
+/** The shortest a toast stands, even in a hurry: long enough to read a name. */
+export const HURRIED_TOAST_MS = 1800;
+
+/**
+ * How long a toast stands, given how many wait behind it. A short queue plays
+ * every toast in full; a long one shortens each to 60% (never under
+ * HURRIED_TOAST_MS), so a sub bomb's twenty gifts do not hold the stream's top
+ * edge for a minute and a gift that arrives after them is still thanked soon.
+ */
+export function queuedToastMs(fullMs: number, behind: number): number {
+  if (behind < HURRY_BACKLOG) return fullMs;
+  return Math.max(Math.min(fullMs, HURRIED_TOAST_MS), Math.round(fullMs * 0.6));
+}
+
+// ---------------------------------------------------------------------------
+// Follows: one after the other, never a wall
+// ---------------------------------------------------------------------------
+
+/** How long a follow stands. Shorter than any paid toast. */
+export const FOLLOW_TOAST_MS = 3000;
+
+/**
+ * Up to this many waiting follows are thanked one by one. A longer queue would
+ * keep the top of the stream busy for minutes, so it is folded into one toast
+ * that names the first and counts the rest.
+ */
+export const FOLLOW_SINGLE_BACKLOG = 3;
+
+/** Follows held while the tab is hidden or the queue is busy. */
+export const MAX_FOLLOWS_WAITING = 500;
+
+export interface FollowToast {
+  /** The id of the newest event in it, unique among toasts. */
+  id: number;
+  actor: string;
+  platform: LivePlatform;
+  badges: LiveBadge[];
+  /** Further followers folded into this toast. */
+  others: number;
+}
+
+/**
+ * The next follow toast from the queue, oldest first, and what stays queued.
+ * A short queue goes one by one; a long one becomes a single toast.
+ */
+export function takeFollowToast(
+  waiting: readonly LiveEvent[]
+): { toast: FollowToast; rest: LiveEvent[] } | null {
+  if (waiting.length === 0) return null;
+  const [first] = waiting;
+  const folded = waiting.length > FOLLOW_SINGLE_BACKLOG;
+  const taken = folded ? waiting.length : 1;
+  return {
+    toast: {
+      id: waiting[taken - 1].id,
+      actor: first.actor,
+      platform: first.platform,
+      badges: first.badges,
+      others: taken - 1,
+    },
+    rest: waiting.slice(taken),
+  };
+}
+
+/** The sentence after the name: "folgt jetzt", "und 8 weitere folgen jetzt". */
+export function followAction(others: number): string {
+  if (others <= 0) return "folgt jetzt";
+  return others === 1
+    ? "und 1 weitere Person folgen jetzt"
+    : `und ${numberFormat.format(others)} weitere folgen jetzt`;
 }
 
 /** How many particles a rain of gifts throws: more gifts, more stars, capped. */
@@ -230,6 +330,8 @@ export function eventActionParts(event: LiveEvent): EventActionParts {
         : plain("hat abonniert");
     case "tiktok_chest":
       return { before: "verteilt eine Schatztruhe mit ", value: event.amount, after: " Diamanten" };
+    case "tiktok_follow":
+      return plain("folgt jetzt");
   }
 }
 
@@ -265,9 +367,14 @@ export function freshEvents(events: readonly LiveEvent[], newestSeen: number): L
 /** The feed keeps this many rows, newest first. */
 export const FEED_LENGTH = 20;
 
-/** Merge new events into the feed, newest first, without duplicates. */
+/**
+ * Merge new events into the feed, newest first, without duplicates. The feed
+ * is paid support only: a wave of follows would wash every gift out of it.
+ */
 export function mergeFeed(feed: readonly LiveEvent[], incoming: readonly LiveEvent[]): LiveEvent[] {
   const byId = new Map<number, LiveEvent>();
-  for (const event of [...incoming, ...feed]) byId.set(event.id, event);
+  for (const event of [...incoming, ...feed]) {
+    if (!isFreeEvent(event)) byId.set(event.id, event);
+  }
   return [...byId.values()].sort((a, b) => b.id - a.id).slice(0, FEED_LENGTH);
 }

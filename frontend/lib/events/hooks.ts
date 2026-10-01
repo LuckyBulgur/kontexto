@@ -42,6 +42,15 @@ export function onEventGuess(guess: { word: string; rank: number }): void {
   withController((c) => c.handleGuess({ word: guess.word, rank: guess.rank, won: guess.rank === 1 }));
 }
 
+/**
+ * A word another player put on the board, so far only the stream chat of a
+ * live room. Plays the word effect alone, throttled per kind, and never counts
+ * as a find. Never call it for a tip.
+ */
+export function onEventArrival(guess: { word: string; rank: number }): void {
+  withController((c) => c.handleArrival({ word: guess.word, rank: guess.rank }));
+}
+
 /** An accepted Wordle row of the player's own. */
 export function onEventWordleRow(row: { word: string; won: boolean }): void {
   withController((c) => c.handleWordleRow(row));

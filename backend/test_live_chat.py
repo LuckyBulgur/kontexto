@@ -151,40 +151,86 @@ class TestStopCommand:
 
 class TestWordExtraction:
     def test_free_mode_takes_a_single_word(self):
-        from live_chat import extract_word
+        from live_chat import extract_words
 
-        assert extract_word("Apfel", require_prefix=False) == "apfel"
-        assert extract_word("  Birne  ", require_prefix=False) == "birne"
+        assert extract_words("Apfel", require_prefix=False) == ["apfel"]
+        assert extract_words("  Birne  ", require_prefix=False) == ["birne"]
 
-    def test_free_mode_ignores_a_sentence(self):
-        from live_chat import extract_word
+    def test_a_sentence_gives_every_word(self):
+        from live_chat import extract_words
 
-        assert extract_word("ich glaube apfel", require_prefix=False) is None
-        assert extract_word("lol", require_prefix=False) == "lol"
-        assert extract_word("!k apfel", require_prefix=False) is None
+        assert extract_words("ich glaube apfel", require_prefix=False) == [
+            "ich", "glaube", "apfel"
+        ]
+        assert extract_words("Ist es ein Apfel?? Oder BIRNE!!!", require_prefix=False) == [
+            "ist", "es", "ein", "apfel", "oder", "birne"
+        ]
 
-    def test_free_mode_ignores_emotes_and_numbers(self):
-        from live_chat import extract_word
+    def test_punctuation_emoji_and_digits_are_stripped(self):
+        from live_chat import extract_words
 
-        assert extract_word("LUL", require_prefix=False) == "lul"
-        assert extract_word("123", require_prefix=False) is None
-        assert extract_word(":)", require_prefix=False) is None
-        assert extract_word("a", require_prefix=False) is None
+        assert extract_words("Apfel!!!", require_prefix=False) == ["apfel"]
+        assert extract_words("\U0001f34e apfel \U0001f34e", require_prefix=False) == ["apfel"]
+        assert extract_words("apfel123birne", require_prefix=False) == ["apfel", "birne"]
+        assert extract_words("\"Apfel\",(Birne)", require_prefix=False) == ["apfel", "birne"]
+        assert extract_words("E-Mail", require_prefix=False) == ["mail"]
+        assert extract_words("123", require_prefix=False) == []
+        assert extract_words(":)", require_prefix=False) == []
+        assert extract_words("a", require_prefix=False) == []
+        assert extract_words("", require_prefix=False) == []
+
+    def test_invisible_and_styled_characters_are_normalised(self):
+        from live_chat import extract_words
+
+        # Zero-width space inside the word, full-width letters, a line break.
+        assert extract_words("Ap\u200bfel", require_prefix=False) == ["apfel"]
+        assert extract_words("\uff21\uff50\uff46\uff45\uff4c", require_prefix=False) == ["apfel"]
+        assert extract_words("apfel\nbirne", require_prefix=False) == ["apfel", "birne"]
+
+    def test_mentions_and_links_are_not_words(self):
+        from live_chat import extract_words
+
+        assert extract_words("@kontexto apfel", require_prefix=False) == ["apfel"]
+        assert extract_words("https://kontexto.de birne", require_prefix=False) == ["birne"]
+        assert extract_words("www.kontexto.de birne", require_prefix=False) == ["birne"]
+
+    def test_duplicates_go_and_the_line_is_capped(self):
+        from live_chat import MAX_WORDS_PER_LINE, extract_words
+
+        assert extract_words("apfel Apfel APFEL birne", require_prefix=False) == ["apfel", "birne"]
+        words = extract_words(" ".join("ab" + chr(97 + i) for i in range(20)), require_prefix=False)
+        assert len(words) == MAX_WORDS_PER_LINE
+        assert words[0] == "aba"
+
+    def test_emotes_stay_words_for_the_resolver_to_drop(self):
+        from live_chat import extract_words
+
+        assert extract_words("LUL", require_prefix=False) == ["lul"]
 
     def test_umlauts_survive(self):
-        from live_chat import extract_word
+        from live_chat import extract_words
 
-        assert extract_word("Häuser", require_prefix=False) == "häuser"
-        assert extract_word("Straße", require_prefix=False) == "straße"
+        assert extract_words("Häuser", require_prefix=False) == ["häuser"]
+        assert extract_words("Straße", require_prefix=False) == ["straße"]
+        # A decomposed umlaut, as some keyboards send it, is composed first.
+        assert extract_words("Ha\u0308user", require_prefix=False) == ["h\u00e4user"]
 
     def test_prefix_mode_needs_the_prefix(self):
-        from live_chat import extract_word
+        from live_chat import extract_words
 
-        assert extract_word("!k apfel", require_prefix=True) == "apfel"
-        assert extract_word("!K Apfel", require_prefix=True) == "apfel"
-        assert extract_word("apfel", require_prefix=True) is None
-        assert extract_word("!k zwei woerter hier", require_prefix=True) is None
-        assert extract_word("!k", require_prefix=True) is None
+        assert extract_words("!k apfel", require_prefix=True) == ["apfel"]
+        assert extract_words("!K Apfel", require_prefix=True) == ["apfel"]
+        assert extract_words("apfel", require_prefix=True) == []
+        assert extract_words("!k zwei woerter hier", require_prefix=True) == [
+            "zwei", "woerter", "hier"
+        ]
+        assert extract_words("!k", require_prefix=True) == []
+        assert extract_words("ich sag !k apfel", require_prefix=True) == []
+
+    def test_free_mode_reads_the_prefix_as_punctuation(self):
+        from live_chat import extract_words
+
+        assert extract_words("!k apfel", require_prefix=False) == ["apfel"]
 
 
 class TestGuessGate:
@@ -223,6 +269,29 @@ class TestGuessGate:
 
         assert sum(gate.allow("a", "twitch", f"v{i}") for i in range(5)) == 2
         assert sum(gate.allow("b", "twitch", f"v{i}") for i in range(5)) == 2
+
+    def test_a_sentence_takes_one_cooldown_and_a_token_per_word(self):
+        from live_chat import GuessGate
+
+        now = [100.0]
+        gate = GuessGate(cooldown=2.0, per_second=10, clock=lambda: now[0])
+
+        assert gate.admit("room", "twitch", "v1", 4) == 4
+        # The same viewer's next line waits, however short it is.
+        assert gate.admit("room", "twitch", "v1", 1) == 0
+        # Six tokens are left in the room's bucket, so a long line is cut there.
+        assert gate.admit("room", "twitch", "v2", 8) == 6
+        assert gate.admit("room", "twitch", "v3", 1) == 0
+
+    def test_an_empty_line_takes_nothing(self):
+        from live_chat import GuessGate
+
+        now = [100.0]
+        gate = GuessGate(cooldown=2.0, per_second=10, clock=lambda: now[0])
+
+        assert gate.admit("room", "twitch", "v1", 0) == 0
+        # No cooldown was stamped for a line that contributed nothing.
+        assert gate.admit("room", "twitch", "v1", 1) == 1
 
     def test_forget_room_drops_its_state(self):
         from live_chat import GuessGate

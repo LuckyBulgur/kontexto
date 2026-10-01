@@ -1,7 +1,7 @@
 """Live chat mode: a livestream chat plays one koop round together.
 
-A streamer names their channel, the server reads that chat, and every message
-that looks like a single word becomes a guess on one shared koop list. Viewers
+A streamer names their channel, the server reads that chat, and every word of a
+message becomes a guess on one shared koop list. Viewers
 need no account, no invite link and no client; they type where they already are.
 
 Three decisions shape this module.
@@ -61,10 +61,21 @@ _URL_MARKER = {
     "tiktok": "tiktok.com/",
 }
 
-# What a chat line may contribute. One token, German letters only, because a
-# guess is one word and everything else is conversation. The upper bound is the
-# same 30 characters the game's own input field allows.
-_WORD = re.compile(r"^[a-zA-ZäöüÄÖÜß]{2,30}$")
+# What a chat line may contribute: every run of letters in it. Punctuation,
+# emoji, digits, hyphens and apostrophes all separate words, so `Apfel!!!`,
+# `apfel` plus an emoji and `ist es apfel?` all reach the board. A token that is not
+# language at all (a reply mention, a pasted link) is dropped whole first, or it
+# would guess the streamer's name or `https`. Junk that survives (`lol`, `kekw`,
+# stop words) costs one O(1) lookup and is dropped by the resolver. The length
+# bounds are the game's own input field.
+_LETTERS = re.compile(r"[^\W\d_]+")
+_NOT_LANGUAGE = re.compile(r"^@|://|^www\.", re.IGNORECASE)
+WORD_MIN_CHARS = 2
+WORD_MAX_CHARS = 30
+
+# Words one line contributes at most. A 500 character Twitch line would
+# otherwise write some eighty rows from one viewer at once.
+MAX_WORDS_PER_LINE = 8
 
 # The opt-in prefix. Free guessing is the default; a streamer with a busy chat
 # turns this on and only prefixed lines count.
@@ -173,7 +184,13 @@ EVENT_KINDS: tuple[str, ...] = (
     "tiktok_gift",   # TikTok gift, a finished streak; amount = diamonds
     "tiktok_sub",    # TikTok subscription; months = subscribed months
     "tiktok_chest",  # TikTok treasure chest; amount = diamonds
+    "tiktok_follow", # TikTok, a viewer followed the streamer; free, no total
 )
+
+# Kinds that cost nothing. They share the event pipeline (deduplication, the
+# poll, the toast) because the host page thanks for them the same way, but they
+# raise no total and are never celebrated with confetti.
+FREE_EVENT_KINDS: frozenset[str] = frozenset({"tiktok_follow"})
 
 # Twitch sub plans as the `msg-param-sub-plan` tag spells them, lowercased.
 SUB_PLANS: dict[str, str] = {
@@ -500,24 +517,37 @@ def parse_twitch_event(line: str, folder: GiftBombFolder) -> PaidEvent | None:
     return None
 
 
-def extract_word(text: str, require_prefix: bool) -> str | None:
-    """The word a chat line contributes, or None if it contributes nothing.
+def extract_words(text: str, require_prefix: bool) -> list[str]:
+    """The words a chat line contributes, in order, possibly none.
 
-    In prefix mode only ``!k wort`` counts, which keeps an ordinary conversation
-    out of the game. In free mode a message counts when it is exactly one word,
-    which is what makes the mode feel alive: people type the word, not a command.
-    Either way a message with two or more words is never a guess, so nobody
-    guesses by accident while talking.
+    In prefix mode only a line starting with ``!k`` counts, which keeps an
+    ordinary conversation out of the game, and then every word after it does. In
+    free mode every word of every line is a guess: whatever a viewer types, the
+    words in it are tried. The text is NFKC-normalised first (full-width and
+    styled letters become plain ones), invisible characters are removed because
+    they sit inside a word, and control characters become a space.
     """
-    text = text.strip()
-    if not text:
-        return None
+    text = unicodedata.normalize("NFKC", text)
+    text = _CONTROL.sub(" ", _INVISIBLE.sub("", text))
+    tokens = text.split()
     if require_prefix:
-        head, _, rest = text.partition(" ")
-        if head.lower() != _PREFIX:
-            return None
-        text = rest.strip()
-    return text.lower() if _WORD.match(text) else None
+        if not tokens or tokens[0].lower() != _PREFIX:
+            return []
+        tokens = tokens[1:]
+
+    words: list[str] = []
+    for token in tokens:
+        if _NOT_LANGUAGE.search(token):
+            continue
+        for run in _LETTERS.findall(token):
+            # lower(), not casefold(): casefold writes the sharp s as "ss".
+            word = run.lower()
+            if not WORD_MIN_CHARS <= len(word) <= WORD_MAX_CHARS or word in words:
+                continue
+            words.append(word)
+            if len(words) == MAX_WORDS_PER_LINE:
+                return words
+    return words
 
 
 # What the streamer types into their own chat to end the bound round. Both
@@ -588,30 +618,40 @@ class GuessGate:
         self._last_guess: dict[tuple[str, str, str], float] = {}
         self._bucket: dict[str, tuple[float, float]] = {}
 
-    def allow(self, koop_id: str, platform: str, external_id: str) -> bool:
-        """The cooldown is per viewer and platform, the bucket per room.
+    def admit(self, koop_id: str, platform: str, external_id: str, wanted: int) -> int:
+        """How many of a line's ``wanted`` words may go on the board, possibly 0.
 
-        Two chats share one board, and the reason for the cap is the board, so
-        they share one bucket too.
+        The cooldown is per viewer and platform and counts lines, not words: a
+        sentence is one message, and a viewer who types one is held back exactly
+        as long as one who types a single word. The bucket is per room and
+        counts words, because the reason for the cap is the board, and two
+        chats share one board, so they share one bucket too.
         """
+        if wanted <= 0:
+            return 0
         now = self._clock()
         key = (koop_id, platform, external_id)
         last = self._last_guess.get(key)
         if last is not None and now - last < self._cooldown:
-            return False
+            return 0
 
         # Token bucket, refilled continuously: a burst of 20 passes at once and
         # then the room drains at 20 per second, instead of 20 per wall-clock
         # second with a cliff at every boundary.
         tokens, stamp = self._bucket.get(koop_id, (float(self._per_second), now))
         tokens = min(float(self._per_second), tokens + (now - stamp) * self._per_second)
-        if tokens < 1.0:
+        granted = min(wanted, int(tokens))
+        if granted == 0:
             self._bucket[koop_id] = (tokens, now)
-            return False
+            return 0
 
-        self._bucket[koop_id] = (tokens - 1.0, now)
+        self._bucket[koop_id] = (tokens - granted, now)
         self._last_guess[key] = now
-        return True
+        return granted
+
+    def allow(self, koop_id: str, platform: str, external_id: str) -> bool:
+        """Whether one single-word line may pass."""
+        return self.admit(koop_id, platform, external_id, 1) == 1
 
     def forget_room(self, koop_id: str) -> None:
         """Drop a closed room's state so a long-running worker does not grow."""
@@ -1378,6 +1418,8 @@ _EVENT_METRIC: dict[str, str] = {
     "tiktok_chest": "tiktok_diamonds",
     "tiktok_sub": "subs",
 }
+# A follow raises no total on purpose: it is not support anybody paid for, and
+# a per-channel follower count is the platform's own figure, not ours.
 
 # How long an event stays readable. The host page shows the last twenty; a
 # day covers the longest stream and keeps the table small.
@@ -1386,6 +1428,12 @@ EVENT_RETENTION_HOURS = 24
 # The most events one poll returns. The page shows twenty, and a host whose
 # tab slept through a sub train should not get a thousand banners on return.
 EVENTS_PER_POLL = 20
+
+# The most follows one poll returns, apart from the paid events, so a wave of
+# follows never pushes a gift out of a poll. Fifty per three-second poll is a
+# thousand a minute, more than a German stream collects; beyond it the oldest
+# of a poll are skipped. The page folds a long queue into one toast anyway.
+FOLLOWS_PER_POLL = 50
 
 
 async def record_paid_event(
@@ -1414,33 +1462,49 @@ async def record_paid_event(
     if cursor.rowcount != 1:
         return None
     event_row_id = cursor.lastrowid
+    metric = _EVENT_METRIC.get(event.kind)
+    if metric is None:
+        await db.commit()
+        return event_row_id
     amount = event.amount if event.kind in ("cheer", "gift_bomb", "tiktok_gift", "tiktok_chest") else 1
     await record_stream_event(
-        db, event.platform, channel, _EVENT_METRIC[event.kind], amount=amount, commit=False,
+        db, event.platform, channel, metric, amount=amount, commit=False,
     )
     await db.commit()
     return event_row_id
 
 
 async def events_after(
-    db: aiosqlite.Connection, koop_id: str, after_id: int, limit: int = EVENTS_PER_POLL
+    db: aiosqlite.Connection,
+    koop_id: str,
+    after_id: int,
+    limit: int = EVENTS_PER_POLL,
+    follow_limit: int = FOLLOWS_PER_POLL,
 ) -> list[dict]:
     """The events of a room newer than ``after_id``, oldest first.
 
     ``after_id = 0`` is a page that just opened: it gets the newest ``limit``,
     which fill the feed, and the page decides which of them it still
-    celebrates.
+    celebrates. Free events (follows) have a budget of their own, so a wave of
+    follows never takes a paid event's place in a poll.
     """
-    cursor = await db.execute(
-        "SELECT * FROM (SELECT id, platform, kind, actor, badges, amount, tier, months, "
-        "gift_name, gift_count, gift_image, created_at FROM live_events "
-        "WHERE koop_id = ? AND id > ? ORDER BY id DESC LIMIT ?) ORDER BY id",
-        (koop_id, after_id, limit),
+    free = sorted(FREE_EVENT_KINDS)
+    marks = ", ".join("?" for _ in free)
+    columns = (
+        "id, platform, kind, actor, badges, amount, tier, months, "
+        "gift_name, gift_count, gift_image, created_at"
     )
-    return [
-        {**dict(row), "created_at": sqlite_utc(row["created_at"])}
-        for row in await cursor.fetchall()
-    ]
+    rows = []
+    for operator, cap in (("NOT IN", limit), ("IN", follow_limit)):
+        cursor = await db.execute(
+            f"SELECT {columns} FROM live_events "
+            f"WHERE koop_id = ? AND id > ? AND kind {operator} ({marks}) "
+            "ORDER BY id DESC LIMIT ?",
+            (koop_id, after_id, *free, cap),
+        )
+        rows.extend(await cursor.fetchall())
+    rows.sort(key=lambda row: row["id"])
+    return [{**dict(row), "created_at": sqlite_utc(row["created_at"])} for row in rows]
 
 
 async def prune_events(db: aiosqlite.Connection) -> int:

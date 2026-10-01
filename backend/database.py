@@ -263,7 +263,8 @@ CREATE TABLE IF NOT EXISTS live_events (
     actor TEXT NOT NULL,
     badges TEXT,
     -- Bits for a cheer, subscriptions for a gift or a bomb, diamonds for a
-    -- TikTok gift, 1 for an own subscription.
+    -- TikTok gift, 1 for an own subscription and for a TikTok follow, which is
+    -- free and kept here only so the host page can thank for it.
     amount INTEGER NOT NULL DEFAULT 1,
     -- Twitch sub plan: 'prime', '1000', '2000', '3000'. NULL elsewhere.
     tier TEXT,

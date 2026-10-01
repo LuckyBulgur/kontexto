@@ -217,6 +217,44 @@ class TestIngest:
 
         self._run(run())
 
+    def test_every_word_of_a_sentence_is_tried(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7})
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("1", "Mara", "Ist es ein Apfel?? Oder BIRNE!!! :)")
+            )
+            assert await self._words(db, koop_id) == ["apfel", "birne"]
+
+        self._run(run())
+
+    def test_a_word_already_on_the_board_does_not_end_the_line(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7})
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel"))
+            await ingest.handle_message(koop_id, "twitch", self._message("2", "Jo", "apfel, birne"))
+            assert await self._words(db, koop_id) == ["apfel", "birne"]
+
+        self._run(run())
+
+    def test_a_solve_ends_the_line(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, {"apfel": 42, "loesung": 1, "birne": 7})
+            await ingest.handle_message(
+                koop_id, "twitch", self._message("1", "Mara", "apfel loesung birne")
+            )
+            assert await self._words(db, koop_id) == ["apfel", "loesung"]
+
+        self._run(run())
+
+    def test_a_sentence_is_one_line_for_the_cooldown(self, db):
+        async def run():
+            koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7, "kirsche": 9})
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "apfel birne"))
+            await ingest.handle_message(koop_id, "twitch", self._message("1", "Mara", "kirsche"))
+            assert await self._words(db, koop_id) == ["apfel", "birne"]
+
+        self._run(run())
+
     def test_the_cooldown_holds_one_viewer_back(self, db):
         async def run():
             koop_id, ingest = await self._ready(db, {"apfel": 42, "birne": 7})

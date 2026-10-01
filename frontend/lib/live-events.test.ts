@@ -4,7 +4,11 @@ import {
   BIG_UNITS,
   EPIC_UNITS,
   FEED_LENGTH,
-  MAX_TOASTS,
+  FOLLOW_SINGLE_BACKLOG,
+  HURRIED_TOAST_MS,
+  HURRY_BACKLOG,
+  MAX_WAITING_TOASTS,
+  TOAST_MS,
   admitToast,
   bitsColor,
   celebrationOf,
@@ -14,10 +18,15 @@ import {
   eventDetail,
   eventSentence,
   eventUnits,
+  followAction,
   freshEvents,
+  isFreeEvent,
   mergeFeed,
+  queuedToastMs,
   rainParticles,
+  takeFollowToast,
   type Celebration,
+  type ToastLevel,
 } from "./live-events";
 import type { LiveEvent } from "./live-types";
 
@@ -103,26 +112,75 @@ describe("how an event looks", () => {
   });
 });
 
-describe("the toast stack", () => {
+describe("the toast queue", () => {
   const toast = (id: number, level: Celebration) => ({ id, level });
 
-  it("keeps at most MAX_TOASTS", () => {
-    let shown: { id: number; level: Celebration }[] = [];
-    for (let id = 1; id <= 10; id++) shown = admitToast(shown, toast(id, "small"));
-    expect(shown.map((t) => t.id)).toEqual([8, 9, 10]);
-    expect(shown).toHaveLength(MAX_TOASTS);
+  it("holds at most MAX_WAITING_TOASTS", () => {
+    let queue: { id: number; level: Celebration }[] = [];
+    for (let id = 1; id <= 30; id++) queue = admitToast(queue, toast(id, "small"));
+    expect(queue).toHaveLength(MAX_WAITING_TOASTS);
+    expect(queue[queue.length - 1].id).toBe(30);
   });
 
   it("lets a small toast give way before a large one", () => {
-    const shown = [toast(1, "epic"), toast(2, "small"), toast(3, "small")];
-    expect(admitToast(shown, toast(4, "small")).map((t) => t.id)).toEqual([1, 3, 4]);
-    const roses = [1, 2, 3, 4, 5].reduce((acc, id) => admitToast(acc, toast(id + 10, "small")), shown);
+    const queue = [toast(1, "epic"), toast(2, "small"), toast(3, "small")];
+    expect(admitToast(queue, toast(4, "small"), 3).map((t) => t.id)).toEqual([1, 3, 4]);
+    const roses = [1, 2, 3, 4, 5].reduce((acc, id) => admitToast(acc, toast(id + 10, "small"), 3), queue);
     expect(roses[0].id).toBe(1);
   });
 
   it("drops the oldest when all are large", () => {
-    const shown = [toast(1, "big"), toast(2, "epic"), toast(3, "banner")];
-    expect(admitToast(shown, toast(4, "small")).map((t) => t.id)).toEqual([2, 3, 4]);
+    const queue = [toast(1, "big"), toast(2, "epic"), toast(3, "banner")];
+    expect(admitToast(queue, toast(4, "small"), 3).map((t) => t.id)).toEqual([2, 3, 4]);
+  });
+
+  it("lets a follow give way before any paid toast", () => {
+    const queue: { id: number; level: ToastLevel }[] = [
+      { id: 1, level: "small" }, { id: 2, level: "follow" }, { id: 3, level: "small" },
+    ];
+    expect(admitToast(queue, toast(4, "small"), 3).map((t) => t.id)).toEqual([1, 3, 4]);
+  });
+
+  it("plays a short queue in full and hurries a long one", () => {
+    expect(queuedToastMs(TOAST_MS.epic, HURRY_BACKLOG - 1)).toBe(TOAST_MS.epic);
+    expect(queuedToastMs(TOAST_MS.epic, HURRY_BACKLOG)).toBe(Math.round(TOAST_MS.epic * 0.6));
+    // Never shorter than a name takes to read, and never longer than in full.
+    expect(queuedToastMs(TOAST_MS.small, 20)).toBe(HURRIED_TOAST_MS);
+    expect(queuedToastMs(1000, 20)).toBe(1000);
+  });
+});
+
+describe("follows", () => {
+  const follow = (id: number, actor = `Fan${id}`) =>
+    event({ id, kind: "tiktok_follow", platform: "tiktok", actor, amount: 1 });
+
+  it("is free: no units, no feed row", () => {
+    expect(isFreeEvent(follow(1))).toBe(true);
+    expect(isFreeEvent(event({ kind: "tiktok_gift" }))).toBe(false);
+    expect(eventUnits(follow(1))).toBe(0);
+    expect(mergeFeed([event({ id: 1 })], [follow(2), event({ id: 3 })]).map((e) => e.id)).toEqual([3, 1]);
+  });
+
+  it("goes one by one while the queue is short", () => {
+    const queue = [follow(1), follow(2)];
+    const first = takeFollowToast(queue);
+    expect(first?.toast).toMatchObject({ id: 1, actor: "Fan1", others: 0 });
+    expect(first?.rest.map((e) => e.id)).toEqual([2]);
+    expect(takeFollowToast([])).toBeNull();
+  });
+
+  it("folds a long queue into one toast", () => {
+    const queue = Array.from({ length: FOLLOW_SINGLE_BACKLOG + 6 }, (_, i) => follow(i + 1));
+    const taken = takeFollowToast(queue);
+    expect(taken?.toast).toMatchObject({ id: queue.length, actor: "Fan1", others: queue.length - 1 });
+    expect(taken?.rest).toEqual([]);
+  });
+
+  it("says it in one sentence", () => {
+    expect(followAction(0)).toBe("folgt jetzt");
+    expect(followAction(1)).toBe("und 1 weitere Person folgen jetzt");
+    expect(followAction(1200)).toBe("und 1.200 weitere folgen jetzt");
+    expect(eventAction(follow(1))).toBe("folgt jetzt");
   });
 });
 
@@ -175,7 +233,7 @@ describe("what an event says", () => {
     const kinds: Partial<LiveEvent>[] = [
       { kind: "cheer" }, { kind: "sub" }, { kind: "resub", months: 3 }, { kind: "gift_sub" },
       { kind: "gift_bomb", amount: 4 }, { kind: "upgrade" }, { kind: "tiktok_gift" },
-      { kind: "tiktok_sub" }, { kind: "tiktok_chest" },
+      { kind: "tiktok_sub" }, { kind: "tiktok_chest" }, { kind: "tiktok_follow" },
     ];
     for (const fields of kinds) {
       const text = eventSentence(event(fields));

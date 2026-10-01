@@ -30,6 +30,8 @@ import logging
 import os
 import time
 
+import aiosqlite
+
 import live_chat
 import twitch_badges
 from database import get_db
@@ -147,79 +149,103 @@ class LiveChatIngest:
         if binding["paused"]:
             return
 
-        word = live_chat.extract_word(message.text, room["require_prefix"])
-        if word is None:
-            return
-        if not self._gate.allow(koop_id, platform, message.external_id):
+        words = live_chat.extract_words(message.text, room["require_prefix"])
+        granted = self._gate.admit(koop_id, platform, message.external_id, len(words))
+        if granted == 0:
             return
 
+        nickname = live_chat.viewer_nickname(message.display_name)
+        badges = live_chat.encode_badges(message.badges)
+        recorded_words: list[tuple[str, int, bool]] = []
         db = await get_db(self._db_path)
         try:
-            state = await get_koop_state(db, koop_id)
-            if state is None or state["solved"] or state["gave_up"]:
-                return
-
-            result = self._resolve(state["game_number"], word)
-            if result is None:
-                # An unknown word, a stopword, or a typo with more than one
-                # plausible correction. A chat cannot answer a suggestion, so the
-                # line is dropped instead of turning into three of them.
-                return
-            if not live_chat.is_showable_guess(word, result["word"], result["rank"]):
-                return
-
-            nickname = live_chat.viewer_nickname(message.display_name)
-            badges = live_chat.encode_badges(message.badges)
-            recorded = await record_koop_guess(
-                db, koop_id, room["chat_token"], result["word"], result["rank"],
-                display_name=nickname, source=platform, badges=badges,
-            )
-            if recorded is None or recorded["already_guessed"]:
-                return
-
-            # Straight to the sockets, without waiting for the poll tick. Safe
-            # here and nowhere else: the ingest and the broadcast manager are
-            # the same process, the single WS worker.
-            if recorded.get("guess_id") is not None:
-                await koop_ws_manager.push_guess(
-                    koop_id,
-                    {
-                        "id": recorded["guess_id"],
-                        "nickname": nickname,
-                        "word": result["word"],
-                        "rank": result["rank"],
-                        "is_tip": False,
-                        "player_token": room["chat_token"],
-                        "source": platform,
-                        "badges": badges,
-                    },
+            for word in words[:granted]:
+                outcome = await self._apply_word(
+                    db, koop_id, platform, room, binding["channel"],
+                    message.external_id, nickname, badges, word,
                 )
-
-            # One transaction for the whole bookkeeping of this line. Five
-            # separate commits per chat message is five write locks, and this
-            # path runs up to twenty times a second per room.
-            channel = binding["channel"]
-            solved_now = result["rank"] == 1 and recorded["solved"]
-            is_new_viewer = await live_chat.record_viewer(
-                db, koop_id, platform, message.external_id, nickname,
-                result["rank"], commit=False, badges=badges, solved=solved_now,
-            )
-            await live_chat.record_stream_event(
-                db, platform, channel, "guesses", rank=result["rank"], commit=False,
-            )
-            if is_new_viewer:
-                await live_chat.record_stream_event(
-                    db, platform, channel, "viewers", commit=False,
-                )
-            if solved_now:
-                await live_chat.record_stream_event(
-                    db, platform, channel, "solves", commit=False,
-                )
-            await db.commit()
+                if outcome is None:
+                    continue
+                recorded_words.append(outcome)
+                if outcome[2]:
+                    # Solved: the round is over, the rest of the line is talk.
+                    break
         finally:
             await db.close()
 
-        await analytics_guess(self._db_path, result["word"], result["rank"], recorded["solved"])
+        for scored, rank, solved in recorded_words:
+            await analytics_guess(self._db_path, scored, rank, solved)
+
+    async def _apply_word(
+        self, db: aiosqlite.Connection, koop_id: str, platform: str, room: dict, channel: str,
+        external_id: str, nickname: str, badges: str | None, word: str,
+    ) -> tuple[str, int, bool] | None:
+        """Put one word of a chat line on the board. (word, rank, solved) or None.
+
+        None for every word that does not count, and the line goes on with its
+        next word: a sentence holds stop words and talk next to the guess.
+        The state is read again per word, because the previous word of the same
+        line, or another viewer in between, may have solved the round.
+        """
+        state = await get_koop_state(db, koop_id)
+        if state is None or state["solved"] or state["gave_up"]:
+            return None
+
+        result = self._resolve(state["game_number"], word)
+        if result is None:
+            # An unknown word, a stopword, or a typo with more than one
+            # plausible correction. A chat cannot answer a suggestion, so the
+            # word is dropped instead of turning into three of them.
+            return None
+        if not live_chat.is_showable_guess(word, result["word"], result["rank"]):
+            return None
+
+        recorded = await record_koop_guess(
+            db, koop_id, room["chat_token"], result["word"], result["rank"],
+            display_name=nickname, source=platform, badges=badges,
+        )
+        if recorded is None or recorded["already_guessed"]:
+            return None
+
+        # Straight to the sockets, without waiting for the poll tick. Safe
+        # here and nowhere else: the ingest and the broadcast manager are
+        # the same process, the single WS worker.
+        if recorded.get("guess_id") is not None:
+            await koop_ws_manager.push_guess(
+                koop_id,
+                {
+                    "id": recorded["guess_id"],
+                    "nickname": nickname,
+                    "word": result["word"],
+                    "rank": result["rank"],
+                    "is_tip": False,
+                    "player_token": room["chat_token"],
+                    "source": platform,
+                    "badges": badges,
+                },
+            )
+
+        # One transaction for the whole bookkeeping of this word. Five
+        # separate commits per word is five write locks, and this path runs
+        # up to twenty times a second per room.
+        solved_now = result["rank"] == 1 and recorded["solved"]
+        is_new_viewer = await live_chat.record_viewer(
+            db, koop_id, platform, external_id, nickname,
+            result["rank"], commit=False, badges=badges, solved=solved_now,
+        )
+        await live_chat.record_stream_event(
+            db, platform, channel, "guesses", rank=result["rank"], commit=False,
+        )
+        if is_new_viewer:
+            await live_chat.record_stream_event(
+                db, platform, channel, "viewers", commit=False,
+            )
+        if solved_now:
+            await live_chat.record_stream_event(
+                db, platform, channel, "solves", commit=False,
+            )
+        await db.commit()
+        return result["word"], result["rank"], bool(recorded["solved"])
 
     async def handle_event(self, koop_id: str, platform: str, event) -> bool:
         """Store one paid event for the host page. True when it was new.

@@ -152,7 +152,7 @@ export const MULTIPLAYER_MODES: Record<MultiplayerModeId, MultiplayerModeMeta> =
     tagline: "Dein Twitch- oder TikTok-Chat rät mit, ohne Anmeldung und ohne Link.",
     rules: [
       "Du trägst deinen Kanal ein, wir lesen den Chat mit.",
-      "Jede Nachricht aus einem einzigen Wort ist ein Versuch.",
+      "Jedes Wort im Chat ist ein Versuch, auch mitten im Satz.",
       "Alle raten auf einer gemeinsamen Liste, wie im Koop.",
       "Bits, Abos und TikTok-Geschenke werden auf dem Brett gefeiert.",
     ],

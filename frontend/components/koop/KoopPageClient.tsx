@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventGuess } from "@/lib/events/hooks";
+import { onEventArrival, onEventGuess } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -35,6 +35,7 @@ import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, sav
 import { toast } from "sonner";
 import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
+import { BOARD_COLUMN, BOARD_GRID, SIDEBAR_COLUMN } from "@/lib/board-layout";
 import { cn } from "@/lib/utils";
 import { knocksForArrival, playKnock } from "@/lib/knock-sound";
 
@@ -68,9 +69,10 @@ export interface KoopPageClientProps {
   /** Keep the board exactly where the solo game puts it (`max-w-lg`, centred)
    *  and give the sidebar the right-hand gutter, so the sidebar never pushes
    *  the board off centre. The stream chat sets it: streamers crop their
-   *  capture to the board, and every other mode has it in the middle. Below
-   *  `xl` there is no gutter wide enough, and the sidebar goes under the board
-   *  (or above it, see `sidebarBelowOnMobile`). */
+   *  capture to the board, and every other mode has it in the middle. Where
+   *  the gutter is too narrow the pair is centred instead, the sidebar still
+   *  beside the board; only below `md` does it go under the board (or above
+   *  it, see `sidebarBelowOnMobile`). The bands: `lib/board-layout.ts`. */
   centerBoard?: boolean;
   /** Whether to offer the invite link while the room is still alone. A stream
    *  chat needs no invite: the audience is already there. */
@@ -103,6 +105,10 @@ export interface KoopPageClientProps {
   notFoundMessage?: string;
   tipsDisabledMessage?: string;
   giveUpDescription?: string;
+  /** Let words from other players wake the seasonal word effects. The stream
+   *  chat sets it, so a viewer typing "geist" sends a ghost across the stream;
+   *  an invited koop keeps the rule that only your own word does. */
+  arrivalEffects?: boolean;
 }
 
 export default function KoopPageClient({
@@ -121,6 +127,7 @@ export default function KoopPageClient({
   showNames,
   renderBy,
   renderFinder,
+  arrivalEffects = false,
   notFoundMessage = "Koop nicht gefunden",
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
@@ -335,6 +342,9 @@ export default function KoopPageClient({
       } else if (msg.type === "guess_added") {
         if (knocksForArrival({ word: msg.word, by: msg.nickname, isTip: msg.is_tip }, nickname)) {
           playKnock();
+        }
+        if (arrivalEffects && !msg.is_tip && (!nickname || msg.nickname !== nickname)) {
+          onEventArrival({ word: msg.word, rank: msg.rank });
         }
         appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname, {
           source: msg.source ?? null,
@@ -606,7 +616,8 @@ export default function KoopPageClient({
 
   return (
     <div className={cn("mx-auto min-h-screen flex flex-col", centerBoard ? "w-full" : "max-w-4xl")}>
-      <div className={centerBoard ? "mx-auto w-full max-w-lg" : undefined}>
+      <div className={centerBoard ? cn("md:px-4", BOARD_GRID) : undefined}>
+      <div className={centerBoard ? BOARD_COLUMN : undefined}>
       <Header
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
@@ -621,12 +632,13 @@ export default function KoopPageClient({
         backHref="/"
       />
       </div>
+      </div>
 
       <div
         className={cn(
           "flex-1 px-4 py-4 gap-4",
           centerBoard
-            ? "grid grid-cols-1 items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)_minmax(0,1fr)] xl:gap-6"
+            ? cn("grid grid-cols-1 items-start", BOARD_GRID)
             : "flex flex-col md:flex-row"
         )}
       >
@@ -634,12 +646,12 @@ export default function KoopPageClient({
           data-testid="koop-board"
           className={cn(
             "flex flex-col gap-4",
-            centerBoard ? "mx-auto w-full max-w-lg xl:col-start-2" : "flex-1"
+            centerBoard ? BOARD_COLUMN : "flex-1"
           )}
         >
           {/* Mobile sidebar */}
           {!sidebarBelowOnMobile && (
-            <div className={centerBoard ? "xl:hidden" : "md:hidden"}>
+            <div className="md:hidden">
               {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
             </div>
           )}
@@ -696,7 +708,7 @@ export default function KoopPageClient({
           />
 
           {sidebarBelowOnMobile && (
-            <div className={centerBoard ? "xl:hidden" : "md:hidden"}>
+            <div className="md:hidden">
               {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
             </div>
           )}
@@ -704,9 +716,7 @@ export default function KoopPageClient({
 
         {/* Desktop sidebar */}
         <div
-          className={
-            centerBoard ? "hidden xl:block xl:col-start-3 xl:max-w-[19rem]" : "hidden md:block"
-          }
+          className={centerBoard ? SIDEBAR_COLUMN : "hidden md:block"}
         >
           {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
         </div>

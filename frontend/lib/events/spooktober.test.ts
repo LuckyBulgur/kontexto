@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARRIVAL_COOLDOWN_MS,
+  ArrivalGate,
   PROGRESS_KEY,
   SECRETS,
   emptyProgress,
@@ -139,5 +141,33 @@ describe("parseProgress", () => {
     expect(loadProgress(throwing)).toEqual(emptyProgress());
     expect(() => saveProgress(throwing, emptyProgress())).not.toThrow();
     expect(loadProgress(null)).toEqual(emptyProgress());
+  });
+});
+
+describe("ArrivalGate", () => {
+  it("lets a chat word wake its effect once per cooldown", () => {
+    const gate = new ArrivalGate();
+    expect(gate.admit("geist", 400, 0)).toBe("ghost");
+    expect(gate.admit("gespenst", 300, 1_000)).toBeNull();
+    expect(gate.admit("geister", 200, ARRIVAL_COOLDOWN_MS)).toBe("ghost");
+  });
+
+  it("throttles each effect kind on its own", () => {
+    const gate = new ArrivalGate();
+    expect(gate.admit("geist", 400, 0)).toBe("ghost");
+    expect(gate.admit("hexe", 400, 10)).toBe("witch");
+    expect(gate.admit("mond", 400, 20)).toBe("moon");
+  });
+
+  it("never darkens the board and never fires on the winning word", () => {
+    const gate = new ArrivalGate();
+    expect(gate.admit("taschenlampe", 50, 0)).toBeNull();
+    expect(gate.admit("dunkelheit", 50, 0)).toBeNull();
+    expect(gate.admit("kürbis", 1, 0)).toBeNull();
+    expect(gate.admit("kürbis", 2, 0)).toBe("candy");
+  });
+
+  it("ignores ordinary words", () => {
+    expect(new ArrivalGate().admit("apfel", 30, 0)).toBeNull();
   });
 });

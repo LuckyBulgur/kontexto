@@ -336,6 +336,7 @@ export default function LivePageClient() {
         showNames
         sidebarBelowOnMobile
         centerBoard
+        arrivalEffects
         renderBy={renderBy}
         renderFinder={renderFinder}
         notFoundMessage="Diese Runde gibt es nicht"

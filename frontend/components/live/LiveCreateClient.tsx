@@ -164,9 +164,9 @@ export default function LiveCreateClient() {
         <form onSubmit={handleCreate}>
           <Panel className="gap-5">
             <p className="text-small text-muted-foreground">
-              {`Trag deinen Kanal ein, dann liest der Server deinen Chat mit. Jede Nachricht,
-              die aus einem einzigen Wort besteht, ist ein Versuch. Dein Publikum braucht
-              kein Konto und keinen Link.`}
+              {`Trag deinen Kanal ein, dann liest der Server deinen Chat mit. Jedes Wort im
+              Chat ist ein Versuch, auch mitten im Satz. Satzzeichen, Zahlen und Emojis
+              fallen weg. Dein Publikum braucht kein Konto und keinen Link.`}
             </p>
 
             <div className="space-y-2">

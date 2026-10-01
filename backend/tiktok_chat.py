@@ -30,6 +30,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 from collections import deque
 from urllib.parse import urlencode, urlsplit
@@ -387,7 +388,46 @@ def _chest_event(data: dict) -> live_chat.PaidEvent | None:
     )
 
 
+def _is_follow(data: dict) -> bool:
+    """Whether a social frame is a follow, not a share or a repost.
+
+    TikTok tells them apart only by the key of the sentence it would show
+    (``pm_main_follow_message_viewer_2``, ``pm_mt_guidance_share``); the field
+    sits under ``common.displayText`` in the current schema and was a flat
+    ``displayType`` before, so both are read.
+    """
+    common = _field(data, "common")
+    key = _as_str(_field(_field(common, "displayText"), "key"))
+    if not key:
+        key = _as_str(_field(data, "displayType")) or _as_str(_field(common, "displayType"))
+    key = key.lower()
+    return "follow" in key and "share" not in key
+
+
+def _follow_event(data: dict) -> live_chat.PaidEvent | None:
+    """A viewer followed the streamer.
+
+    The event id is the follower, not the frame: unfollow and follow again is
+    a tap, and a toast per tap would hand every viewer a button that writes on
+    the stream. So each viewer is thanked once per room, by the same unique
+    key that already drops a frame seen twice.
+    """
+    if not _is_follow(data):
+        return None
+    actor = _user(data.get("user"))
+    if actor is None:
+        return None
+    # A handle may carry a dot, which an event id may not.
+    follower = re.sub(r"[^A-Za-z0-9_-]", "_", actor[0].removeprefix("tt:"))
+    event_id = f"follow-{follower}"[:64]
+    return live_chat.make_event(
+        platform="tiktok", event_id=event_id, kind="tiktok_follow",
+        actor_external_id=actor[0], actor_name=actor[1], badges=tiktok_badges(data),
+    )
+
+
 _EVENT_PARSERS = {
+    "WebcastSocialMessage": _follow_event,
     "WebcastGiftMessage": _gift_event,
     "WebcastSubNotifyMessage": _sub_event,
     "WebcastEnvelopeMessage": _chest_event,

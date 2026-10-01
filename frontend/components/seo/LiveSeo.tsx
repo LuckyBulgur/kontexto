@@ -27,8 +27,8 @@ export default function LiveSeo() {
       </h1>
       <p className="max-w-prose">
         {`Dein Chat rät mit, ohne Konto, ohne Link und ohne dass jemand die Seite öffnen muss. Du
-        wählst Twitch oder TikTok und trägst deinen Kanalnamen ein, der Server liest den Chat mit, und jede Nachricht aus einem
-        einzigen Wort landet als Versuch auf einer gemeinsamen Rateliste. Neben jedem Namen
+        wählst Twitch oder TikTok und trägst deinen Kanalnamen ein, der Server liest den Chat mit, und jedes Wort aus dem
+        Chat landet als Versuch auf einer gemeinsamen Rateliste, auch mitten im Satz. Neben jedem Namen
         stehen die Plattform und die Abzeichen aus dem Chat, und Bits, Abos und TikTok-Geschenke
         werden auf dem Brett gefeiert.`}{" "}
         <Link

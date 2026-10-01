@@ -91,7 +91,7 @@ export default function LiveStatus({
         {notice && <p className="text-micro text-muted-foreground">{notice}</p>}
         <p className="text-micro text-muted-foreground/80">
           {`${several ? "Beide Chats raten mit" : "Dein Chat rät mit"}: ${
-            requirePrefix ? "!k wort" : "ein Wort pro Nachricht"
+            requirePrefix ? "!k wort" : "jedes Wort zählt"
           }`}
         </p>
         {!locked && <p className="text-micro text-muted-foreground/80">{STOP_HINT_AHEAD}</p>}

@@ -169,12 +169,22 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(bomb).toHaveAttribute("data-level", "big");
     await expect(bomb).toContainText("verschenkt 5 Abos");
 
-    // The toast stands at the bottom centre, never over the middle of the board.
+    // The toast stands at the top centre, never over the middle of the board.
     const viewport = page.viewportSize();
     const box = await bomb.boundingBox();
     if (!viewport || !box) throw new Error("no layout");
     expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
-    expect(box.y).toBeGreaterThan(viewport.height / 2);
+    expect(box.y + box.height).toBeLessThan(viewport.height / 2);
+
+    // One toast at a time: a cheer that arrives meanwhile waits its turn.
+    await sendPaidEvent(page, roomId, {
+      kind: "cheer", event_id: `q-${roomId}`, display_name: "Wartend", amount: 10,
+    });
+    const queued = toasts.filter({ hasText: "Wartend" });
+    await expect(queued).toBeVisible({ timeout: 20_000 });
+    await expect(toasts).toHaveCount(1);
+    await expect(bomb).toHaveCount(0);
+    await expect(queued).toHaveCount(0, { timeout: 10_000 });
 
     // The feed lists it, and a duplicate of the same event changes nothing.
     const feed = page.getByTestId("support-feed").filter({ visible: true });
@@ -206,20 +216,65 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByText("Versuche:").filter({ visible: true })).toContainText("0");
   });
 
-  test("das Brett steht mittig, die Seitenleiste verschiebt es nicht", async ({ page }) => {
+  test("die Seitenleiste steht ab Tablet-Breite rechts, das Brett ab 70rem mittig", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const channel = freshChannel();
-    await openRoom(page, channel);
-    await expect(
-      page.getByText(channel, { exact: true }).filter({ visible: true })
-    ).toBeVisible({ timeout: 20_000 });
-    const board = await page.getByTestId("koop-board").boundingBox();
-    if (!board) throw new Error("no board");
+    const roomId = await openRoom(page, channel);
+    const chatCard = page.getByText(channel, { exact: true }).filter({ visible: true });
+    await expect(chatCard).toBeVisible({ timeout: 20_000 });
+    const boardBox = async () => {
+      const box = await page.getByTestId("koop-board").boundingBox();
+      if (!box) throw new Error("no board");
+      return box;
+    };
+    const sideBox = async () => {
+      const box = await chatCard.boundingBox();
+      if (!box) throw new Error("no sidebar");
+      return box;
+    };
+    const noSideScroll = () =>
+      page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+
+    // Wide: the board where the solo game has it, the sidebar in the gutter.
+    let board = await boardBox();
     expect(Math.abs(board.x + board.width / 2 - 720)).toBeLessThanOrEqual(2);
-    // The sidebar is beside it, right of the board.
-    const side = await page.getByText("Unterstützung", { exact: true }).filter({ visible: true }).boundingBox();
-    if (!side) throw new Error("no sidebar");
-    expect(side.x).toBeGreaterThan(board.x + board.width);
+    expect((await sideBox()).x).toBeGreaterThan(board.x + board.width);
+
+    // Laptop and tablet widths: still beside the board, on the same row, and a
+    // paid toast stays under the board rather than under the viewport centre.
+    for (const width of [1024, 800]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(async () => (await sideBox()).x > (await boardBox()).x).toBe(true);
+      board = await boardBox();
+      const side = await sideBox();
+      expect(side.x).toBeGreaterThan(board.x + board.width);
+      expect(side.x + side.width).toBeLessThanOrEqual(width);
+      expect(side.y).toBeLessThan(board.y + 200);
+      expect(await noSideScroll()).toBe(true);
+
+      await sendPaidEvent(page, roomId, {
+        kind: "cheer", event_id: `w${width}-${roomId}`, display_name: `Gast${width}`, amount: 10,
+      });
+      const toast = page.getByTestId("live-support-toast").filter({ hasText: `Gast${width}` });
+      await expect(toast).toBeVisible({ timeout: 20_000 });
+      const toastBox = await toast.boundingBox();
+      if (!toastBox) throw new Error("no toast");
+      expect(toastBox.x).toBeGreaterThanOrEqual(board.x - 1);
+      expect(toastBox.x + toastBox.width).toBeLessThanOrEqual(board.x + board.width + 1);
+    }
+
+    // A phone: no room beside the board, so the sidebar goes under it.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const input = page.getByRole("textbox").filter({ visible: true }).first();
+    await expect
+      .poll(async () => {
+        const field = await input.boundingBox();
+        return field !== null && (await sideBox()).y > field.y + field.height;
+      })
+      .toBe(true);
+    expect(await noSideScroll()).toBe(true);
   });
 
   test("bei reduzierter Bewegung kommt der Toast ohne Konfetti", async ({ page }) => {
@@ -294,6 +349,54 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
       timeout: 20_000,
     });
+  });
+
+  test("TikTok-Follows kommen nacheinander, eine Welle als eine Zeile", async ({ page }) => {
+    const handle = `tf.${Date.now().toString().slice(-8)}`;
+    await page.goto("/live/");
+    const tiktok = page.getByRole("button", { name: "TikTok" });
+    await expect(tiktok).toBeEnabled({ timeout: 20_000 });
+    await tiktok.click();
+    await page.getByRole("button", { name: "Twitch" }).click();
+    await page.getByLabel("Dein TikTok-Name").fill(handle);
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+    await expect(
+      page.getByText(`@${handle}`, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    const follow = (n: number) =>
+      sendPaidEvent(page, roomId, {
+        kind: "tiktok_follow", event_id: `follow-${roomId}-${n}`, display_name: `Fan${n}`,
+        external_id: `tt:${n}`, platform: "tiktok",
+      });
+
+    // Two follows: each gets its own quiet toast, without confetti, and the
+    // feed of paid support stays empty.
+    await follow(1);
+    await follow(2);
+    const follows = page.getByTestId("live-follow-toast");
+    await expect(follows.filter({ hasText: "Fan1" })).toContainText("folgt jetzt", { timeout: 20_000 });
+    await expect(follows.filter({ hasText: "Fan2" })).toContainText("folgt jetzt", { timeout: 20_000 });
+    await expect(page.getByTestId("support-feed")).toHaveCount(0);
+    await expect(follows).toHaveCount(0, { timeout: 15_000 });
+
+    // A wave is folded: however the polls split eight follows, a queue longer
+    // than three becomes one toast, and never more than two stand at once.
+    for (let n = 10; n < 18; n++) await follow(n);
+    const wave = follows.filter({ hasText: "weitere folgen jetzt" });
+    await expect(wave.first()).toBeVisible({ timeout: 20_000 });
+    expect(await follows.count()).toBeLessThanOrEqual(2);
+
+    // The same viewer following again is thanked once per room.
+    const again = await page.request.post(`/api/live/${roomId}/debug-event`, {
+      data: {
+        kind: "tiktok_follow", event_id: `follow-${roomId}-1`, display_name: "Fan1",
+        external_id: "tt:1", platform: "tiktok",
+      },
+    });
+    expect((await again.json()).stored).toBe(false);
   });
 
   test("ein unmöglicher TikTok-Name wird sofort beanstandet", async ({ page }) => {
@@ -393,17 +496,19 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByRole("button", { name: /Trennen/ }).filter({ visible: true })).toHaveCount(0);
   });
 
-  test("ein Satz im Chat ist kein Versuch", async ({ page }) => {
+  test("jedes Wort eines Satzes ist ein Versuch", async ({ page }) => {
     const channel = freshChannel();
     const roomId = await openRoom(page, channel);
 
-    await sendChatMessage(page, roomId, "7", "das ist bestimmt schwer");
-    await sendChatMessage(page, roomId, "7", "apfel");
+    // Punctuation, digits and emoji fall away, every word is tried, and a word
+    // the game does not know is dropped without a trace.
+    await sendChatMessage(page, roomId, "7", "Ist es ein APFEL?? oder 2 Birnen... \u{1F34E} birne!!");
 
     await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText("das ist bestimmt schwer")).toHaveCount(0);
+    await expect(page.getByText("birne", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/APFEL\?\?/)).toHaveCount(0);
   });
 
   test("ein Kanal, eine Runde", async ({ page }) => {

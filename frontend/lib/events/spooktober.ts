@@ -221,6 +221,40 @@ export function matchSpookyWord(word: string): EffectKind | null {
   return null;
 }
 
+/**
+ * The effects a word from somebody else may set off: the stream chat of a live
+ * room. Everything but the flashlight, which darkens the whole board for half a
+ * minute and would hide the stream's picture whenever a viewer wanted it to.
+ */
+const ARRIVAL_EXCLUDED: ReadonlySet<EffectKind> = new Set<EffectKind>(["flashlight"]);
+
+/** A chat that repeats a word wakes its effect at most this often. */
+export const ARRIVAL_COOLDOWN_MS = 90_000;
+
+/**
+ * Decides whether a word another player put on the board wakes its effect.
+ * It never uncovers a secret (a find is the host's own) and never fires on
+ * the winning word, which belongs to the result card. Each effect kind has its
+ * own cooldown, so a chat that spams "geist" sees one ghost, not a parade; the
+ * stage's own limits (one creature per kind a minute, three at once) apply on
+ * top. Pure apart from the clock it is handed, so it is testable.
+ */
+export class ArrivalGate {
+  private readonly last = new Map<EffectKind, number>();
+
+  constructor(private readonly cooldownMs: number = ARRIVAL_COOLDOWN_MS) {}
+
+  admit(word: string, rank: number, now: number): EffectKind | null {
+    if (rank === 1) return null;
+    const effect = matchSpookyWord(word);
+    if (!effect || ARRIVAL_EXCLUDED.has(effect)) return null;
+    const last = this.last.get(effect);
+    if (last !== undefined && now - last < this.cooldownMs) return null;
+    this.last.set(effect, now);
+    return effect;
+  }
+}
+
 export function secretForEffect(effect: EffectKind): SecretId | null {
   return SECRET_OF_EFFECT[effect] ?? null;
 }

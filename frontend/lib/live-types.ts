@@ -56,7 +56,10 @@ export type LiveBoardId = "busy" | "sharp" | "finders";
 
 export type LiveViewerBoards = Record<LiveBoardId, LiveViewer[]>;
 
-/** What a chat can do with real money. Celebrated, never played. */
+/**
+ * What a chat can do with real money, plus the one free act the host page
+ * thanks for too (a TikTok follow). Celebrated, never played.
+ */
 export type LiveEventKind =
   | "cheer"
   | "sub"
@@ -66,7 +69,8 @@ export type LiveEventKind =
   | "upgrade"
   | "tiktok_gift"
   | "tiktok_sub"
-  | "tiktok_chest";
+  | "tiktok_chest"
+  | "tiktok_follow";
 
 export interface LiveEvent {
   id: number;

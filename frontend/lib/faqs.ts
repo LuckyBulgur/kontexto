@@ -255,7 +255,7 @@ export const koopFaqs: Faq[] = [
 export const liveFaqs: Faq[] = [
   {
     q: `Wie spielt mein Twitch- oder TikTok-Chat mit?`,
-    a: `Du wählst die Plattform und trägst deinen Kanalnamen ein, dann liest der Server deinen Chat mit. Jede Nachricht, die aus einem einzigen Wort besteht, zählt als Versuch auf einer gemeinsamen Rateliste. Dein Publikum braucht kein Konto, keinen Link und keinen zweiten Tab.`,
+    a: `Du wählst die Plattform und trägst deinen Kanalnamen ein, dann liest der Server deinen Chat mit. Jedes Wort im Chat zählt als Versuch auf einer gemeinsamen Rateliste, auch mitten im Satz. Dein Publikum braucht kein Konto, keinen Link und keinen zweiten Tab.`,
   },
   {
     q: `Muss ich Kontexto Rechte an meinem Kanal geben?`,

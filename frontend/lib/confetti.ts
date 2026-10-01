@@ -170,7 +170,7 @@ export async function fireCandyRain(): Promise<void> {
 /* ------------------------------------------------------------------------- *
  * Paid support on the live host page (components/live/SupportToasts.tsx).
  *
- * Every event is celebrated out of its toast at the bottom centre; the level
+ * Every event is celebrated out of its toast at the top centre; the level
  * decides how much. The category colours win over the seasonal skin here,
  * because they carry meaning (platform, Bits tier). The canvas sits under the
  * toasts and over the board, and canvas-confetti draws it with

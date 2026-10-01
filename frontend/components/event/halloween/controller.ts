@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { fireCandyBurst, fireCandyRain, showSpookFlash } from "@/lib/confetti";
 import { prefersReducedMotion } from "@/lib/use-reduced-motion";
 import {
+  ArrivalGate,
   SECRETS,
   UNLUCKY_RANK,
   isComplete,
@@ -265,6 +266,18 @@ export function handleGuess({ word, rank, won }: GuessInput): void {
   if (!effect && !won && Math.random() < SURPRISE_CHANCE) {
     play(SURPRISE_CAST[Math.floor(Math.random() * SURPRISE_CAST.length)]);
   }
+}
+
+const arrivalGate = new ArrivalGate();
+
+/**
+ * A word somebody else put on the board, from the stream chat of a live room.
+ * Only the word effect plays: no secret, no surprise creature, no cat for 13,
+ * because those belong to what the host does. `ArrivalGate` decides.
+ */
+export function handleArrival({ word, rank }: { word: string; rank: number }): void {
+  const effect = arrivalGate.admit(word, rank, Date.now());
+  if (effect) playEffect(effect);
 }
 
 let eyesShown = false;
