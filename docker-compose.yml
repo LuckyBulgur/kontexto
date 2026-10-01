@@ -13,6 +13,11 @@ services:
     restart: unless-stopped
 
   kontexto:
+    # Production pulls the image CI built for the deployed commit; the deploy
+    # writes KONTEXTO_IMAGE_TAG into .env (.github/workflows/deploy.yml), and a
+    # rollback is that line set to an older commit. Locally,
+    # `docker compose up --build` builds from source and tags it :latest.
+    image: ghcr.io/luckybulgur/kontexto:${KONTEXTO_IMAGE_TAG:-latest}
     build:
       context: .
       args:

@@ -19,51 +19,37 @@ ENV NEXT_PUBLIC_ADSENSE_REVIEW_MODE=${NEXT_PUBLIC_ADSENSE_REVIEW_MODE}
 # is authoritative, so skip the redundant pre-run check.
 RUN pnpm config set verify-deps-before-run false && pnpm run build
 
-# --- Stage 2: Prepare data ---
-FROM python:3.12-slim AS data-build
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
-COPY backend/requirements.txt backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
-COPY backend/ backend/
-COPY scripts/ scripts/
-RUN chmod +x scripts/prepare-data.sh
-# Data preparation happens at build time if model is provided
-# Or at runtime via entrypoint
-
-# --- Stage 3: Production ---
+# --- Stage 2: Production ---
+# Ordered by how often a layer changes: system packages, Python dependencies
+# and configuration first, the code last, so a push rebuilds and ships only the
+# code layers.
 FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends nginx supervisor wget && \
+    apt-get install -y --no-install-recommends nginx supervisor wget gosu && \
     rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+# Create non-root user. Only /app itself is chowned here; everything copied
+# into it below carries --chown, which writes the owner with the file instead
+# of rewriting every file into a second layer.
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser && \
+    chown appuser:appuser /app
 
-COPY backend/requirements.txt backend/
+COPY --chown=appuser:appuser backend/requirements.txt backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-COPY backend/ backend/
-COPY scripts/ scripts/
-RUN chmod +x scripts/prepare-data.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-RUN rm -f /etc/nginx/sites-enabled/default
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-COPY --from=frontend-build /app/frontend/out /app/frontend/out
-
 # Configure nginx for non-root: remove user directive, fix pid path
-RUN sed -i '/^user /d' /etc/nginx/nginx.conf && \
+RUN rm -f /etc/nginx/sites-enabled/default && \
+    sed -i '/^user /d' /etc/nginx/nginx.conf && \
     sed -i 's|pid /run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
     mkdir -p /var/cache/nginx /tmp/nginx && \
-    chown -R appuser:appuser /var/log/nginx /var/lib/nginx /var/cache/nginx && \
-    chown -R appuser:appuser /app /tmp/nginx
+    chown -R appuser:appuser /var/log/nginx /var/lib/nginx /var/cache/nginx /tmp/nginx
 
 EXPOSE 8080
-
-RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
 
 COPY <<'ENTRYPOINT' /app/entrypoint.sh
 #!/bin/bash
@@ -104,5 +90,10 @@ fi
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 ENTRYPOINT
 RUN chmod +x /app/entrypoint.sh
+
+COPY --chown=appuser:appuser backend/ backend/
+COPY --chown=appuser:appuser scripts/ scripts/
+RUN chmod +x scripts/prepare-data.sh
+COPY --chown=appuser:appuser --from=frontend-build /app/frontend/out /app/frontend/out
 
 CMD ["/app/entrypoint.sh"]

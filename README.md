@@ -340,10 +340,12 @@ der laufenden Anwendung. Die zwei Befehle stehen in
 ## Deployment
 
 Ein Push auf `master` ist das Deployment. `.github/workflows/deploy.yml` fährt
-`pytest`, baut den statischen Export, lässt die Playwright-Suite gegen ein
-echtes Backend laufen und startet danach auf dem Server
-`docker compose up --build`. Das Image ist mehrstufig: Frontend bauen, Daten
-aufbereiten, Laufzeitbild mit nginx, supervisor und uvicorn. Caddy terminiert
+`pytest`, baut den statischen Export, lässt die Playwright-Suite in zwei Teilen
+gegen ein echtes Backend laufen und baut gleichzeitig das Image, das als
+`ghcr.io/luckybulgur/kontexto:<commit>` veröffentlicht wird. Ist alles grün,
+zieht der Server genau dieses Image und startet es; gebaut wird dort nichts.
+Das Image ist zweistufig: statischer Export, dann das Laufzeitbild mit nginx,
+supervisor und uvicorn. Caddy terminiert
 HTTPS davor, die Health Checks hängen an `/api/game` und `/api/collect/token`.
 
 ## Mitmachen

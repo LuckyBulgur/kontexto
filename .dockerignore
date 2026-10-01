@@ -2,11 +2,14 @@ node_modules
 .next
 out
 data
-__pycache__
-*.pyc
-.venv
-venv
 .git
 docs
 scripts/create-test-data.py
 *.md
+# Patterns without a directory only match at the root of the context, so the
+# virtual environments and caches inside backend/ need the ** form.
+**/__pycache__
+**/*.pyc
+**/.venv*
+**/venv
+**/.pytest_cache
