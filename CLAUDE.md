@@ -197,7 +197,7 @@ than web text, and spaCy instead of HanTa for the word-class gate.
 Duel realtime is **DB‑polling broadcast** (`websocket_manager.py`): the WS worker polls the players table every second and pushes diffs (`player_joined`/`rank_update`/`player_solved`/connect‑state) to all sockets in that duel.
 
 ### Categories (`categories.py`, 2026-10-01)
-Every solution belongs to one of **25 fields** (animals, food, feelings, concepts, ...), and a round can be drawn from chosen fields and show its field above the board. One setup everywhere (`components/categories/CategoryPicker.tsx`): fields (default: all) plus a switch "Kategorie anzeigen", hidden when exactly one field is chosen because that field is known anyway. **Where:** the solo mode `/solo/kategorien/` (`SoloModeId "categories"`, tips and give-up as in the normal game, endless rounds with the same choice), the invite rooms (duel, koop, the three arenas: game source "Aus Kategorien") and the live room (field on the OBS overlay when shown). **Deliberately not:** the daily, the archive, the home-page endless mode, the four other solo modes (the player's decision), the matchmaking queue (a queue split by field cannot pair) and Wordle. **Data, both in `backend/data/` and keyed by word, never by game number:** `categories.txt` (`id = display name: seed words`; ids are stable English slugs, rooms store them; seeds are read only by the two scripts) and `solution_categories.txt` (one line per pool word, sorted like the pool; `-` = no field, for the 41 words a field's own name would give away, `tier` under "Tiere", plus `kategorie`, which the header prints). A pool edit needs a line here or `test_categories.py` fails. Made by `scripts/propose-categories.py` (seed ranks from each game's own array) and a hand reading of every word; the proposal is a hint, never the verdict. **The draw:** `GameState.random_game_number(exclude, fields)` keeps every old rule (curated games only, never struck, never the daily) and adds the filter. **The room rule:** a room stores `categories` + `show_category` (columns on `duels`/`koops`/`arenas`), `next-game` keeps drawing inside the filter (`_room_picker`), and the round's field reaches a room response only through `_with_round_field` and only when the room shows it, so either everybody sees it or nobody does; `game_source "today"` together with a field is a 422, the daily belongs to no field. No room response gains the game number. Floor: `MIN_PLAYABLE = 40` playable games per field (the plan said 60, which would have dissolved the 44-word fantasy field). Measured by `scripts/measure-categories.py`: seeing the field moves the median foothold from 318 to 42, the narrowest fields sit at 12 (plants, clothing), the abstract ones help least (concepts 136). Analytics: solo mode `categories`, `category_starts` per field (rides on the deduped start), `category_rooms` per room mode, both in the admin dashboard. Details and the table: `docs/plans/2026-10-01-categories.md`. Held by `backend/test_categories.py`, `frontend/lib/categories.test.ts` and `e2e/categories.spec.ts`.
+Every solution belongs to one of **25 fields** (animals, food, feelings, concepts, ...), and a round can be drawn from chosen fields and show its field above the board. One setup everywhere (`components/categories/CategoryPicker.tsx`): fields (default: all) plus a switch "Kategorie anzeigen", hidden when exactly one field is chosen because that field is known anyway. **Where:** the solo mode `/solo/kategorien/` (`SoloModeId "categories"`, tips and give-up as in the normal game, endless rounds with the same choice), the invite rooms (duel, koop, the three arenas: game source "Aus Kategorien") and the live room (field above the host's board when shown). **Deliberately not:** the daily, the archive, the home-page endless mode, the four other solo modes (the player's decision), the matchmaking queue (a queue split by field cannot pair) and Wordle. **Data, both in `backend/data/` and keyed by word, never by game number:** `categories.txt` (`id = display name: seed words`; ids are stable English slugs, rooms store them; seeds are read only by the two scripts) and `solution_categories.txt` (one line per pool word, sorted like the pool; `-` = no field, for the 41 words a field's own name would give away, `tier` under "Tiere", plus `kategorie`, which the header prints). A pool edit needs a line here or `test_categories.py` fails. Made by `scripts/propose-categories.py` (seed ranks from each game's own array) and a hand reading of every word; the proposal is a hint, never the verdict. **The draw:** `GameState.random_game_number(exclude, fields)` keeps every old rule (curated games only, never struck, never the daily) and adds the filter. **The room rule:** a room stores `categories` + `show_category` (columns on `duels`/`koops`/`arenas`), `next-game` keeps drawing inside the filter (`_room_picker`), and the round's field reaches a room response only through `_with_round_field` and only when the room shows it, so either everybody sees it or nobody does; `game_source "today"` together with a field is a 422, the daily belongs to no field. No room response gains the game number. Floor: `MIN_PLAYABLE = 40` playable games per field (the plan said 60, which would have dissolved the 44-word fantasy field). Measured by `scripts/measure-categories.py`: seeing the field moves the median foothold from 318 to 42, the narrowest fields sit at 12 (plants, clothing), the abstract ones help least (concepts 136). Analytics: solo mode `categories`, `category_starts` per field (rides on the deduped start), `category_rooms` per room mode, both in the admin dashboard. Details and the table: `docs/plans/2026-10-01-categories.md`. Held by `backend/test_categories.py`, `frontend/lib/categories.test.ts` and `e2e/categories.spec.ts`.
 
 ### Arenas and the clock (`arena.py`)
 Battle Royale, Blitz‑Duell and Zeitbonus‑Jagd share one table triple (`arenas`/`arena_players`/`arena_guesses`); they differ only in how a deadline is set and what happens when it passes. **The server owns time.** Every deadline is an absolute UTC timestamp written in `arena.iso_timestamp` (fixed width, so SQLite's string comparison is a time comparison) and shipped to the client together with `server_time`, which the client uses to correct its own clock. The guess path refuses a late guess itself (409 `time_up`), so the buzzer cannot be beaten inside the evaluator's one‑second window. Every transition in `advance_due_arenas` is guarded by the state it expects (`WHERE status = 'running' AND deadline_at <= ?`), so a repeated pass is a no‑op.
@@ -230,10 +230,8 @@ chat row for every chat), one shared rate cap, one `require_prefix`. The host ca
 chat to a running round, **remove** one of two (a bound room always reads at least one; the
 count sits inside the DELETE so two racing removes cannot empty it) and **pause/resume** each
 chat: the reader stays connected, the ingest drops its lines from its reconcile snapshot, so a
-resume is instant and costs no TikTok connect budget. The overlay never shows a pause.
-`koop_guesses.source` records which chat a word came from, and once two platforms are in play
-(`showsPlatformMarks`) the overlay and the leaderboard put a platform logo next to each name;
-with one chat nothing changes. Per-channel stats count per channel, so a two-chat room is a
+resume is instant and costs no TikTok connect budget.
+`koop_guesses.source` records which chat a word came from. Per-channel stats count per channel, so a two-chat room is a
 session in each book. `LiveRoomResponse` keeps flat `platform`/`channel`/`chat_state` for the
 oldest chat and `CreateLiveRequest` still takes the single-chat body, because host pages loaded
 before the deploy keep polling for hours. The migration runs under `BEGIN IMMEDIATE` in
@@ -246,10 +244,9 @@ before the deploy keep polling for hours. The migration runs under `BEGIN IMMEDI
 never the game number or the target. `POST /api/admin/live-streams/{koop_id}/message` queues a
 note (`live_host_messages`, at most 280 characters after `normalise_host_message`, at most 5
 unseen per room). It rides on the host's own 3 s poll (`GET /api/live/{id}` gains `messages`)
-and drops in from the top of the **host page only** (`components/live/HostMessageBanner.tsx`),
-**never the OBS overlay**, because the overlay is what the audience sees. No click needed: it
-leaves after a fixed 5 s (`HOST_MESSAGE_DURATION_MS`) and only starts while the tab is visible,
-so a host tab kept behind OBS gets it on the next look. It does **not** pause on hover: the first
+and drops in from the top of the **host page** (`components/live/HostMessageBanner.tsx`). No
+click needed: it leaves after a fixed 5 s (`HOST_MESSAGE_DURATION_MS`) and only starts while
+the tab is visible, so a host tab kept in the background gets it on the next look. It does **not** pause on hover: the first
 version did, and in production it stood until clicked, because a pointer coming down from the
 tab strip lands exactly where it drops in. The host page
 confirms it (`POST /api/live/{id}/messages/seen`, cumulative and idempotent) instead of the read
@@ -257,13 +254,11 @@ implying it, so a lost poll response cannot swallow a note; the admin sees „wa
 „angekommen“. Notes go with the binding (`stop_live_room`) and with the room (cleanup). e2e
 drives it through the dev-only `debug-host-message` seam. The same card ends a round
 (`POST /api/admin/live-streams/{koop_id}/end`, `live_chat.end_live_room`): the same unbinding as
-the host's own stop, the board stays revealable, the host panel says the round ended, and the
-overlay renders **empty** rather than its setup sentence, because that would be read on air.
+the host's own stop, the board stays revealable, and the host panel says the round ended.
 **A room nobody has open is unbound after 5 minutes** (`HOST_ABSENT_SECONDS`): the host page's
 poll raises `live_rooms.host_seen_at` (at most every 30 s, per-worker throttle plus an age guard
 in SQL), and the ingest's reconcile pass in the WS worker runs `unbind_absent_rooms`, the same
-unbinding as a stop. The overlay does not count as presence, or an OBS left running would hold a
-room forever. A hidden tab still polls about once a minute, so only a closed page loses its
+unbinding as a stop. A hidden tab still polls about once a minute, so only a closed page loses its
 chat. Never in the first 5 minutes after the WS worker starts, because after a deploy every
 stamp is as old as the downtime; the migration stamps existing rooms "now" for the same reason.
 The koop room itself still goes through `cleanup_stale_koops` (no connected socket, no guess for
@@ -276,6 +271,53 @@ refusal of a busy channel and the tokenless room page say so (`STOP_HINT` in `li
 A viewer's `stop` stays an ordinary guess. Held by `TestStreamerStop` in `test_live_ingest.py`
 and `TestStopCommand` in `test_live_chat.py`. Held by `TestHostMessages` in
 `test_live_chat.py` and `test_live_api.py`, `lib/host-messages.test.ts` and `e2e/live-room.spec.ts`.
+
+**There is no OBS overlay (removed 2026-10-01).** The player's decision: everything a stream
+shows is the host page, `/live/<id>/`. Route, `GET /api/live/overlay/state`, its models and
+the nginx block are gone; `live_rooms.overlay_token` stays as a column (SQLite cannot drop a
+`UNIQUE` column) and is filled with a random value nobody reads. Do not bring an overlay back.
+
+**Platform, badges, three boards, paid support (2026-10-01).** Every chat name on the host page
+carries its **platform logo, always**, also with one chat (`components/live/ChatIdentity.tsx`),
+plus the **badges** the platform showed. Twitch: the IRC `badges` tag, stored as
+`set/version` (`live_chat.encode_badges`) on `koop_guesses.badges`, `live_viewers.badges`
+and `live_events.badges`; the pictures are Twitch's own, fetched from Helix by
+**`backend/twitch_badges.py`** with an app access token (client credentials, no streamer
+login) in the WS worker, stored in `twitch_badges` (scope `global` or a broadcaster id
+learned from the reader's ROOMSTATE, `twitch_channel_ids`) and resolved server side into
+`badge_catalog` on the host poll, channel scope first. Credentials:
+`KONTEXTO_TWITCH_CLIENT_ID`/`_SECRET`, repository secrets `TWITCH_CLIENT_ID`/`_SECRET`
+written by `deploy.yml`; without them the five common roles are drawn as icons
+(`lib/live-badges.ts`). TikTok sends signed, expiring badge links, so its roles become codes of
+our own (`tt-moderator`, `tt-subscriber`, `tt-fan/<level>`, `tt-supporter`, `tt-host`),
+always icons. Measured on a 48.000-viewer German stream: 35 of 35 badge codes resolved. **Three
+leaderboards** (`live_chat.VIEWER_BOARDS`, tabs in the sidebar): Fleißig (`hits`), Treffsicher
+(`near_hits`, rank <= `NEAR_RANK` 300, the green band) and Wortfinder (`solves`). **The finder
+stands out**: the result card shows "Gefunden von" with the name in `text-h2`, logo and badges
+(`renderFinder`), and `KoopPageClient` falls back to the winning row's author when the
+`koop_solved` frame trails the row. **Paid support is celebrated, never played**: Twitch cheers
+(`bits` tag, the cheermotes are stripped so `Cheer100 apfel` still guesses), sub, resub,
+gifted sub, sub bomb (the single gift lines are folded into the bomb by
+`live_chat.GiftBombFolder`, by community gift id and by a per-gifter count) and upgrades, all
+readable by the anonymous IRC login; TikTok gifts (only when a streak ends,
+`diamondCount * repeatCount`), subscriptions and treasure chests through Euler. Field names
+follow the `tiktok-live-proto` schema in both of its spellings (v2 `userId`/`giftDetails`, v3
+`id`/`gift`), read as facts only, the AGPL package is not a dependency. Stored in
+**`live_events`** (`UNIQUE (koop_id, platform, event_id)` on the platform's own message id, so a
+duplicate frame is an `INSERT OR IGNORE`; totals `bits`, `subs`, `gift_subs`,
+`tiktok_diamonds` on `live_stream_stats` rise only when the row was new), the actor through the
+nickname rule, **no free text of an event**, pruned after 24 h and gone with the binding. The host
+poll takes `events_after` and returns at most 20; the first poll of a page fills the
+„Unterstützung“ feed and plays no banner. Loudness is one unit scale across both platforms
+(`lib/live-events.ts`, about 100 Bits = 100 diamonds = 1, a Tier 1 sub 5): under 1 a feed row,
+from 1 a banner over the board (`LiveCelebration.tsx`, 4 s, queued, only while visible), from
+25 confetti. **Deliberately not**: no gift buys a tip, a cooldown or a rank, and there is **no
+ranking of givers**, because TikTok forbids gift-driven score tallying and kids play this. The
+mode picker's „Du streamst?“ row carries both platform logos. Held by
+`backend/test_live_events.py`, `backend/test_twitch_badges.py`, `TestViewerBoards` and
+`TestGuessOrigin` in `test_live_chat.py`, `TestHostPoll` in `test_live_api.py`,
+`lib/live-events.test.ts`, `lib/live-badges.test.ts` and three cases in `e2e/live-room.spec.ts`
+driven through the dev-only `debug-event` seam (and `badges` on `debug-message`).
 
 ### Nicknames and the word filter (`nicknames.py`, `wordlists.py`)
 A name is the only free text the game has, everyone in the room reads it, and an invite link
@@ -364,7 +406,7 @@ prints every word a player would see reflected. Two tests pin the result: every 
 `german_names.txt` passes except an explicit set of eight deliberate ones, and every word of the
 solution pool passes except `kamel` (`idiot` was struck as unfit for children).
 
-**The live stream overlay is the one place a guess is filtered.** Invited rooms show every
+**The live room is the one place a guess is filtered.** Invited rooms show every
 guessable word; a live room writes what anonymous viewers type onto a public stream, so
 `live_chat.is_showable_guess` drops a flagged guess silently, **except the solution**, or a chat
 could never finish a round whose answer is `Idiot`. A profane Twitch channel name is refused with
@@ -436,7 +478,7 @@ bewegt, und dass es das bei `reducedMotion: "reduce"` nicht tut.
 One registry (`SEASONAL_EVENTS`) holds every limited-time skin with its UTC window, its class on
 `<html>` and **its own opt-out key** (a player who switched one event off has not switched off the
 next; the WM key `kontexto_event_theme` is cleared by `clearRetiredEventStorage`). `EVENT_THEME_SCRIPT`
-sets the class in `<head>` before first paint and **skips `/admin` and `/live/overlay`**. The QA
+sets the class in `<head>` before first paint and **skips `/admin`**. The QA
 override `kontexto_event_theme_force` takes `off`, an event id or `on`; **`e2e/fixtures.ts` sets
 `off` by default** (`disableSeasonalEvents`, inside `prepareContext`), because the gate is the
 date and a run in October would otherwise test another site. The pattern is **CSS-gated
@@ -471,7 +513,7 @@ which lives in `PLAIN` next to the catalogue so on and off are decided in one pl
 (`refusalText`). Where: the result card of Kontexto and every solo mode, the guess refusals
 (duplicate, unknown, too common), the Wördle toasts (win per row, loss, too short, not in the
 list, hard mode) and the thank-you after the word rating. Where deliberately not: duel, koop,
-arena, Wördle duel and the live overlay (a line a whole room or a stream reads is no longer a
+arena, Wördle duel and the live room (a line a whole room or a stream reads is no longer a
 wink), and system errors (connection, a failed tip), which stay plain. Three rules, held by
 `lib/quips.test.ts`: cheeky but never insulting (school classes play this), **a refusal still
 carries its fact** (each kind is pinned to a pattern), and the house typography. Lines are picked
@@ -545,7 +587,7 @@ zero, not `animation: none`, so `forwards` animations jump to their end state), 
 
 ## Env vars
 
-- Backend: `KONTEXTO_SERVER_SECRET` (required in prod), `KONTEXTO_DATA_DIR` (default `data`), `KONTEXTO_DEV`, `KONTEXTO_FORCE_GAME`, `KONTEXTO_WEBAUTHN_RP_ID` / `KONTEXTO_WEBAUTHN_ORIGIN`, `KONTEXTO_ADMIN_ENROLL_TOKEN`, `KONTEXTO_TRUSTED_PROXY_HOPS`, `KONTEXTO_WS_MODE`, `KONTEXTO_EULER_API_KEY` (TikTok chat), `KONTEXTO_TIKTOK_MAX_ROOMS`, `KONTEXTO_EULER_BUDGET`, `KONTEXTO_LIVE_OFFLINE` (dev/e2e: no chat sockets), `KONTEXTO_MATCHMAKING_GRACE_CAP` (dev/e2e only: caps every matchmaking grace period in seconds, ignored with a warning unless `KONTEXTO_DEV` is set; `playwright.config.ts` sets 1). See `.env.example`.
+- Backend: `KONTEXTO_SERVER_SECRET` (required in prod), `KONTEXTO_DATA_DIR` (default `data`), `KONTEXTO_DEV`, `KONTEXTO_FORCE_GAME`, `KONTEXTO_WEBAUTHN_RP_ID` / `KONTEXTO_WEBAUTHN_ORIGIN`, `KONTEXTO_ADMIN_ENROLL_TOKEN`, `KONTEXTO_TRUSTED_PROXY_HOPS`, `KONTEXTO_WS_MODE`, `KONTEXTO_EULER_API_KEY` (TikTok chat), `KONTEXTO_TIKTOK_MAX_ROOMS`, `KONTEXTO_EULER_BUDGET`, `KONTEXTO_TWITCH_CLIENT_ID` / `KONTEXTO_TWITCH_CLIENT_SECRET` (Twitch badge pictures), `KONTEXTO_LIVE_OFFLINE` (dev/e2e: no chat sockets), `KONTEXTO_MATCHMAKING_GRACE_CAP` (dev/e2e only: caps every matchmaking grace period in seconds, ignored with a warning unless `KONTEXTO_DEV` is set; `playwright.config.ts` sets 1). See `.env.example`.
 - Frontend (inlined at build time): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AD_SLOT_*` (AdSense slots; unset slots render nothing), and `NEXT_PUBLIC_ADSENSE_REVIEW_MODE` (defaults to true and blocks all manual ad slots until explicitly set to `false`). See `frontend/.env.development` and `frontend/lib/adsense.ts`.
 
 ### Adcash was tried and removed (2026-09-23 to 2026-09-25)

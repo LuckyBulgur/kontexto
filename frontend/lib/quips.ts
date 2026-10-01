@@ -17,7 +17,7 @@
  *    teased. Only what the player did gets a line, never what the server did.
  *
  * Applied in Kontexto, the solo modes and solo Wordle. Deliberately not in
- * duel, koop, arena, Wordle duel or the live overlay: a line read by a whole
+ * duel, koop, arena, Wordle duel or the live room: a line read by a whole
  * room or a stream audience is no longer a wink between the game and one
  * player.
  */

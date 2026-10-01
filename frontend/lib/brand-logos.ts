@@ -1,6 +1,6 @@
 /**
  * The platform logos under public/brands/, one place for every view that
- * names a platform (the creator spot, the stream-chat room and its overlay).
+ * names a platform (the creator spot, the mode picker and the stream-chat room).
  * Instagram has a light variant as well, which only the creator spot shows.
  */
 export type BrandPlatform = "tiktok" | "youtube" | "twitch" | "instagram";

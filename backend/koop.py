@@ -12,6 +12,7 @@ import string
 import aiosqlite
 
 from categories import decode_filter, encode_filter
+from live_chat import parse_badge_tag
 from nicknames import sanitize_nickname
 from rooms import RoomRevealRefused
 
@@ -143,7 +144,7 @@ async def get_koop_state(db: aiosqlite.Connection, koop_id: str) -> dict | None:
 async def get_koop_guesses(db: aiosqlite.Connection, koop_id: str) -> list[dict]:
     """The shared, de-duplicated guess list, oldest first."""
     cursor = await db.execute(
-        "SELECT nickname, word, rank, is_tip, guessed_at FROM koop_guesses "
+        "SELECT nickname, word, rank, is_tip, guessed_at, source, badges FROM koop_guesses "
         "WHERE koop_id = ? ORDER BY id",
         (koop_id,),
     )
@@ -154,6 +155,11 @@ async def get_koop_guesses(db: aiosqlite.Connection, koop_id: str) -> list[dict]
             "rank": row["rank"],
             "is_tip": bool(row["is_tip"]),
             "guessed_at": row["guessed_at"],
+            "source": row["source"],
+            "badges": [
+                {"set_id": badge.set_id, "version": badge.version}
+                for badge in parse_badge_tag(row["badges"])
+            ],
         }
         for row in await cursor.fetchall()
     ]
@@ -168,6 +174,7 @@ async def _record_shared(
     is_tip: bool,
     display_name: str | None = None,
     source: str | None = None,
+    badges: str | None = None,
 ) -> dict | None:
     """Insert a word into the shared list (idempotent on word) and roll up team state.
 
@@ -181,7 +188,8 @@ async def _record_shared(
     own nickname is used, which is what every other caller wants.
 
     ``source`` names the chat a live room's guess came from (``twitch``,
-    ``tiktok``) and stays None for a person at a keyboard.
+    ``tiktok``) and stays None for a person at a keyboard; ``badges`` is the
+    author's chat badges in the column form of ``live_chat.encode_badges``.
     """
     cursor = await db.execute(
         "SELECT id, nickname FROM koop_players "
@@ -197,9 +205,9 @@ async def _record_shared(
     # Idempotent on (koop_id, word): a duplicate word from any member is ignored.
     cursor = await db.execute(
         "INSERT OR IGNORE INTO koop_guesses "
-        "(koop_id, player_token, nickname, word, rank, is_tip, source) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (koop_id, player_token, shown_name, word, rank, int(is_tip), source),
+        "(koop_id, player_token, nickname, word, rank, is_tip, source, badges) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (koop_id, player_token, shown_name, word, rank, int(is_tip), source, badges),
     )
     is_new = cursor.rowcount == 1
 
@@ -256,10 +264,11 @@ async def record_koop_guess(
     rank: int,
     display_name: str | None = None,
     source: str | None = None,
+    badges: str | None = None,
 ) -> dict | None:
     return await _record_shared(
         db, koop_id, player_token, word, rank, is_tip=False,
-        display_name=display_name, source=source,
+        display_name=display_name, source=source, badges=badges,
     )
 
 
@@ -437,11 +446,12 @@ async def cleanup_stale_koops(db: aiosqlite.Connection) -> int:
     for koop_id in stale_ids:
         await db.execute("DELETE FROM koop_guesses WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koop_players WHERE koop_id = ?", (koop_id,))
-        # Live chat mode hangs three more child tables off a koop room. Deleted by
+        # Live chat mode hangs more child tables off a koop room. Deleted by
         # hand like the others, because this routine does not rely on the foreign
         # keys: an older database file may predate a table's REFERENCES clause.
         await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_viewers WHERE koop_id = ?", (koop_id,))
+        await db.execute("DELETE FROM live_events WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_channels WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
         await db.execute("DELETE FROM koops WHERE id = ?", (koop_id,))

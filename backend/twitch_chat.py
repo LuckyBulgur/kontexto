@@ -12,8 +12,14 @@ redirect and no write path that could ever post as anybody:
 ``websockets`` comes in through ``uvicorn[standard]``, so nothing is added to
 requirements.txt for this.
 
+The anonymous login sees everything a chat shows: the ``badges`` tag on every
+line, the ``bits`` tag on a cheer, and the USERNOTICE lines for subscriptions,
+gifted subscriptions and sub bombs. Only a hype train or a channel points
+redemption would need the streamer's own OAuth token, and neither is money a
+viewer spends in the chat.
+
 This module is only the reader: one connection to one channel, turning IRC lines
-into ``live_chat.ChatMessage``. Which rooms get a reader, and what a message does
+into ``live_chat.ChatMessage`` and ``live_chat.PaidEvent``. Which rooms get a reader, and what a message does
 to a room, is ``live_ingest.py``, which runs in the single WS worker.
 """
 
@@ -54,16 +60,21 @@ class TwitchChatReader:
 
     ``on_message`` is awaited for every chat line; ``on_state`` is awaited when
     the connection comes up or gives up, so the host's status line has something
-    truthful to show.
+    truthful to show; ``on_event`` is awaited for every paid event and
+    ``on_room`` once per join with the broadcaster id, which the badge pictures
+    are looked up by.
     """
 
     def __init__(self, channel: str, connect=None) -> None:
         self.channel = channel
+        self._folder = live_chat.GiftBombFolder()
         # Injected in tests, so the rules can be exercised against recorded IRC
         # lines without opening a socket.
         self._connect = connect or (lambda: websockets.connect(IRC_URL, ping_interval=None))
 
-    async def _session(self, socket, on_message) -> None:
+    async def _session(self, socket, on_message, on_event=None, on_room=None) -> None:
+        on_event = on_event or _ignore
+        on_room = on_room or _ignore
         await socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands")
         await socket.send(f"NICK justinfan{random.randint(10000, 99999)}")  # nosec B311
         await socket.send(f"JOIN #{self.channel}")
@@ -84,6 +95,14 @@ class TwitchChatReader:
                     if fatal:
                         raise FatalChatError(fatal)
                     continue
+                if " ROOMSTATE " in line:
+                    room_id = live_chat.parse_roomstate(line)
+                    if room_id is not None:
+                        await on_room(room_id)
+                    continue
+                event = live_chat.parse_twitch_event(line, self._folder)
+                if event is not None:
+                    await on_event(event)
                 message = live_chat.parse_irc_line(line)
                 if message is not None:
                     await on_message(message)
@@ -96,15 +115,17 @@ class TwitchChatReader:
         msg_id = live_chat.parse_tags(raw_tags).get("msg-id", "")
         return _FATAL_NOTICES.get(msg_id)
 
-    async def run(self, on_message, on_state) -> None:
+    async def run(self, on_message, on_state, on_event=None, on_room=None) -> None:
         """Stay connected until cancelled, or until the channel is hopeless."""
+        on_event = on_event or _ignore
+        on_room = on_room or _ignore
         backoff = _BACKOFF_START
         while True:
             try:
                 async with self._connect() as socket:
                     await on_state("live", None)
                     backoff = _BACKOFF_START
-                    await self._session(socket, on_message)
+                    await self._session(socket, on_message, on_event, on_room)
             except asyncio.CancelledError:
                 raise
             except FatalChatError as fatal:
@@ -115,3 +136,7 @@ class TwitchChatReader:
                 await on_state("connecting", None)
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, _BACKOFF_MAX)
+
+
+async def _ignore(_value) -> None:
+    """The default for a caller that only wants chat lines."""

@@ -52,11 +52,23 @@ export interface KoopGuessEntry {
   rank: number;
   is_tip: boolean;
   guessed_at: string;
+  /** Live rooms only: the chat a word came from and its author's badges. */
+  source?: string | null;
+  badges?: { set_id: string; version: string }[];
 }
 
 export type KoopWsMessage =
   | { type: "state"; players: KoopPlayer[]; best_rank: number | null; solved: boolean }
-  | { type: "guess_added"; nickname: string; word: string; rank: number; is_tip: boolean }
+  | {
+      type: "guess_added";
+      nickname: string;
+      word: string;
+      rank: number;
+      is_tip: boolean;
+      /** Live rooms only, see KoopGuessEntry. */
+      source?: string | null;
+      badges?: { set_id: string; version: string }[];
+    }
   | { type: "koop_solved"; nickname: string | null; word: string | null }
   | { type: "koop_gave_up"; word: string | null }
   | { type: "next_round"; round: number }

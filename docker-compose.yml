@@ -47,6 +47,10 @@ services:
       - KONTEXTO_EULER_API_KEY=${KONTEXTO_EULER_API_KEY:-}
       - KONTEXTO_TIKTOK_MAX_ROOMS=${KONTEXTO_TIKTOK_MAX_ROOMS:-20}
       - KONTEXTO_EULER_BUDGET=${KONTEXTO_EULER_BUDGET:-}
+      # Twitch app credentials for the badge pictures on /live/. Empty leaves
+      # the host page drawing its own icons; the chat itself needs neither.
+      - KONTEXTO_TWITCH_CLIENT_ID=${KONTEXTO_TWITCH_CLIENT_ID:-}
+      - KONTEXTO_TWITCH_CLIENT_SECRET=${KONTEXTO_TWITCH_CLIENT_SECRET:-}
     restart: unless-stopped
 
 volumes:

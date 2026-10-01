@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
+import ChatIdentity from "@/components/live/ChatIdentity";
 import HostMessageBanner from "@/components/live/HostMessageBanner";
+import LiveCelebration from "@/components/live/LiveCelebration";
 import LiveCreateClient from "@/components/live/LiveCreateClient";
 import LiveStatus from "@/components/live/LiveStatus";
 import RoomLanding from "@/components/RoomLanding";
-import { copyTextToClipboard } from "@/lib/clipboard";
 import { needsAckRetry } from "@/lib/host-messages";
+import { freshEvents, mergeFeed } from "@/lib/live-events";
 import {
   addLiveChannel,
   fetchLivePlatforms,
@@ -19,9 +21,27 @@ import {
   removeLiveChannel,
   setLiveChannelPaused,
 } from "@/lib/live-api";
-import { showsPlatformMarks } from "@/lib/live-channel";
 import { STOP_HINT } from "@/lib/live-copy";
-import { LivePlatform, LiveRoom, PLATFORM_NAMES } from "@/lib/live-types";
+import {
+  LIVE_PLATFORMS,
+  type LiveEvent,
+  type LivePlatform,
+  type LiveRoom,
+  PLATFORM_NAMES,
+} from "@/lib/live-types";
+import type { Guess } from "@/lib/types";
+
+const EMPTY_BOARDS = { busy: [], sharp: [], finders: [] };
+
+/** "3 Wörter", "1 Wort, 1 gefunden": one line per viewer on the result card. */
+function viewerSummary(hits: number, solves: number): string {
+  const words = `${hits} ${hits === 1 ? "Wort" : "Wörter"}`;
+  return solves > 0 ? `${words}, ${solves} gefunden` : words;
+}
+
+function asPlatform(source: string | null | undefined): LivePlatform | null {
+  return LIVE_PLATFORMS.find((platform) => platform === source) ?? null;
+}
 
 /** What the add form says when the server refuses a second chat. */
 function addRefusal(error: unknown, platform: LivePlatform): string {
@@ -54,7 +74,7 @@ function addRefusal(error: unknown, platform: LivePlatform): string {
 function getRoomIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
   const segments = window.location.pathname.split("/").filter(Boolean);
-  if (segments.length >= 2 && segments[0] === "live" && segments[1] !== "overlay") {
+  if (segments.length >= 2 && segments[0] === "live") {
     return segments[1];
   }
   return null;
@@ -83,6 +103,12 @@ export default function LivePageClient() {
   // The highest operator note this page has put on screen. Confirmations are
   // cumulative, so one number is enough to resend a lost one.
   const shownUpTo = useRef(0);
+  // The newest paid event this page holds. 0 until the first poll answers;
+  // that first answer fills the feed and plays no banner, because a host who
+  // reopens the page should not get the last hour played back.
+  const eventCursor = useRef(0);
+  const [feed, setFeed] = useState<LiveEvent[]>([]);
+  const [celebrate, setCelebrate] = useState<LiveEvent[]>([]);
 
   useEffect(() => {
     const id = getRoomIdFromPath();
@@ -105,10 +131,20 @@ export default function LivePageClient() {
     let timer: ReturnType<typeof setInterval> | undefined;
     const load = async () => {
       try {
-        const next = await getLiveRoom(roomId, token);
+        const first = eventCursor.current === 0;
+        const next = await getLiveRoom(roomId, token, Math.max(0, eventCursor.current));
         if (cancelled) return;
         setRoom(next);
         setStale(false);
+        const incoming = freshEvents(next.events ?? [], eventCursor.current);
+        if (incoming.length > 0) {
+          eventCursor.current = incoming[incoming.length - 1].id;
+          setFeed((current) => mergeFeed(current, incoming));
+          if (!first) setCelebrate(incoming);
+        } else if (first) {
+          // Nothing yet: from here on every event is new and celebrated.
+          eventCursor.current = -1;
+        }
         if (needsAckRetry(next.messages, shownUpTo.current)) {
           markHostMessagesSeen(roomId, token, shownUpTo.current).catch(() => {
             // Sent again after the next poll; the banner will not repeat it.
@@ -233,15 +269,45 @@ export default function LivePageClient() {
     [roomId]
   );
 
-  const handleCopyOverlay = useCallback(async () => {
-    if (!room) return;
-    const url = `${window.location.origin}/live/overlay/?token=${encodeURIComponent(
-      room.overlay_token
-    )}`;
-    const ok = await copyTextToClipboard(url);
-    if (ok) toast.success("Link für OBS kopiert");
-    else prompt("Link kopieren:", url);
-  }, [room]);
+  const catalog = room?.badge_catalog ?? {};
+
+  const renderBy = useCallback(
+    (guess: Guess) => {
+      const platform = asPlatform(guess.source);
+      // The host at the keyboard has no chat and no badges: the plain name.
+      if (!platform) return guess.by;
+      return (
+        <ChatIdentity
+          name={guess.by ?? ""}
+          platform={platform}
+          badges={guess.badges}
+          catalog={catalog}
+          size={guess.rank === 1 ? "lg" : "sm"}
+          nameClassName={guess.rank === 1 ? "font-bold text-rank-foreground" : undefined}
+          className="align-middle"
+        />
+      );
+    },
+    [catalog]
+  );
+
+  const renderFinder = useCallback(
+    (solvedBy: string, winning: Guess | undefined) => (
+      <div data-testid="live-finder" className="flex flex-col items-center gap-1 text-center">
+        <span className="text-small text-muted-foreground">{"Gefunden von"}</span>
+        <ChatIdentity
+          name={solvedBy}
+          platform={asPlatform(winning?.source)}
+          badges={winning?.badges}
+          catalog={catalog}
+          size="lg"
+          nameClassName="font-display text-h1 font-bold text-foreground"
+          className="max-w-full justify-center"
+        />
+      </div>
+    ),
+    [catalog]
+  );
 
   if (!checked) return <KoopSkeleton />;
   if (!roomId) return <LiveCreateClient />;
@@ -260,6 +326,7 @@ export default function LivePageClient() {
   return (
     <>
       <HostMessageBanner messages={room?.messages ?? []} onShown={handleMessageShown} />
+      <LiveCelebration events={celebrate} catalog={catalog} />
       <KoopPageClient
         basePath="live"
         label="Stream-Chat"
@@ -267,14 +334,25 @@ export default function LivePageClient() {
         shareable={false}
         createHref="/live/"
         showNames
+        sidebarBelowOnMobile
+        renderBy={renderBy}
+        renderFinder={renderFinder}
         notFoundMessage="Diese Runde gibt es nicht"
         tipsDisabledMessage="Tipps sind in dieser Runde ausgeschaltet"
-        giveUpDescription="Bist du sicher? Das Lösungswort steht danach auf dem Brett und in der Einblendung, also auch im Stream. Danach kannst du eine nächste Runde starten."
+        giveUpDescription="Bist du sicher? Das Lösungswort steht danach auf dem Brett, also auch im Stream. Danach kannst du eine nächste Runde starten."
         resultLabel="Stream-Chat"
         resultGroupNoun="aus dem Chat"
-        resultRows={(room?.top ?? []).map((viewer) => ({
+        resultRows={(room?.boards?.busy ?? room?.top ?? []).map((viewer) => ({
           name: viewer.nickname,
-          detail: `${viewer.hits} Treffer`,
+          detail: viewerSummary(viewer.hits, viewer.solves),
+          label: (
+            <ChatIdentity
+              name={viewer.nickname}
+              platform={viewer.platform}
+              badges={viewer.badges}
+              catalog={catalog}
+            />
+          ),
         }))}
         sidebar={
           room ? (
@@ -288,13 +366,9 @@ export default function LivePageClient() {
                     : null
               }
               requirePrefix={room.require_prefix}
-              top={room.top}
-              marks={showsPlatformMarks([
-                ...room.channels.map((c) => c.platform),
-                ...room.top.map((v) => v.platform),
-              ])}
-              overlayUrl={room.overlay_token}
-              onCopyOverlay={handleCopyOverlay}
+              boards={room.boards ?? EMPTY_BOARDS}
+              feed={feed}
+              catalog={catalog}
               addable={available.filter(
                 (platform) => !room.channels.some((c) => c.platform === platform)
               )}

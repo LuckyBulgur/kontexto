@@ -14,8 +14,13 @@ true.
 
 A reader is platform specific and knows nothing about rooms: ``twitch_chat.py``
 reads IRC, ``tiktok_chat.py`` reads the Euler Stream socket. Both expose the same
-``run(on_message, on_state)`` and hand over ``live_chat.ChatMessage``, so what
-happens to a message is decided once, here, for every platform.
+``run(on_message, on_state, on_event)`` and hand over ``live_chat.ChatMessage``
+and ``live_chat.PaidEvent``, so what happens to a line or to paid support is
+decided once, here, for every platform. Paid support is stored and shown on the
+host page; it never touches the round.
+
+The Twitch reader also reports the broadcaster id it joined, and the ingest
+keeps the badge pictures of that channel fresh (``twitch_badges.BadgeCatalog``).
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ import os
 import time
 
 import live_chat
+import twitch_badges
 from database import get_db
 from koop import get_koop_state, record_koop_guess
 from tiktok_chat import TikTokChatReader
@@ -54,15 +60,32 @@ READERS = {
 }
 
 
+# How often stored paid events older than a day are dropped.
+PRUNE_SECONDS = 600.0
+
+
 def default_reader_factory(platform: str, channel: str):
     return READERS[platform](channel)
+
+
+def _helix_client() -> twitch_badges.HelixClient | None:
+    creds = twitch_badges.credentials()
+    if creds is None:
+        logger.info("twitch badges: no app credentials, the host page draws its own icons")
+        return None
+    return twitch_badges.HelixClient(creds)
 
 
 class LiveChatIngest:
     """Supervises one reader per bound room and applies what they read."""
 
     def __init__(
-        self, db_path: str, resolve_guess, reader_factory=None, clock=time.monotonic
+        self,
+        db_path: str,
+        resolve_guess,
+        reader_factory=None,
+        clock=time.monotonic,
+        badges: twitch_badges.BadgeCatalog | None = None,
     ) -> None:
         self._db_path = db_path
         # Injected from main.py: the word-to-rank path a room guess takes. Passed
@@ -88,6 +111,16 @@ class LiveChatIngest:
         # right now needs a few seconds to be seen again.
         self._started = clock()
         self._clock = clock
+        # Twitch's badge pictures. Disabled (no fetch at all) without the app
+        # credentials, and always disabled offline.
+        self._badges = badges or twitch_badges.BadgeCatalog(
+            db_path, None if OFFLINE else _helix_client()
+        )
+        # When the stored events were last pruned.
+        self._pruned_at = -float("inf")
+        # Fire-and-forget work (badge fetches), held so the event loop's weak
+        # reference to a running task cannot let it be collected mid-flight.
+        self._background: set[asyncio.Task] = set()
 
     # --- applying one message ---
 
@@ -136,9 +169,10 @@ class LiveChatIngest:
                 return
 
             nickname = live_chat.viewer_nickname(message.display_name)
+            badges = live_chat.encode_badges(message.badges)
             recorded = await record_koop_guess(
                 db, koop_id, room["chat_token"], result["word"], result["rank"],
-                display_name=nickname, source=platform,
+                display_name=nickname, source=platform, badges=badges,
             )
             if recorded is None or recorded["already_guessed"]:
                 return
@@ -156,6 +190,8 @@ class LiveChatIngest:
                         "rank": result["rank"],
                         "is_tip": False,
                         "player_token": room["chat_token"],
+                        "source": platform,
+                        "badges": badges,
                     },
                 )
 
@@ -163,9 +199,10 @@ class LiveChatIngest:
             # separate commits per chat message is five write locks, and this
             # path runs up to twenty times a second per room.
             channel = binding["channel"]
+            solved_now = result["rank"] == 1 and recorded["solved"]
             is_new_viewer = await live_chat.record_viewer(
                 db, koop_id, platform, message.external_id, nickname,
-                result["rank"], commit=False,
+                result["rank"], commit=False, badges=badges, solved=solved_now,
             )
             await live_chat.record_stream_event(
                 db, platform, channel, "guesses", rank=result["rank"], commit=False,
@@ -174,7 +211,7 @@ class LiveChatIngest:
                 await live_chat.record_stream_event(
                     db, platform, channel, "viewers", commit=False,
                 )
-            if result["rank"] == 1 and recorded["solved"]:
+            if solved_now:
                 await live_chat.record_stream_event(
                     db, platform, channel, "solves", commit=False,
                 )
@@ -183,6 +220,43 @@ class LiveChatIngest:
             await db.close()
 
         await analytics_guess(self._db_path, result["word"], result["rank"], recorded["solved"])
+
+    async def handle_event(self, koop_id: str, platform: str, event) -> bool:
+        """Store one paid event for the host page. True when it was new.
+
+        Not gated by pause, the throttle or the round's state: a gift during a
+        break or after the solve is still a gift, and the streamer still wants
+        to thank for it. The actor's name passes the nickname rule, as every
+        name out of a chat does, because it lands on a page that is on stream.
+        """
+        room = self._rooms.get(koop_id)
+        if room is None:
+            return False
+        binding = next((c for c in room["channels"] if c["platform"] == platform), None)
+        if binding is None:
+            return False
+        actor = (
+            event.actor_name
+            if event.actor_name == live_chat.ANONYMOUS_NAME
+            else live_chat.viewer_nickname(event.actor_name)
+        )
+        db = await get_db(self._db_path)
+        try:
+            stored = await live_chat.record_paid_event(
+                db, koop_id, binding["channel"], event, actor
+            )
+        finally:
+            await db.close()
+        return stored is not None
+
+    async def handle_room_id(self, channel: str, broadcaster_id: str) -> None:
+        """A Twitch reader joined and learned the channel's broadcaster id."""
+        db = await get_db(self._db_path)
+        try:
+            await twitch_badges.remember_channel(db, channel, broadcaster_id)
+        finally:
+            await db.close()
+        self._spawn(self._badges.ensure(broadcaster_id))
 
     async def _end_by_streamer(self, koop_id: str, platform: str, channel: str) -> None:
         """Unbind a room because its streamer wrote stop in their own chat.
@@ -214,6 +288,11 @@ class LiveChatIngest:
         finally:
             await db.close()
 
+    def _spawn(self, coroutine) -> None:
+        task = asyncio.create_task(coroutine)
+        self._background.add(task)
+        task.add_done_callback(self._background.discard)
+
     # --- supervising ---
 
     def _start(self, koop_id: str, binding: dict) -> None:
@@ -234,7 +313,27 @@ class LiveChatIngest:
         async def on_state(state, error):
             await self._set_state(koop_id, platform, state, error)
 
-        self._tasks[key] = asyncio.create_task(reader.run(on_message, on_state))
+        async def on_event(event):
+            try:
+                await self.handle_event(koop_id, platform, event)
+            except Exception:  # noqa: BLE001 - a lost event must not drop the chat
+                logger.warning("could not store a paid event for %s/%s", koop_id, platform,
+                               exc_info=True)
+
+        if platform == "twitch":
+            channel = binding["channel"]
+
+            async def on_room(broadcaster_id):
+                try:
+                    await self.handle_room_id(channel, broadcaster_id)
+                except Exception:  # noqa: BLE001 - pictures are decoration
+                    logger.warning("could not note the broadcaster id of %s", channel,
+                                   exc_info=True)
+
+            run = reader.run(on_message, on_state, on_event, on_room)
+        else:
+            run = reader.run(on_message, on_state, on_event)
+        self._tasks[key] = asyncio.create_task(run)
 
     def _cancel(self, key: tuple[str, str]) -> None:
         """Drop one reader task. The chat's own state is not touched here."""
@@ -254,8 +353,13 @@ class LiveChatIngest:
         self._gate.forget_room(koop_id)
 
     async def reconcile(self) -> None:
+        if self._badges.enabled:
+            self._spawn(self._badges.ensure())
         db = await get_db(self._db_path)
         try:
+            if self._clock() - self._pruned_at >= PRUNE_SECONDS:
+                self._pruned_at = self._clock()
+                await live_chat.prune_events(db)
             if self._clock() - self._started >= live_chat.HOST_ABSENT_SECONDS:
                 for gone in await live_chat.unbind_absent_rooms(db):
                     logger.info(
@@ -327,6 +431,8 @@ class LiveChatIngest:
         """Cancel every reader. The rooms stay in the table and come back."""
         for key in list(self._tasks):
             self._cancel(key)
+        for task in list(self._background):
+            task.cancel()
         self._offline.clear()
         self._reading.clear()
 

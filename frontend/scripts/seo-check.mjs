@@ -360,9 +360,6 @@ const functionalPages = [
   ["duel/create/index.html", "/duel/create/"],
   ["koop/create/index.html", "/koop/create/"],
   ["wordle/duel/create/index.html", "/wordle/duel/create/"],
-  // Die OBS-Einblendung ist keine Seite zum Lesen: sie traegt ein Raum-Token in
-  // der Query und zeigt genau ein Brett.
-  ["live/overlay/index.html", "/live/overlay/"],
 ];
 for (const [file, path] of functionalPages) {
   const html = await read(file);

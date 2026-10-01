@@ -1,9 +1,8 @@
 """Tests for the live chat HTTP surface.
 
-Four endpoints, and the one that matters most is the overlay: it sits on a public
-stream, so it is held to the same boundary as every other room response. The
-game number is the answer, and it does not leave the server while the round is
-open (see rooms.py).
+The host page's poll is held to the same boundary as every other room response:
+the game number is the answer, and it does not leave the server while the round
+is open (see rooms.py). The host page is on stream, so that matters here.
 """
 
 import json
@@ -134,8 +133,8 @@ class TestCreate:
         assert body["chat_state"] == "connecting"
         assert body["require_prefix"] is False
         assert body["player_token"]
-        assert body["overlay_token"]
-        assert body["player_token"] != body["overlay_token"]
+        # The OBS overlay is gone, and its token with it.
+        assert "overlay_token" not in body
         # The number is the answer and does not ride along.
         assert "game_number" not in body
 
@@ -227,48 +226,12 @@ class TestRead:
         assert res.status_code == 404
 
 
-class TestOverlay:
-    def test_the_overlay_shows_the_board_without_the_answer(self, client):
+class TestOverlayRemoved:
+    def test_the_overlay_endpoint_is_gone(self, client):
         created = _create(client).json()
-        client.post(f"/api/koop/{created['koop_id']}/guess", json={
-            "word": "kirsche", "player_token": created["player_token"],
-        })
-
-        res = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        )
-        assert res.status_code == 200
-        body = res.json()
-        assert body["round"] == 1
-        assert body["channels"] == [{"platform": "twitch", "channel": "kontexto"}]
-        assert body["solved"] is False
-        assert body["recent"][0]["word"] == "kirsche"
-        assert body["total"] > 0
-        assert "game_number" not in body
-        assert "word" not in body
-
-    def test_the_overlay_needs_its_own_token(self, client):
-        created = _create(client).json()
-        # Neither the room id nor the host's token opens it.
-        assert client.get(
-            "/api/live/overlay/state", params={"token": created["koop_id"]}
-        ).status_code == 404
-        assert client.get(
-            "/api/live/overlay/state", params={"token": created["player_token"]}
-        ).status_code == 404
-
-    def test_a_solved_round_names_the_solver(self, client):
-        created = _create(client).json()
-        client.post(f"/api/koop/{created['koop_id']}/guess", json={
-            "word": "apfel", "player_token": created["player_token"],
-        })
-        body = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        ).json()
-        assert body["solved"] is True
-        assert body["solved_by"] == "kontexto"
-        # Still no number: the reveal endpoint hands that out, token-checked.
-        assert "game_number" not in body
+        res = client.get("/api/live/overlay/state", params={"token": created["koop_id"]})
+        # "overlay" now reads as a room id like any other, and there is none.
+        assert res.status_code in (404, 422)
 
 
 class TestStop:
@@ -381,12 +344,6 @@ class TestHostMessages:
             (message_id, "Danke für den Stream!")
         ]
 
-        overlay = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        ).json()
-        assert "messages" not in overlay
-        assert "Danke" not in str(overlay)
-
         admin = client.get("/api/admin/live-streams", headers=self._admin()).json()
         [entry] = admin["streams"][0]["messages"]
         assert entry["seen_at"] is None
@@ -464,7 +421,7 @@ class TestHostMessages:
 
 
 class TestAdminEnd:
-    """The operator ends a stream round: chat and overlay stop, the board stays."""
+    """The operator ends a stream round: the chat stops, the board stays."""
 
     def _admin(self):
         import auth
@@ -491,15 +448,11 @@ class TestAdminEnd:
         res = client.post(f"/api/admin/live-streams/{kid}/end", headers=self._admin())
         assert res.status_code == 200 and res.json()["stopped"] is True
 
-        # Gone from the dashboard, from the host's chat panel and from the overlay.
+        # Gone from the dashboard and from the host's chat panel.
         admin = client.get("/api/admin/live-streams", headers=self._admin()).json()
         assert admin["streams"] == []
         host = client.get(f"/api/live/{kid}", params={"token": created["player_token"]})
         assert host.status_code == 404
-        overlay = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        )
-        assert overlay.status_code == 404
 
         # The koop room survives, so the streamer can still reveal the word.
         assert client.get(f"/api/koop/{kid}").status_code == 200
@@ -548,12 +501,6 @@ class TestHostPresenceApi:
         res = client.get(f"/api/live/{kid}", params={"token": created["player_token"]})
         assert res.status_code == 200
         assert asyncio.run(age_and_read(False)) > old
-
-        # The overlay is not the host page and keeps nothing alive.
-        old = asyncio.run(age_and_read(True))
-        main_module._host_touched.clear()
-        client.get("/api/live/overlay/state", params={"token": created["overlay_token"]})
-        assert asyncio.run(age_and_read(False)) == old
 
 
 def _both(client, twitch="kontexto", tiktok="kontexto.de", **extra):
@@ -672,12 +619,6 @@ class TestTwoChats:
         assert {c["platform"]: c["paused"] for c in res.json()["channels"]} == {
             "twitch": False, "tiktok": True,
         }
-        # The overlay does not say so.
-        overlay = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        ).json()
-        assert all(set(c) == {"platform", "channel"} for c in overlay["channels"])
-
         res = client.post(f"/api/live/{kid}/channels/pause", json={
             "player_token": token, "platform": "tiktok", "paused": False,
         })
@@ -691,7 +632,7 @@ class TestTwoChats:
             ("channels/remove", {"platform": "twitch"}),
             ("channels/pause", {"platform": "twitch", "paused": True}),
         ):
-            for token in ("fremd", created["overlay_token"]):
+            for token in ("fremd", created["koop_id"]):
                 res = client.post(f"/api/live/{kid}/{path}", json={"player_token": token, **extra})
                 assert res.status_code == 404, path
                 assert res.json()["error"] == "room_not_found"
@@ -721,13 +662,12 @@ class TestTwoChats:
             if platform:
                 data["platform"] = platform
             assert client.post(f"/api/live/{kid}/debug-message", json=data).status_code == 200
-        overlay = client.get(
-            "/api/live/overlay/state", params={"token": created["overlay_token"]}
-        ).json()
-        assert [(g["word"], g["platform"]) for g in overlay["recent"]] == [
-            ("birne", "twitch"), ("kirsche", "tiktok"),
+        guesses = client.get(f"/api/koop/{kid}/guesses").json()["guesses"]
+        assert [(g["word"], g["source"]) for g in guesses] == [
+            ("kirsche", "tiktok"), ("birne", "twitch"),
         ]
-        assert {v["platform"] for v in overlay["top"]} == {"twitch", "tiktok"}
+        host = client.get(f"/api/live/{kid}", params={"token": created["player_token"]}).json()
+        assert {v["platform"] for v in host["top"]} == {"twitch", "tiktok"}
 
     def test_the_admin_sees_every_chat(self, client):
         import auth
@@ -741,3 +681,45 @@ class TestTwoChats:
         assert [(c["platform"], c["paused"]) for c in stream["channels"]] == [
             ("twitch", False), ("tiktok", False),
         ]
+
+
+class TestHostPoll:
+    def test_events_and_boards_ride_on_the_poll(self, client, monkeypatch):
+        import live_ingest
+        import main as main_module
+
+        monkeypatch.setenv("KONTEXTO_DEV", "1")
+        monkeypatch.setattr(live_ingest, "OFFLINE", True)
+        monkeypatch.setattr(
+            live_ingest, "_ingest",
+            live_ingest.LiveChatIngest(main_module._db_path, main_module._resolve_room_guess),
+        )
+        created = client.post("/api/live", json={"platform": "twitch", "channel": "kontexto"}).json()
+        kid, token = created["koop_id"], created["player_token"]
+
+        res = client.post(f"/api/live/{kid}/debug-event", json={
+            "kind": "gift_bomb", "event_id": "b1", "display_name": "Mara", "amount": 5,
+            "badges": "subscriber/12",
+        })
+        assert res.json() == {"stored": True}
+        assert client.post(f"/api/live/{kid}/debug-event", json={
+            "kind": "nonsense", "event_id": "b2", "display_name": "Mara",
+        }).status_code == 422
+
+        body = client.get(f"/api/live/{kid}", params={"token": token}).json()
+        [event] = body["events"]
+        assert (event["kind"], event["amount"], event["actor"]) == ("gift_bomb", 5, "Mara")
+        assert event["badges"] == [{"set_id": "subscriber", "version": "12"}]
+        assert set(body["boards"]) == {"busy", "sharp", "finders"}
+        assert "game_number" not in body
+
+        again = client.get(f"/api/live/{kid}", params={"token": token,
+                                                        "events_after": event["id"]}).json()
+        assert again["events"] == []
+
+    def test_the_event_seam_is_closed_in_production(self, client, monkeypatch):
+        monkeypatch.delenv("KONTEXTO_DEV", raising=False)
+        res = client.post("/api/live/abc/debug-event", json={
+            "kind": "cheer", "event_id": "c1", "display_name": "Mara",
+        })
+        assert res.status_code == 404

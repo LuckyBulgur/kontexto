@@ -23,9 +23,8 @@ import type { AdminLiveStream, AdminLiveStreams } from "@/lib/types";
  * stream changes by the second. The poll pauses while the tab is hidden: a
  * dashboard left open overnight should not keep reading the database.
  *
- * A note lands on the streamer's host page only, never on the OBS overlay
- * (see components/live/HostMessageBanner.tsx), so it is safe to write
- * something meant for them alone.
+ * A note lands on the streamer's host page only, as a banner over their board
+ * (see components/live/HostMessageBanner.tsx).
  */
 
 const POLL_MS = 5000;
@@ -240,7 +239,7 @@ function StreamCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>{`Runde von ${streamName(stream)} beenden?`}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {"Der Chat rät danach nicht mehr mit, und die Einblendung im Stream wird leer. Das Brett auf der Seite des Streamers bleibt stehen, dort lässt sich das Wort noch auflösen. Der Kanal kann sofort eine neue Runde starten."}
+                  {"Der Chat rät danach nicht mehr mit. Das Brett auf der Seite des Streamers bleibt stehen, dort lässt sich das Wort noch auflösen. Der Kanal kann sofort eine neue Runde starten."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

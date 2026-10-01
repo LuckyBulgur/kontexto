@@ -24,8 +24,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/solo/kategorien/", freq: "weekly", prio: 0.5 },
     // /duel/create/, /koop/create/, /wordle/duel/create/, /arena/create/ and
     // /suche/ are intentionally omitted: thin functional forms marked noindex.
-    // /live/overlay/ too, for a stronger reason: it is an OBS browser source
-    // that carries a room token in its query, not a page anybody reads.
     { path: "/faq/", freq: "monthly", prio: 0.7 },
     { path: "/anleitung/", freq: "monthly", prio: 0.8 },
     { path: "/strategie/", freq: "monthly", prio: 0.8 },

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Radio, MessagesSquare, MonitorPlay, ShieldCheck } from "lucide-react";
+import { Radio, MessagesSquare, HandCoins, ShieldCheck } from "lucide-react";
 import {
   SeoSection,
   SeoHeading,
@@ -28,8 +28,9 @@ export default function LiveSeo() {
       <p className="max-w-prose">
         {`Dein Chat rät mit, ohne Konto, ohne Link und ohne dass jemand die Seite öffnen muss. Du
         wählst Twitch oder TikTok und trägst deinen Kanalnamen ein, der Server liest den Chat mit, und jede Nachricht aus einem
-        einzigen Wort landet als Versuch auf einer gemeinsamen Rateliste. Für OBS gibt es eine
-        eigene Einblendung mit den letzten Treffern.`}{" "}
+        einzigen Wort landet als Versuch auf einer gemeinsamen Rateliste. Neben jedem Namen
+        stehen die Plattform und die Abzeichen aus dem Chat, und Bits, Abos und TikTok-Geschenke
+        werden auf dem Brett gefeiert.`}{" "}
         <Link
           href="/modi/"
           className="font-medium text-primary underline underline-offset-2 hover:no-underline"
@@ -49,9 +50,10 @@ export default function LiveSeo() {
           {`Der Server liest nur mit, so wie jeder Zuschauer, bei TikTok über den Dienst Euler
           Stream. Er schreibt nichts in deinen Chat und braucht keine Rechte an deinem Kanal.`}
         </FeatureCard>
-        <FeatureCard icon={MonitorPlay} title="Einblendung für OBS">
-          {`Eine eigene Seite mit transparentem Hintergrund zeigt die letzten Wörter, ihre Ränge
-          und wer gelöst hat. Als Browserquelle einfügen, fertig.`}
+        <FeatureCard icon={HandCoins} title="Unterstützung wird gefeiert">
+          {`Bits, Abos, verschenkte Abos und TikTok-Geschenke erscheinen mit Namen über dem Brett
+          und in einer eigenen Liste. Am Spiel ändern sie nichts: kein gekaufter Tipp, kein
+          Vorteil, nur Applaus.`}
         </FeatureCard>
         <FeatureCard icon={ShieldCheck} title="Gegen Spam gebaut">
           {`Jeder Zuschauer rät höchstens alle zwei Sekunden, und ein Raum nimmt nicht mehr an,
@@ -65,9 +67,9 @@ export default function LiveSeo() {
           {`Plattform wählen, dann der Kanalname oder die ganze URL. Ein zufälliges Spiel ist voreingestellt,
           damit du das heutige Rätsel nicht vor laufender Kamera verrätst.`}
         </Step>
-        <Step index={2} title="Einblendung einbinden">
-          {`Den Link kopieren und in OBS als Browserquelle einfügen. Der Hintergrund bleibt
-          transparent, du siehst nur die Liste.`}
+        <Step index={2} title="Brett in den Stream holen">
+          {`Die Seite mit dem Brett zeigst du in deinem Stream wie jedes andere Spiel. Dort
+          stehen die Rateliste, die Bestenliste und alles, was der Chat dir schenkt.`}
         </Step>
         <Step index={3} title="Raten lassen">
           {`Sag deinem Chat Bescheid. Ein Wort pro Nachricht zählt. Wenn es zu voll wird, schaltest
@@ -78,10 +80,11 @@ export default function LiveSeo() {
       <SeoHeading>{"Wenn der Chat das Wort findet"}</SeoHeading>
       <p className="max-w-prose">
         {`Sobald jemand Rang 1 trifft, ist die Runde für alle vorbei, und der Name aus dem Chat
-        steht neben dem Wort. Die nächste Runde startest du selbst, damit der Stream nicht
+        steht groß über dem Wort. Die nächste Runde startest du selbst, damit der Stream nicht
         weiterläuft, während du gerade etwas erklärst. Dabei wechselt nur das gesuchte Wort: die
-        Rangliste im Chat zählt über den ganzen Abend weiter, damit am Ende sichtbar ist, wer die
-        meisten Treffer beigesteuert hat.`}
+        Bestenliste zählt über den ganzen Abend weiter, in drei Ansichten. Fleißig zeigt, wer am
+        meisten rät, Treffsicher, wer am häufigsten nah dran ist, und Wortfinder, wer die meisten
+        Wörter gefunden hat.`}
       </p>
       <p className="max-w-prose">
         {`Die Runde läuft weiter, solange dein Chat rät, auch wenn du den Tab zwischendurch

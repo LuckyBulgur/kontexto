@@ -32,7 +32,7 @@ import os
 import random
 import time
 from collections import deque
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import websockets
 from websockets.exceptions import ConnectionClosed, InvalidStatus
@@ -204,6 +204,196 @@ def _display_name(nickname: str, unique_id: str) -> str:
     return base[:MAX_TYPED_NICKNAME].strip()
 
 
+# The provider decodes TikTok's protobuf into JSON, and TikTok's schema has
+# renamed fields between versions (userId/id, giftDetails/gift, giftName/name,
+# giftImage/image, url/urlList). Every read below accepts both spellings, so a
+# schema bump on the provider's side costs nothing, and a shape that matches
+# neither is one ignored event, never an exception.
+
+
+def _field(data: object, *names: str) -> object:
+    if not isinstance(data, dict):
+        return None
+    for name in names:
+        if name in data and data[name] is not None:
+            return data[name]
+    return None
+
+
+def _as_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _as_str(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    return ""
+
+
+def _truthy(value: object) -> bool:
+    """A proto boolean, which some encoders write as 0/1."""
+    if isinstance(value, bool):
+        return value
+    return _as_int(value) not in (None, 0)
+
+
+def _user(user: object) -> tuple[str, str, str] | None:
+    """External id, display name and lowercased handle of a TikTok user."""
+    if not isinstance(user, dict):
+        return None
+    # userId is a 64-bit number and arrives as a string; the handle can change,
+    # the id cannot, and the cooldown and the leaderboard are keyed on it.
+    user_id = _as_str(_field(user, "userId", "id"))
+    unique_id = _as_str(_field(user, "uniqueId", "displayId"))
+    nickname = _as_str(user.get("nickname"))
+    external_id = user_id if user_id not in ("", "0") else unique_id
+    if not external_id:
+        return None
+    display_name = _display_name(nickname, unique_id)
+    if not display_name:
+        return None
+    return f"tt:{external_id}", display_name, unique_id.strip().lower()
+
+
+def _fan_level(user: dict) -> int | None:
+    club = _field(_field(user, "fansClub"), "data")
+    level = _as_int(_field(club, "level"))
+    if level is None:
+        level = _as_int(_field(_field(user, "fansClubInfo"), "fansLevel"))
+    return level if level and 0 < level <= 99 else None
+
+
+def tiktok_badges(data: dict) -> tuple[live_chat.ChatBadge, ...]:
+    """A TikTok author's roles as badge codes of our own.
+
+    TikTok sends its badge pictures as signed, expiring CDN links, which do not
+    survive in a column, so the roles are mapped to codes the host page draws
+    with its own icons: host, moderator, subscriber, fan club with its level,
+    and gift giver ("has sent this streamer a gift before").
+    """
+    user = data.get("user") if isinstance(data.get("user"), dict) else {}
+    identity = _field(data, "userIdentity") or _field(user, "userIdentity") or {}
+    badges: list[live_chat.ChatBadge] = []
+
+    def add(set_id: str, version: str = "1") -> None:
+        badge = live_chat.badge_from_parts(set_id, version)
+        if badge is not None and badge not in badges:
+            badges.append(badge)
+
+    if _truthy(_field(identity, "isAnchor")):
+        add("tt-host")
+    if _truthy(_field(identity, "isModeratorOfAnchor")):
+        add("tt-moderator")
+    if _truthy(_field(identity, "isSubscriberOfAnchor")) or _truthy(
+        _field(user, "isSubscribedToAnchor")
+    ):
+        add("tt-subscriber")
+    level = _fan_level(user)
+    if level is not None:
+        add("tt-fan", str(level))
+    if _truthy(_field(identity, "isGiftGiverOfAnchor")):
+        add("tt-supporter")
+    return tuple(badges[: live_chat.MAX_BADGES])
+
+
+def _message_id(data: dict) -> str:
+    return _as_str(_field(_field(data, "common"), "msgId"))
+
+
+# Hosts a gift picture may come from. TikTok serves them from its own CDN; a
+# URL anywhere else is not drawn, because the host page would load it.
+_GIFT_IMAGE_HOSTS = ("tiktokcdn.com", "tiktokcdn-us.com", "tiktokcdn-eu.com", "ibyteimg.com")
+
+
+def _gift_image(gift: object) -> str | None:
+    image = _field(gift, "giftImage", "image", "icon")
+    urls = _field(image, "url", "urlList", "url_list")
+    if not isinstance(urls, list):
+        return None
+    for url in urls:
+        if not isinstance(url, str) or len(url) > 1000:
+            continue
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+        if parts.scheme == "https" and any(
+            host == allowed or host.endswith(f".{allowed}") for allowed in _GIFT_IMAGE_HOSTS
+        ):
+            return url
+    return None
+
+
+def _gift_event(data: dict) -> live_chat.PaidEvent | None:
+    """A finished gift, or None while a streak is still running.
+
+    A streakable gift (type 1) sends one frame per tap with a growing
+    ``repeatCount`` and ``repeatEnd`` set on the last; only that one is the
+    gift. Any other gift is complete in its single frame.
+    """
+    gift = _field(data, "giftDetails", "gift")
+    streakable = _as_int(_field(gift, "giftType", "type")) == 1
+    if streakable and not _truthy(data.get("repeatEnd")):
+        return None
+    actor = _user(data.get("user"))
+    diamonds = _as_int(_field(gift, "diamondCount"))
+    count = _as_int(data.get("repeatCount")) or 1
+    if actor is None or not diamonds or count < 1:
+        return None
+    name = _as_str(_field(gift, "giftName", "name")).strip()[:40] or None
+    return live_chat.make_event(
+        platform="tiktok", event_id=_message_id(data), kind="tiktok_gift",
+        actor_external_id=actor[0], actor_name=actor[1],
+        amount=diamonds * count, gift_name=name, gift_count=count,
+        gift_image=_gift_image(gift), badges=tiktok_badges(data),
+    )
+
+
+def _sub_event(data: dict) -> live_chat.PaidEvent | None:
+    # messageType SUB_SUCCESS (0) is a subscription; the other values are
+    # reminders and goal notices about subscriptions, not one.
+    message_type = data.get("messageType")
+    if message_type not in (None, 0, "0", "SUB_SUCCESS"):
+        return None
+    actor = _user(data.get("user"))
+    if actor is None:
+        return None
+    return live_chat.make_event(
+        platform="tiktok", event_id=_message_id(data), kind="tiktok_sub",
+        actor_external_id=actor[0], actor_name=actor[1],
+        months=_as_int(data.get("subMonth")) or 1, badges=tiktok_badges(data),
+    )
+
+
+def _chest_event(data: dict) -> live_chat.PaidEvent | None:
+    info = _field(data, "envelopeInfo")
+    envelope_id = _as_str(_field(info, "envelopeId"))
+    sender = _as_str(_field(info, "sendUserId"))
+    name = _as_str(_field(info, "sendUserName"))
+    diamonds = _as_int(_field(info, "diamondCount"))
+    if not envelope_id or not diamonds:
+        return None
+    return live_chat.make_event(
+        platform="tiktok", event_id=f"chest-{envelope_id}"[:64], kind="tiktok_chest",
+        actor_external_id=f"tt:{sender}" if sender else "anonymous",
+        actor_name=_display_name(name, "") or live_chat.ANONYMOUS_NAME,
+        amount=diamonds,
+    )
+
+
+_EVENT_PARSERS = {
+    "WebcastGiftMessage": _gift_event,
+    "WebcastSubNotifyMessage": _sub_event,
+    "WebcastEnvelopeMessage": _chest_event,
+}
+
+
 def _chat_message(event: object) -> live_chat.ChatMessage | None:
     if not isinstance(event, dict) or event.get("type") != "WebcastChatMessage":
         return None
@@ -211,36 +401,28 @@ def _chat_message(event: object) -> live_chat.ChatMessage | None:
     if not isinstance(data, dict):
         return None
     comment = data.get("comment")
-    user = data.get("user")
-    if not isinstance(comment, str) or not isinstance(user, dict):
+    if not isinstance(comment, str):
         return None
-
-    # userId is a 64-bit number and arrives as a string; the handle can change,
-    # the id cannot, and the cooldown and the leaderboard are keyed on it.
-    user_id = user.get("userId")
-    unique_id = user.get("uniqueId")
-    nickname = user.get("nickname")
-    unique_id = unique_id if isinstance(unique_id, str) else ""
-    nickname = nickname if isinstance(nickname, str) else ""
-    user_id = str(user_id) if isinstance(user_id, (str, int)) else ""
-    external_id = user_id if user_id not in ("", "0") else unique_id
-    if not external_id:
-        return None
-    display_name = _display_name(nickname, unique_id)
-    if not display_name:
+    actor = _user(data.get("user"))
+    if actor is None:
         return None
     return live_chat.ChatMessage(
-        external_id=f"tt:{external_id}", display_name=display_name, text=comment,
-        login=unique_id.strip().lower(),
+        external_id=actor[0], display_name=actor[1], text=comment, login=actor[2],
+        badges=tiktok_badges(data),
     )
 
 
-def parse_euler_frame(raw: str | bytes) -> list[live_chat.ChatMessage]:
-    """The chat lines in one provider frame. Anything else is ignored.
+def _paid_event(event: object) -> live_chat.PaidEvent | None:
+    if not isinstance(event, dict):
+        return None
+    parser = _EVENT_PARSERS.get(event.get("type"))
+    data = event.get("data")
+    if parser is None or not isinstance(data, dict):
+        return None
+    return parser(data)
 
-    Never raises: a frame the reader does not understand is one lost line, while
-    an exception here would drop the connection and re-bill a connect.
-    """
+
+def _frame_events(raw: str | bytes) -> list:
     try:
         frame = json.loads(raw)
     except (ValueError, TypeError):
@@ -250,9 +432,26 @@ def parse_euler_frame(raw: str | bytes) -> list[live_chat.ChatMessage]:
     # Bundled frames are the provider's default; a single event is accepted too,
     # so a change of that default does not silently empty the board.
     events = frame.get("messages") if "messages" in frame else [frame]
-    if not isinstance(events, list):
-        return []
-    return [msg for msg in (_chat_message(event) for event in events) if msg is not None]
+    return events if isinstance(events, list) else []
+
+
+def parse_euler_frame(raw: str | bytes) -> list[live_chat.ChatMessage]:
+    """The chat lines in one provider frame. Anything else is ignored.
+
+    Never raises: a frame the reader does not understand is one lost line, while
+    an exception here would drop the connection and re-bill a connect.
+    """
+    return [m for m in (_chat_message(e) for e in _frame_events(raw)) if m is not None]
+
+
+def parse_euler_frame_full(
+    raw: str | bytes,
+) -> tuple[list[live_chat.ChatMessage], list[live_chat.PaidEvent]]:
+    """Chat lines and paid events of one frame, in one decode."""
+    events = _frame_events(raw)
+    messages = [m for m in (_chat_message(e) for e in events) if m is not None]
+    paid = [p for p in (_paid_event(e) for e in events) if p is not None]
+    return messages, paid
 
 
 # --- Reader -------------------------------------------------------------------
@@ -284,7 +483,9 @@ class TikTokChatReader:
             logger=_SOCKET_LOGGER,
         )
 
-    async def _session(self, socket, on_message, on_state) -> tuple[int | None, bool]:
+    async def _session(
+        self, socket, on_message, on_state, on_event
+    ) -> tuple[int | None, bool]:
         """Read until the socket closes. Returns the close code and whether
         anything arrived.
 
@@ -298,15 +499,19 @@ class TikTokChatReader:
                 if not received:
                     received = True
                     await on_state("live", None)
-                for message in parse_euler_frame(raw):
+                messages, events = parse_euler_frame_full(raw)
+                for message in messages:
                     await on_message(message)
+                for event in events:
+                    await on_event(event)
         except ConnectionClosed as closed:
             code = closed.rcvd.code if closed.rcvd is not None else None
             return code, received
         return getattr(socket, "close_code", None), received
 
-    async def run(self, on_message, on_state) -> None:
+    async def run(self, on_message, on_state, on_event=None) -> None:
         """Stay connected until cancelled, or until the room is hopeless."""
+        on_event = on_event or _ignore_event
         backoff = _BACKOFF_START
         wait = _WAIT_START
         while True:
@@ -316,7 +521,9 @@ class TikTokChatReader:
                 await self._sleep(slot_wait)
             try:
                 async with self._connect() as socket:
-                    code, received = await self._session(socket, on_message, on_state)
+                    code, received = await self._session(
+                        socket, on_message, on_state, on_event
+                    )
             except asyncio.CancelledError:
                 raise
             except _NotConfigured:
@@ -361,6 +568,10 @@ class TikTokChatReader:
             # A little jitter, so rooms that lost the provider at the same moment
             # do not all come back in the same second.
             await self._sleep(delay * random.uniform(0.9, 1.1))  # nosec B311
+
+
+async def _ignore_event(_event) -> None:
+    """The default for a caller that only wants chat lines."""
 
 
 class _NotConfigured(Exception):

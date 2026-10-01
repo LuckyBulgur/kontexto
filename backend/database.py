@@ -106,9 +106,13 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
     rank INTEGER NOT NULL,
     is_tip BOOLEAN NOT NULL DEFAULT 0,
     -- Where a guess came from: NULL for a person at a keyboard, the platform
-    -- name ('twitch', 'tiktok') for a line out of a live room's chat. Read by
-    -- the stream overlay, which marks names by platform once two chats play.
+    -- name ('twitch', 'tiktok') for a line out of a live room's chat. The host
+    -- page puts the platform logo next to every chat name.
     source TEXT,
+    -- The chat badges the author carried when the line was read, as
+    -- `set/version` pairs joined by commas (`moderator/1,subscriber/12`). NULL
+    -- for a person at a keyboard. See live_chat.encode_badges.
+    badges TEXT,
     guessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(koop_id, word)
 );
@@ -133,6 +137,9 @@ CREATE TABLE IF NOT EXISTS live_rooms (
     -- sends, so a guess written with the host's token would reach every socket
     -- except the host's, which is the only one there is.
     chat_token TEXT NOT NULL DEFAULT '',
+    -- Retired with the OBS overlay (2026-10-01). Still written with a random
+    -- value because the column is NOT NULL UNIQUE, which SQLite cannot drop.
+    -- Nothing reads it.
     overlay_token TEXT NOT NULL UNIQUE,
     require_prefix BOOLEAN NOT NULL DEFAULT 0,
     -- The last time the host page asked for this room, raised at most every
@@ -168,8 +175,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_live_channels_channel
     ON live_channels(platform, channel);
 
 -- A short note from the operator to the streamer ("thanks for the stream"),
--- delivered through the host's own poll and shown only on the host page, never
--- on the OBS overlay, which is what the audience sees. seen_at is set by the
+-- delivered through the host's own poll and shown only on the host page.
+-- seen_at is set by the
 -- host page once the note is on screen, so a lost poll response cannot swallow
 -- it. The rows go with the binding (stop) or with the koop room (cleanup).
 CREATE TABLE IF NOT EXISTS live_host_messages (
@@ -205,6 +212,14 @@ CREATE TABLE IF NOT EXISTS live_stream_stats (
     -- new one appears. A number, never a list.
     viewers INTEGER NOT NULL DEFAULT 0,
     best_rank INTEGER,
+    -- Paid support, all time, raised once per event (live_events decides
+    -- "once"). Bits are Twitch Bits, subs counts own subscriptions and
+    -- resubscriptions, gift_subs the subscriptions bought for others, and
+    -- tiktok_diamonds the diamond value of every finished gift streak.
+    bits INTEGER NOT NULL DEFAULT 0,
+    subs INTEGER NOT NULL DEFAULT 0,
+    gift_subs INTEGER NOT NULL DEFAULT 0,
+    tiktok_diamonds INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (platform, channel)
 );
 
@@ -217,7 +232,75 @@ CREATE TABLE IF NOT EXISTS live_viewers (
     nickname TEXT NOT NULL,
     hits INTEGER NOT NULL DEFAULT 0,
     best_rank INTEGER,
+    -- Accepted guesses in the near band (rank <= live_chat.NEAR_RANK) and
+    -- rounds this viewer solved: the "Treffsicher" and "Wortfinder" boards.
+    near_hits INTEGER NOT NULL DEFAULT 0,
+    solves INTEGER NOT NULL DEFAULT 0,
+    -- The badges seen on this viewer's latest counted line, encoded like
+    -- koop_guesses.badges.
+    badges TEXT,
     PRIMARY KEY (koop_id, platform, external_id)
+);
+
+-- Paid support read out of a live room's chats (Bits, subscriptions, gifted
+-- subscriptions, TikTok gifts), shown on the host page and nowhere else. It is
+-- celebrated, never played: nothing here changes a rank, a tip or a cooldown.
+--
+-- event_id is the platform's own message id (the IRC `id` tag, TikTok's
+-- `common.msgId`), so a duplicate frame or a replay after a reconnect is an
+-- INSERT OR IGNORE that changes nothing, and the per-channel totals in
+-- live_stream_stats are raised only when the insert actually inserted. The
+-- actor is the display name after the nickname rule; no free text of the event
+-- (a resub message, a gift comment) is kept. Rows go with the binding and are
+-- pruned after a day.
+CREATE TABLE IF NOT EXISTS live_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    koop_id TEXT NOT NULL REFERENCES koops(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    -- live_chat.EVENT_KINDS
+    kind TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    badges TEXT,
+    -- Bits for a cheer, subscriptions for a gift or a bomb, diamonds for a
+    -- TikTok gift, 1 for an own subscription.
+    amount INTEGER NOT NULL DEFAULT 1,
+    -- Twitch sub plan: 'prime', '1000', '2000', '3000'. NULL elsewhere.
+    tier TEXT,
+    months INTEGER,
+    -- TikTok only: the gift's name, how many were sent, and its picture.
+    gift_name TEXT,
+    gift_count INTEGER,
+    gift_image TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (koop_id, platform, event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_events_room ON live_events(koop_id, id);
+
+-- Twitch's own badge pictures, fetched from Helix by the WS worker
+-- (twitch_badges.py) and resolved server side, so a browser never talks to
+-- Twitch's API. scope is 'global' or a broadcaster id, whose channel badges
+-- (the streamer's own subscriber and bits badges) win over the global ones.
+CREATE TABLE IF NOT EXISTS twitch_badges (
+    scope TEXT NOT NULL,
+    set_id TEXT NOT NULL,
+    version TEXT NOT NULL,
+    title TEXT NOT NULL,
+    image_1x TEXT NOT NULL,
+    image_2x TEXT NOT NULL,
+    image_4x TEXT NOT NULL,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (scope, set_id, version)
+);
+
+-- Which Twitch broadcaster id a bound channel has, read from the ROOMSTATE
+-- line the reader receives on join. The host page's poll needs it to pick the
+-- channel's own badges, and it runs on an API worker that never sees IRC.
+CREATE TABLE IF NOT EXISTS twitch_channel_ids (
+    channel TEXT PRIMARY KEY,
+    broadcaster_id TEXT NOT NULL,
+    seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Arenas: the three timed multiplayer modes (Battle Royale, Blitz-Duell,
@@ -702,6 +785,21 @@ async def init_db(db_path: str) -> None:
             await db.execute("ALTER TABLE koop_guesses ADD COLUMN source TEXT")
         except Exception:
             pass  # column already exists
+        # Migration live badges and paid support (2026-10-01).
+        for table, column in (
+            ("koop_guesses", "badges TEXT"),
+            ("live_viewers", "badges TEXT"),
+            ("live_viewers", "near_hits INTEGER NOT NULL DEFAULT 0"),
+            ("live_viewers", "solves INTEGER NOT NULL DEFAULT 0"),
+            ("live_stream_stats", "bits INTEGER NOT NULL DEFAULT 0"),
+            ("live_stream_stats", "subs INTEGER NOT NULL DEFAULT 0"),
+            ("live_stream_stats", "gift_subs INTEGER NOT NULL DEFAULT 0"),
+            ("live_stream_stats", "tiktok_diamonds INTEGER NOT NULL DEFAULT 0"),
+        ):
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
+            except Exception:
+                pass  # column already exists
         await db.commit()
         await _migrate_live_channels(db)
         # Migration word rating v2: comments name their word, and the ledger keyed

@@ -9,7 +9,7 @@ export const metadata = buildMetadata({
   path: "/live/",
   title: "Kontexto mit dem Twitch- oder TikTok-Chat spielen",
   description:
-    "Lass deinen Twitch- oder TikTok-Chat Kontexto raten: Kanal eintragen, Chat wird mitgelesen, jedes einzelne Wort ist ein Versuch. Mit Einblendung für OBS, kostenlos und ohne Anmeldung.",
+    "Lass deinen Twitch- oder TikTok-Chat Kontexto raten: Kanal eintragen, Chat wird mitgelesen, jedes einzelne Wort ist ein Versuch. Bits, Abos und Geschenke werden gefeiert, kostenlos und ohne Anmeldung.",
 });
 
 /**

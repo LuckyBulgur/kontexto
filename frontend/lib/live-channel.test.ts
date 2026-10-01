@@ -4,7 +4,6 @@ import {
   channelLabel,
   normaliseChannel,
   readyChannels,
-  showsPlatformMarks,
 } from "./live-channel";
 
 describe("Twitch channel names", () => {
@@ -65,19 +64,6 @@ describe("TikTok channel names", () => {
     expect(channelLabel("kontexto", "tiktok")).toBe("@kontexto");
     expect(channelAddress("kontexto", "twitch")).toBe("twitch.tv/kontexto");
     expect(channelLabel("kontexto", "twitch")).toBe("kontexto");
-  });
-});
-
-describe("platform marks", () => {
-  it("stay off while one platform plays", () => {
-    expect(showsPlatformMarks([])).toBe(false);
-    expect(showsPlatformMarks(["twitch", "twitch", null, undefined])).toBe(false);
-  });
-
-  it("come on once two platforms are in play, from any source", () => {
-    expect(showsPlatformMarks(["twitch", "tiktok"])).toBe(true);
-    // A room back on one chat still shows mixed rows for a while.
-    expect(showsPlatformMarks(["twitch", null, "tiktok"])).toBe(true);
   });
 });
 

@@ -154,7 +154,7 @@ export const MULTIPLAYER_MODES: Record<MultiplayerModeId, MultiplayerModeMeta> =
       "Du trägst deinen Kanal ein, wir lesen den Chat mit.",
       "Jede Nachricht aus einem einzigen Wort ist ein Versuch.",
       "Alle raten auf einer gemeinsamen Liste, wie im Koop.",
-      "Für OBS gibt es eine eigene Einblendung.",
+      "Bits, Abos und TikTok-Geschenke werden auf dem Brett gefeiert.",
     ],
     createHref: "/live/",
     arena: false,

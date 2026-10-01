@@ -42,8 +42,7 @@ function getKoopIdFromPath(basePath: string): string | null {
   if (
     segments.length >= 2 &&
     segments[0] === basePath &&
-    segments[1] !== "create" &&
-    segments[1] !== "overlay"
+    segments[1] !== "create"
   ) {
     return segments[1];
   }
@@ -60,6 +59,10 @@ export interface KoopPageClientProps {
    *  chat status and its viewer leaderboard there, because a live room has one
    *  player row and a player list of one is not worth the space. */
   sidebar?: ReactNode;
+  /** On a phone, put the sidebar under the board instead of above it. The
+   *  stream chat sets it: its sidebar is long (chats, three boards, the
+   *  support feed), and a streamer on a phone needs the board first. */
+  sidebarBelowOnMobile?: boolean;
   /** Whether to offer the invite link while the room is still alone. A stream
    *  chat needs no invite: the audience is already there. */
   showInvite?: boolean;
@@ -75,10 +78,15 @@ export interface KoopPageClientProps {
    *  and who took part without forking the card. */
   resultLabel?: string;
   resultGroupNoun?: string;
-  resultRows?: { name: string; detail: string }[];
+  resultRows?: { name: string; detail: string; label?: ReactNode }[];
   /** Prints who played each word above its bar. On for the stream chat, where a
    *  viewer seeing their own name next to a good rank is the whole reward. */
   showNames?: boolean;
+  /** Draws a row's author (see GuessList.renderBy). */
+  renderBy?: (guess: Guess) => ReactNode;
+  /** The finder's block on the result card (see KoopResultCard.finder). Gets
+   *  the winning row, so a mode can draw where the finder came from. */
+  renderFinder?: (solvedBy: string, winning: Guess | undefined) => ReactNode;
   /** The sentences that name the room. A stream-chat round is not a koop and
    *  must not call itself one anywhere the host can read it. German needs whole
    *  sentences here rather than a noun to splice in, because the article
@@ -92,6 +100,7 @@ export default function KoopPageClient({
   basePath = "koop",
   label = "Koop",
   sidebar,
+  sidebarBelowOnMobile = false,
   showInvite = true,
   landing,
   createHref = "/koop/create/",
@@ -100,6 +109,8 @@ export default function KoopPageClient({
   resultGroupNoun,
   resultRows,
   showNames,
+  renderBy,
+  renderFinder,
   notFoundMessage = "Koop nicht gefunden",
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
@@ -177,7 +188,7 @@ export default function KoopPageClient({
     if (typeof document === "undefined") return;
     const seg = window.location.pathname.split("/").filter(Boolean);
     const hasId =
-      seg[0] === basePath && seg[1] && seg[1] !== "create" && seg[1] !== "overlay";
+      seg[0] === basePath && seg[1] && seg[1] !== "create";
     if (!hasId) return;
     const m = document.createElement("meta");
     m.name = "robots";
@@ -202,6 +213,8 @@ export default function KoopPageClient({
           rank: g.rank,
           isTip: g.is_tip,
           by: g.nickname,
+          source: g.source ?? null,
+          badges: g.badges ?? [],
         }));
         setGuesses(loaded);
 
@@ -263,10 +276,17 @@ export default function KoopPageClient({
   );
 
   // Append a word to the shared list, de-duplicating by word.
-  const appendGuess = useCallback((word: string, rank: number, isTip: boolean, correctedFrom?: string, by?: string) => {
+  const appendGuess = useCallback((
+    word: string,
+    rank: number,
+    isTip: boolean,
+    correctedFrom?: string,
+    by?: string,
+    origin?: Pick<Guess, "source" | "badges">,
+  ) => {
     setGuesses((prev) => {
       if (prev.some((g) => g.word === word)) return prev;
-      return [...prev, { word, rank, isTip, correctedFrom, by }];
+      return [...prev, { word, rank, isTip, correctedFrom, by, ...origin }];
     });
     setLatestWord(word);
     yieldPodestError();
@@ -311,7 +331,10 @@ export default function KoopPageClient({
       if (msg.type === "state") {
         setPlayers(msg.players);
       } else if (msg.type === "guess_added") {
-        appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname);
+        appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname, {
+          source: msg.source ?? null,
+          badges: msg.badges ?? [],
+        });
         // Reflect the contribution in the player list.
         setPlayers((prev) =>
           prev.map((p) =>
@@ -384,6 +407,8 @@ export default function KoopPageClient({
             rank: g.rank,
             isTip: g.is_tip,
             by: g.nickname,
+            source: g.source ?? null,
+            badges: g.badges ?? [],
           }));
         });
       })
@@ -537,6 +562,13 @@ export default function KoopPageClient({
     return <KoopSkeleton />;
   }
 
+  // Who found the word. The solve frame names them, but it can trail the
+  // winning row by a poll tick, and a board that already shows the result must
+  // not show it without the finder; the winning row carries the same name.
+  const finderName = gaveUp
+    ? null
+    : solvedBy ?? guesses.find((g) => g.rank === 1 && !g.isTip)?.by ?? null;
+
   if (!koopId) {
     return (
       landing ?? (
@@ -586,9 +618,11 @@ export default function KoopPageClient({
       <div className="flex flex-col md:flex-row flex-1 px-4 py-4 gap-4">
         <div className="flex-1 flex flex-col gap-4">
           {/* Mobile sidebar */}
-          <div className="md:hidden">
-            {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
-          </div>
+          {!sidebarBelowOnMobile && (
+            <div className="md:hidden">
+              {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
+            </div>
+          )}
 
           {showInvite && !roundOver && players.length < 2 && (
             <ShareInviteBar
@@ -603,13 +637,18 @@ export default function KoopPageClient({
               gameNumber={roundGame}
               guesses={guesses}
               players={players}
-              solvedBy={solvedBy}
+              solvedBy={finderName}
               currentNickname={nickname ?? ""}
               gaveUp={gaveUp}
               onNextGame={handleNextGame}
               label={resultLabel}
               groupNoun={resultGroupNoun}
               rows={resultRows}
+              finder={
+                renderFinder && finderName
+                  ? renderFinder(finderName, guesses.find((g) => g.rank === 1))
+                  : undefined
+              }
             />
           ) : (
             <>
@@ -633,7 +672,14 @@ export default function KoopPageClient({
             onSuggestion={handleGuess}
             sortMode={sortMode}
             showNames={showNames}
+            renderBy={renderBy}
           />
+
+          {sidebarBelowOnMobile && (
+            <div className="md:hidden">
+              {sidebar ?? <PlayerBar players={players} currentNickname={nickname ?? ""} />}
+            </div>
+          )}
         </div>
 
         {/* Desktop sidebar */}

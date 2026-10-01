@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import { Guess, SortMode } from "@/lib/types";
 import GuessBar from "./GuessBar";
 import GuessSuggestions from "./GuessSuggestions";
@@ -23,9 +24,14 @@ interface GuessListProps {
   /** Prints the name of whoever played each row above its bar. Off by default,
    *  because in every other mode the answer is "you". */
   showNames?: boolean;
+  /** Draws the author of a row instead of the plain name, when names show.
+   *  The stream chat uses it for the platform logo and the chat badges. */
+  renderBy?: (guess: Guess) => ReactNode;
 }
 
-export default function GuessList({ guesses, latestWord, pendingWord, podestError, onSuggestion, sortMode, showNames }: GuessListProps) {
+export default function GuessList({ guesses, latestWord, pendingWord, podestError, onSuggestion, sortMode, showNames, renderBy }: GuessListProps) {
+  const author = (guess: Guess): ReactNode =>
+    !showNames ? undefined : renderBy && guess.by ? renderBy(guess) : guess.by;
   const sorted = sortMode === "rank"
     ? [...guesses].sort((a, b) => a.rank - b.rank)
     : [...guesses];
@@ -51,7 +57,7 @@ export default function GuessList({ guesses, latestWord, pendingWord, podestErro
                 rank={latest.rank}
                 isNew
                 size="lg"
-                by={showNames ? latest.by : undefined}
+                by={author(latest)}
               />
               {latest.correctedFrom && (
                 <p className="mt-1 text-small text-muted-foreground">
@@ -68,7 +74,7 @@ export default function GuessList({ guesses, latestWord, pendingWord, podestErro
           word={guess.word}
           rank={guess.rank}
           isNew={guess.word === latestWord}
-          by={showNames ? guess.by : undefined}
+          by={author(guess)}
         />
       ))}
     </div>

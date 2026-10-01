@@ -43,6 +43,7 @@ from koop import get_player_info as get_koop_player_info
 from koop import reveal_context as reveal_koop_context
 import live_chat
 import tiktok_chat
+import twitch_badges
 from live_ingest import current_ingest as current_live_ingest, run_live_chat
 from arena import (
     ArenaGuessRefused, advance_arena_game, cleanup_stale_arenas, create_arena,
@@ -78,7 +79,7 @@ from models import (
     RoomRevealRequest, RoomRevealResponse,
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveChannelAddRequest, LiveChannelRemoveRequest, LiveChannelPauseRequest,
-    LiveStopRequest, LiveStopResponse, LiveOverlayResponse,
+    LiveStopRequest, LiveStopResponse, LiveDebugEventRequest,
     LiveDebugMessageRequest, LivePlatformsResponse,
     LiveMessagesSeenRequest, LiveMessagesSeenResponse,
     AdminHostMessageRequest, AdminHostMessageResponse, AdminLiveStreamsResponse,
@@ -1352,7 +1353,8 @@ async def koop_websocket(websocket: WebSocket, koop_id: str, token: str = Query(
 # Deliberately four endpoints and not a second set of game endpoints: a live room
 # IS a koop room, so playing, tipping, giving up, the next round and the reveal
 # all go through /api/koop/... with the host's token. What is here is the binding
-# of a room to a channel and the read the OBS overlay polls.
+# of a room to its chats, and the host page's poll, which carries the chat's
+# leaderboards, its paid support and the pictures of its badges.
 
 
 def _resolve_room_guess(game_number: int, word: str) -> dict | None:
@@ -1370,13 +1372,32 @@ def _resolve_room_guess(game_number: int, word: str) -> dict | None:
     return gs.guess(word, game_number)
 
 
+def _decoded_badges(row: dict) -> dict:
+    """A row whose `badges` column is decoded into the response form."""
+    return {
+        **row,
+        "badges": [
+            {"set_id": b.set_id, "version": b.version}
+            for b in live_chat.parse_badge_tag(row.get("badges"))
+        ],
+    }
+
+
 def _live_room_payload(
-    room: dict, top: list[dict], messages: list[dict] | None = None
+    room: dict,
+    boards: dict | None = None,
+    messages: list[dict] | None = None,
+    events: list[dict] | None = None,
+    catalog: dict | None = None,
 ) -> dict:
     channels = room["channels"]
     # A bound room always reads at least one chat (remove_live_channel refuses
     # the last), so there is always an oldest one for the flat fields.
     first = channels[0]
+    boards = {
+        name: [_decoded_badges(viewer) for viewer in rows]
+        for name, rows in (boards or {}).items()
+    }
     return {
         "koop_id": room["koop_id"],
         "channels": channels,
@@ -1385,10 +1406,51 @@ def _live_room_payload(
         "chat_state": first["chat_state"],
         "chat_error": first["chat_error"],
         "require_prefix": room["require_prefix"],
-        "overlay_token": room["overlay_token"],
-        "top": top,
+        "top": boards.get("busy", []),
+        "boards": boards,
         "messages": messages or [],
+        "events": [_decoded_badges(event) for event in events or []],
+        "badge_catalog": catalog or {},
     }
+
+
+async def _room_badge_catalog(db, room: dict) -> dict:
+    """Twitch pictures for every Twitch badge this room has shown.
+
+    Read from the room's own rows rather than from the response being built,
+    because the guess list on the page arrives over the koop socket and
+    carries badges this poll never sees.
+    """
+    twitch = next((c["channel"] for c in room["channels"] if c["platform"] == "twitch"), None)
+    if twitch is None:
+        return {}
+    cursor = await db.execute(
+        "SELECT badges FROM koop_guesses WHERE koop_id = ? AND source = 'twitch' "
+        "AND badges IS NOT NULL "
+        "UNION SELECT badges FROM live_viewers WHERE koop_id = ? AND platform = 'twitch' "
+        "AND badges IS NOT NULL "
+        "UNION SELECT badges FROM live_events WHERE koop_id = ? AND platform = 'twitch' "
+        "AND badges IS NOT NULL",
+        (room["koop_id"], room["koop_id"], room["koop_id"]),
+    )
+    codes = {
+        (badge.set_id, badge.version)
+        for row in await cursor.fetchall()
+        for badge in live_chat.parse_badge_tag(row["badges"])
+    }
+    return await twitch_badges.resolve(db, twitch, codes)
+
+
+async def _host_view(db, room: dict, events_after: int = 0) -> dict:
+    """Everything the host page's poll shows, in one place for every endpoint."""
+    koop_id = room["koop_id"]
+    return _live_room_payload(
+        room,
+        await live_chat.viewer_boards(db, koop_id),
+        await live_chat.pending_host_messages(db, koop_id),
+        await live_chat.events_after(db, koop_id, events_after),
+        await _room_badge_catalog(db, room),
+    )
 
 
 # The name a refusal uses for each platform.
@@ -1514,7 +1576,7 @@ async def create_live_endpoint(req: CreateLiveRequest):
         for platform, channel in channels:
             await live_chat.record_stream_event(db, platform, channel, "sessions")
             await live_chat.record_stream_event(db, platform, channel, "rounds")
-        return {**_live_room_payload(live, []), "player_token": room["player_token"]}
+        return {**_live_room_payload(live), "player_token": room["player_token"]}
     finally:
         await db.close()
 
@@ -1540,7 +1602,13 @@ def _host_touch_due(koop_id: str) -> bool:
 
 
 @app.get("/api/live/{koop_id}", response_model=LiveRoomResponse)
-async def get_live_endpoint(koop_id: str, token: str = Query(...)):
+async def get_live_endpoint(
+    koop_id: str,
+    token: str = Query(...),
+    # The newest paid event the page already has. 0 on a fresh page, which
+    # then gets the latest few for its feed.
+    events_after: int = Query(0, ge=0),
+):
     db = await get_db(_db_path)
     try:
         room = await live_chat.get_live_room(db, koop_id)
@@ -1553,11 +1621,7 @@ async def get_live_endpoint(koop_id: str, token: str = Query(...)):
             )
         if _host_touch_due(koop_id):
             await live_chat.touch_host(db, koop_id)
-        return _live_room_payload(
-            room,
-            await live_chat.top_viewers(db, koop_id),
-            await live_chat.pending_host_messages(db, koop_id),
-        )
+        return await _host_view(db, room, events_after)
     finally:
         await db.close()
 
@@ -1596,11 +1660,11 @@ async def _host_payload(db, koop_id: str):
     room = await live_chat.get_live_room(db, koop_id)
     if room is None:
         return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
-    return _live_room_payload(
-        room,
-        await live_chat.top_viewers(db, koop_id),
-        await live_chat.pending_host_messages(db, koop_id),
-    )
+    # A chat change answers with the room, not with events: the page's own
+    # poll keeps the event cursor, and this answer would reset it.
+    view = await _host_view(db, room)
+    view["events"] = []
+    return view
 
 
 @app.post("/api/live/{koop_id}/channels", response_model=LiveRoomResponse)
@@ -1695,46 +1759,12 @@ async def stop_live_endpoint(koop_id: str, req: LiveStopRequest):
         await db.close()
 
 
-@app.get("/api/live/overlay/state", response_model=LiveOverlayResponse)
-async def live_overlay_endpoint(token: str = Query(...)):
-    """What the OBS browser source polls, once a second.
-
-    Its own token, so the room id alone does not open it, and no game number and
-    no target word, because this view is pointed at an audience.
-    """
-    gs = _get_game_state()
-    db = await get_db(_db_path)
-    try:
-        room = await live_chat.get_live_room_by_overlay(db, token)
-        if room is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
-            )
-        snap = await live_chat.overlay_snapshot(db, room["koop_id"])
-        if snap is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
-            )
-        # The field goes on air only when the host chose to show it. The game
-        # number is read here and goes no further than _round_field.
-        cursor = await db.execute(
-            "SELECT game_number, show_category FROM koops WHERE id = ?", (room["koop_id"],)
-        )
-        koop = await cursor.fetchone()
-        category = _round_field(koop["game_number"], bool(koop["show_category"])) if koop else None
-        return {**snap, "total": gs.display_total(), "category": category}
-    finally:
-        await db.close()
-
-
 @app.post("/api/live/{koop_id}/debug-message")
 async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
     """Feed one chat line into a room without a chat. Development only.
 
     The end-to-end suite has to prove that a message from a viewer reaches the
-    board and the overlay, and it cannot do that by talking to Twitch. This is
+    board, and it cannot do that by talking to Twitch. This is
     the seam. It is closed unless KONTEXTO_DEV is set, so it does not exist in
     production, and it takes the same path a real message takes rather than a
     shortcut into the database.
@@ -1765,6 +1795,7 @@ async def live_debug_message(koop_id: str, req: LiveDebugMessageRequest):
             display_name=req.display_name,
             text=req.text,
             login=req.login.strip().lower(),
+            badges=live_chat.parse_badge_tag(req.badges),
         ),
     )
     return {"delivered": True}
@@ -1775,13 +1806,48 @@ async def live_debug_host_message(koop_id: str, req: AdminHostMessageRequest):
     """Queue an operator note without a passkey session. Development only.
 
     The end-to-end suite cannot sign in with a passkey, and it has to prove that
-    a note reaches the host page and never the overlay. Closed unless
+    a note reaches the host page. Closed unless
     KONTEXTO_DEV is set, and it runs the same normalisation and the same insert
     the admin endpoint runs.
     """
     if not os.environ.get("KONTEXTO_DEV"):
         return JSONResponse(status_code=404, content={"error": "not_found"})
     return await _queue_host_message(koop_id, req.text)
+
+
+@app.post("/api/live/{koop_id}/debug-event")
+async def live_debug_event(koop_id: str, req: LiveDebugEventRequest):
+    """Feed one paid event into a room without a chat. Development only.
+
+    The same path a reader's event takes (``LiveChatIngest.handle_event``), so
+    the nickname rule, the deduplication and the totals are what the suite
+    sees. Closed unless KONTEXTO_DEV is set.
+    """
+    if not os.environ.get("KONTEXTO_DEV"):
+        return JSONResponse(status_code=404, content={"error": "not_found"})
+    ingest = current_live_ingest()
+    if ingest is None:
+        return JSONResponse(status_code=503, content={"error": "ingest_not_running"})
+    await ingest.reconcile()
+    platform = req.platform
+    if platform is None:
+        db = await get_db(_db_path)
+        try:
+            room = await live_chat.get_live_room(db, koop_id)
+        finally:
+            await db.close()
+        platform = room["channels"][0]["platform"] if room and room["channels"] else "twitch"
+    event = live_chat.make_event(
+        platform=platform, event_id=req.event_id, kind=req.kind,
+        actor_external_id=req.external_id, actor_name=req.display_name,
+        amount=req.amount, tier=req.tier, months=req.months,
+        gift_name=req.gift_name, gift_count=req.gift_count,
+        badges=live_chat.parse_badge_tag(req.badges),
+    )
+    if event is None:
+        return JSONResponse(status_code=422, content={"error": "bad_event"})
+    stored = await ingest.handle_event(koop_id, platform, event)
+    return {"stored": stored}
 
 
 async def _queue_host_message(koop_id: str, raw: str):

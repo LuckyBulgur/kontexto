@@ -141,7 +141,7 @@ describe("QA override", () => {
 });
 
 describe("excluded paths", () => {
-  it.each(["/admin", "/admin/", "/admin/stats/", "/live/overlay/"])("%s never carries a skin", (path) => {
+  it.each(["/admin", "/admin/", "/admin/stats/"])("%s never carries a skin", (path) => {
     setPath(path);
     storage.setItem(EVENT_FORCE_KEY, "on");
     expect(isExcludedPath(path)).toBe(true);

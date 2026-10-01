@@ -332,12 +332,22 @@ class KoopGuessResponse(BaseModel):
     corrected_from: str | None = None
 
 
+class LiveBadge(BaseModel):
+    """One chat badge as the platform names it (``moderator``, ``1``)."""
+
+    set_id: str
+    version: str
+
+
 class KoopGuessEntry(BaseModel):
     nickname: str
     word: str
     rank: int
     is_tip: bool
     guessed_at: str
+    # Live rooms only: the chat a guess came from and its author's badges.
+    source: str | None = None
+    badges: list[LiveBadge] = []
 
 
 class KoopGuessesResponse(BaseModel):
@@ -428,7 +438,43 @@ class LiveViewer(BaseModel):
     platform: str
     nickname: str
     hits: int
+    near_hits: int = 0
+    solves: int = 0
     best_rank: int | None
+    badges: list[LiveBadge] = []
+
+
+class LiveViewerBoards(BaseModel):
+    """The three leaderboards, counted over the whole stream."""
+
+    busy: list[LiveViewer] = []
+    sharp: list[LiveViewer] = []
+    finders: list[LiveViewer] = []
+
+
+class LiveEvent(BaseModel):
+    """Paid support read out of a chat. Celebrated on the host page, never played."""
+
+    id: int
+    platform: str
+    kind: str
+    actor: str
+    badges: list[LiveBadge] = []
+    amount: int
+    tier: str | None = None
+    months: int | None = None
+    gift_name: str | None = None
+    gift_count: int | None = None
+    gift_image: str | None = None
+    created_at: str | None = None
+
+
+class LiveBadgePicture(BaseModel):
+    """Twitch's own picture for one badge code, resolved server side."""
+
+    title: str
+    image: str
+    image_2x: str
 
 
 class LiveChannelState(BaseModel):
@@ -439,13 +485,6 @@ class LiveChannelState(BaseModel):
     chat_state: str
     chat_error: str | None = None
     paused: bool = False
-
-
-class LiveChannelPublic(BaseModel):
-    """One chat of a room as the overlay sees it: no state, no pause."""
-
-    platform: str
-    channel: str
 
 
 class LiveHostMessage(BaseModel):
@@ -469,11 +508,17 @@ class LiveRoomResponse(BaseModel):
     chat_state: str
     chat_error: str | None = None
     require_prefix: bool
-    overlay_token: str
+    # The "busy" board once more, flat, for host pages loaded before there
+    # were three.
     top: list[LiveViewer] = []
-    # Unseen notes, oldest first. Host only: the overlay model has no such
-    # field, because the overlay is what the audience sees.
+    boards: LiveViewerBoards = LiveViewerBoards()
+    # Unseen operator notes, oldest first.
     messages: list[LiveHostMessage] = []
+    # Paid support newer than the poll's `events_after`, oldest first.
+    events: list[LiveEvent] = []
+    # Twitch pictures for every badge code this room has shown, keyed
+    # `set/version`. Codes without a picture are absent; the page draws its own.
+    badge_catalog: dict[str, LiveBadgePicture] = {}
 
 
 class CreateLiveResponse(LiveRoomResponse):
@@ -492,37 +537,6 @@ class LiveStopRequest(BaseModel):
 
 class LiveStopResponse(BaseModel):
     stopped: bool
-
-
-class LiveOverlayGuess(BaseModel):
-    nickname: str
-    word: str
-    rank: int
-    is_tip: bool
-    # The chat it came from; None for the host at the keyboard.
-    platform: str | None = None
-
-
-class LiveOverlayResponse(BaseModel):
-    """The OBS overlay's whole world.
-
-    Deliberately without `game_number` and without the target word: this view is
-    on a public stream, and the number is the answer (see rooms.py).
-    """
-
-    round: int
-    best_rank: int | None
-    total: int
-    solved: bool
-    solved_by: str | None
-    gave_up: bool
-    # live as soon as one chat is read (live_chat.aggregate_chat_state).
-    chat_state: str
-    channels: list[LiveChannelPublic]
-    recent: list[LiveOverlayGuess]
-    top: list[LiveViewer]
-    # The round's field, when the host chose to show it on stream.
-    category: CategoryInfo | None = None
 
 
 class LiveMessagesSeenRequest(BaseModel):
@@ -604,6 +618,26 @@ class LiveDebugMessageRequest(BaseModel):
     # The author's platform login. Set it to the bound channel to speak as the
     # streamer, which is what the stop command needs.
     login: str = Field("", max_length=64)
+    # The author's badges in the IRC form, `moderator/1,subscriber/12`.
+    badges: str = Field("", max_length=200)
+
+
+class LiveDebugEventRequest(BaseModel):
+    """One faked paid event, for the end-to-end suite. See main.py."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str = Field(..., min_length=1, max_length=20)
+    event_id: str = Field(..., min_length=1, max_length=64)
+    display_name: str = Field(..., min_length=1, max_length=64)
+    external_id: str = Field("debug", min_length=1, max_length=64)
+    amount: int = Field(1, ge=1, le=10_000_000)
+    tier: str | None = Field(None, max_length=10)
+    months: int | None = Field(None, ge=1, le=1200)
+    gift_name: str | None = Field(None, max_length=40)
+    gift_count: int | None = Field(None, ge=1)
+    platform: LivePlatformName | None = None
+    badges: str = Field("", max_length=200)
 
 
 # --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---

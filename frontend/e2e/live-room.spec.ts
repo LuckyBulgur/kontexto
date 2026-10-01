@@ -4,7 +4,8 @@ import { test, expect } from "./fixtures";
 
 /**
  * The stream-chat mode end to end: open a room from the form, let a viewer
- * "type" a word, and see it on the host's board and on the OBS overlay.
+ * "type" a word, and see it on the host's board with the viewer's platform and
+ * badges; let a viewer pay, and see it celebrated.
  *
  * The chat is faked through the dev-only /api/live/<id>/debug-message endpoint,
  * which hands the message to the same ingest a real Twitch or TikTok line would
@@ -23,7 +24,8 @@ async function sendChatMessage(
   viewer: string,
   text: string,
   platform?: "twitch" | "tiktok",
-  login?: string
+  login?: string,
+  badges?: string
 ): Promise<void> {
   const res = await page.request.post(`/api/live/${roomId}/debug-message`, {
     data: {
@@ -32,14 +34,28 @@ async function sendChatMessage(
       text,
       ...(platform ? { platform } : {}),
       ...(login ? { login } : {}),
+      ...(badges ? { badges } : {}),
     },
   });
   expect(res.ok()).toBe(true);
 }
 
-async function openRoom(page: Page, channel: string): Promise<string> {
+/** Paid support through the dev-only seam, the path a reader's event takes. */
+async function sendPaidEvent(
+  page: Page,
+  roomId: string,
+  event: Record<string, string | number>
+): Promise<void> {
+  const res = await page.request.post(`/api/live/${roomId}/debug-event`, { data: event });
+  expect(res.ok()).toBe(true);
+  expect((await res.json()).stored).toBe(true);
+}
+
+async function openRoom(page: Page, channel: string, today = false): Promise<string> {
   await page.goto("/live/");
   await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+  // The daily game, when a test must know the answer and so steer clear of it.
+  if (today) await page.getByRole("button", { name: "Heutiges Spiel" }).click();
   await page.getByRole("button", { name: "Runde starten" }).click();
   await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
   const id = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
@@ -50,9 +66,14 @@ async function openRoom(page: Page, channel: string): Promise<string> {
 test.describe("Stream-Chat-Modus", () => {
   test("nach einem abgelehnten Wort des Hosts kommen die Chat-Wörter wieder nach oben", async ({
     page,
+    request,
   }) => {
     const channel = freshChannel();
-    const roomId = await openRoom(page, channel);
+    const roomId = await openRoom(page, channel, true);
+    // A word that is not the answer: the answer would end the round and stand
+    // a third time on the page, as the solved word.
+    const { word: answer } = await (await request.get("/api/reveal")).json();
+    const chatWord = ["birne", "kirsche"].find((w) => w !== answer)!;
     await expect(
       page.getByText(channel, { exact: true }).filter({ visible: true })
     ).toBeVisible({ timeout: 20_000 });
@@ -63,11 +84,11 @@ test.describe("Stream-Chat-Modus", () => {
     const refusal = page.getByText("Dieses Wort kenne ich leider nicht");
     await expect(refusal).toBeVisible({ timeout: 20_000 });
 
-    await sendChatMessage(page, roomId, "51", "birne");
+    await sendChatMessage(page, roomId, "51", chatWord);
     // The refusal holds for a moment so it can be read, then the chat's word
     // takes the slot above the list: once there, once in the list.
     await expect(refusal).toHaveCount(0, { timeout: 10_000 });
-    await expect(page.getByText("birne", { exact: true })).toHaveCount(2);
+    await expect(page.getByText(chatWord, { exact: true })).toHaveCount(2);
   });
 
   test("der Streamer beendet mit stop im eigenen Chat die Runde", async ({ page }) => {
@@ -104,7 +125,7 @@ test.describe("Stream-Chat-Modus", () => {
     expect(fresh).not.toBe(roomId);
   });
 
-  test("der Chat rät mit, und die Einblendung zeigt es", async ({ page }) => {
+  test("der Chat rät mit, mit Plattform und Abzeichen am Namen", async ({ page }) => {
     const channel = freshChannel();
     const roomId = await openRoom(page, channel);
 
@@ -116,21 +137,80 @@ test.describe("Stream-Chat-Modus", () => {
       page.getByText(channel, { exact: true }).filter({ visible: true })
     ).toBeVisible({ timeout: 20_000 });
 
-    await sendChatMessage(page, roomId, "42", "apfel");
+    await sendChatMessage(page, roomId, "Mara42", "apfel", undefined, undefined, "moderator/1,vip/1");
 
     // The guess lands on the shared board under the viewer's chat name.
     await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
       timeout: 20_000,
     });
+    // With one chat only, the name still carries its platform, and the badges
+    // Twitch showed. The e2e backend has no Twitch app, so they are icons.
+    // The name sits inside its identity block: logo, badges, name, platform.
+    const row = page.getByText("Mara42", { exact: true }).first().locator("..");
+    await expect(row.locator('img[src="/brands/twitch.svg"]')).toBeAttached();
+    await expect(row.getByText("auf Twitch")).toBeAttached();
+    await expect(row.locator('[title="Moderator"]')).toBeAttached();
+    await expect(row.locator('[title="VIP"]')).toBeAttached();
+  });
 
-    const overlayToken = await page.evaluate(
-      (id) => localStorage.getItem(`kontexto_live_${id}`),
-      roomId
-    );
-    expect(overlayToken).toBeTruthy();
+  test("Bits, Abos und Geschenke werden gefeiert und gelistet", async ({ page }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
 
-    await page.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
-    await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({
+    await sendPaidEvent(page, roomId, {
+      kind: "gift_bomb", event_id: `b-${roomId}`, display_name: "Lena", amount: 5,
+    });
+    const banner = page.getByTestId("live-celebration");
+    await expect(banner).toBeVisible({ timeout: 20_000 });
+    await expect(banner).toContainText("Lena");
+    await expect(banner).toContainText("verschenkt 5 Abos");
+
+    // The feed lists it, and a duplicate of the same event changes nothing.
+    const feed = page.getByTestId("support-feed").filter({ visible: true });
+    await expect(feed).toContainText("verschenkt 5 Abos");
+    const again = await page.request.post(`/api/live/${roomId}/debug-event`, {
+      data: { kind: "gift_bomb", event_id: `b-${roomId}`, display_name: "Lena", amount: 5 },
+    });
+    expect((await again.json()).stored).toBe(false);
+
+    // A single rose is a row in the feed, not a banner.
+    await expect(banner).toHaveCount(0, { timeout: 10_000 });
+    await sendPaidEvent(page, roomId, {
+      kind: "cheer", event_id: `c-${roomId}`, display_name: "Tom", amount: 10,
+    });
+    await expect(feed).toContainText("hat 10 Bits gespendet", { timeout: 20_000 });
+    await expect(banner).toHaveCount(0);
+
+    // Paid support never touches the round.
+    await expect(page.getByText("Versuche:").filter({ visible: true })).toContainText("0");
+  });
+
+  test("der Finder steht groß da, und die Bestenliste hat drei Ansichten", async ({
+    page,
+    request,
+  }) => {
+    const channel = freshChannel();
+    await page.goto("/live/");
+    await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+    await page.getByRole("button", { name: "Heutiges Spiel" }).click();
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+    const { word } = await (await request.get("/api/reveal")).json();
+
+    await sendChatMessage(page, roomId, "Finja77", word, undefined, undefined, "subscriber/12");
+    const finder = page.getByTestId("live-finder");
+    await expect(finder).toBeVisible({ timeout: 20_000 });
+    await expect(finder).toContainText("Gefunden von");
+    await expect(finder).toContainText("Finja77");
+    await expect(finder.locator('img[src="/brands/twitch.svg"]')).toBeAttached();
+
+    // The finder tops the "Wortfinder" board.
+    await page.getByRole("tab", { name: "Wortfinder" }).filter({ visible: true }).click();
+    await expect(page.getByTestId("board-finders").filter({ visible: true })).toContainText("Finja77", {
       timeout: 20_000,
     });
   });
@@ -206,12 +286,6 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByText("apfel", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("birne", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
 
-    const overlayToken = await page.evaluate(
-      (id) => localStorage.getItem(`kontexto_live_${id}`),
-      roomId
-    );
-    await page.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
-    await expect(page.getByText("birne", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
     // Each name carries its chat, as a logo for the eye and as words for a reader.
     await expect(page.locator(`img[src="/brands/twitch.svg"]`).first()).toBeAttached();
     await expect(page.locator(`img[src="/brands/tiktok.png"]`).first()).toBeAttached();
@@ -345,36 +419,15 @@ test.describe("Stream-Chat-Modus", () => {
       `/api/live/${roomId}?token=${encodeURIComponent(token!)}`
     );
     expect((await state.json()).messages).toEqual([]);
-
-    // The audience's view never carries it.
-    const overlayToken = await page.evaluate(
-      (id) => localStorage.getItem(`kontexto_live_${id}`),
-      roomId
-    );
-    await page.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
-    await expect(page.getByText(/keiner laufenden Runde|Runde \d+/)).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(page.getByText(text)).toHaveCount(0);
   });
 
-  test("eine beendete Runde leert die Einblendung und sagt es dem Streamer", async ({
-    page,
-    context,
-  }) => {
+  test("eine beendete Runde sagt es dem Streamer", async ({ page }) => {
     const channel = freshChannel();
     const roomId = await openRoom(page, channel);
     await expect(
       page.getByText(channel, { exact: true }).filter({ visible: true })
     ).toBeVisible({ timeout: 20_000 });
 
-    const overlayToken = await page.evaluate(
-      (id) => localStorage.getItem(`kontexto_live_${id}`),
-      roomId
-    );
-    const overlay = await context.newPage();
-    await overlay.goto(`/live/overlay/?token=${encodeURIComponent(overlayToken!)}`);
-    await expect(overlay.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
 
     // The admin route needs a passkey session; the host's own stop is the
     // same unbinding and is what reaches the page the same way.
@@ -392,14 +445,5 @@ test.describe("Stream-Chat-Modus", () => {
     ).toBeVisible({ timeout: 20_000 });
     // The board stays, so the word can still be revealed there.
     await expect(page.getByPlaceholder("Wort eingeben...").first()).toBeVisible();
-
-    await expect(overlay.locator("[data-ended]")).toBeAttached({ timeout: 20_000 });
-    await expect(overlay.getByText(/keiner laufenden Runde/)).toHaveCount(0);
-    await expect(overlay.getByText(/Runde \d+/)).toHaveCount(0);
-  });
-
-  test("die Einblendung ohne Token zeigt kein Brett", async ({ page }) => {
-    await page.goto("/live/overlay/");
-    await expect(page.getByText(/keiner laufenden Runde/)).toBeVisible({ timeout: 20_000 });
   });
 });

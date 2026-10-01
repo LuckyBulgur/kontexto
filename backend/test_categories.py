@@ -418,19 +418,19 @@ class TestRooms:
         assert frame["category"]["id"] == "animals"
         assert "game_number" not in frame
 
-    def test_a_live_room_puts_the_field_on_the_overlay_only_when_asked(self, client):
+    def test_a_live_room_shows_the_field_only_when_asked(self, client):
         shown = client.post("/api/live", json={
             "platform": "twitch", "channel": "kontexto", "categories": ["food"], "show_category": True,
         }).json()
-        overlay = client.get("/api/live/overlay/state", params={"token": shown["overlay_token"]}).json()
-        assert overlay["category"]["id"] == "food"
-        assert "game_number" not in overlay
+        state = client.get(f"/api/koop/{shown['koop_id']}").json()
+        assert state["category"]["id"] == "food"
+        assert "game_number" not in state
 
         hidden = client.post("/api/live", json={
             "platform": "twitch", "channel": "zweiterkanal", "categories": ["food"],
         }).json()
-        overlay = client.get("/api/live/overlay/state", params={"token": hidden["overlay_token"]}).json()
-        assert overlay["category"] is None
+        state = client.get(f"/api/koop/{hidden['koop_id']}").json()
+        assert state["category"] is None
 
     def test_a_room_without_fields_is_what_it_always_was(self, client):
         created = client.post("/api/duel", json={"nickname": "Alice"}).json()

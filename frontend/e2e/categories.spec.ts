@@ -70,28 +70,37 @@ test.describe("Kategorien", () => {
     expect(state).not.toHaveProperty("game_number");
   });
 
-  test("eine Live-Runde bringt die Kategorie nur auf Wunsch ins Overlay", async ({ page }) => {
-    const shownRes = await page.request.post("/api/live", {
-      data: {
-        platform: "twitch",
-        channel: freshChannel("katshown"),
-        categories: ["food"],
-        show_category: true,
-      },
-    });
-    expect(shownRes.status()).toBe(200);
-    const shown = await shownRes.json();
-    await page.goto(`/live/overlay/?token=${encodeURIComponent(shown.overlay_token)}`);
-    await expect(page.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText("Essen und Trinken", { exact: true })).toBeVisible();
+  test("eine Live-Runde zeigt die Kategorie nur auf Wunsch", async ({ page }) => {
+    /** Open a live room as its host, the way the create form does. */
+    const openAsHost = async (body: Record<string, unknown>) => {
+      const res = await page.request.post("/api/live", { data: body });
+      expect(res.status()).toBe(200);
+      const room = await res.json();
+      await page.goto("/");
+      await page.evaluate(
+        ([id, token]) => localStorage.setItem(`kontexto_koop_${id}`, token),
+        [room.koop_id, room.player_token]
+      );
+      await page.goto(`/live/${room.koop_id}/`);
+      await expect(page.getByText(/Versuche:/).filter({ visible: true })).toBeVisible({
+        timeout: 20_000,
+      });
+    };
 
-    const hiddenRes = await page.request.post("/api/live", {
-      data: { platform: "twitch", channel: freshChannel("kathidden"), categories: ["food", "home"] },
+    await openAsHost({
+      platform: "twitch",
+      channel: freshChannel("katshown"),
+      categories: ["food"],
+      show_category: true,
     });
-    expect(hiddenRes.status()).toBe(200);
-    const hidden = await hiddenRes.json();
-    await page.goto(`/live/overlay/?token=${encodeURIComponent(hidden.overlay_token)}`);
-    await expect(page.getByText(/Runde \d+/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Essen und Trinken", { exact: true }).first()).toBeVisible();
+
+    await openAsHost({
+      platform: "twitch",
+      channel: freshChannel("kathidden"),
+      categories: ["food", "home"],
+    });
+    // The filter is named, the round's own field is not.
     await expect(page.getByText("Kategorie:")).toHaveCount(0);
   });
 });

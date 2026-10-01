@@ -3,7 +3,6 @@ import { RoomGameSource } from "./types";
 import {
   CreateLiveResponse,
   LIVE_PLATFORMS,
-  LiveOverlayState,
   LivePlatform,
   LiveRoom,
 } from "./live-types";
@@ -146,11 +145,12 @@ export async function fetchLivePlatforms(): Promise<LivePlatform[]> {
 /** The chat status and the leaderboard. Host token only. */
 export async function getLiveRoom(
   koopId: string,
-  playerToken: string
+  playerToken: string,
+  /** The newest paid event the page already holds; 0 on a fresh page. */
+  eventsAfter = 0
 ): Promise<LiveRoom> {
-  const res = await fetch(
-    `${API_BASE}/live/${koopId}?token=${encodeURIComponent(playerToken)}`
-  );
+  const query = new URLSearchParams({ token: playerToken, events_after: String(eventsAfter) });
+  const res = await fetch(`${API_BASE}/live/${koopId}?${query.toString()}`);
   if (res.status === 404) throw new Error("room_not_found");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -186,16 +186,4 @@ export async function markHostMessagesSeen(
   });
   if (res.status === 404) throw new Error("room_not_found");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-}
-
-/** What the OBS browser source polls. Its own token, never the host's. */
-export async function getOverlayState(
-  overlayToken: string
-): Promise<LiveOverlayState> {
-  const res = await fetch(
-    `${API_BASE}/live/overlay/state?token=${encodeURIComponent(overlayToken)}`
-  );
-  if (res.status === 404) throw new Error("room_not_found");
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
 }

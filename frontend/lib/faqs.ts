@@ -267,7 +267,11 @@ export const liveFaqs: Faq[] = [
   },
   {
     q: `Wie bekomme ich das Spiel in meinen Stream?`,
-    a: `Die Runde hat eine eigene Einblendung mit transparentem Hintergrund. Den Link kopierst du und fügst ihn in OBS als Browserquelle ein. Sie zeigt die letzten Wörter mit ihrem Rang und den Namen, der gelöst hat.`,
+    a: `Du zeigst die Seite mit dem Brett in deinem Stream, so wie jedes andere Spiel. Alles steht auf dieser einen Seite: die Rateliste mit Plattform und Abzeichen jedes Namens, die Bestenliste, wer das Wort gefunden hat und die Unterstützung aus dem Chat.`,
+  },
+  {
+    q: `Was passiert bei Bits, Abos und TikTok-Geschenken?`,
+    a: `Sie werden gefeiert: Name und Geschenk erscheinen über dem Brett, größere mit Konfetti, und jede Unterstützung steht in einer eigenen Liste. Am Spiel ändern sie nichts, es gibt keinen gekauften Tipp und keine Rangliste der Spender.`,
   },
   {
     q: `Können zwei Leute denselben Kanal benutzen?`,

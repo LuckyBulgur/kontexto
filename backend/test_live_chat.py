@@ -271,7 +271,7 @@ class TestRoomBinding:
 
     def test_create_and_read_back(self, db):
         from koop import create_koop
-        from live_chat import create_live_room, get_live_room, get_live_room_by_overlay
+        from live_chat import create_live_room, get_live_room
 
         async def run():
             conn = await get_db(db)
@@ -290,15 +290,12 @@ class TestRoomBinding:
                         "chat_state": "connecting", "chat_error": None, "paused": False,
                     }
                 ]
-                assert len(live["overlay_token"]) > 20
+                # The overlay is gone and its token is no longer handed out.
+                assert "overlay_token" not in live
 
                 by_id = await get_live_room(conn, room["koop_id"])
                 assert by_id["channels"][0]["channel"] == "kontexto"
                 assert by_id["host_token"] == room["player_token"]
-
-                by_overlay = await get_live_room_by_overlay(conn, live["overlay_token"])
-                assert by_overlay["koop_id"] == room["koop_id"]
-                assert await get_live_room_by_overlay(conn, "nope") is None
             finally:
                 await conn.close()
 
@@ -699,71 +696,74 @@ class TestViewerGuesses:
         self._run(run())
 
 
-class TestOverlaySnapshot:
+class TestGuessOrigin:
+    """A chat guess keeps its platform and its author's badges."""
+
     def _run(self, coro):
         return asyncio.run(coro)
 
-    def test_snapshot_has_no_game_number_and_no_word(self, db):
-        from koop import create_koop, record_koop_guess
-        from live_chat import create_live_room, overlay_snapshot, record_viewer, set_channel_paused
+    def test_source_and_badges_survive_the_round_trip(self, db):
+        from koop import create_koop, get_koop_guesses, record_koop_guess
 
         async def run():
             conn = await get_db(db)
             try:
                 room = await create_koop(conn, game_number=7, nickname="Host", tips_allowed=True)
                 kid = room["koop_id"]
-                await create_live_room(
-                    conn, kid, room["player_token"], False,
-                    [("twitch", "kontexto"), ("tiktok", "kontexto.de")],
-                )
                 await record_koop_guess(
                     conn, kid, room["player_token"], "apfel", 42,
-                    display_name="Mara", source="tiktok",
+                    display_name="Mara", source="twitch", badges="moderator/1,subscriber/12",
                 )
                 await record_koop_guess(conn, kid, room["player_token"], "birne", 50)
-                await record_viewer(conn, kid, "tiktok", "tt:1", "Mara", 42)
-                await set_channel_paused(conn, kid, "tiktok", True)
-
-                snap = await overlay_snapshot(conn, kid)
-                assert "game_number" not in snap
-                assert snap["round"] == 1
-                assert snap["best_rank"] == 42
-                assert snap["solved"] is False
-                # Which chats play, and nothing about a pause.
-                assert snap["channels"] == [
-                    {"platform": "twitch", "channel": "kontexto"},
-                    {"platform": "tiktok", "channel": "kontexto.de"},
+                guesses = await get_koop_guesses(conn, kid)
+                assert [(g["word"], g["source"]) for g in guesses] == [
+                    ("apfel", "twitch"), ("birne", None),
                 ]
-                assert snap["chat_state"] == "connecting"
-                assert [(g["word"], g["platform"]) for g in snap["recent"]] == [
-                    ("birne", None), ("apfel", "tiktok"),
+                assert guesses[0]["badges"] == [
+                    {"set_id": "moderator", "version": "1"},
+                    {"set_id": "subscriber", "version": "12"},
                 ]
-                assert snap["recent"][1]["nickname"] == "Mara"
-                assert snap["top"][0] == {
-                    "platform": "tiktok", "nickname": "Mara", "hits": 1, "best_rank": 42,
-                }
-
-                assert await overlay_snapshot(conn, "fehlt") is None
+                assert guesses[1]["badges"] == []
             finally:
                 await conn.close()
 
         self._run(run())
 
-    def test_recent_is_newest_first_and_capped(self, db):
-        from koop import create_koop, record_koop_guess
-        from live_chat import overlay_snapshot
+
+class TestViewerBoards:
+    """Three boards over the whole stream: busy, sharp and finders."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    def test_each_board_has_its_own_order(self, db):
+        from koop import create_koop
+        from live_chat import NEAR_RANK, record_viewer, viewer_boards
 
         async def run():
             conn = await get_db(db)
             try:
                 room = await create_koop(conn, game_number=1, nickname="Host", tips_allowed=True)
                 kid = room["koop_id"]
-                for i in range(5):
-                    await record_koop_guess(
-                        conn, kid, room["player_token"], f"wort{i}", 100 - i
-                    )
-                snap = await overlay_snapshot(conn, kid, guess_limit=3)
-                assert [g["word"] for g in snap["recent"]] == ["wort4", "wort3", "wort2"]
+                # Viel guesses a lot and never close.
+                for rank in (5000, 4000, 3000, 2000):
+                    await record_viewer(conn, kid, "twitch", "1", "Viel", rank)
+                # Nah guesses twice, both close.
+                for rank in (NEAR_RANK, 12):
+                    await record_viewer(conn, kid, "twitch", "2", "Nah", rank)
+                # Fund guesses once and finds the word.
+                await record_viewer(
+                    conn, kid, "tiktok", "tt:3", "Fund", 1, badges="tt-moderator/1",
+                    solved=True,
+                )
+                boards = await viewer_boards(conn, kid)
+                assert [v["nickname"] for v in boards["busy"]] == ["Viel", "Nah", "Fund"]
+                assert [v["nickname"] for v in boards["sharp"]] == ["Nah", "Fund"]
+                assert [v["nickname"] for v in boards["finders"]] == ["Fund"]
+                finder = boards["finders"][0]
+                assert finder["solves"] == 1 and finder["near_hits"] == 1
+                assert finder["badges"] == "tt-moderator/1"
+                assert boards["busy"][0]["near_hits"] == 0
             finally:
                 await conn.close()
 

@@ -18,8 +18,7 @@ import type { LiveHostMessage } from "@/lib/live-types";
  * takes pointer events, so the board under the empty part of the strip stays
  * usable.
  *
- * It lives on the host page only and never on the OBS overlay, because the
- * overlay is what the audience sees. A note is only started while the tab is
+ * It lives on the host page only. A note is only started while the tab is
  * visible: a streamer who keeps this tab behind OBS gets it the moment they
  * look, instead of it having played to nobody.
  */

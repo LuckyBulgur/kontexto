@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import { getRankColor, getBarWidth } from "@/lib/types";
 import { Meter, toneFromRankColor } from "@/components/design";
 
@@ -7,8 +8,9 @@ interface GuessBarProps {
   rank: number;
   isNew?: boolean;
   size?: "default" | "lg";
-  /** Who played this word, where the mode shows that. */
-  by?: string;
+  /** Who played this word, where the mode shows that. A string is set in
+   *  brackets; a node (the stream chat's name with logo and badges) as is. */
+  by?: ReactNode;
 }
 
 /**

@@ -7,6 +7,7 @@ import logging
 from fastapi import WebSocket
 
 from database import get_db
+import live_chat
 from arena import (
     advance_due_arenas,
     set_player_connected as set_arena_player_connected,
@@ -17,6 +18,15 @@ from koop import (
     set_player_connected as set_koop_player_connected,
 )
 from wordle_duel import get_wordle_player_history, set_wordle_player_connected
+
+
+
+def _badge_list(raw: str | None) -> list[dict]:
+    """A koop_guesses.badges column as the frame form, ``[{set_id, version}]``."""
+    return [
+        {"set_id": badge.set_id, "version": badge.version}
+        for badge in live_chat.parse_badge_tag(raw)
+    ]
 
 logger = logging.getLogger(__name__)
 
@@ -486,6 +496,8 @@ class KoopConnectionManager:
                 "word": guess["word"],
                 "rank": guess["rank"],
                 "is_tip": bool(guess["is_tip"]),
+                "source": guess.get("source"),
+                "badges": _badge_list(guess.get("badges")),
             },
             exclude_token=guess.get("player_token"),
         )
@@ -578,8 +590,8 @@ class KoopConnectionManager:
         # New shared guesses since the last poll → broadcast each (excluding the
         # author, who already has it from the REST response).
         cursor = await db.execute(
-            "SELECT id, player_token, nickname, word, rank, is_tip FROM koop_guesses "
-            "WHERE koop_id = ? AND id > ? ORDER BY id",
+            "SELECT id, player_token, nickname, word, rank, is_tip, source, badges "
+            "FROM koop_guesses WHERE koop_id = ? AND id > ? ORDER BY id",
             (koop_id, prev["last_guess_id"]),
         )
         for g in await cursor.fetchall():
@@ -591,6 +603,10 @@ class KoopConnectionManager:
                     "word": g["word"],
                     "rank": g["rank"],
                     "is_tip": bool(g["is_tip"]),
+                    # Live rooms: which chat and the author's badges. NULL and
+                    # empty in an ordinary koop room.
+                    "source": g["source"],
+                    "badges": _badge_list(g["badges"]),
                 },
                 exclude_token=g["player_token"],
             )

@@ -373,7 +373,7 @@ class TestTwoChats:
             def __init__(self, platform, channel):
                 started.append((platform, channel))
 
-            async def run(self, on_message, on_state):
+            async def run(self, on_message, on_state, *_callbacks):
                 await asyncio.sleep(3600)
 
         def resolve(game_number, word):
@@ -507,7 +507,7 @@ class TestTwoChats:
                 def __init__(self, platform, channel):
                     pass
 
-                async def run(self, on_message, on_state):
+                async def run(self, on_message, on_state, *_callbacks):
                     await asyncio.sleep(3600)
 
             ingest = LiveChatIngest(db, lambda n, w: None, reader_factory=IdleReader)
@@ -640,7 +640,7 @@ class TestReaderChoice:
             def __init__(self, platform, channel):
                 asked.append((platform, channel))
 
-            async def run(self, on_message, on_state):
+            async def run(self, on_message, on_state, *_callbacks):
                 await asyncio.sleep(3600)
 
         async def run():
@@ -704,7 +704,7 @@ class TestAbsentHost:
             def __init__(self, platform, channel):
                 pass
 
-            async def run(self, on_message, on_state):
+            async def run(self, on_message, on_state, *_callbacks):
                 await asyncio.sleep(3600)
 
         return LiveChatIngest(db, lambda n, w: None, reader_factory=IdleReader, clock=clock)

@@ -86,6 +86,57 @@ CHAT_STATES: tuple[str, ...] = ("connecting", "live", "error")
 CHAT_PLAYER_NAME = "Der Chat"
 
 
+# --- Badges -----------------------------------------------------------------
+
+# How a badge is written: the platform's own set id and version, the form the
+# Twitch `badges` tag uses (`moderator/1`, `subscriber/3012`). TikTok has no such
+# tag, so its reader maps the roles it is told about onto codes of our own, all
+# under a `tt-` prefix that no Twitch set id carries. The pattern is the whole
+# trust boundary for a value that ends up in a column and in an image lookup.
+_BADGE_SET = re.compile(r"^[a-z0-9_-]{1,40}$")
+_BADGE_VERSION = re.compile(r"^[A-Za-z0-9_-]{1,20}$")
+
+# Twitch shows at most three badges in front of a name; a line carries more
+# only in odd cases. Six leaves room for both platforms and caps a hostile tag.
+MAX_BADGES = 6
+
+
+@dataclass(frozen=True)
+class ChatBadge:
+    """One badge as the platform names it."""
+
+    set_id: str
+    version: str
+
+
+def badge_from_parts(set_id: str, version: str) -> ChatBadge | None:
+    if not _BADGE_SET.match(set_id) or not _BADGE_VERSION.match(version):
+        return None
+    return ChatBadge(set_id, version)
+
+
+def parse_badge_tag(raw: str | None) -> tuple[ChatBadge, ...]:
+    """The ``badges`` tag of an IRC line (or the column form), in display order."""
+    if not raw:
+        return ()
+    badges: list[ChatBadge] = []
+    for part in raw.split(","):
+        set_id, sep, version = part.partition("/")
+        badge = badge_from_parts(set_id, version) if sep else None
+        if badge is not None and badge not in badges:
+            badges.append(badge)
+        if len(badges) >= MAX_BADGES:
+            break
+    return tuple(badges)
+
+
+def encode_badges(badges: tuple[ChatBadge, ...]) -> str | None:
+    """The column form, ``set/version`` joined by commas. None for no badge."""
+    if not badges:
+        return None
+    return ",".join(f"{badge.set_id}/{badge.version}" for badge in badges[:MAX_BADGES])
+
+
 @dataclass(frozen=True)
 class ChatMessage:
     """One chat line, reduced to what the game needs.
@@ -105,6 +156,142 @@ class ChatMessage:
     display_name: str
     text: str
     login: str = ""
+    badges: tuple[ChatBadge, ...] = ()
+
+
+# --- Paid support -------------------------------------------------------------
+
+# What a chat can do with real money, per platform. A closed set, because the
+# kind is stored and the host page picks its sentence by it.
+EVENT_KINDS: tuple[str, ...] = (
+    "cheer",         # Twitch Bits; amount = bits
+    "sub",           # Twitch first subscription
+    "resub",         # Twitch resubscription; months = cumulative months
+    "gift_sub",      # Twitch, one subscription bought for one other viewer
+    "gift_bomb",     # Twitch, several at once for the community; amount = count
+    "upgrade",       # Twitch, a gifted or Prime subscription continued as paid
+    "tiktok_gift",   # TikTok gift, a finished streak; amount = diamonds
+    "tiktok_sub",    # TikTok subscription; months = subscribed months
+    "tiktok_chest",  # TikTok treasure chest; amount = diamonds
+)
+
+# Twitch sub plans as the `msg-param-sub-plan` tag spells them, lowercased.
+SUB_PLANS: dict[str, str] = {
+    "prime": "prime", "1000": "1000", "2000": "2000", "3000": "3000",
+}
+
+# The name an anonymous gifter is shown under.
+ANONYMOUS_NAME = "Anonym"
+
+# A platform message id: Twitch uses UUIDs and TikTok 19-digit numbers. Anything
+# else is not an id, and an event without one cannot be deduplicated.
+_EVENT_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+# An amount above this is a broken or hostile frame, not an event. A Twitch
+# cheer tops out at 1,000,000 Bits per message, a TikTok Universe is 44,999
+# diamonds and a streak multiplies it.
+MAX_EVENT_AMOUNT = 10_000_000
+
+
+@dataclass(frozen=True)
+class PaidEvent:
+    """One act of paid support, reduced to what the host page celebrates.
+
+    ``actor_name`` is the raw display name; the ingest runs it through the
+    nickname rule before it is stored, like every other name a chat supplies.
+    No free text of the event (a resub message, a gift comment) is carried.
+    """
+
+    platform: str
+    event_id: str
+    kind: str
+    actor_external_id: str
+    actor_name: str
+    amount: int = 1
+    tier: str | None = None
+    months: int | None = None
+    gift_name: str | None = None
+    gift_count: int | None = None
+    gift_image: str | None = None
+    badges: tuple[ChatBadge, ...] = ()
+
+
+def make_event(**fields) -> PaidEvent | None:
+    """A PaidEvent, or None when a field is outside what a real event carries."""
+    event_id = fields.get("event_id") or ""
+    amount = fields.get("amount", 1)
+    if (
+        fields.get("kind") not in EVENT_KINDS
+        or not _EVENT_ID.match(event_id)
+        or isinstance(amount, bool)
+        or not isinstance(amount, int)
+        or not 1 <= amount <= MAX_EVENT_AMOUNT
+        or not fields.get("actor_name")
+    ):
+        return None
+    months = fields.get("months")
+    if months is not None and (not isinstance(months, int) or not 1 <= months <= 1200):
+        fields["months"] = None
+    count = fields.get("gift_count")
+    if count is not None and (not isinstance(count, int) or not 1 <= count <= MAX_EVENT_AMOUNT):
+        fields["gift_count"] = None
+    return PaidEvent(**fields)
+
+
+def _int_tag(tags: dict[str, str], key: str) -> int | None:
+    raw = tags.get(key, "")
+    return int(raw) if raw.isdigit() else None
+
+
+class GiftBombFolder:
+    """Folds the single gift lines of a Twitch sub bomb into the bomb.
+
+    A community gift of ten arrives as one ``submysterygift`` line followed by
+    ten ``subgift`` lines, one per recipient. The host should read "verschenkt
+    10 Abos" once, not eleven banners. Two signals, because either alone can be
+    missing: the ``msg-param-community-gift-id`` the lines share, and a
+    per-gifter count of single lines still expected.
+
+    In-process and per reader, which is right: one reader reads one channel,
+    in the one WS worker. Entries expire, so a bomb whose single lines never
+    come cannot swallow an ordinary gift later.
+    """
+
+    EXPIRE_SECONDS = 60.0
+
+    def __init__(self, clock=time.monotonic) -> None:
+        self._clock = clock
+        self._by_id: dict[str, float] = {}
+        self._by_gifter: dict[str, tuple[int, float]] = {}
+
+    def _expire(self, now: float) -> None:
+        for key in [k for k, t in self._by_id.items() if now - t > self.EXPIRE_SECONDS]:
+            del self._by_id[key]
+        for key in [
+            k for k, (_, t) in self._by_gifter.items() if now - t > self.EXPIRE_SECONDS
+        ]:
+            del self._by_gifter[key]
+
+    def bomb(self, gifter: str, community_id: str | None, count: int) -> None:
+        now = self._clock()
+        self._expire(now)
+        if community_id:
+            self._by_id[community_id] = now
+        left, _ = self._by_gifter.get(gifter, (0, now))
+        self._by_gifter[gifter] = (left + count, now)
+
+    def is_part_of_bomb(self, gifter: str, community_id: str | None) -> bool:
+        now = self._clock()
+        self._expire(now)
+        folded = bool(community_id) and community_id in self._by_id
+        left, stamp = self._by_gifter.get(gifter, (0, now))
+        if left > 0:
+            folded = True
+            if left == 1:
+                del self._by_gifter[gifter]
+            else:
+                self._by_gifter[gifter] = (left - 1, stamp)
+        return folded
 
 
 def normalise_channel(raw: str | None, platform: str = "twitch") -> str | None:
@@ -200,10 +387,117 @@ def parse_irc_line(line: str) -> ChatMessage | None:
     display_name = tags.get("display-name") or login
     if not external_id or not display_name:
         return None
+    if tags.get("bits"):
+        text = strip_cheermotes(text)
     return ChatMessage(
         external_id=external_id, display_name=display_name, text=text,
-        login=login.lower(),
+        login=login.lower(), badges=parse_badge_tag(tags.get("badges")),
     )
+
+
+# A cheermote is a word followed by the number of Bits, `Cheer100`, `Kappa50`.
+# Twitch has dozens of prefixes and channels add their own, so the shape is the
+# test, not a list: no German guess ends in digits.
+_CHEERMOTE = re.compile(r"^[A-Za-z]+\d+$")
+
+
+def strip_cheermotes(text: str) -> str:
+    """A cheer line without its cheermotes, so `Cheer100 apfel` still guesses."""
+    return " ".join(token for token in text.split() if not _CHEERMOTE.match(token))
+
+
+def _split_irc(line: str) -> tuple[dict[str, str], str, str] | None:
+    """Tags, prefix login and command of an IRC line."""
+    line = line.rstrip("\r\n")
+    tags: dict[str, str] = {}
+    if line.startswith("@"):
+        raw_tags, _, line = line[1:].partition(" ")
+        tags = parse_tags(raw_tags)
+    if not line.startswith(":"):
+        return None
+    prefix, _, rest = line[1:].partition(" ")
+    command = rest.partition(" ")[0]
+    return tags, prefix.split("!", 1)[0], command
+
+
+def parse_roomstate(line: str) -> str | None:
+    """The broadcaster id a ROOMSTATE line carries, or None."""
+    parts = _split_irc(line)
+    if parts is None or parts[2] != "ROOMSTATE":
+        return None
+    room_id = parts[0].get("room-id", "")
+    return room_id if room_id.isdigit() else None
+
+
+def _actor(tags: dict[str, str], login: str, anonymous: bool) -> tuple[str, str]:
+    """External id and display name of the person behind a notice."""
+    sender = tags.get("login") or login
+    if anonymous or sender == "ananonymousgifter":
+        return "anonymous", ANONYMOUS_NAME
+    return tags.get("user-id") or sender, tags.get("display-name") or sender
+
+
+def parse_twitch_event(line: str, folder: GiftBombFolder) -> PaidEvent | None:
+    """The paid support one IRC line carries, or None.
+
+    A PRIVMSG with a ``bits`` tag is a cheer (and may be a guess as well, which
+    ``parse_irc_line`` decides on its own). A USERNOTICE carries the rest. The
+    single gift lines of a sub bomb are folded into the bomb here.
+    """
+    parts = _split_irc(line)
+    if parts is None:
+        return None
+    tags, login, command = parts
+    event_id = tags.get("id", "")
+    badges = parse_badge_tag(tags.get("badges"))
+
+    if command == "PRIVMSG":
+        bits = _int_tag(tags, "bits")
+        if not bits:
+            return None
+        external, name = _actor(tags, login, anonymous=False)
+        return make_event(
+            platform="twitch", event_id=event_id, kind="cheer",
+            actor_external_id=external, actor_name=name, amount=bits, badges=badges,
+        )
+
+    if command != "USERNOTICE":
+        return None
+    msg_id = tags.get("msg-id", "")
+    plan = SUB_PLANS.get(tags.get("msg-param-sub-plan", "").lower())
+    community_id = tags.get("msg-param-community-gift-id") or None
+    external, name = _actor(tags, login, anonymous=msg_id.startswith("anon"))
+
+    if msg_id in ("sub", "resub"):
+        months = _int_tag(tags, "msg-param-cumulative-months") or 1
+        return make_event(
+            platform="twitch", event_id=event_id,
+            kind="resub" if msg_id == "resub" and months > 1 else "sub",
+            actor_external_id=external, actor_name=name, tier=plan, months=months,
+            badges=badges,
+        )
+    if msg_id in ("submysterygift", "anonsubmysterygift"):
+        count = _int_tag(tags, "msg-param-mass-gift-count") or 1
+        folder.bomb(external, community_id, count)
+        return make_event(
+            platform="twitch", event_id=event_id, kind="gift_bomb",
+            actor_external_id=external, actor_name=name, amount=count, tier=plan,
+            badges=badges,
+        )
+    if msg_id in ("subgift", "anonsubgift"):
+        if folder.is_part_of_bomb(external, community_id):
+            return None
+        return make_event(
+            platform="twitch", event_id=event_id, kind="gift_sub",
+            actor_external_id=external, actor_name=name, tier=plan,
+            months=_int_tag(tags, "msg-param-gift-months"), badges=badges,
+        )
+    if msg_id in ("giftpaidupgrade", "anongiftpaidupgrade", "primepaidupgrade"):
+        return make_event(
+            platform="twitch", event_id=event_id, kind="upgrade",
+            actor_external_id=external, actor_name=name, tier=plan, badges=badges,
+        )
+    return None
 
 
 def extract_word(text: str, require_prefix: bool) -> str | None:
@@ -379,6 +673,8 @@ async def create_live_room(
     """
     if not channels:
         raise ValueError("a live room reads at least one chat")
+    # The overlay token is retired with the OBS overlay; the column is NOT NULL
+    # UNIQUE and cannot be dropped, so it still gets a random value.
     overlay_token = _token()
     chat_token = _token()
     await db.execute(
@@ -436,7 +732,6 @@ def _room_fields(row: aiosqlite.Row) -> dict:
         "koop_id": row["koop_id"],
         "host_token": row["host_token"],
         "chat_token": row["chat_token"],
-        "overlay_token": row["overlay_token"],
         "require_prefix": bool(row["require_prefix"]),
     }
 
@@ -447,16 +742,6 @@ async def get_live_room(db: aiosqlite.Connection, koop_id: str) -> dict | None:
     if row is None:
         return None
     return {**_room_fields(row), "channels": await _channels_of(db, koop_id)}
-
-
-async def get_live_room_by_overlay(db: aiosqlite.Connection, token: str) -> dict | None:
-    cursor = await db.execute(
-        "SELECT * FROM live_rooms WHERE overlay_token = ?", (token,)
-    )
-    row = await cursor.fetchone()
-    if row is None:
-        return None
-    return {**_room_fields(row), "channels": await _channels_of(db, row["koop_id"])}
 
 
 async def list_live_rooms(db: aiosqlite.Connection) -> list[dict]:
@@ -585,6 +870,7 @@ async def _delete_binding_rest(db: aiosqlite.Connection, koop_id: str) -> None:
     A note belongs to the binding, not to the koop room that outlives it."""
     await db.execute("DELETE FROM live_channels WHERE koop_id = ?", (koop_id,))
     await db.execute("DELETE FROM live_host_messages WHERE koop_id = ?", (koop_id,))
+    await db.execute("DELETE FROM live_events WHERE koop_id = ?", (koop_id,))
 
 
 async def stop_live_room(db: aiosqlite.Connection, koop_id: str, host_token: str) -> bool:
@@ -609,9 +895,8 @@ async def end_live_room(db: aiosqlite.Connection, koop_id: str) -> bool:
     """Unbind a room on the operator's behalf. No host token, the caller is admin.
 
     Same effect as the host's own stop: the readers go on the supervisor's
-    next pass (which also frees any TikTok socket slot), the overlay stops
-    answering, and the koop room stays so the streamer can still reveal the
-    word. False when the room was not bound, so a second click is a no-op.
+    next pass (which also frees any TikTok socket slot), and the koop room
+    stays so the streamer can still reveal the word. False when the room was not bound, so a second click is a no-op.
     """
     cursor = await db.execute("DELETE FROM live_rooms WHERE koop_id = ?", (koop_id,))
     ended = cursor.rowcount > 0
@@ -658,8 +943,7 @@ async def unbind_absent_rooms(
     """Unbind every room whose host page has not been open for `absent_seconds`.
 
     The same unbinding as a stop: the chats stop counting, the readers and any
-    TikTok socket slot go on the supervisor's next pass, the overlay goes blank
-    and the koop room stays, so a host who comes back can still reveal the word
+    TikTok socket slot go on the supervisor's next pass, and the koop room stays, so a host who comes back can still reveal the word
     and start a new round. Read first and deleted only when there is something
     to delete, because this runs on every pass of the supervisor and an empty
     DELETE would still take the write lock. The DELETE repeats the age check,
@@ -722,8 +1006,14 @@ async def record_viewer(
     nickname: str,
     rank: int,
     commit: bool = True,
+    badges: str | None = None,
+    solved: bool = False,
 ) -> bool:
     """Count one accepted guess for a viewer. True when this viewer is new here.
+
+    Three counters per viewer feed the three boards: every accepted guess
+    (``hits``), every guess in the near band (``near_hits``) and every round
+    this viewer finished (``solves``).
 
     Split into an insert and an update rather than one upsert, because the caller
     needs to know whether a new person just joined in: that is the only moment
@@ -741,10 +1031,14 @@ async def record_viewer(
     # Commutative, no read-modify-write, like the koop rollup: correct today with
     # one writer and still correct if the ingest is ever split.
     await db.execute(
-        "UPDATE live_viewers SET hits = hits + 1, nickname = ?, "
+        "UPDATE live_viewers SET hits = hits + 1, nickname = ?, badges = ?, "
+        "near_hits = near_hits + ?, solves = solves + ?, "
         "best_rank = CASE WHEN best_rank IS NULL OR ? < best_rank THEN ? ELSE best_rank END "
         "WHERE koop_id = ? AND platform = ? AND external_id = ?",
-        (nickname, rank, rank, koop_id, platform, external_id),
+        (
+            nickname, badges, int(rank <= NEAR_RANK), int(solved),
+            rank, rank, koop_id, platform, external_id,
+        ),
     )
     await db.execute(
         "UPDATE koops SET last_activity = CURRENT_TIMESTAMP WHERE id = ?", (koop_id,)
@@ -758,7 +1052,10 @@ async def record_viewer(
 
 # What may be counted per channel. A closed set, so a caller cannot invent a
 # column name and a typo cannot silently create a dimension nobody reads.
-STREAM_METRICS: tuple[str, ...] = ("sessions", "rounds", "guesses", "solves", "viewers")
+STREAM_METRICS: tuple[str, ...] = (
+    "sessions", "rounds", "guesses", "solves", "viewers",
+    "bits", "subs", "gift_subs", "tiktok_diamonds",
+)
 
 
 async def record_stream_event(
@@ -806,7 +1103,8 @@ async def stream_stats(db: aiosqlite.Connection, limit: int = 100) -> list[dict]
     """Every channel that ever played, busiest first. Read by the admin board."""
     cursor = await db.execute(
         "SELECT platform, channel, first_seen, last_seen, sessions, rounds, "
-        "guesses, solves, viewers, best_rank FROM live_stream_stats "
+        "guesses, solves, viewers, best_rank, bits, subs, gift_subs, tiktok_diamonds "
+        "FROM live_stream_stats "
         "ORDER BY guesses DESC, last_seen DESC LIMIT ?",
         (limit,),
     )
@@ -818,13 +1116,16 @@ async def stream_totals(db: aiosqlite.Connection) -> dict:
     cursor = await db.execute(
         "SELECT COUNT(*) AS channels, COALESCE(SUM(sessions), 0) AS sessions, "
         "COALESCE(SUM(rounds), 0) AS rounds, COALESCE(SUM(guesses), 0) AS guesses, "
-        "COALESCE(SUM(solves), 0) AS solves, COALESCE(SUM(viewers), 0) AS viewers "
+        "COALESCE(SUM(solves), 0) AS solves, COALESCE(SUM(viewers), 0) AS viewers, "
+        "COALESCE(SUM(bits), 0) AS bits, COALESCE(SUM(subs), 0) AS subs, "
+        "COALESCE(SUM(gift_subs), 0) AS gift_subs, "
+        "COALESCE(SUM(tiktok_diamonds), 0) AS tiktok_diamonds "
         "FROM live_stream_stats"
     )
     row = await cursor.fetchone()
     return dict(row) if row else {
-        "channels": 0, "sessions": 0, "rounds": 0,
-        "guesses": 0, "solves": 0, "viewers": 0,
+        "channels": 0, "sessions": 0, "rounds": 0, "guesses": 0, "solves": 0,
+        "viewers": 0, "bits": 0, "subs": 0, "gift_subs": 0, "tiktok_diamonds": 0,
     }
 
 
@@ -1010,20 +1311,38 @@ async def reset_viewers(db: aiosqlite.Connection, koop_id: str) -> None:
     await db.commit()
 
 
+# The rank up to which a guess counts as near, the green band of the colour
+# scale (frontend/lib/types.ts). The "Treffsicher" board counts these.
+NEAR_RANK = 300
+
+# The three leaderboards and what orders them. Hits break every tie, then the
+# best rank, so two viewers with one solve each are told apart by who played
+# more. A closed map, because the key reaches an ORDER BY.
+VIEWER_BOARDS: dict[str, str] = {
+    "busy": "hits DESC, (best_rank IS NULL), best_rank ASC",
+    "sharp": "near_hits DESC, (best_rank IS NULL), best_rank ASC, hits DESC",
+    "finders": "solves DESC, near_hits DESC, (best_rank IS NULL), best_rank ASC",
+}
+
+
 async def top_viewers(
-    db: aiosqlite.Connection, koop_id: str, limit: int = 5
+    db: aiosqlite.Connection, koop_id: str, limit: int = 5, board: str = "busy"
 ) -> list[dict]:
-    """The leaderboard, counted over the whole stream and not per round.
+    """One leaderboard, counted over the whole stream and not per round.
 
     A stream plays many rounds in one sitting, and the interesting question
     there is who carried the evening, not who carried the last eight minutes.
-    Hits first, best rank as the tie-break. Somebody who plays on two
-    platforms is two entries, because the platforms share no identity; the
-    platform rides along so the views can tell the two apart.
+    ``busy`` asks who played most, ``sharp`` who guessed close most often and
+    ``finders`` who found the most words; the last two leave out anybody with
+    nothing to show on them. Somebody who plays on two platforms is two
+    entries, because the platforms share no identity; the platform rides
+    along so the views can tell the two apart.
     """
+    order = VIEWER_BOARDS[board]
+    where = {"busy": "", "sharp": " AND near_hits > 0", "finders": " AND solves > 0"}[board]
     cursor = await db.execute(
-        "SELECT platform, nickname, hits, best_rank FROM live_viewers WHERE koop_id = ? "
-        "ORDER BY hits DESC, (best_rank IS NULL), best_rank ASC LIMIT ?",
+        "SELECT platform, nickname, hits, near_hits, solves, best_rank, badges "
+        f"FROM live_viewers WHERE koop_id = ?{where} ORDER BY {order} LIMIT ?",
         (koop_id, limit),
     )
     return [
@@ -1031,61 +1350,105 @@ async def top_viewers(
             "platform": row["platform"],
             "nickname": row["nickname"],
             "hits": row["hits"],
+            "near_hits": row["near_hits"],
+            "solves": row["solves"],
             "best_rank": row["best_rank"],
+            "badges": row["badges"],
         }
         for row in await cursor.fetchall()
     ]
 
 
-async def overlay_snapshot(
-    db: aiosqlite.Connection, koop_id: str, guess_limit: int = 12
-) -> dict | None:
-    """Everything the OBS overlay shows, in one read.
+async def viewer_boards(db: aiosqlite.Connection, koop_id: str, limit: int = 5) -> dict:
+    """All three boards, keyed like VIEWER_BOARDS."""
+    return {board: await top_viewers(db, koop_id, limit, board) for board in VIEWER_BOARDS}
 
-    Carries no game number and no target word. The overlay sits on a public
-    stream, so it is held to the same boundary as every other room response
-    (``backend/rooms.py``): the number is the answer, and it leaves the server
-    only through the reveal endpoint, once the round is over.
+
+# --- Paid support, stored -----------------------------------------------------
+
+# Per-channel totals an event raises, by kind.
+_EVENT_METRIC: dict[str, str] = {
+    "cheer": "bits",
+    "sub": "subs",
+    "resub": "subs",
+    "upgrade": "subs",
+    "gift_sub": "gift_subs",
+    "gift_bomb": "gift_subs",
+    "tiktok_gift": "tiktok_diamonds",
+    "tiktok_chest": "tiktok_diamonds",
+    "tiktok_sub": "subs",
+}
+
+# How long an event stays readable. The host page shows the last twenty; a
+# day covers the longest stream and keeps the table small.
+EVENT_RETENTION_HOURS = 24
+
+# The most events one poll returns. The page shows twenty, and a host whose
+# tab slept through a sub train should not get a thousand banners on return.
+EVENTS_PER_POLL = 20
+
+
+async def record_paid_event(
+    db: aiosqlite.Connection, koop_id: str, channel: str, event: PaidEvent, actor: str
+) -> int | None:
+    """Store one paid event for a room. Returns its id, None for a duplicate.
+
+    The unique key is the platform's own message id, so a frame seen twice is
+    an INSERT OR IGNORE that changes nothing, and the channel's totals are
+    raised only when the row was new. One transaction for both, because a
+    total without its row (or the reverse) would count a gift twice after a
+    retry. ``actor`` is the display name after the nickname rule.
     """
     cursor = await db.execute(
-        "SELECT round, best_rank, solved, solved_by, gave_up FROM koops WHERE id = ?",
-        (koop_id,),
+        "INSERT OR IGNORE INTO live_events "
+        "(koop_id, platform, event_id, kind, actor, badges, amount, tier, months, "
+        "gift_name, gift_count, gift_image) "
+        "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? "
+        "WHERE EXISTS (SELECT 1 FROM live_rooms WHERE koop_id = ?)",
+        (
+            koop_id, event.platform, event.event_id, event.kind, actor,
+            encode_badges(event.badges), event.amount, event.tier, event.months,
+            event.gift_name, event.gift_count, event.gift_image, koop_id,
+        ),
     )
-    koop = await cursor.fetchone()
-    if koop is None:
+    if cursor.rowcount != 1:
         return None
-
-    cursor = await db.execute(
-        "SELECT nickname, word, rank, is_tip, source FROM koop_guesses "
-        "WHERE koop_id = ? ORDER BY id DESC LIMIT ?",
-        (koop_id, guess_limit),
+    event_row_id = cursor.lastrowid
+    amount = event.amount if event.kind in ("cheer", "gift_bomb", "tiktok_gift", "tiktok_chest") else 1
+    await record_stream_event(
+        db, event.platform, channel, _EVENT_METRIC[event.kind], amount=amount, commit=False,
     )
-    recent = [
-        {
-            "nickname": row["nickname"],
-            "word": row["word"],
-            "rank": row["rank"],
-            "is_tip": bool(row["is_tip"]),
-            "platform": row["source"],
-        }
+    await db.commit()
+    return event_row_id
+
+
+async def events_after(
+    db: aiosqlite.Connection, koop_id: str, after_id: int, limit: int = EVENTS_PER_POLL
+) -> list[dict]:
+    """The events of a room newer than ``after_id``, oldest first.
+
+    ``after_id = 0`` is a page that just opened: it gets the newest ``limit``,
+    which fill the feed, and the page decides which of them it still
+    celebrates.
+    """
+    cursor = await db.execute(
+        "SELECT * FROM (SELECT id, platform, kind, actor, badges, amount, tier, months, "
+        "gift_name, gift_count, gift_image, created_at FROM live_events "
+        "WHERE koop_id = ? AND id > ? ORDER BY id DESC LIMIT ?) ORDER BY id",
+        (koop_id, after_id, limit),
+    )
+    return [
+        {**dict(row), "created_at": sqlite_utc(row["created_at"])}
         for row in await cursor.fetchall()
     ]
 
-    room = await get_live_room(db, koop_id)
-    channels = room["channels"] if room else []
-    return {
-        "round": koop["round"],
-        "best_rank": koop["best_rank"],
-        "solved": bool(koop["solved"]),
-        "solved_by": koop["solved_by"],
-        "gave_up": bool(koop["gave_up"]),
-        "chat_state": aggregate_chat_state(channels),
-        # Which chats play, never whether one is paused: the audience would
-        # read a pause as a fault.
-        "channels": [
-            {"platform": channel["platform"], "channel": channel["channel"]}
-            for channel in channels
-        ],
-        "recent": recent,
-        "top": await top_viewers(db, koop_id),
-    }
+
+async def prune_events(db: aiosqlite.Connection) -> int:
+    """Drop events older than the retention window. Commits only when it wrote."""
+    cursor = await db.execute(
+        "DELETE FROM live_events WHERE created_at < datetime('now', ?)",
+        (f"-{EVENT_RETENTION_HOURS} hours",),
+    )
+    if cursor.rowcount:
+        await db.commit()
+    return cursor.rowcount

@@ -134,7 +134,7 @@ test.describe("Spooktober", () => {
     await expect(page.locator("html")).not.toHaveClass(new RegExp(EVENT_CLASS));
   });
 
-  for (const path of ["/live/overlay/", "/admin/"]) {
+  for (const path of ["/admin/"]) {
     test(`${path} trägt nie ein Design`, async ({ page }) => {
       await forceEvent(page);
       await page.goto(path);

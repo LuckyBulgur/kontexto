@@ -25,7 +25,6 @@ const SECTION_FALLBACKS = [
   "/arena/",
   "/duel/",
   "/koop/",
-  "/live/overlay/",
   "/live/",
 ];
 

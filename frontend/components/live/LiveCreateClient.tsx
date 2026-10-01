@@ -113,7 +113,6 @@ export default function LiveCreateClient() {
       // The same key the koop board reads, because a live room is a koop room
       // and the board is the same component.
       localStorage.setItem(`kontexto_koop_${room.koop_id}`, room.player_token);
-      localStorage.setItem(`kontexto_live_${room.koop_id}`, room.overlay_token);
       window.location.href = `/live/${room.koop_id}/`;
     } catch (e) {
       const code = e instanceof Error ? e.message : "";

@@ -1,8 +1,9 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { Pause, Play, Plus, Radio, Trophy, Unplug } from "lucide-react";
+import { HandCoins, Pause, Play, Plus, Radio, Trophy, Unplug } from "lucide-react";
 import { Panel } from "@/components/design";
+import ChatIdentity from "@/components/live/ChatIdentity";
 import PlatformMark from "@/components/live/PlatformMark";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -11,10 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { channelAddress, channelLabel, normaliseChannel } from "@/lib/live-channel";
 import { PLATFORM_COPY, STOP_HINT_AHEAD, TIKTOK_NOTE } from "@/lib/live-copy";
+import { eventAction, eventDetail } from "@/lib/live-events";
 import {
-  ChatState, LiveChannel, LivePlatform, LiveViewer, PLATFORM_NAMES,
+  ChatState, LiveBadgeCatalog, LiveBoardId, LiveChannel, LiveEvent, LivePlatform, LiveViewer,
+  LiveViewerBoards, PLATFORM_NAMES,
 } from "@/lib/live-types";
 import { cn } from "@/lib/utils";
 
@@ -31,11 +35,10 @@ interface LiveStatusProps {
   /** Replaces every chat's own line: the round ended, or the server is gone. */
   notice: string | null;
   requirePrefix: boolean;
-  top: LiveViewer[];
-  /** Whether names carry a platform logo, decided once for the whole page. */
-  marks: boolean;
-  overlayUrl: string | null;
-  onCopyOverlay: () => void;
+  boards: LiveViewerBoards;
+  /** Paid support, newest first. */
+  feed: LiveEvent[];
+  catalog: LiveBadgeCatalog;
   /** Platforms the server offers that this room does not read yet. */
   addable: LivePlatform[];
   /** Resolves to a sentence for the form, or null when the chat was added. */
@@ -46,7 +49,7 @@ interface LiveStatusProps {
 
 /**
  * The sidebar of a stream-chat room: which chats are read, what they have to
- * do, where the overlay is, and who is carrying the evening.
+ * do, who is carrying the evening, and who supported the stream.
  *
  * It stands where the koop board shows its player list, because a live room has
  * exactly one player row, the host. The people playing are in the chats, and
@@ -60,10 +63,9 @@ export default function LiveStatus({
   channels,
   notice,
   requirePrefix,
-  top,
-  marks,
-  overlayUrl,
-  onCopyOverlay,
+  boards,
+  feed,
+  catalog,
   addable,
   onAdd,
   onRemove,
@@ -80,7 +82,6 @@ export default function LiveStatus({
             key={channel.platform}
             channel={channel}
             notice={notice}
-            marked={several}
             removable={several && !locked}
             controllable={!locked}
             onRemove={onRemove}
@@ -101,58 +102,143 @@ export default function LiveStatus({
           <AddChannelPanel key={platform} platform={platform} onAdd={onAdd} />
         ))}
 
-      {overlayUrl && (
-        <Panel padding="sm" className="gap-2">
-          <span className="text-micro font-semibold text-muted-foreground">
-            {"Einblendung für OBS"}
-          </span>
-          <p className="text-micro text-muted-foreground/80">
-            {"Als Browserquelle einfügen, 480 mal 640, Hintergrund bleibt transparent."}
-          </p>
-          <Button variant="outline" size="sm" onClick={onCopyOverlay} className="w-full">
-            {"Link kopieren"}
-          </Button>
-        </Panel>
-      )}
+      <Leaderboards boards={boards} catalog={catalog} />
 
-      <Panel padding="sm" className="gap-2">
-        <div className="flex items-center gap-2">
-          <Trophy className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="text-micro font-semibold text-muted-foreground">
-            {"Fleißigste im Chat"}
-          </span>
-        </div>
-        {top.length === 0 ? (
-          <p className="text-micro text-muted-foreground/80">
-            {"Noch hat niemand geraten."}
-          </p>
-        ) : (
-          <ol className="flex list-none flex-col gap-1">
-            {top.map((viewer, index) => (
-              <li
-                key={`${viewer.platform}-${viewer.nickname}-${index}`}
-                className="flex items-baseline justify-between gap-2 text-small"
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="min-w-0 truncate">{viewer.nickname}</span>
-                  {marks && <PlatformMark platform={viewer.platform} />}
-                </span>
-                <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {viewer.hits}
+      <SupportFeed feed={feed} catalog={catalog} />
+    </div>
+  );
+}
+
+/** The three boards and what each one counts, in the order they are offered. */
+const BOARDS: { id: LiveBoardId; label: string; empty: string; value: (v: LiveViewer) => string }[] = [
+  {
+    id: "busy",
+    label: "Fleißig",
+    empty: "Noch hat niemand geraten.",
+    value: (v) => `${v.hits}`,
+  },
+  {
+    id: "sharp",
+    label: "Treffsicher",
+    empty: "Noch kein Wort im grünen Bereich.",
+    value: (v) => `${v.near_hits}`,
+  },
+  {
+    id: "finders",
+    label: "Wortfinder",
+    empty: "Noch hat niemand ein Wort gefunden.",
+    value: (v) => `${v.solves}`,
+  },
+];
+
+const BOARD_HINT: Record<LiveBoardId, string> = {
+  busy: "Gezählte Wörter",
+  sharp: "Wörter bis Rang 300",
+  finders: "Gefundene Lösungswörter",
+};
+
+/**
+ * Who is carrying the evening, three ways: who plays most, who guesses close
+ * most often, and who found the most words. All three over the whole stream.
+ */
+function Leaderboards({ boards, catalog }: { boards: LiveViewerBoards; catalog: LiveBadgeCatalog }) {
+  return (
+    <Panel padding="sm" className="gap-2">
+      <div className="flex items-center gap-2">
+        <Trophy className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-micro font-semibold text-muted-foreground">{"Bestenliste"}</span>
+      </div>
+      <Tabs defaultValue="busy" className="gap-2">
+        <TabsList className="w-full">
+          {BOARDS.map((board) => (
+            <TabsTrigger key={board.id} value={board.id} className="flex-1 text-micro">
+              {board.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {BOARDS.map((board) => {
+          const rows = boards[board.id] ?? [];
+          return (
+            <TabsContent key={board.id} value={board.id} className="flex flex-col gap-1">
+              <p className="text-micro text-muted-foreground/80">{BOARD_HINT[board.id]}</p>
+              {rows.length === 0 ? (
+                <p className="text-micro text-muted-foreground/80">{board.empty}</p>
+              ) : (
+                <ol className="flex list-none flex-col gap-1" data-testid={`board-${board.id}`}>
+                  {rows.map((viewer, index) => (
+                    <li
+                      key={`${viewer.platform}-${viewer.nickname}-${index}`}
+                      className="flex items-center justify-between gap-2 text-small"
+                    >
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <ChatIdentity
+                          name={viewer.nickname}
+                          platform={viewer.platform}
+                          badges={viewer.badges}
+                          catalog={catalog}
+                        />
+                      </span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {board.value(viewer)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    </Panel>
+  );
+}
+
+/**
+ * Paid support, newest first: Bits, subscriptions, gifted subscriptions and
+ * TikTok gifts. A list, never a ranking: who gave most is not a score here.
+ */
+function SupportFeed({ feed, catalog }: { feed: LiveEvent[]; catalog: LiveBadgeCatalog }) {
+  return (
+    <Panel padding="sm" className="gap-2">
+      <div className="flex items-center gap-2">
+        <HandCoins className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-micro font-semibold text-muted-foreground">{"Unterstützung"}</span>
+      </div>
+      {feed.length === 0 ? (
+        <p className="text-micro text-muted-foreground/80">
+          {"Bits, Abos und TikTok-Geschenke erscheinen hier und oben über dem Brett."}
+        </p>
+      ) : (
+        <ol className="flex list-none flex-col gap-1.5" data-testid="support-feed">
+          {feed.map((event) => {
+            const detail = eventDetail(event);
+            return (
+              <li key={event.id} className="flex flex-col text-small">
+                <ChatIdentity
+                  name={event.actor}
+                  platform={event.platform}
+                  badges={event.badges}
+                  catalog={catalog}
+                  nameClassName="font-semibold"
+                />
+                <span className="text-micro text-muted-foreground">
+                  {detail ? `${eventAction(event)}, ${detail}` : eventAction(event)}
                 </span>
               </li>
-            ))}
-          </ol>
-        )}
-      </Panel>
-    </div>
+            );
+          })}
+        </ol>
+      )}
+    </Panel>
   );
 }
 
 function ChannelRow({
   channel,
   notice,
-  marked,
   removable,
   controllable,
   onRemove,
@@ -160,7 +246,6 @@ function ChannelRow({
 }: {
   channel: LiveChannel;
   notice: string | null;
-  marked: boolean;
   removable: boolean;
   controllable: boolean;
   onRemove: (platform: LivePlatform) => Promise<void>;
@@ -206,7 +291,7 @@ function ChannelRow({
           aria-hidden
         />
         <span className="min-w-0 truncate font-display text-lead font-bold">{label}</span>
-        {marked && <PlatformMark platform={channel.platform} className="ml-auto" />}
+        <PlatformMark platform={channel.platform} className="ml-auto" />
       </div>
       {line && <p className="text-micro text-muted-foreground">{line}</p>}
       {controllable && (

@@ -32,6 +32,10 @@ export interface Guess {
    *  unset; the stream chat sets it on every row, because the whole point of
    *  that mode is that a viewer sees their own name on the board. */
   by?: string;
+  /** Stream chat only: the chat the word came from (`twitch`, `tiktok`). */
+  source?: string | null;
+  /** Stream chat only: the badges the author carried, as the platform names them. */
+  badges?: { set_id: string; version: string }[];
 }
 
 export interface RevealResult {

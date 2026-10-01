@@ -275,8 +275,8 @@ export async function sendHostMessage(
 }
 
 /**
- * End a stream round: the chat stops counting and the overlay goes blank. The
- * board on the streamer's page stays. `room_not_found` means it already ended.
+ * End a stream round: the chat stops counting. The board on the streamer's
+ * page stays. `room_not_found` means it already ended.
  */
 export async function endLiveStream(token: string, koopId: string): Promise<void> {
   const res = await fetch(`${API_BASE}/admin/live-streams/${encodeURIComponent(koopId)}/end`, {

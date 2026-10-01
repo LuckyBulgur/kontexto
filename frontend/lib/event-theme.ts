@@ -66,12 +66,8 @@ export const SEASONAL_EVENTS: readonly SeasonalEvent[] = [SPOOKTOBER_2026];
  */
 export const EVENT_FORCE_KEY = "kontexto_event_theme_force";
 
-/**
- * Paths that never carry a skin. The admin dashboard is a tool, and the OBS
- * overlay must stay transparent over a stream: its page hides every child of
- * `<body>` but cannot hide a pseudo-element or a page background.
- */
-export const EVENT_EXCLUDED_PATHS: readonly string[] = ["/admin", "/live/overlay"];
+/** Paths that never carry a skin. The admin dashboard is a tool. */
+export const EVENT_EXCLUDED_PATHS: readonly string[] = ["/admin"];
 
 /** Keys the retired WM-2026 skin left in players' storage. */
 const RETIRED_EVENT_KEYS = ["kontexto_event_theme", "kontexto_wm2026_notice"] as const;

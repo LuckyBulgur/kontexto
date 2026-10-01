@@ -272,6 +272,10 @@ jobs:
           # secret and written into the server .env on every deploy, so the key
           # lives in one place and a rotation is one `gh secret set` away.
           EULER_API_KEY: ${{ secrets.EULER_API_KEY }}
+          # Twitch badge pictures for /live/ (backend/twitch_badges.py), the
+          # same way: repository secrets, written into the server .env.
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           DEPLOY_SHA: ${{ github.sha }}
           # Valid for this job only, used for one pull and logged out again,
           # so no registry credential stays on the server.
@@ -281,7 +285,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: EULER_API_KEY,DEPLOY_SHA,REGISTRY_USER,REGISTRY_TOKEN
+          envs: EULER_API_KEY,TWITCH_CLIENT_ID,TWITCH_CLIENT_SECRET,DEPLOY_SHA,REGISTRY_USER,REGISTRY_TOKEN
           script: |
             set -e
             cd /opt/kontexto
@@ -309,6 +313,11 @@ jobs:
             # so removing the secret never wipes a key that was set by hand.
             if [ -n "$EULER_API_KEY" ]; then
               upsert_env KONTEXTO_EULER_API_KEY "$EULER_API_KEY"
+            fi
+            # The Twitch app credentials, same rule: only a set secret writes.
+            if [ -n "$TWITCH_CLIENT_ID" ] && [ -n "$TWITCH_CLIENT_SECRET" ]; then
+              upsert_env KONTEXTO_TWITCH_CLIENT_ID "$TWITCH_CLIENT_ID"
+              upsert_env KONTEXTO_TWITCH_CLIENT_SECRET "$TWITCH_CLIENT_SECRET"
             fi
             # docker-compose.yml reads the image tag from .env, so a manual
             # `docker compose up -d` on the server runs what was deployed, and

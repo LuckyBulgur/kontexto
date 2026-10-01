@@ -1,9 +1,18 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Guess } from "@/lib/types";
 import { KoopPlayer } from "@/lib/koop-types";
 import { Button } from "@/components/ui/button";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
+
+/** One line of the result list. `label` replaces the plain name where a mode
+ *  draws more than a name (the stream chat: logo and badges). */
+export interface ResultRowData {
+  name: string;
+  detail: string;
+  label?: ReactNode;
+}
 
 interface KoopResultCardProps {
   /** Null until the reveal answers: the number only leaves the server once the
@@ -23,7 +32,11 @@ interface KoopResultCardProps {
   groupNoun?: string;
   /** Replaces the player list. The stream chat has two player rows and
    *  hundreds of people, so listing the rows would name the wrong ones. */
-  rows?: { name: string; detail: string }[];
+  rows?: ResultRowData[];
+  /** Replaces the one line that names the finder with a block of its own. The
+   *  stream chat sets it: the finder is one person out of hundreds and has to
+   *  be readable from across the room, on the stream. */
+  finder?: ReactNode;
 }
 
 export default function KoopResultCard({
@@ -37,6 +50,7 @@ export default function KoopResultCard({
   label = "Koop",
   groupNoun = "im Team",
   rows,
+  finder: finderBlock,
 }: KoopResultCardProps) {
   const solvedWord = guesses.find((g) => g.rank === 1)?.word ?? "";
   const sorted = [...players].sort(
@@ -57,21 +71,27 @@ export default function KoopResultCard({
         headline={solvedWord}
         lost={gaveUp}
         support={
-          gaveUp ? `Aufgegeben nach ${guesses.length} Versuchen ${groupNoun}.` : finder
+          gaveUp
+            ? `Aufgegeben nach ${guesses.length} Versuchen ${groupNoun}.`
+            : finderBlock && solvedBy
+              ? `Nach ${guesses.length} Versuchen ${groupNoun}.`
+              : finder
         }
       />
+
+      {!gaveUp && solvedBy && finderBlock}
 
       {/* No places here on purpose: koop is one shared result, and ranking the
           team against itself would invent a competition the mode does not have. */}
       <ResultList>
         {(rows ??
-          sorted.map((p) => ({
+          sorted.map((p): ResultRowData => ({
             name: p.nickname,
             detail: `${p.contribution_count} ${p.contribution_count === 1 ? "Beitrag" : "Beiträge"}`,
           }))).map((row) => (
           <ResultRow
             key={row.name}
-            name={row.name}
+            name={row.label ?? row.name}
             you={!rows && row.name === currentNickname}
             detail={row.detail}
           />

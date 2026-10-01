@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -9,7 +10,6 @@ import {
   Infinity as InfinityIcon,
   LayoutGrid,
   MessagesSquare,
-  Radio,
   Shuffle,
   Swords,
   Tags,
@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MEDIA_DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import ModeRow from "@/components/ModeRow";
+import { BRAND_LOGOS } from "@/lib/brand-logos";
 import { loadSentence, totalSentence } from "@/lib/matchmaking-rules";
 import { QueueModeId } from "@/lib/matchmaking-types";
 import {
@@ -348,8 +349,27 @@ function StreamCallout() {
       href="/live/"
       className="flex w-full items-center gap-2.5 rounded-xl bg-primary p-2.5 text-left text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:gap-3 md:p-4"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 md:h-10 md:w-10">
-        <Radio className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" />
+      {/* The two platforms the chat can come from, on a card-coloured tile so
+          both brand colours keep their contrast on the ink-blue row. */}
+      <span className="flex h-8 shrink-0 items-center gap-1 rounded-lg bg-card px-1.5 md:h-10 md:gap-1.5 md:px-2">
+        <Image
+          src={BRAND_LOGOS.twitch}
+          alt=""
+          width={20}
+          height={20}
+          unoptimized
+          aria-hidden="true"
+          className="size-4 object-contain md:size-5"
+        />
+        <Image
+          src={BRAND_LOGOS.tiktok}
+          alt=""
+          width={20}
+          height={20}
+          unoptimized
+          aria-hidden="true"
+          className="size-4 object-contain md:size-5"
+        />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block font-display text-body font-bold md:text-lead">

@@ -123,9 +123,7 @@ export function Meter({
             emphasis ? "text-small" : "text-micro",
           )}
         >
-          {"("}
-          {meta}
-          {")"}
+          {typeof meta === "string" ? `(${meta})` : meta}
         </span>
       )}
       <span
