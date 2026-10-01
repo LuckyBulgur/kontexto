@@ -76,6 +76,15 @@ export default function GameClient() {
   // game that was already finished in a previous session (loaded as over).
   const completedRef = useRef<number | null>(null);
   const infiniteCompletedRef = useRef<number | null>(null);
+  // The input clears on submit, so a second word can be sent while the first is
+  // still on its way. The closure's guess list does not hold the first one yet:
+  // the duplicate check reads this ref, synced after every commit and advanced
+  // synchronously by addGuess, plus the words that are still in flight.
+  const guessesRef = useRef<Guess[]>(gameState.guesses);
+  const inFlightRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    guessesRef.current = gameState.guesses;
+  }, [gameState.guesses]);
 
   useEffect(() => {
     const initTheme = loadTheme();
@@ -206,9 +215,10 @@ export default function GameClient() {
   }, []);
 
   const addGuess = useCallback((guess: Guess) => {
+    guessesRef.current = [...guessesRef.current, guess];
     setGameState((prev) => ({
       ...prev,
-      guesses: [...prev.guesses, guess],
+      guesses: prev.guesses.some((g) => g.word === guess.word) ? prev.guesses : [...prev.guesses, guess],
       solved: prev.solved || guess.rank === 1,
       startedAt: prev.startedAt ?? Date.now(),
     }));
@@ -239,14 +249,17 @@ export default function GameClient() {
   const handleGuess = useCallback(async (word: string) => {
     setError(null);
     setPodestError(undefined);
-    if (gameState.guesses.some((g) => g.word === word.toLowerCase())) {
-      setPodestError({ word: word.toLowerCase(), message: refusalText("refusalDuplicate", quips, word.toLowerCase()) });
+    const typed = word.toLowerCase();
+    if (inFlightRef.current.has(typed) || guessesRef.current.some((g) => g.word === typed)) {
+      setPodestError({ word: typed, message: refusalText("refusalDuplicate", quips, typed) });
       return;
     }
-    setPendingWord(word.toLowerCase());
+    inFlightRef.current.add(typed);
+    setPendingWord(typed);
     try {
-      const result = await submitGuess(word, apiGame, infinite, gameState.guesses.length === 0);
-      if (gameState.guesses.some((g) => g.word === result.word)) {
+      const first = guessesRef.current.length === 0 && inFlightRef.current.size === 1;
+      const result = await submitGuess(word, apiGame, infinite, first);
+      if (guessesRef.current.some((g) => g.word === result.word)) {
         setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
         return;
       }
@@ -269,9 +282,10 @@ export default function GameClient() {
         setError("Fehler bei der Verbindung");
       }
     } finally {
+      inFlightRef.current.delete(typed);
       setPendingWord(undefined);
     }
-  }, [gameState.guesses, addGuess, apiGame, infinite, quips]);
+  }, [addGuess, apiGame, infinite, quips]);
 
   const handleTip = useCallback(async () => {
     setError(null);

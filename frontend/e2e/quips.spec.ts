@@ -62,7 +62,12 @@ test.describe("Freche Sprüche", () => {
     await expect(quipSwitch).toBeChecked();
     await quipSwitch.click();
     await expect(quipSwitch).not.toBeChecked();
-    await page.keyboard.press("Escape");
+    // Close through the dialog's own button and wait until it is gone: a bare
+    // Escape could land before the dialog took focus back and leave the page
+    // behind it inert, which hid the input from every locator.
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
 
     await input.fill("fahrrad");
     await input.press("Enter");

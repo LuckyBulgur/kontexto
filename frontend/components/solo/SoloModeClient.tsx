@@ -118,6 +118,20 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   // that was already finished when the page was reopened.
   const reportedRef = useRef<string | null>(null);
 
+  // The input clears on submit, so a second word can leave while the first is
+  // still on its way. Every answer is applied to the newest round state, not to
+  // the one its closure saw, or two quick guesses overwrite each other; commit()
+  // advances the ref at once so the next answer in the same tick builds on it.
+  const stateRef = useRef<SoloState | null>(null);
+  const inFlightRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  const commit = useCallback((next: SoloState | null) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
+
   const startRound = useCallback(async (
     setup: CategorySetup = DEFAULT_CATEGORY_SETUP,
     played: number[] = []
@@ -170,7 +184,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
       // A finished round is restored as finished, and its beacon is marked as
       // already sent so reopening the page cannot inflate the statistics.
       if (resumed.status !== "running") reportedRef.current = roundKey(resumed);
-      setState(resumed);
+      commit(resumed);
       setLoading(false);
       return;
     }
@@ -185,7 +199,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     startRound()
       .then((fresh) => {
         if (cancelled) return;
-        setState(fresh);
+        commit(fresh);
         saveSoloState(fresh);
         setLoading(false);
       })
@@ -198,7 +212,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [mode, startRound]);
+  }, [mode, startRound, commit]);
 
   useEffect(() => {
     if (state) saveSoloState(state);
@@ -276,27 +290,42 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
 
   const handleGuess = useCallback(
     async (raw: string) => {
-      if (!state || state.status !== "running") return;
+      const sent = stateRef.current;
+      if (!sent || sent.status !== "running") return;
       setError(null);
       setPodestError(undefined);
 
       const word = raw.trim().toLowerCase();
-      if (alreadyGuessed(state, word)) {
+      if (inFlightRef.current.has(word) || alreadyGuessed(sent, word)) {
         setPodestError({ word, message: refusalText("refusalDuplicate", quips, word) });
         return;
       }
+      // Sudden Death has one attempt: a second word before the first is answered
+      // would be a second attempt.
+      if (sent.mode === "suddendeath" && inFlightRef.current.size > 0) return;
 
+      // The answer belongs to the round it was sent in. A round that ended or was
+      // replaced meanwhile drops it.
+      const current = (): SoloState | null => {
+        const now = stateRef.current;
+        if (!now || now.status !== "running" || now.mode !== sent.mode) return null;
+        return primaryGame(now) === primaryGame(sent) ? now : null;
+      };
+
+      inFlightRef.current.add(word);
       setPendingWord(word);
       try {
-        if (state.mode === "doppel") {
-          const result = await submitDualGuess(word, state.gameNumbers, state.guesses.length === 0);
-          if (alreadyGuessed(state, result.word)) {
+        if (sent.mode === "doppel") {
+          const result = await submitDualGuess(word, sent.gameNumbers, sent.guesses.length === 0);
+          const now = current();
+          if (!now || now.mode !== "doppel") return;
+          if (alreadyGuessed(now, result.word)) {
             setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
             return;
           }
           setLatestWord(result.word);
           onEventGuess({ word: result.word, rank: Math.min(...result.ranks.map((r) => r.rank)) });
-          setState(doppelApplyGuess(state, {
+          commit(doppelApplyGuess(now, {
             word: result.word,
             ranks: result.ranks.map((r) => r.rank),
             correctedFrom: result.corrected_from ?? undefined,
@@ -306,33 +335,35 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
 
         const result = await submitGuess(
           word,
-          primaryGame(state),
+          primaryGame(sent),
           true,
-          soloGuessCount(state) === 0,
-          state.mode
+          soloGuessCount(sent) === 0,
+          sent.mode
         );
-        if (alreadyGuessed(state, result.word)) {
+        const now = current();
+        if (!now) return;
+        if (alreadyGuessed(now, result.word)) {
           setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
           return;
         }
         setLatestWord(result.word);
         onEventGuess({ word: result.word, rank: result.rank });
 
-        if (state.mode === "leiter") {
-          const { state: next, struck } = leiterApplyGuess(state, result);
+        if (now.mode === "leiter") {
+          const { state: next, struck } = leiterApplyGuess(now, result);
           if (struck && next.status === "running") {
             setPodestError({
               word: result.word,
-              message: `Nicht näher dran als Rang ${state.bestRank}. Fehlversuch.`,
+              message: `Nicht näher dran als Rang ${now.bestRank}. Fehlversuch.`,
             });
           }
-          setState(next);
-        } else if (state.mode === "limit") {
-          setState(limitApplyGuess(state, result));
-        } else if (state.mode === "categories") {
-          setState(categoryApplyGuess(state, result));
-        } else {
-          setState(suddenDeathApplyGuess(state, result));
+          commit(next);
+        } else if (now.mode === "limit") {
+          commit(limitApplyGuess(now, result));
+        } else if (now.mode === "categories") {
+          commit(categoryApplyGuess(now, result));
+        } else if (now.mode === "suddendeath") {
+          commit(suddenDeathApplyGuess(now, result));
         }
       } catch (e: unknown) {
         if (e instanceof UnknownWordError) {
@@ -347,10 +378,11 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           setError("Fehler bei der Verbindung");
         }
       } finally {
+        inFlightRef.current.delete(word);
         setPendingWord(undefined);
       }
     },
-    [state, quips]
+    [quips, commit]
   );
 
   const beginRound = useCallback(async (setup?: CategorySetup, played: number[] = []) => {
@@ -364,7 +396,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     try {
       const fresh = await startRound(setup, played);
       reportedRef.current = null;
-      setState(fresh);
+      commit(fresh);
       saveSoloState(fresh);
       setSetupOpen(false);
     } catch {
@@ -372,7 +404,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     } finally {
       setRestarting(false);
     }
-  }, [mode, startRound]);
+  }, [mode, startRound, commit]);
 
   const handleRestart = useCallback(() => {
     if (state?.mode === "categories") {
@@ -392,10 +424,10 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     playedRef.current = categoryPlayedAfter(state);
     setSetupDraft(state.setup);
     clearSoloState(mode);
-    setState(null);
+    commit(null);
     setError(null);
     setSetupOpen(true);
-  }, [mode, state]);
+  }, [mode, state, commit]);
 
   const handleTip = useCallback(async () => {
     if (state?.mode !== "categories" || state.status !== "running") return;
@@ -404,24 +436,28 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     const bestRank = ranks.length > 0 ? Math.min(...ranks) : 10000;
     try {
       const tip = await getTip(difficulty, bestRank, state.gameNumber, ranks, true, "categories");
+      const now = stateRef.current;
+      if (now?.mode !== "categories" || now.status !== "running" || now.gameNumber !== state.gameNumber) return;
       setLatestWord(tip.word);
-      setState(categoryApplyTip(state, tip));
+      commit(categoryApplyTip(now, tip));
     } catch {
       setError("Tipp konnte nicht geladen werden");
     }
-  }, [difficulty, state]);
+  }, [difficulty, state, commit]);
 
   const handleGiveUp = useCallback(async () => {
     setShowGiveUp(false);
     if (state?.mode !== "categories" || state.status !== "running") return;
     try {
       const revealed = await revealAnswer(state.gameNumber, true, "categories");
+      const now = stateRef.current;
+      if (now?.mode !== "categories" || now.status !== "running" || now.gameNumber !== state.gameNumber) return;
       onEventGiveUp();
-      setState(categoryGiveUp(state, revealed.word));
+      commit(categoryGiveUp(now, revealed.word));
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
-  }, [state]);
+  }, [state, commit]);
 
   const handleThemeChange = useCallback((t: "light" | "dark") => {
     setTheme(t);
