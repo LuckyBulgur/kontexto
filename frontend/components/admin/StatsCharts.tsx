@@ -29,6 +29,7 @@ import {
   shortMonth, trend,
 } from "@/lib/format";
 import type { GameDifficultyEntry, StatsData, TimelinePoint } from "@/lib/types";
+import { useCategoryCatalogue } from "@/lib/use-category-catalogue";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "Startseite", "/wordle": "Wördle", "/duel": "Kontexto-Duell",
@@ -42,7 +43,7 @@ const MODE_LABELS: Record<string, string> = {
   duel: "Kontexto-Duell", koop: "Kontexto-Koop", wordle_duel: "Wördle-Duell",
   royale: "Battle Royale", blitz: "Blitz-Duell", timerush: "Zeitbonus-Jagd",
   leiter: "Leiter", limit: "Limitierte Versuche", doppel: "Doppelziel",
-  suddendeath: "Sudden Death",
+  suddendeath: "Sudden Death", categories: "Kategorien",
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "Leicht", medium: "Mittel", hard: "Schwer",
@@ -73,7 +74,7 @@ const MODE_FAMILIES = [
   { key: "wordle", label: "Wördle", accent: 1, members: ["wordle", "wordle_duel"] },
   { key: "multiplayer", label: "Mehrspieler", accent: 2, members: ["duel", "koop", "royale", "blitz", "timerush"] },
   { key: "infinite", label: "Unendlich", accent: 3, members: ["infinite"] },
-  { key: "solo", label: "Solo-Modi", accent: 4, members: ["leiter", "limit", "doppel", "suddendeath"] },
+  { key: "solo", label: "Solo-Modi", accent: 4, members: ["leiter", "limit", "doppel", "suddendeath", "categories"] },
 ];
 
 const MODE_SERIES = MODE_FAMILIES.map(({ key, label, accent }) => ({ key, label, accent }));
@@ -649,6 +650,7 @@ function MethodologySection({ stats }: SectionProps) {
                 <span className="font-medium text-foreground">
                   {formatNumber(sumValues(stats.matchmaking_rooms?.bot_fills))}</span>
               </li>
+              <CategoryUsageLine usage={stats.category_usage} />
               <li>Klebrigkeit (Tag/Monat): <span className="font-medium text-foreground">{formatPercent(stats.stickiness)}</span></li>
               <li>Rohdaten-Aufbewahrung: 35 Tage, danach nur aggregierte Werte.</li>
               <li>Stand: <span className="font-medium text-foreground">{formatStamp(stats.generated_at)}</span></li>
@@ -657,6 +659,29 @@ function MethodologySection({ stats }: SectionProps) {
         </AccordionItem>
       </Accordion>
     </div>
+  );
+}
+
+/**
+ * Category rounds per field and rooms opened with a field filter. The ids are
+ * named through the live catalogue, so a renamed field reads with its new name.
+ */
+function CategoryUsageLine({ usage }: { usage: StatsData["category_usage"] }) {
+  const { catalogue } = useCategoryCatalogue(Boolean(usage));
+  if (!usage) return null;
+  const names = new Map((catalogue ?? []).map((entry) => [entry.id, entry.name]));
+  const top = Object.entries(usage.starts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([id, n]) => `${names.get(id) ?? id}: ${formatNumber(n)}`)
+    .join(", ");
+  return (
+    <li>
+      Kategorien-Runden: <span className="font-medium text-foreground">{formatNumber(sumValues(usage.starts))}</span>
+      {top && <span> ({top})</span>}
+      <span>, Räume mit Kategorien: </span>
+      <span className="font-medium text-foreground">{formatNumber(sumValues(usage.rooms))}</span>
+    </li>
   );
 }
 

@@ -7,6 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
+import CategoryPicker from "@/components/categories/CategoryPicker";
+import {
+  CategorySetup,
+  DEFAULT_CATEGORY_SETUP,
+  loadCategorySetup,
+  normalizeSetup,
+  saveCategorySetup,
+} from "@/lib/categories";
+import { useCategoryCatalogue } from "@/lib/use-category-catalogue";
 import { createLive, fetchLivePlatforms, LiveApiError } from "@/lib/live-api";
 import { channelAddress, normaliseChannel, readyChannels } from "@/lib/live-channel";
 import { PLATFORM_COPY, STOP_HINT, TIKTOK_NOTE } from "@/lib/live-copy";
@@ -40,7 +49,20 @@ export default function LiveCreateClient() {
   // arrives and when the question fails.
   const [available, setAvailable] = useState<LivePlatform[]>(["twitch"]);
   const [inputs, setInputs] = useState<Partial<Record<LivePlatform, string>>>({});
-  const [gameSource, setGameSource] = useState<"today" | "random">("random");
+  // "categories" is a random game from the chosen fields; see RoomCreateClient.
+  const [gameSource, setGameSource] = useState<"today" | "random" | "categories">("random");
+  const [categorySetup, setCategorySetup] = useState<CategorySetup>(DEFAULT_CATEGORY_SETUP);
+  const usesCategories = gameSource === "categories";
+  const { catalogue, failed, retry } = useCategoryCatalogue(usesCategories);
+
+  useEffect(() => {
+    const stored = loadCategorySetup();
+    if (stored) setCategorySetup(stored);
+  }, []);
+
+  useEffect(() => {
+    if (catalogue) setCategorySetup((current) => normalizeSetup(current, catalogue));
+  }, [catalogue]);
   const [tipsAllowed, setTipsAllowed] = useState(true);
   const [requirePrefix, setRequirePrefix] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -79,11 +101,14 @@ export default function LiveCreateClient() {
 
     setLoading(true);
     setError(null);
+    const categories = usesCategories ? categorySetup : null;
+    if (categories) saveCategorySetup(categories);
     try {
       const room = await createLive(ready, {
-        gameSource,
+        gameSource: gameSource === "today" ? "today" : "random",
         tipsAllowed,
         requirePrefix,
+        categories,
       });
       // The same key the koop board reads, because a live room is a koop room
       // and the board is the same component.
@@ -210,12 +235,32 @@ export default function LiveCreateClient() {
                 >
                   {"Heutiges Spiel"}
                 </Button>
+                <Button
+                  type="button"
+                  variant={usesCategories ? "default" : "outline"}
+                  onClick={() => setGameSource("categories")}
+                  className="col-span-2 w-full"
+                >
+                  {"Aus Kategorien"}
+                </Button>
               </div>
               <p className="text-micro text-muted-foreground/80">
                 {`Ein zufälliges Spiel ist die Vorgabe, damit du das heutige Rätsel nicht vor
-                laufender Kamera verrätst.`}
+                laufender Kamera verrätst. Mit Kategorien steht die Kategorie auf Wunsch auch
+                im Overlay.`}
               </p>
             </div>
+
+            {usesCategories && (
+              <CategoryPicker
+                idPrefix="live"
+                value={categorySetup}
+                onChange={setCategorySetup}
+                catalogue={catalogue}
+                failed={failed}
+                onRetry={retry}
+              />
+            )}
 
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -241,7 +286,7 @@ export default function LiveCreateClient() {
 
             <Button
               type="submit"
-              disabled={loading || !ready}
+              disabled={loading || !ready || (usesCategories && !catalogue)}
               className="w-full"
             >
               {loading ? "Wird gestartet..." : "Runde starten"}

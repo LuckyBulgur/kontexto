@@ -9,8 +9,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
+import CategoryPicker from "@/components/categories/CategoryPicker";
 import { createArena } from "@/lib/arena-api";
 import { ArenaModeId } from "@/lib/arena-types";
+import {
+  CategorySetup,
+  DEFAULT_CATEGORY_SETUP,
+  loadCategorySetup,
+  normalizeSetup,
+  saveCategorySetup,
+} from "@/lib/categories";
 import { createDuel } from "@/lib/duel-api";
 import { createKoop } from "@/lib/koop-api";
 import { PARTY_RULES, partySizeLabel } from "@/lib/matchmaking-rules";
@@ -20,6 +28,7 @@ import {
   MULTIPLAYER_MODES,
   isQueueMode,
 } from "@/lib/multiplayer-modes";
+import { useCategoryCatalogue } from "@/lib/use-category-catalogue";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,11 +55,16 @@ function isPairMode(mode: QueueModeId): mode is "duel" | "koop" {
   return mode === "duel" || mode === "koop";
 }
 
+/** Where the room's puzzle comes from. "categories" is a random game from the
+ *  chosen fields; the daily belongs to no field and is never one of them. */
+type PuzzleSource = "today" | "random" | "categories";
+
 export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
   const router = useRouter();
   const [mode, setMode] = useState<QueueModeId>(preselect);
   const [nickname, setNickname] = useState("");
-  const [gameSource, setGameSource] = useState<"today" | "random">("today");
+  const [source, setSource] = useState<PuzzleSource>("today");
+  const [categorySetup, setCategorySetup] = useState<CategorySetup>(DEFAULT_CATEGORY_SETUP);
   const [tipsAllowed, setTipsAllowed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +79,23 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
     }
   }, []);
 
+  // The remembered field choice is shared with the solo mode, read after mount
+  // because the static render has no storage.
+  useEffect(() => {
+    const stored = loadCategorySetup();
+    if (stored) setCategorySetup(stored);
+  }, []);
+
   const meta = MULTIPLAYER_MODES[mode];
+  // An arena never opens on the daily, so "today" carried over from the duel
+  // form reads as a random game there.
+  const effectiveSource: PuzzleSource = !isPairMode(mode) && source === "today" ? "random" : source;
+  const usesCategories = effectiveSource === "categories";
+  const { catalogue, failed, retry } = useCategoryCatalogue(usesCategories);
+
+  useEffect(() => {
+    if (catalogue) setCategorySetup((current) => normalizeSetup(current, catalogue));
+  }, [catalogue]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -74,24 +104,27 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
 
     setLoading(true);
     setError(null);
+    const gameSource = effectiveSource === "today" ? "today" : "random";
+    const categories = usesCategories ? categorySetup : null;
+    if (categories) saveCategorySetup(categories);
     try {
       // Only the kind of game, never its number: the server picks, because the
       // number is enough to look the answer up. See lib/types RoomRevealResult.
       if (mode === "duel") {
-        const created = await createDuel(gameSource, name, tipsAllowed);
+        const created = await createDuel(gameSource, name, tipsAllowed, categories);
         localStorage.setItem(`kontexto_duel_${created.duel_id}`, created.player_token);
         router.push(`/duel/${created.duel_id}/`);
         return;
       }
       if (mode === "koop") {
-        const created = await createKoop(gameSource, name, tipsAllowed);
+        const created = await createKoop(gameSource, name, tipsAllowed, categories);
         localStorage.setItem(`kontexto_koop_${created.koop_id}`, created.player_token);
         router.push(`/koop/${created.koop_id}/`);
         return;
       }
       // An arena always draws a random game, so an invited friend who has not
       // played today's daily yet is not spoiled by joining.
-      const created = await createArena(mode as ArenaModeId, "random", name);
+      const created = await createArena(mode as ArenaModeId, "random", name, categories);
       localStorage.setItem(`kontexto_arena_${created.arena_id}`, created.player_token);
       // A full load, not a client push: /arena/<id>/ is not a route the router
       // knows, it is the one /arena/ page that reads the id from the path, and
@@ -168,44 +201,59 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
               />
             </div>
 
-            {isPairMode(mode) ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Spiel</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant={gameSource === "today" ? "default" : "outline"}
-                      onClick={() => setGameSource("today")}
-                      className="w-full"
-                    >
-                      Heutiges Spiel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={gameSource === "random" ? "default" : "outline"}
-                      onClick={() => setGameSource("random")}
-                      className="w-full"
-                    >
-                      Zufälliges Spiel
-                    </Button>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <Label id="puzzle-source-label">Spiel</Label>
+              <div
+                role="group"
+                aria-labelledby="puzzle-source-label"
+                className="grid grid-cols-2 gap-2"
+              >
+                {(isPairMode(mode) ? PAIR_SOURCES : ARENA_SOURCES).map((option, index, all) => (
+                  <Button
+                    key={option.id}
+                    type="button"
+                    variant={effectiveSource === option.id ? "default" : "outline"}
+                    aria-pressed={effectiveSource === option.id}
+                    onClick={() => setSource(option.id)}
+                    // An odd last option takes the whole row rather than half of it.
+                    className={cn("w-full", all.length % 2 === 1 && index === all.length - 1 && "col-span-2")}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+              {!isPairMode(mode) && (
+                <p className="text-small text-muted-foreground">
+                  {"Eine Arena-Runde zieht nie das heutige Rätsel, damit es niemandem verraten wird."}
+                </p>
+              )}
+            </div>
 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="tips">Tipps erlauben</Label>
-                  <Switch id="tips" checked={tipsAllowed} onCheckedChange={setTipsAllowed} />
-                </div>
-              </>
-            ) : (
-              <p className="text-small text-muted-foreground">
-                {"Eine Arena-Runde zieht immer ein zufälliges Spiel, damit das heutige Rätsel niemandem verraten wird."}
-              </p>
+            {usesCategories && (
+              <CategoryPicker
+                idPrefix="room"
+                value={categorySetup}
+                onChange={setCategorySetup}
+                catalogue={catalogue}
+                failed={failed}
+                onRetry={retry}
+              />
+            )}
+
+            {isPairMode(mode) && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="tips">Tipps erlauben</Label>
+                <Switch id="tips" checked={tipsAllowed} onCheckedChange={setTipsAllowed} />
+              </div>
             )}
 
             {error && <p className="text-small text-destructive">{error}</p>}
 
-            <Button type="submit" disabled={loading || !nickname.trim()} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading || !nickname.trim() || (usesCategories && !catalogue)}
+              className="w-full"
+            >
               {loading ? "Wird erstellt..." : `${meta.name} erstellen`}
             </Button>
           </Panel>
@@ -214,3 +262,14 @@ export default function RoomCreateClient({ preselect }: RoomCreateClientProps) {
     </div>
   );
 }
+
+const PAIR_SOURCES: { id: PuzzleSource; label: string }[] = [
+  { id: "today", label: "Heutiges Spiel" },
+  { id: "random", label: "Zufälliges Spiel" },
+  { id: "categories", label: "Aus Kategorien" },
+];
+
+const ARENA_SOURCES: { id: PuzzleSource; label: string }[] = [
+  { id: "random", label: "Zufälliges Spiel" },
+  { id: "categories", label: "Aus Kategorien" },
+];

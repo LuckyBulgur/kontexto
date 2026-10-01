@@ -35,6 +35,8 @@ import { submitWordRating, fetchWordRatingSummary } from "@/lib/analytics";
 import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import type { PodestError } from "@/components/GuessList";
 
 
@@ -49,6 +51,7 @@ export default function GameClient() {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [error, setError] = useState<string | null>(null);
+  const { enabled: quips } = useQuips();
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [podestError, setPodestError] = useState<PodestError | undefined>();
@@ -245,14 +248,14 @@ export default function GameClient() {
     setError(null);
     setPodestError(undefined);
     if (gameState.guesses.some((g) => g.word === word.toLowerCase())) {
-      setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten" });
+      setPodestError({ word: word.toLowerCase(), message: refusalText("refusalDuplicate", quips, word.toLowerCase()) });
       return;
     }
     setPendingWord(word.toLowerCase());
     try {
       const result = await submitGuess(word, apiGame, infinite, gameState.guesses.length === 0);
       if (gameState.guesses.some((g) => g.word === result.word)) {
-        setPodestError({ word: result.word, message: "Wort bereits geraten" });
+        setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
         return;
       }
       addGuess({
@@ -265,18 +268,18 @@ export default function GameClient() {
       if (e instanceof UnknownWordError) {
         setPodestError({
           word: word.toLowerCase(),
-          message: "Dieses Wort kenne ich leider nicht",
+          message: refusalText("refusalUnknown", quips, word.toLowerCase()),
           suggestions: e.suggestions,
         });
       } else if (e instanceof Error && e.message === "stopword") {
-        setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
+        setPodestError({ word: word.toLowerCase(), message: refusalText("refusalStopword", quips, word.toLowerCase()) });
       } else {
         setError("Fehler bei der Verbindung");
       }
     } finally {
       setPendingWord(undefined);
     }
-  }, [gameState.guesses, addGuess, apiGame, infinite]);
+  }, [gameState.guesses, addGuess, apiGame, infinite, quips]);
 
   const handleTip = useCallback(async () => {
     setError(null);
@@ -490,7 +493,8 @@ export default function GameClient() {
               isWin={isWin}
               onOpenPastGames={() => setShowPastGames(true)}
               onOpenClosestWords={() => setShowClosestWords(true)}
-              rating={<WordRating prompt={rating} />}
+              rating={<WordRating prompt={rating} quipSeed={gameNumber} />}
+              quips={quips}
               survey={survey.showInline ? (
                 <SourceSurvey onAnswered={survey.onAnswered} onSkipped={survey.onSkipped} />
               ) : undefined}
@@ -551,7 +555,7 @@ export default function GameClient() {
         )}
         <GuessList guesses={gameState.guesses} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} onSuggestion={handleGuess} sortMode={sortMode} />
       </div>
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} showQuips />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />

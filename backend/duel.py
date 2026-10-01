@@ -5,6 +5,7 @@ import string
 
 import aiosqlite
 
+from categories import decode_filter, encode_filter
 from nicknames import sanitize_nickname
 from rooms import RoomRevealRefused
 
@@ -32,6 +33,8 @@ async def create_duel(
     game_number: int,
     nickname: str,
     tips_allowed: bool,
+    categories: list[str] | None = None,
+    show_category: bool = False,
 ) -> dict:
     # One rule for every room, invite links included: an abusive name is not
     # rejected, it comes back masked and pointed at its author.
@@ -40,8 +43,9 @@ async def create_duel(
     player_token = _generate_token()
 
     await db.execute(
-        "INSERT INTO duels (id, game_number, created_by, tips_allowed) VALUES (?, ?, ?, ?)",
-        (duel_id, game_number, nickname, tips_allowed),
+        "INSERT INTO duels (id, game_number, created_by, tips_allowed, categories, show_category) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (duel_id, game_number, nickname, tips_allowed, encode_filter(categories or []), show_category),
     )
     await db.execute(
         "INSERT INTO duel_players (duel_id, nickname, player_token) VALUES (?, ?, ?)",
@@ -101,6 +105,8 @@ async def get_duel_state(db: aiosqlite.Connection, duel_id: str) -> dict | None:
         "game_number": duel["game_number"],
         "round": duel["round"],
         "tips_allowed": bool(duel["tips_allowed"]),
+        "categories": decode_filter(duel["categories"]),
+        "show_category": bool(duel["show_category"]),
         "players": players,
     }
 

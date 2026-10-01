@@ -162,7 +162,16 @@ ATTENTION_METRIC = "attention"            # heartbeats on a visible tab, per pag
 # give-up rank, because a multiplayer room ends for reasons other than giving up.
 SOLO_MODES: tuple[str, ...] = (
     "kontexto", "infinite", "leiter", "limit", "doppel", "suddendeath",
+    # Endless rounds drawn from chosen fields (categories.py), since 2026-10-01.
+    "categories",
 )
+#: The solo mode whose rounds are drawn from chosen fields.
+CATEGORY_MODE = "categories"
+#: A category round was begun, dimension = the field of its solution.
+CATEGORY_START_METRIC = "category_starts"
+#: A room was opened with a field filter or with its field on screen,
+#: dimension = the room mode (duel, koop, royale, blitz, timerush, live).
+CATEGORY_ROOM_METRIC = "category_rooms"
 MULTI_MODES: tuple[str, ...] = (
     "duel", "koop", "wordle", "wordle_duel", "royale", "blitz", "timerush",
     # A stream chat playing a koop round. Its own dimension, because one room can
@@ -183,7 +192,9 @@ MODE_PICK_METRIC = "mode_picks"
 # The daily Kontexto game is not in the list: it is the board the dialog opens
 # on, not a row a player can pick, and its starts would outrank every other
 # solo mode by an order of magnitude.
-SOLO_PICK_MODES: tuple[str, ...] = ("infinite", "leiter", "limit", "doppel", "suddendeath")
+SOLO_PICK_MODES: tuple[str, ...] = (
+    "infinite", "leiter", "limit", "doppel", "suddendeath", "categories",
+)
 FRIENDS_PICK_MODES: tuple[str, ...] = (
     "duel", "koop", "royale", "blitz", "timerush", "wordle_duel", "live",
 )
@@ -1946,6 +1957,17 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
     for metric, dim, v in await cur.fetchall():
         matchmaking_rooms[metric][dim] = v
 
+    # Category rounds per field (solo, deduped on the start ledger) and rooms
+    # opened with a field filter per room mode. Admin only.
+    cur = await db.execute(
+        "SELECT metric, dimension, SUM(value) FROM analytics_counters "
+        "WHERE metric IN (?, ?) GROUP BY metric, dimension",
+        (CATEGORY_START_METRIC, CATEGORY_ROOM_METRIC),
+    )
+    category_usage: dict[str, dict[str, int]] = {"starts": {}, "rooms": {}}
+    for metric, dim, v in await cur.fetchall():
+        category_usage["starts" if metric == CATEGORY_START_METRIC else "rooms"][dim] = v
+
     # Client-reported distributions (attempts / time-to-solve / give-up rank / tips).
     distributions: dict[str, dict[str, int]] = {}
     cur = await db.execute(
@@ -2138,6 +2160,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "games_by_mode": games_by_mode,
         "duels_created": duels_created,
         "matchmaking_rooms": matchmaking_rooms,
+        "category_usage": category_usage,
         "engagement": engagement,
         "hints_by_difficulty": hints_by_difficulty,
         "distributions": distributions,

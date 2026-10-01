@@ -27,6 +27,7 @@ from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
+from categories import decode_filter, encode_filter
 from nicknames import sanitize_nickname
 from rooms import RoomRevealRefused
 
@@ -111,6 +112,8 @@ async def create_arena(
     mode: str,
     game_number: int,
     nickname: str,
+    categories: list[str] | None = None,
+    show_category: bool = False,
 ) -> dict | None:
     if mode not in ARENA_MODES:
         return None
@@ -121,8 +124,9 @@ async def create_arena(
     arena_id = _generate_id()
     player_token = _generate_token()
     await db.execute(
-        "INSERT INTO arenas (id, mode, game_number, created_by) VALUES (?, ?, ?, ?)",
-        (arena_id, mode, game_number, nickname),
+        "INSERT INTO arenas (id, mode, game_number, created_by, categories, show_category) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (arena_id, mode, game_number, nickname, encode_filter(categories or []), show_category),
     )
     await db.execute(
         "INSERT INTO arena_players (arena_id, nickname, player_token) VALUES (?, ?, ?)",
@@ -200,6 +204,8 @@ async def get_arena_state(db: aiosqlite.Connection, arena_id: str) -> dict | Non
         "deadline_at": arena["deadline_at"],
         "winner": arena["winner"],
         "round": arena["round"],
+        "categories": decode_filter(arena["categories"]),
+        "show_category": bool(arena["show_category"]),
         # The server's own clock, shipped with every state read. A countdown
         # rendered against a deadline alone is only as correct as the device's
         # clock, and a phone that is two minutes fast would show a round that

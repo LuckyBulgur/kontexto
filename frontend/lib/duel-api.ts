@@ -7,13 +7,16 @@ import {
   NextGameResult,
 } from "./duel-types";
 import { throwGuessNotFound } from "./guess-error";
+import { CategorySetup, roomCategoryBody } from "./categories";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+/** `categories` set means a random game from those fields (never the daily). */
 export async function createDuel(
   gameSource: RoomGameSource,
   nickname: string,
-  tipsAllowed: boolean
+  tipsAllowed: boolean,
+  categories?: CategorySetup | null
 ): Promise<CreateDuelResponse> {
   const res = await fetch(`${API_BASE}/duel`, {
     method: "POST",
@@ -22,6 +25,7 @@ export async function createDuel(
       game_source: gameSource,
       nickname,
       tips_allowed: tipsAllowed,
+      ...(categories ? roomCategoryBody(categories) : {}),
     }),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);

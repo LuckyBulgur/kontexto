@@ -182,6 +182,7 @@ const expectedStaticSitemapPaths = [
   "/", "/wordle/", "/duel/", "/koop/", "/wordle/duel/",
   "/modi/", "/arena/", "/live/",
   "/solo/leiter/", "/solo/limit/", "/solo/doppelziel/", "/solo/sudden-death/",
+  "/solo/kategorien/",
   "/faq/", "/anleitung/", "/strategie/", "/vergleich/", "/glossar/",
   "/ueber/", "/redaktion/", "/blog/", "/zahlen/", "/changelog/",
   "/kontakt/", "/impressum/", "/nutzungsbedingungen/", "/cookies/",

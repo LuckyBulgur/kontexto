@@ -1,11 +1,67 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+import categories as category_catalogue
 
 # Which puzzle a new room is opened on. The client picks the kind, never the
 # number: handing the number in would hand the creator the answer, because
 # /api/reveal serves it to anybody who asks. See rooms.py.
 RoomGameSource = Literal["today", "random"]
+
+
+class CategoryInfo(BaseModel):
+    """A field as a response names it: the id for code, the name for people."""
+    id: str
+    name: str
+
+
+class CategoryEntry(CategoryInfo):
+    # Playable games a filter on this field can draw.
+    count: int
+
+
+class CategoriesResponse(BaseModel):
+    categories: list[CategoryEntry]
+
+
+class RoomCategoryOptions(BaseModel):
+    """The category part of every room a player creates (categories.py).
+
+    ``categories`` narrows the draw to those fields, empty means every field.
+    ``show_category`` puts the round's field above the board for everybody in
+    the room, which is what keeps it fair: one player cannot see it alone.
+
+    Neither goes with the daily. Its puzzle is the same for everyone and is
+    drawn from no field, and the daily never shows one.
+    """
+
+    categories: list[str] = Field(default_factory=list, max_length=64)
+    show_category: bool = False
+
+    @field_validator("categories")
+    @classmethod
+    def _known_fields(cls, value: list[str]) -> list[str]:
+        try:
+            chosen = category_catalogue.get_categories().parse(value)
+        except category_catalogue.CategoryError as exc:
+            raise ValueError(str(exc)) from exc
+        return category_catalogue.get_categories().ordered(chosen)
+
+    @model_validator(mode="after")
+    def _not_with_the_daily(self):
+        source = getattr(self, "game_source", "random")
+        if source == "today" and (self.categories or self.show_category):
+            raise ValueError("categories apply to a random game, never to the daily")
+        return self
+
+
+class RoomCategoryState(BaseModel):
+    """What every room state says about its fields. Never the game number."""
+    categories: list[str] = []
+    show_category: bool = False
+    # The round's field, only when the room shows it, else None.
+    category: CategoryInfo | None = None
 
 
 class GuessRequest(BaseModel):
@@ -74,6 +130,9 @@ class InfiniteNextResponse(BaseModel):
     gameNumber: int
     total: int
     totalGames: int
+    # The field of the drawn game, or None when it has none. The solo number
+    # is already open (reveal, closest), so naming its field opens nothing.
+    category: CategoryInfo | None = None
 
 
 # --- Solo modes (Leiter, Limitierte Versuche, Doppelziel, Sudden Death) ---
@@ -128,6 +187,8 @@ class NextGameResponse(BaseModel):
     """
     round: int
     total: int
+    # The new round's field, when the room shows it.
+    category: CategoryInfo | None = None
 
 
 class RoomRevealRequest(BaseModel):
@@ -141,7 +202,7 @@ class RoomRevealResponse(BaseModel):
     round: int
 
 
-class CreateDuelRequest(BaseModel):
+class CreateDuelRequest(RoomCategoryOptions):
     # extra="forbid" so a stale client that still sends game_number is told no,
     # rather than being quietly served a server-picked game it cannot explain.
     model_config = ConfigDict(extra="forbid")
@@ -169,7 +230,7 @@ class DuelPlayerInfo(BaseModel):
     connected: bool
 
 
-class DuelStateResponse(BaseModel):
+class DuelStateResponse(RoomCategoryState):
     duel_id: str
     # No game_number: see rooms.py. The round counter is what the client keys
     # its board resets on.
@@ -178,7 +239,7 @@ class DuelStateResponse(BaseModel):
     players: list[DuelPlayerInfo]
 
 
-class JoinDuelResponse(BaseModel):
+class JoinDuelResponse(RoomCategoryState):
     player_token: str
     duel_id: str
     round: int
@@ -204,7 +265,7 @@ class DuelGuessHistoryResponse(BaseModel):
 # --- Koop (cooperative Kontexto) ---
 
 
-class CreateKoopRequest(BaseModel):
+class CreateKoopRequest(RoomCategoryOptions):
     model_config = ConfigDict(extra="forbid")
 
     game_source: RoomGameSource = "random"
@@ -227,7 +288,7 @@ class KoopPlayerInfo(BaseModel):
     connected: bool
 
 
-class KoopStateResponse(BaseModel):
+class KoopStateResponse(RoomCategoryState):
     koop_id: str
     # No game_number while the round is open: see rooms.py.
     round: int
@@ -298,7 +359,7 @@ class LiveChannelRequest(BaseModel):
     channel: str = Field(..., min_length=1, max_length=120)
 
 
-class CreateLiveRequest(BaseModel):
+class CreateLiveRequest(RoomCategoryOptions):
     model_config = ConfigDict(extra="forbid")
 
     # The chats this room reads, at most one per platform (two platforms).
@@ -460,6 +521,8 @@ class LiveOverlayResponse(BaseModel):
     channels: list[LiveChannelPublic]
     recent: list[LiveOverlayGuess]
     top: list[LiveViewer]
+    # The round's field, when the host chose to show it on stream.
+    category: CategoryInfo | None = None
 
 
 class LiveMessagesSeenRequest(BaseModel):
@@ -546,7 +609,7 @@ class LiveDebugMessageRequest(BaseModel):
 # --- Arenas (Battle Royale, Blitz-Duell, Zeitbonus-Jagd) ---
 
 
-class CreateArenaRequest(BaseModel):
+class CreateArenaRequest(RoomCategoryOptions):
     model_config = ConfigDict(extra="forbid")
 
     mode: str = Field(..., pattern="^(royale|blitz|timerush)$")
@@ -578,7 +641,7 @@ class ArenaPlayerInfo(BaseModel):
     place: int | None
 
 
-class ArenaStateResponse(BaseModel):
+class ArenaStateResponse(RoomCategoryState):
     arena_id: str
     mode: str
     # No game_number while the round is open: see rooms.py.

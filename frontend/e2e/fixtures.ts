@@ -41,6 +41,27 @@ export async function disableSeasonalEvents(context: BrowserContext): Promise<vo
   }, EVENT_FORCE_KEY);
 }
 
+/** The opt-out key of lib/use-quips.ts, QUIPS_STORAGE_KEY. */
+export const QUIPS_KEY = "kontexto_quips";
+
+/**
+ * Quips stay off unless a spec asks for them (e2e/quips.spec.ts).
+ *
+ * They are on by default for players, but every other spec asserts the plain
+ * copy ("Wort bereits geraten", "Genial!", "Danke."), which is what the game
+ * shows with the switch off. Written only when the key is absent, so a spec
+ * sets it to "on" in a later init script and keeps that across reloads.
+ */
+export async function disableQuips(context: BrowserContext): Promise<void> {
+  await context.addInitScript((key) => {
+    try {
+      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, "off");
+    } catch {
+      // Storage blocked: the quips show, and only quips.spec.ts relies on either.
+    }
+  }, QUIPS_KEY);
+}
+
 /**
  * For specs that build their own contexts (duel-realtime needs two isolated
  * players). The context fixture below does not reach those, because a context
@@ -49,6 +70,7 @@ export async function disableSeasonalEvents(context: BrowserContext): Promise<vo
 export async function prepareContext(context: BrowserContext): Promise<void> {
   await context.route(THIRD_PARTY, (route) => route.abort());
   await disableSeasonalEvents(context);
+  await disableQuips(context);
 }
 
 export const test = base.extend({

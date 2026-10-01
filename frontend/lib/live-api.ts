@@ -1,3 +1,4 @@
+import { CategorySetup, roomCategoryBody } from "./categories";
 import { RoomGameSource } from "./types";
 import {
   CreateLiveResponse,
@@ -69,6 +70,8 @@ export async function createLive(
     gameSource: RoomGameSource;
     tipsAllowed: boolean;
     requirePrefix: boolean;
+    /** Set means a random game from those fields (never the daily). */
+    categories?: CategorySetup | null;
   }
 ): Promise<CreateLiveResponse> {
   const res = await fetch(`${API_BASE}/live`, {
@@ -79,6 +82,7 @@ export async function createLive(
       game_source: options.gameSource,
       tips_allowed: options.tipsAllowed,
       require_prefix: options.requirePrefix,
+      ...(options.categories ? roomCategoryBody(options.categories) : {}),
     }),
   });
   return readLive<CreateLiveResponse>(res);

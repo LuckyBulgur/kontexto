@@ -8,13 +8,16 @@ import {
   NextGameResult,
 } from "./koop-types";
 import { throwGuessNotFound } from "./guess-error";
+import { CategorySetup, roomCategoryBody } from "./categories";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+/** `categories` set means a random game from those fields (never the daily). */
 export async function createKoop(
   gameSource: RoomGameSource,
   nickname: string,
-  tipsAllowed: boolean
+  tipsAllowed: boolean,
+  categories?: CategorySetup | null
 ): Promise<CreateKoopResponse> {
   const res = await fetch(`${API_BASE}/koop`, {
     method: "POST",
@@ -23,6 +26,7 @@ export async function createKoop(
       game_source: gameSource,
       nickname,
       tips_allowed: tipsAllowed,
+      ...(categories ? roomCategoryBody(categories) : {}),
     }),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);

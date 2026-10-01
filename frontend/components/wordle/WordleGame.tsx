@@ -18,7 +18,8 @@ import {
   type WordleGameState,
 } from "@/lib/wordle-storage";
 
-const WIN_MESSAGES = ["Genial!", "Gro\u00DFartig!", "Stark!", "Gut!", "Knapp!", "Gerade so!"];
+import { PLAIN, pickQuip, refusalText, wordleWinOccasion } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 
 interface WordleGameProps {
   mode?: "daily" | "random";
@@ -39,6 +40,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
   const [wonRow, setWonRow] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const hardMode = loadHardMode();
+  const { enabled: quips } = useQuips();
   // First-guess timestamp (this session) for the time-to-solve completion beacon.
   const startedAtRef = useRef<number | null>(null);
 
@@ -111,7 +113,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
 
     const word = currentGuess.toLowerCase();
     if (word.length < 5) {
-      toast("Nicht genug Buchstaben");
+      toast(refusalText("wordleTooShort", quips, `${gameNumber}:${guesses.length}`));
       shake();
       return;
     }
@@ -125,9 +127,11 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
 
       if (!resp.valid) {
         if (resp.error === "not_in_word_list") {
-          toast("Nicht im W\u00F6rterbuch");
+          toast(refusalText("wordleNotInList", quips, word));
         } else if (resp.error === "hard_mode_violation") {
-          toast(resp.message || "Hard Mode Versto\u00DF");
+          // The server's message says which letter is missing; the quip never replaces it.
+          if (quips) toast(pickQuip("wordleHardMode", word), { description: resp.message || undefined });
+          else toast(resp.message || PLAIN.wordleHardMode);
         }
         shake();
         return;
@@ -161,7 +165,11 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
         // Delay win effects until flip animation completes (~1.8s)
         setTimeout(async () => {
           setWonRow(newGuesses.length - 1);
-          toast(WIN_MESSAGES[newGuesses.length - 1] || "Gewonnen!");
+          toast(
+            quips
+              ? pickQuip(wordleWinOccasion(newGuesses.length), `${mode}:${gameNumber}`)
+              : PLAIN.wordleWin[newGuesses.length - 1] || "Gewonnen!",
+          );
           await fireBurst();
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, true, newGuesses.length);
@@ -181,7 +189,10 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
           const { revealWordleAnswer } = await import("@/lib/wordle-api");
           try {
             const { word } = await revealWordleAnswer(gameNumber);
-            toast(word.toUpperCase(), { duration: 5000 });
+            toast(word.toUpperCase(), {
+              duration: 5000,
+              description: quips ? pickQuip("wordleLoss", `${mode}:${gameNumber}`) : undefined,
+            });
           } catch {}
           if (mode === "daily") {
             updateStatsAfterGame(gameNumber, false, 6);
@@ -196,7 +207,7 @@ export default function WordleGame({ mode = "daily", gameNumber: forcedGameNumbe
     } finally {
       setSubmitting(false);
     }
-  }, [gameNumber, currentGuess, guesses, evaluations, submitting, gameStatus, hardMode, shake, updateLetterStates, onGameEnd, mode, saveState]);
+  }, [gameNumber, currentGuess, guesses, evaluations, submitting, gameStatus, hardMode, shake, updateLetterStates, onGameEnd, mode, saveState, quips]);
 
   const handleKey = useCallback((key: string) => {
     if (gameStatus !== "playing") return;

@@ -8,6 +8,7 @@ import {
   doppelBestRanks,
   soloGuessCount,
 } from "@/lib/solo-modes";
+import { pickQuip, soloResultOccasion } from "@/lib/quips";
 
 interface SoloResultCardProps {
   mode: SoloModeMeta;
@@ -18,6 +19,10 @@ interface SoloResultCardProps {
   secondSolution?: string | null;
   onRestart: () => void;
   restarting?: boolean;
+  /** Kategorien only: back to the field choice. */
+  onChangeSetup?: () => void;
+  /** Ends the summary on a quip (`lib/quips.ts`). */
+  quips?: boolean;
 }
 
 export default function SoloResultCard({
@@ -27,30 +32,44 @@ export default function SoloResultCard({
   secondSolution,
   onRestart,
   restarting,
+  onChangeSetup,
+  quips,
 }: SoloResultCardProps) {
   const won = state.status === "won";
 
   const words = [solution, secondSolution].filter(Boolean) as string[];
+  // A category round names its field once it is over, shown during it or not:
+  // after the round it is no hint any more, and it says what the word was.
+  const label = state.mode === "categories" && state.category ? state.category.name : mode.name;
 
   return (
     <Panel className="animate-result-in">
       <ResultHero
         eyebrow={
           words.length === 0
-            ? mode.name
+            ? label
             : words.length > 1
-              ? `${mode.name}, die Wörter waren`
-              : `${mode.name}, das Wort war`
+              ? `${label}, die Wörter waren`
+              : `${label}, das Wort war`
         }
         headline={words.length > 0 ? words.join(" und ") : won ? headline(mode.id) : "Diesmal nicht"}
         lost={!won}
-        support={summary(state)}
+        support={
+          quips
+            ? `${summary(state)} ${pickQuip(soloResultOccasion(state.mode, won), `${solution ?? ""}:${soloGuessCount(state)}`)}`
+            : summary(state)
+        }
       />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button className="flex-1" onClick={onRestart} disabled={restarting}>
-          {restarting ? "Lädt..." : "Neue Runde"}
+          {restarting ? "Lädt..." : state.mode === "categories" ? "Nächste Runde" : "Neue Runde"}
         </Button>
+        {onChangeSetup && (
+          <Button variant="outline" className="flex-1" onClick={onChangeSetup} disabled={restarting}>
+            {"Kategorien ändern"}
+          </Button>
+        )}
         <ModesDialogButton className="flex-1">Andere Modi</ModesDialogButton>
       </div>
     </Panel>
@@ -67,6 +86,8 @@ function headline(id: SoloModeMeta["id"]): string {
       return "Beide gefunden";
     case "suddendeath":
       return "Sitzt, auf Anhieb";
+    case "categories":
+      return "Gefunden";
   }
 }
 
@@ -93,6 +114,12 @@ function summary(state: SoloState): string {
       return state.status === "won"
         ? "Ein Versuch, ein Treffer."
         : `Dein Wort landete auf Rang ${state.attempt?.rank ?? 0}.`;
+    case "categories": {
+      const tips = state.tips === 0 ? "" : state.tips === 1 ? " und einem Tipp" : ` und ${state.tips} Tipps`;
+      return state.status === "won"
+        ? `Gelöst mit ${attempts}${tips}.`
+        : `Aufgegeben nach ${attempts}.`;
+    }
   }
 }
 

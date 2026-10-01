@@ -26,6 +26,18 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-01",
     kind: "Neu",
+    title: "Kategorien: Du wählst das Wortfeld",
+    body:
+      "Im neuen Solo-Modus Kategorien bestimmst du, woher das geheime Wort kommt: Tiere, Essen " +
+      "und Trinken, Musik, eine Kategorie, mehrere oder alle. Auf Wunsch steht die Kategorie der " +
+      "Runde über dem Spielfeld. Dieselbe Auswahl gibt es beim Erstellen von Duell, Koop, Arena " +
+      "und Live-Runde. Das Tagesrätsel bleibt, wie es ist.",
+    href: "/solo/kategorien/",
+    hrefLabel: "Kategorien spielen",
+  },
+  {
+    date: "2026-10-01",
+    kind: "Neu",
     title: "Spooktober: Kontexto im Gruseldesign",
     body:
       "Bis zum 31. Oktober trägt Kontexto Kerzenschein und Mitternacht, im Kopf der Seite steht ein " +

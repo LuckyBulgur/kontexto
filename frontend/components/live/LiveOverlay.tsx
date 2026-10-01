@@ -104,6 +104,13 @@ export default function LiveOverlay() {
         </span>
       </div>
 
+      {state.category && (
+        <span className="text-small text-muted-foreground">
+          {"Kategorie: "}
+          <span className="font-semibold text-foreground">{state.category.name}</span>
+        </span>
+      )}
+
       {state.solved && state.solved_by ? (
         <div className="flex flex-col gap-1">
           <RevealWord word={state.recent.find((g) => g.rank === 1)?.word ?? ""} />

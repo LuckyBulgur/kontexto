@@ -30,6 +30,7 @@ import { DuelPlayer, DuelWsMessage, DuelState } from "@/lib/duel-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
+import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
 
 function getDuelIdFromPath(): string | null {
@@ -181,6 +182,12 @@ export default function DuelPageClient() {
       setPlayers(msg.players);
     } else if (msg.type === "next_round") {
       resetForNextGame(msg.round);
+      // The frame names the round, not its field; the room state does.
+      if (duelId) {
+        getDuelState(duelId)
+          .then((fresh) => setDuelState((prev) => (prev ? { ...prev, category: fresh.category ?? null } : fresh)))
+          .catch(() => {});
+      }
     } else if (msg.type === "rank_update") {
       setPlayers((prev) =>
         prev.map((p) =>
@@ -225,7 +232,7 @@ export default function DuelPageClient() {
         )
       );
     }
-  }, [resetForNextGame]);
+  }, [resetForNextGame, duelId]);
 
   useDuelWebSocket({
     duelId,
@@ -385,6 +392,7 @@ export default function DuelPageClient() {
     try {
       const result = await duelNextGame(duelId, playerToken);
       resetForNextGame(result.round);
+      setDuelState((prev) => (prev ? { ...prev, category: result.category ?? null } : prev));
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "no_games") {
         toast.error("Keine weiteren Spiele verfügbar");
@@ -477,8 +485,9 @@ export default function DuelPageClient() {
             />
           ) : (
             <>
-              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>Duell</span>
+                <RoomCategoryLabel room={duelState} />
                 <span>
                   Versuche:{" "}
                   <span className="text-lead font-bold">{guesses.length}</span>

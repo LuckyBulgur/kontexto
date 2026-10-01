@@ -114,11 +114,19 @@ export async function getClosestWords(game?: number | null, infinite?: boolean):
  * of games already finished this session (so we avoid repeats until the pool is
  * exhausted) and `current` is the game in progress (never handed back). Throws
  * "no_games" when the pool holds nothing else to play.
+ *
+ * `categories` narrows the draw to those fields (the Kategorien mode); empty or
+ * absent draws from every game, as the endless mode always has.
  */
-export async function getInfiniteGame(played: number[], current?: number | null): Promise<InfiniteNextResponse> {
+export async function getInfiniteGame(
+  played: number[],
+  current?: number | null,
+  categories?: string[]
+): Promise<InfiniteNextResponse> {
   const params = new URLSearchParams();
   if (played.length > 0) params.set("exclude", played.join(","));
   if (current) params.set("current", String(current));
+  if (categories && categories.length > 0) params.set("categories", categories.join(","));
   const qs = params.toString();
   const res = await fetch(`${API_BASE}/infinite/next${qs ? `?${qs}` : ""}`);
   if (res.status === 404) throw new Error("no_games");

@@ -1,3 +1,5 @@
+import type { CategoryInfo } from "./categories";
+
 export interface GuessResult {
   word: string;
   rank: number;
@@ -292,6 +294,11 @@ export interface StatsData {
     matches_made: Record<string, number>;
     bot_fills: Record<string, number>;
   };
+  /** Category rounds per field id and category rooms per room mode. Absent on an older backend. */
+  category_usage?: {
+    starts: Record<string, number>;
+    rooms: Record<string, number>;
+  };
   engagement: {
     guesses_total: number;
     solves_total: number;
@@ -350,6 +357,8 @@ export interface InfiniteNextResponse {
   gameNumber: number;
   total: number;
   totalGames: number;
+  /** The drawn game's field; the home page's endless mode ignores it. */
+  category?: CategoryInfo | null;
 }
 
 /** One exact rank of a game, the opening move of the Leiter mode. */
@@ -381,7 +390,7 @@ export interface SuddenDeathRound {
 }
 
 export interface CompletionPayload {
-  mode: "kontexto" | "wordle" | "infinite" | "leiter" | "limit" | "doppel" | "suddendeath";
+  mode: "kontexto" | "wordle" | "infinite" | "leiter" | "limit" | "doppel" | "suddendeath" | "categories";
   game_number: number;
   outcome: "solved" | "gaveup";
   guesses: number;

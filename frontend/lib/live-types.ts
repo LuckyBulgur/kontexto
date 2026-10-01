@@ -1,3 +1,5 @@
+import type { CategoryInfo } from "./categories";
+
 /**
  * The shapes the live chat endpoints return.
  *
@@ -88,4 +90,6 @@ export interface LiveOverlayState {
   /** Newest first. */
   recent: LiveOverlayGuess[];
   top: LiveViewer[];
+  /** The round's field, when the host chose to put it on air. */
+  category?: CategoryInfo | null;
 }

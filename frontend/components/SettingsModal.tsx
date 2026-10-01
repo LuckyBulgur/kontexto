@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useEventTheme } from "@/lib/use-event-theme";
 import PalettePicker from "@/components/PalettePicker";
+import QuipsSetting from "@/components/QuipsSetting";
 
 interface SettingsModalProps {
   open: boolean;
@@ -28,6 +29,9 @@ interface SettingsModalProps {
   onDifficultyChange: (d: Difficulty) => void;
   sortMode: SortMode;
   onSortModeChange: (s: SortMode) => void;
+  /** Offers the quip switch. Only the clients that show quips pass it, so a
+   *  multiplayer room never carries a switch without effect. */
+  showQuips?: boolean;
 }
 
 export default function SettingsModal({
@@ -39,6 +43,7 @@ export default function SettingsModal({
   onDifficultyChange,
   sortMode,
   onSortModeChange,
+  showQuips,
 }: SettingsModalProps) {
   const { event, enabled: eventEnabled, setEnabled: setEventEnabled } = useEventTheme();
   return (
@@ -118,6 +123,8 @@ export default function SettingsModal({
                 </SelectContent>
               </Select>
             </div>
+
+            {showQuips && <QuipsSetting />}
           </section>
 
           {/* The running seasonal event, offered only while its window is

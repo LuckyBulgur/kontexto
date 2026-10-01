@@ -12,6 +12,7 @@ import {
   Radio,
   Shuffle,
   Swords,
+  Tags,
   Target,
   Timer,
   Users,
@@ -102,6 +103,7 @@ const MODE_ICONS: Record<string, LucideIcon> = {
   limit: Timer,
   doppel: Shuffle,
   suddendeath: Flame,
+  categories: Tags,
   infinite: InfinityIcon,
   live: MessagesSquare,
 };
@@ -285,7 +287,7 @@ function modesFor(path: Path, onInfiniteStart?: () => void): PickerEntry[] {
       const mode = SOLO_MODES[id];
       return { id, name: mode.name, hook: mode.hook, href: `/solo/${mode.slug}/` };
     });
-    // Endless mode belongs with the other four: it is a way of playing alone,
+    // Endless mode belongs with the other solo modes: it is a way of playing alone,
     // and it used to be findable only as an icon on a wide screen.
     modes.push({
       id: "infinite",

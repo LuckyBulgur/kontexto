@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS duels (
     tips_allowed BOOLEAN NOT NULL DEFAULT 1,
     round INTEGER NOT NULL DEFAULT 1,
     played_games TEXT NOT NULL DEFAULT '',
+    -- Category filter (categories.py): ids in catalogue order, comma joined,
+    -- empty for every field; show_category puts the round's field on screen.
+    categories TEXT NOT NULL DEFAULT '',
+    show_category BOOLEAN NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -76,6 +80,10 @@ CREATE TABLE IF NOT EXISTS koops (
     best_rank INTEGER,
     round INTEGER NOT NULL DEFAULT 1,
     played_games TEXT NOT NULL DEFAULT '',
+    -- Category filter (categories.py): ids in catalogue order, comma joined,
+    -- empty for every field; show_category puts the round's field on screen.
+    categories TEXT NOT NULL DEFAULT '',
+    show_category BOOLEAN NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -234,6 +242,10 @@ CREATE TABLE IF NOT EXISTS arenas (
     winner TEXT,
     round INTEGER NOT NULL DEFAULT 1,
     played_games TEXT NOT NULL DEFAULT '',
+    -- Category filter (categories.py): ids in catalogue order, comma joined,
+    -- empty for every field; show_category puts the round's field on screen.
+    categories TEXT NOT NULL DEFAULT '',
+    show_category BOOLEAN NOT NULL DEFAULT 0,
     created_by TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -708,6 +720,20 @@ async def init_db(db_path: str) -> None:
             await db.execute("ALTER TABLE koops ADD COLUMN gave_up BOOLEAN NOT NULL DEFAULT 0")
         except Exception:
             pass  # column already exists
+        # Migration categories (2026-10-01): a room's field filter and whether it
+        # shows the round's field. Constant defaults, so every room that exists
+        # keeps drawing from every field and shows none, which is what it did.
+        for table in ("duels", "koops", "arenas"):
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN categories TEXT NOT NULL DEFAULT ''")
+            except Exception:
+                pass  # column already exists
+            try:
+                await db.execute(
+                    f"ALTER TABLE {table} ADD COLUMN show_category BOOLEAN NOT NULL DEFAULT 0"
+                )
+            except Exception:
+                pass  # column already exists
         await db.commit()
     finally:
         await db.close()

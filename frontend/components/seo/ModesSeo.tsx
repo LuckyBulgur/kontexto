@@ -6,6 +6,7 @@ import {
   Radio,
   Shuffle,
   Swords,
+  Tags,
   Target,
   Timer,
   Users,
@@ -85,7 +86,9 @@ export default function ModesSeo() {
         <p>
           {`Die Solo-Modi nehmen dem täglichen Spiel jeweils eine Selbstverständlichkeit
           weg. Mal die unbegrenzten Versuche, mal das eine Ziel, mal die Möglichkeit, sich
-          wieder zu entfernen. Was übrig bleibt, spielt sich jedes Mal deutlich anders.`}
+          wieder zu entfernen. Was übrig bleibt, spielt sich jedes Mal deutlich anders.
+          Kategorien geht den umgekehrten Weg: Du bestimmst, aus welchem Wortfeld das
+          geheime Wort kommt, und siehst es auf Wunsch über dem Spielfeld.`}
         </p>
       </Prose>
 
@@ -168,6 +171,7 @@ const SOLO_ICONS: Record<string, LucideIcon> = {
   limit: Timer,
   doppel: Shuffle,
   suddendeath: Flame,
+  categories: Tags,
 };
 
 function ModeCard({

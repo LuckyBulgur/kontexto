@@ -15,6 +15,7 @@ from typing import NamedTuple
 
 import numpy as np
 
+import categories
 import core_lexicon
 import spellfix
 from prepare import GERMAN_STOPWORDS
@@ -142,6 +143,18 @@ class GameState:
         self.unfit_games: frozenset[int] = frozenset(
             number for number, word in enumerate(self.target_words, start=1) if word in unfit
         )
+
+        # The field each game's solution is filed under, for the category
+        # draws and the round header (categories.py). The assignment is keyed
+        # by word, so a rebuilt pool keeps its fields; this map only turns it
+        # into game numbers once per worker. A solution without a line, or
+        # filed under "-", has no field and is never drawn by a filter.
+        fields = categories.get_categories()
+        self.category_of_game: dict[int, str] = {}
+        for number, word in enumerate(self.target_words, start=1):
+            field = fields.of_word(word)
+            if field is not None:
+                self.category_of_game[number] = field
 
         self.stopwords = core_lexicon.load_stopwords() | GERMAN_STOPWORDS
 
@@ -568,31 +581,55 @@ class GameState:
         """
         return max(1, int(self.metadata.get("first_curated_game", 1)))
 
-    def random_game_number(self, exclude: set[int]) -> int | None:
+    def _draw_candidates(self, exclude: set[int], fields: frozenset[str] | None) -> list[int]:
+        """Every game a random draw may hand out, skipping ``exclude``.
+
+        ``fields`` narrows the draw to solutions filed under one of them; empty
+        or None means every game, fielded or not, exactly as before categories.
+        """
+        numbers = range(self.first_curated_game(), self.total_games() + 1)
+        if fields:
+            return [n for n in numbers if n not in exclude and n not in self.unfit_games
+                    and self.category_of_game.get(n) in fields]
+        return [n for n in numbers if n not in exclude and n not in self.unfit_games]
+
+    def random_game_number(self, exclude: set[int], fields: frozenset[str] | None = None) -> int | None:
         """Pick a uniformly random game number, skipping ``exclude``.
 
         The range starts at :meth:`first_curated_game`. Returns None when every
         game is excluded (caller decides whether to relax the exclusion set and
         retry).
         """
-        candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
-                      if n not in exclude and n not in self.unfit_games]
+        candidates = self._draw_candidates(exclude, fields)
         if not candidates:
             return None
         return random.choice(candidates)
 
-    def random_game_numbers(self, count: int, exclude: set[int]) -> list[int] | None:
+    def random_game_numbers(self, count: int, exclude: set[int],
+                            fields: frozenset[str] | None = None) -> list[int] | None:
         """Pick ``count`` distinct random games, skipping ``exclude``.
 
         Returns None when the pool cannot supply that many, so the caller can
         relax its exclusion set instead of silently handing out a shorter list.
         The range starts at :meth:`first_curated_game`.
         """
-        candidates = [n for n in range(self.first_curated_game(), self.total_games() + 1)
-                      if n not in exclude and n not in self.unfit_games]
+        candidates = self._draw_candidates(exclude, fields)
         if len(candidates) < count:
             return None
         return random.sample(candidates, count)
+
+    def category_of(self, game_number: int) -> str | None:
+        """The field of a game's solution, or None when it has none."""
+        return self.category_of_game.get(game_number)
+
+    def category_counts(self) -> dict[str, int]:
+        """Playable games per field: what a filter on that field can draw."""
+        counts: dict[str, int] = {}
+        for number in self._draw_candidates(set(), None):
+            field = self.category_of_game.get(number)
+            if field is not None:
+                counts[field] = counts.get(field, 0) + 1
+        return counts
 
     def get_target_word(self, game_number: int) -> str:
         """Return the target word for the given game number."""

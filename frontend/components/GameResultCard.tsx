@@ -4,6 +4,7 @@ import { Guess, getRankColor } from "@/lib/types";
 import { loadStreakData } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { CountUp, Panel, ResultHero } from "@/components/design";
+import { PLAIN, kontextoResultOccasion, pickQuip } from "@/lib/quips";
 import ShareButton from "./ShareButton";
 
 interface GameResultCardProps {
@@ -28,6 +29,8 @@ interface GameResultCardProps {
   onNextInfinite?: () => void;
   infiniteSolvedCount?: number;
   noMoreGames?: boolean;
+  /** Ends the outcome line on a quip instead of the plain praise (`lib/quips.ts`). */
+  quips?: boolean;
 }
 
 /**
@@ -55,7 +58,7 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, rating, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames }: GameResultCardProps) {
+export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, onOpenPastGames, onOpenClosestWords, survey, rating, infinite, onNextInfinite, infiniteSolvedCount, noMoreGames, quips }: GameResultCardProps) {
   const streak = loadStreakData();
 
   const givenUp = !isWin;
@@ -64,6 +67,12 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
   const guessCount = givenUp ? guesses.length - 1 : guesses.length;
   const breakdown = getBreakdown(displayGuesses);
   const hasStreak = streak.currentStreak > 0 || streak.longestStreak > 0;
+  // Seeded by the round, so a reload of a finished game shows the same line.
+  const closing = quips
+    ? ` ${pickQuip(kontextoResultOccasion(isWin, guessCount, tipCount), gameNumber * 31 + guessCount)}`
+    : isWin
+      ? ` ${PLAIN.kontextoWin}`
+      : "";
 
   return (
     <Panel className="animate-result-in gap-6">
@@ -74,7 +83,7 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
         reveal={isWin}
         support={`${isWin ? "Gelöst in" : "Aufgegeben nach"} ${plural(guessCount, "Versuch", "Versuchen")}${
           tipCount > 0 ? ` und ${plural(tipCount, "Tipp", "Tipps")}` : " ohne Tipp"
-        }.${isWin ? " Stark!" : ""}`}
+        }.${closing}`}
       />
 
       {breakdown.length > 0 && (

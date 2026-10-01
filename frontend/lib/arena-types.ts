@@ -1,3 +1,5 @@
+import type { RoomCategoryFields } from "./categories";
+
 /** The three timed multiplayer modes. */
 export type ArenaModeId = "royale" | "blitz" | "timerush";
 
@@ -15,7 +17,7 @@ export interface ArenaPlayer {
   place: number | null;
 }
 
-export interface ArenaState {
+export interface ArenaState extends RoomCategoryFields {
   arena_id: string;
   mode: ArenaModeId;
   status: ArenaStatus;

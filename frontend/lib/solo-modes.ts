@@ -1,5 +1,5 @@
 /**
- * Rule engines for the four solo modes.
+ * Rule engines for the five solo modes.
  *
  * Everything here is pure: a state plus a guess goes in, the next state comes
  * out. The rules carry no stakes against other players, so they live on the
@@ -8,9 +8,10 @@
  * endpoints, because the client must never learn the target word.
  */
 
+import { CategoryInfo, CategorySetup } from "./categories";
 import { Guess } from "./types";
 
-export type SoloModeId = "leiter" | "limit" | "doppel" | "suddendeath";
+export type SoloModeId = "leiter" | "limit" | "doppel" | "suddendeath" | "categories";
 
 export type SoloStatus = "running" | "won" | "lost";
 
@@ -86,9 +87,22 @@ export const SOLO_MODES: Record<SoloModeId, SoloModeMeta> = {
       "Danach wird aufgelöst, richtig oder falsch.",
     ],
   },
+  categories: {
+    id: "categories",
+    slug: "kategorien",
+    name: "Kategorien",
+    hook: "Du wählst das Wortfeld",
+    tagline: "Das geheime Wort kommt aus den Kategorien, die du wählst.",
+    rules: [
+      "Vor der Runde wählst du Kategorien, eine, mehrere oder alle.",
+      "Das geheime Wort kommt immer aus einer davon.",
+      "Auf Wunsch steht die Kategorie der Runde über dem Spielfeld.",
+      "Tipps und Aufgeben gibt es wie im normalen Spiel.",
+    ],
+  },
 };
 
-export const SOLO_MODE_ORDER: SoloModeId[] = ["leiter", "limit", "doppel", "suddendeath"];
+export const SOLO_MODE_ORDER: SoloModeId[] = ["leiter", "limit", "doppel", "suddendeath", "categories"];
 
 /** Resolve a route segment back to its mode, or null for an unknown one. */
 export function soloModeBySlug(slug: string): SoloModeMeta | null {
@@ -307,7 +321,90 @@ export function suddenDeathApplyGuess(
   };
 }
 
-export type SoloState = LeiterState | LimitState | DoppelState | SuddenDeathState;
+// --- Kategorien -------------------------------------------------------------
+
+/** How many finished games a session remembers to avoid repeats. The smallest
+ *  field holds 44 games, so this outlasts every field. */
+export const CATEGORY_PLAYED_LIMIT = 500;
+
+export interface CategoryRoundState {
+  mode: "categories";
+  gameNumber: number;
+  /** The round's field as the server named it, null when it has none. */
+  category: CategoryInfo | null;
+  /** What the player picked for this session; the next round keeps it. */
+  setup: CategorySetup;
+  guesses: Guess[];
+  tips: number;
+  /** Games finished earlier this session, oldest first. */
+  played: number[];
+  /** The answer, once the player gave up; a won round has it as a guess. */
+  revealed: string | null;
+  status: SoloStatus;
+  startedAt?: number;
+}
+
+export function createCategoryRoundState(
+  gameNumber: number,
+  category: CategoryInfo | null,
+  setup: CategorySetup,
+  played: number[] = []
+): CategoryRoundState {
+  return {
+    mode: "categories",
+    gameNumber,
+    category,
+    setup,
+    guesses: [],
+    tips: 0,
+    played: played.slice(-CATEGORY_PLAYED_LIMIT),
+    revealed: null,
+    status: "running",
+  };
+}
+
+export function categoryApplyGuess(
+  state: CategoryRoundState,
+  guess: SoloGuessInput
+): CategoryRoundState {
+  if (state.status !== "running") return state;
+  return {
+    ...state,
+    guesses: [...state.guesses, toGuess(guess)],
+    status: guess.rank === 1 ? "won" : "running",
+    startedAt: state.startedAt ?? Date.now(),
+  };
+}
+
+/** A tip is a guess the game made: it joins the list and is counted apart. */
+export function categoryApplyTip(
+  state: CategoryRoundState,
+  tip: { word: string; rank: number }
+): CategoryRoundState {
+  if (state.status !== "running" || state.guesses.some((g) => g.word === tip.word)) return state;
+  return {
+    ...state,
+    guesses: [...state.guesses, { word: tip.word, rank: tip.rank, isTip: true }],
+    tips: state.tips + 1,
+    status: tip.rank === 1 ? "won" : "running",
+    startedAt: state.startedAt ?? Date.now(),
+  };
+}
+
+export function categoryGiveUp(state: CategoryRoundState, solution: string): CategoryRoundState {
+  if (state.status !== "running") return state;
+  return { ...state, revealed: solution, status: "lost" };
+}
+
+/** The games the next draw should skip: this session's plus the one just played. */
+export function categoryPlayedAfter(state: CategoryRoundState): number[] {
+  const played = state.played.includes(state.gameNumber)
+    ? state.played
+    : [...state.played, state.gameNumber];
+  return played.slice(-CATEGORY_PLAYED_LIMIT);
+}
+
+export type SoloState = LeiterState | LimitState | DoppelState | SuddenDeathState | CategoryRoundState;
 
 /** Best rank reached, for the completion beacon. */
 export function soloBestRank(state: SoloState): number {

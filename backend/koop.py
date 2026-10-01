@@ -11,6 +11,7 @@ import string
 
 import aiosqlite
 
+from categories import decode_filter, encode_filter
 from nicknames import sanitize_nickname
 from rooms import RoomRevealRefused
 
@@ -58,6 +59,8 @@ async def create_koop(
     game_number: int,
     nickname: str,
     tips_allowed: bool,
+    categories: list[str] | None = None,
+    show_category: bool = False,
 ) -> dict:
     # One rule for every room, invite links included: an abusive name is not
     # rejected, it comes back masked and pointed at its author.
@@ -66,8 +69,9 @@ async def create_koop(
     player_token = _generate_token()
 
     await db.execute(
-        "INSERT INTO koops (id, game_number, created_by, tips_allowed) VALUES (?, ?, ?, ?)",
-        (koop_id, game_number, nickname, tips_allowed),
+        "INSERT INTO koops (id, game_number, created_by, tips_allowed, categories, show_category) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (koop_id, game_number, nickname, tips_allowed, encode_filter(categories or []), show_category),
     )
     await db.execute(
         "INSERT INTO koop_players (koop_id, nickname, player_token) VALUES (?, ?, ?)",
@@ -130,6 +134,8 @@ async def get_koop_state(db: aiosqlite.Connection, koop_id: str) -> dict | None:
         "solved_by": koop["solved_by"],
         "gave_up": bool(koop["gave_up"]),
         "best_rank": koop["best_rank"],
+        "categories": decode_filter(koop["categories"]),
+        "show_category": bool(koop["show_category"]),
         "players": players,
     }
 

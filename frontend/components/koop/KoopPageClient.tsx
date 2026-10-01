@@ -33,6 +33,7 @@ import { KoopPlayer, KoopWsMessage, KoopState } from "@/lib/koop-types";
 import { Guess, Difficulty, SortMode } from "@/lib/types";
 import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, saveSortMode } from "@/lib/storage";
 import { toast } from "sonner";
+import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
 
 function getKoopIdFromPath(basePath: string): string | null {
@@ -330,6 +331,12 @@ export default function KoopPageClient({
         if (msg.word) appendGuess(msg.word, 1, false);
       } else if (msg.type === "next_round") {
         resetForNextGame(msg.round);
+        // The frame names the round, not its field; the room state does.
+        if (koopId) {
+          getKoopState(koopId)
+            .then((fresh) => setKoopState((prev) => (prev ? { ...prev, category: fresh.category ?? null } : prev)))
+            .catch(() => {});
+        }
       } else if (msg.type === "player_joined") {
         setPlayers((prev) => {
           if (prev.some((p) => p.nickname === msg.nickname)) return prev;
@@ -348,7 +355,7 @@ export default function KoopPageClient({
         );
       }
     },
-    [appendGuess, resetForNextGame]
+    [appendGuess, resetForNextGame, koopId]
   );
 
   const { connected: wsConnected } = useKoopWebSocket({
@@ -507,6 +514,7 @@ export default function KoopPageClient({
     try {
       const result = await koopNextGame(koopId, playerToken);
       resetForNextGame(result.round);
+      setKoopState((prev) => (prev ? { ...prev, category: result.category ?? null } : prev));
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "no_games") {
         toast.error("Keine weiteren Spiele verfügbar");
@@ -605,8 +613,9 @@ export default function KoopPageClient({
             />
           ) : (
             <>
-              <div className="flex items-baseline gap-4 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
                 <span>{label}</span>
+                <RoomCategoryLabel room={koopState} />
                 <span>
                   Versuche:{" "}
                   <span className="text-lead font-bold">{guesses.length}</span>

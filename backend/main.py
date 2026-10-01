@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 import analytics
 import auth
+import categories
 import creator_spot
 from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
@@ -66,7 +67,7 @@ from game import GameState
 from models import (
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
-    InfiniteNextResponse,
+    InfiniteNextResponse, CategoriesResponse,
     WordAtRankResponse, DualNextResponse, DualGuessResponse, SuddenDeathResponse,
     CreateDuelRequest, CreateDuelResponse, JoinDuelRequest,
     JoinDuelResponse, DuelStateResponse, DuelGuessRequest,
@@ -179,20 +180,54 @@ def _unknown_word_response(gs: GameState, word: str) -> JSONResponse:
     )
 
 
-def _room_game_number(source: str) -> int:
+def _room_game_number(source: str, fields: list[str] | None = None) -> int | None:
     """Pick the game a new Kontexto room is opened on.
 
     The client sends the kind, the server picks the number, because the number
     is the answer (rooms.py). "random" is never today's daily, so an invited
     friend who has not played it yet is not spoiled; if the pool cannot supply
     anything else, the daily is the only remaining option.
+
+    With ``fields`` the draw stays inside them, and None comes back when they
+    hold no game at all: the daily belongs to no field, so falling back to it
+    would open a room on a puzzle outside the filter the creator asked for.
     """
     gs = _get_game_state()
     daily = _get_current_game_number()
     if source == "today":
         return daily
-    chosen = gs.random_game_number({daily})
+    chosen = gs.random_game_number({daily}, frozenset(fields or ()))
+    if chosen is None and fields:
+        chosen = gs.random_game_number(set(), frozenset(fields))
+        return chosen
     return chosen if chosen is not None else daily
+
+
+def _round_field(game_number: int, shown: bool) -> dict | None:
+    """The field a room shows above the board, or None.
+
+    Only when the room was created to show it: a room that did not agree on it
+    gives nobody the field, so no player can learn it alone.
+    """
+    if not shown:
+        return None
+    ident = _get_game_state().category_of(game_number)
+    field = categories.get_categories().get(ident) if ident else None
+    return field.public() if field else None
+
+
+def _with_round_field(state: dict) -> dict:
+    """A room state with the round's field attached, for any response."""
+    return {**state, "category": _round_field(state["game_number"], state.get("show_category", False))}
+
+
+_ROOM_NO_GAMES = {"error": "no_games", "message": "In diesen Kategorien gibt es gerade kein Spiel"}
+
+
+async def _record_category_room(req, mode: str) -> None:
+    """Count a room opened with a field filter or its field on screen."""
+    if req.categories or req.show_category:
+        await analytics.record_action(_db_path, analytics.CATEGORY_ROOM_METRIC, mode)
 
 
 def _wordle_room_game_number(ws: WordleState, source: str) -> int:
@@ -209,20 +244,34 @@ def _wordle_room_game_number(ws: WordleState, source: str) -> int:
     return chosen if chosen is not None else daily
 
 
-def _pick_next_kontexto_game(current: int, played: set[int]) -> int | None:
+def _pick_next_kontexto_game(
+    current: int, played: set[int], fields: list[str] | None = None
+) -> int | None:
     """Choose the next game for a multiplayer room's "Nächstes Spiel".
 
     Mirrors ``/api/infinite/next``: never the daily (so the room can't spoil it)
     or the current game; avoids games already played in this room until the pool
-    is exhausted, then relaxes back to just {daily, current}.
+    is exhausted, then relaxes back to just {daily, current}. A room with a
+    field filter keeps drawing inside it, round after round.
     """
     gs = _get_game_state()
     daily = _get_current_game_number()
     base = {daily, current}
-    chosen = gs.random_game_number(base | played)
+    chosen_fields = frozenset(fields or ())
+    chosen = gs.random_game_number(base | played, chosen_fields)
     if chosen is None:
-        chosen = gs.random_game_number(base)
+        chosen = gs.random_game_number(base, chosen_fields)
     return chosen
+
+
+def _room_picker(state: dict):
+    """The next-game picker for one room, bound to the filter it was opened with."""
+    fields = list(state.get("categories") or [])
+
+    def pick(current: int, played: set[int]) -> int | None:
+        return _pick_next_kontexto_game(current, played, fields)
+
+    return pick
 
 
 def _room_reveal_refusal(refused: RoomRevealRefused) -> JSONResponse:
@@ -259,8 +308,11 @@ def _room_reveal_payload(ctx: dict) -> dict:
 
 
 def _public_arena_state(state: dict) -> dict:
-    """The arena state as the players may see it, without the game number."""
-    return {k: v for k, v in state.items() if k != "game_number"}
+    """The arena state as the players may see it: the round's field when the
+    room shows one, and never the game number."""
+    public = _with_round_field(state)
+    del public["game_number"]
+    return public
 
 
 @asynccontextmanager
@@ -415,13 +467,19 @@ async def guess(
     if req.first:
         # First guess of this game for this visitor: the only point where an
         # abandoned game becomes countable at all.
-        await analytics.record_game_start(
+        started = await analytics.record_game_start(
             _db_path,
             ip=_client_ip(request),
             user_agent=request.headers.get("user-agent", ""),
             mode=mode,
             game_number=game_num,
         )
+        # Which fields a category round is played in. The field is read off
+        # the game here, never taken from the client, and rides on the start
+        # ledger's dedup, so a reload does not count the round twice.
+        field = gs.category_of(game_num) if started and mode == analytics.CATEGORY_MODE else None
+        if field is not None:
+            await analytics.record_action(_db_path, analytics.CATEGORY_START_METRIC, field)
     await analytics.record_action(_db_path, "guesses", mode, word=result["word"])
     await analytics.record_game_stat(_db_path, mode, game_num, "guesses")
     if result["rank"] == 1:
@@ -518,8 +576,50 @@ async def past_games():
     return {"games": games, "todayGame": today_game}
 
 
+@app.get("/api/categories", response_model=CategoriesResponse)
+async def categories_endpoint():
+    """The fields a player may pick, in picker order, with what each can draw.
+
+    A field with no playable game is left out rather than offered empty: a
+    data volume built from an older pool may not carry every field yet.
+    """
+    counts = _category_counts()
+    return {
+        "categories": [
+            {**category.public(), "count": counts[category.id]}
+            for category in categories.get_categories().catalogue
+            if counts.get(category.id)
+        ]
+    }
+
+
+_category_counts_cache: dict[str, int] | None = None
+
+
+def _category_counts() -> dict[str, int]:
+    """Playable games per field. The data only changes with a restart, so one
+    count per worker is exact for the worker's whole life."""
+    global _category_counts_cache
+    if _category_counts_cache is None:
+        _category_counts_cache = _get_game_state().category_counts()
+    return _category_counts_cache
+
+
+def _parse_fields(raw: str | None) -> frozenset[str]:
+    """A ``categories=`` query value; raises CategoryError on an unknown id."""
+    return categories.get_categories().parse(raw)
+
+
+def _invalid_category(exc: categories.CategoryError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": "invalid_category", "message": str(exc)})
+
+
 @app.get("/api/infinite/next", response_model=InfiniteNextResponse)
-async def infinite_next(exclude: str = Query(""), current: int | None = Query(None)):
+async def infinite_next(
+    exclude: str = Query(""),
+    current: int | None = Query(None),
+    categories_filter: str = Query("", alias="categories", max_length=1000),
+):
     """Pick the next game for the endless mode.
 
     Draws a uniformly random game from the full pre-computed pool, always
@@ -537,12 +637,17 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
     if current is not None:
         base_exclude.add(current)
 
+    try:
+        fields = _parse_fields(categories_filter)
+    except categories.CategoryError as exc:
+        return _invalid_category(exc)
+
     played = {int(p) for p in exclude.split(",") if p.strip().lstrip("-").isdigit()}
-    chosen = gs.random_game_number(base_exclude | played)
+    chosen = gs.random_game_number(base_exclude | played, fields)
     if chosen is None:
         # Pool exhausted for this session, relax to allow already-played games
         # again, still never the daily or the current game.
-        chosen = gs.random_game_number(base_exclude)
+        chosen = gs.random_game_number(base_exclude, fields)
     if chosen is None:
         return JSONResponse(
             status_code=404,
@@ -553,6 +658,7 @@ async def infinite_next(exclude: str = Query(""), current: int | None = Query(No
         "gameNumber": chosen,
         "total": gs.display_total(),
         "totalGames": gs.total_games(),
+        "category": _round_field(chosen, True),
     }
 
 
@@ -755,12 +861,17 @@ async def sudden_death(exclude: str = Query("")):
 
 @app.post("/api/duel", response_model=CreateDuelResponse)
 async def create_duel_endpoint(req: CreateDuelRequest):
-    game_number = _room_game_number(req.game_source)
+    game_number = _room_game_number(req.game_source, req.categories)
+    if game_number is None:
+        return JSONResponse(status_code=404, content=_ROOM_NO_GAMES)
     db = await get_db(_db_path)
     try:
-        result = await create_duel(db, game_number, req.nickname, req.tips_allowed)
+        result = await create_duel(
+            db, game_number, req.nickname, req.tips_allowed, req.categories, req.show_category
+        )
         await analytics.record_action(_db_path, "duels_created", "kontexto")
         await analytics.record_mode_pick(_db_path, "friends", "duel")
+        await _record_category_room(req, "duel")
         return result
     finally:
         await db.close()
@@ -776,7 +887,7 @@ async def join_duel_endpoint(duel_id: str, req: JoinDuelRequest):
                 status_code=404,
                 content={"error": "duel_not_found", "message": "Duell nicht gefunden"},
             )
-        return result
+        return _with_round_field(result)
     finally:
         await db.close()
 
@@ -803,7 +914,7 @@ async def get_duel_state_endpoint(duel_id: str):
                 status_code=404,
                 content={"error": "duel_not_found", "message": "Duell nicht gefunden"},
             )
-        return state
+        return _with_round_field(state)
     finally:
         await db.close()
 
@@ -909,7 +1020,7 @@ async def duel_next_game_endpoint(duel_id: str, req: NextGameRequest):
                 status_code=404,
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
-        new_game = await advance_duel_game(db, duel_id, _pick_next_kontexto_game)
+        new_game = await advance_duel_game(db, duel_id, _room_picker(state))
         if new_game is None:
             return JSONResponse(
                 status_code=404,
@@ -917,7 +1028,11 @@ async def duel_next_game_endpoint(duel_id: str, req: NextGameRequest):
             )
         await analytics.record_action(_db_path, "rounds", "duel")
         fresh = await get_duel_state(db, duel_id)
-        return {"round": fresh["round"], "total": gs.display_total()}
+        return {
+            "round": fresh["round"],
+            "total": gs.display_total(),
+            "category": _round_field(new_game, state["show_category"]),
+        }
     finally:
         await db.close()
 
@@ -962,12 +1077,17 @@ async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(
 
 @app.post("/api/koop", response_model=CreateKoopResponse)
 async def create_koop_endpoint(req: CreateKoopRequest):
-    game_number = _room_game_number(req.game_source)
+    game_number = _room_game_number(req.game_source, req.categories)
+    if game_number is None:
+        return JSONResponse(status_code=404, content=_ROOM_NO_GAMES)
     db = await get_db(_db_path)
     try:
-        result = await create_koop(db, game_number, req.nickname, req.tips_allowed)
+        result = await create_koop(
+            db, game_number, req.nickname, req.tips_allowed, req.categories, req.show_category
+        )
         await analytics.record_action(_db_path, "koops_created", "kontexto")
         await analytics.record_mode_pick(_db_path, "friends", "koop")
+        await _record_category_room(req, "koop")
         return result
     finally:
         await db.close()
@@ -985,7 +1105,7 @@ async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
         result["total"] = gs.display_total()
-        return result
+        return _with_round_field(result)
     finally:
         await db.close()
 
@@ -1014,7 +1134,7 @@ async def get_koop_state_endpoint(koop_id: str):
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
         state["total"] = gs.display_total()
-        return state
+        return _with_round_field(state)
     finally:
         await db.close()
 
@@ -1169,7 +1289,7 @@ async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
                 status_code=404,
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
-        new_game = await advance_koop_game(db, koop_id, _pick_next_kontexto_game)
+        new_game = await advance_koop_game(db, koop_id, _room_picker(state))
         if new_game is None:
             return JSONResponse(
                 status_code=404,
@@ -1177,7 +1297,11 @@ async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
             )
         await analytics.record_action(_db_path, "rounds", "koop")
         fresh = await get_koop_state(db, koop_id)
-        return {"round": fresh["round"], "total": gs.display_total()}
+        return {
+            "round": fresh["round"],
+            "total": gs.display_total(),
+            "category": _round_field(new_game, state["show_category"]),
+        }
     finally:
         await db.close()
 
@@ -1352,7 +1476,9 @@ async def create_live_endpoint(req: CreateLiveRequest):
             return refusal
         channels.append((entry.platform, channel))
 
-    game_number = _room_game_number(req.game_source)
+    game_number = _room_game_number(req.game_source, req.categories)
+    if game_number is None:
+        return JSONResponse(status_code=404, content=_ROOM_NO_GAMES)
     db = await get_db(_db_path)
     try:
         if await _tiktok_full(db, sum(1 for platform, _ in channels if platform == "tiktok")):
@@ -1361,7 +1487,9 @@ async def create_live_endpoint(req: CreateLiveRequest):
         # another. sanitize_nickname runs inside create_koop, so a channel name
         # that is itself abusive is masked like any other.
         host_name = req.nickname or channels[0][1]
-        room = await create_koop(db, game_number, host_name, req.tips_allowed)
+        room = await create_koop(
+            db, game_number, host_name, req.tips_allowed, req.categories, req.show_category
+        )
         try:
             live = await live_chat.create_live_room(
                 db,
@@ -1380,6 +1508,7 @@ async def create_live_endpoint(req: CreateLiveRequest):
 
         await analytics.record_action(_db_path, "live_rooms_created", "kontexto")
         await analytics.record_mode_pick(_db_path, "friends", "live")
+        await _record_category_room(req, "live")
         # Per channel: each channel's book counts the room as a session of its
         # own, because that book is about the channel, not about the room.
         for platform, channel in channels:
@@ -1588,7 +1717,14 @@ async def live_overlay_endpoint(token: str = Query(...)):
                 status_code=404,
                 content={"error": "room_not_found", "message": "Diese Runde gibt es nicht"},
             )
-        return {**snap, "total": gs.display_total()}
+        # The field goes on air only when the host chose to show it. The game
+        # number is read here and goes no further than _round_field.
+        cursor = await db.execute(
+            "SELECT game_number, show_category FROM koops WHERE id = ?", (room["koop_id"],)
+        )
+        koop = await cursor.fetchone()
+        category = _round_field(koop["game_number"], bool(koop["show_category"])) if koop else None
+        return {**snap, "total": gs.display_total(), "category": category}
     finally:
         await db.close()
 
@@ -1695,10 +1831,14 @@ _ARENA_REFUSAL_MESSAGES = {
 
 @app.post("/api/arena", response_model=CreateArenaResponse)
 async def create_arena_endpoint(req: CreateArenaRequest):
-    game_number = _room_game_number(req.game_source)
+    game_number = _room_game_number(req.game_source, req.categories)
+    if game_number is None:
+        return JSONResponse(status_code=404, content=_ROOM_NO_GAMES)
     db = await get_db(_db_path)
     try:
-        result = await create_arena(db, req.mode, game_number, req.nickname)
+        result = await create_arena(
+            db, req.mode, game_number, req.nickname, req.categories, req.show_category
+        )
         if result is None:
             return JSONResponse(
                 status_code=400,
@@ -1706,6 +1846,7 @@ async def create_arena_endpoint(req: CreateArenaRequest):
             )
         await analytics.record_action(_db_path, "duels_created", req.mode)
         await analytics.record_mode_pick(_db_path, "friends", req.mode)
+        await _record_category_room(req, req.mode)
         return result
     finally:
         await db.close()
@@ -1729,7 +1870,7 @@ async def join_arena_endpoint(arena_id: str, req: JoinArenaRequest):
                 status_code=409,
                 content={"error": "arena_closed", "message": "Diese Runde nimmt niemanden mehr auf"},
             )
-        return result
+        return _with_round_field(result)
     finally:
         await db.close()
 
@@ -1756,7 +1897,7 @@ async def get_arena_endpoint(arena_id: str):
                 status_code=404,
                 content={"error": "arena_not_found", "message": "Runde nicht gefunden"},
             )
-        return state
+        return _with_round_field(state)
     finally:
         await db.close()
 
@@ -1782,7 +1923,7 @@ async def start_arena_endpoint(arena_id: str, req: ArenaTokenRequest):
                 status_code=409,
                 content={"error": "cannot_start", "message": "Die Runde kann noch nicht starten"},
             )
-        return state
+        return _with_round_field(state)
     finally:
         await db.close()
 
@@ -1859,7 +2000,13 @@ async def arena_next_game_endpoint(arena_id: str, req: NextGameRequest):
                 status_code=404,
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
-        new_game = await advance_arena_game(db, arena_id, _pick_next_kontexto_game)
+        current = await get_arena_state(db, arena_id)
+        if current is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "arena_not_found", "message": "Runde nicht gefunden"},
+            )
+        new_game = await advance_arena_game(db, arena_id, _room_picker(current))
         if new_game is None:
             return JSONResponse(
                 status_code=409,
@@ -1867,7 +2014,11 @@ async def arena_next_game_endpoint(arena_id: str, req: NextGameRequest):
             )
         state = await get_arena_state(db, arena_id)
         await analytics.record_action(_db_path, "rounds", state["mode"] if state else "royale")
-        return {"round": state["round"], "total": gs.display_total()}
+        return {
+            "round": state["round"],
+            "total": gs.display_total(),
+            "category": _round_field(new_game, current["show_category"]),
+        }
     finally:
         await db.close()
 

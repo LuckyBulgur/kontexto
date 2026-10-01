@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useEventTheme } from "@/lib/use-event-theme";
 import PalettePicker from "@/components/PalettePicker";
+import QuipsSetting from "@/components/QuipsSetting";
 
 interface SettingsModalProps {
   open: boolean;
@@ -73,6 +74,8 @@ export default function SettingsModal({ open, onOpenChange, theme, onThemeChange
             Hard Mode kann nur vor dem ersten Versuch aktiviert werden.
           </p>
         )}
+
+        <QuipsSetting className="py-3 border-t border-border" />
 
         {event && (
           <div className="flex items-center justify-between py-3 border-t border-border">

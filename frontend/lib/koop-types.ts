@@ -1,10 +1,12 @@
+import type { CategoryInfo, RoomCategoryFields } from "./categories";
+
 export interface KoopPlayer {
   nickname: string;
   contribution_count: number;
   connected: boolean;
 }
 
-export interface KoopState {
+export interface KoopState extends RoomCategoryFields {
   koop_id: string;
   /** See DuelState.round. */
   round: number;
@@ -20,6 +22,8 @@ export interface KoopState {
 export interface NextGameResult {
   round: number;
   total: number;
+  /** The new round's field, when the room shows it. */
+  category?: CategoryInfo | null;
 }
 
 export interface CreateKoopResponse {

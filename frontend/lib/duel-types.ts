@@ -1,3 +1,5 @@
+import type { CategoryInfo, RoomCategoryFields } from "./categories";
+
 export interface DuelPlayer {
   nickname: string;
   best_rank: number | null;
@@ -7,7 +9,7 @@ export interface DuelPlayer {
   connected: boolean;
 }
 
-export interface DuelState {
+export interface DuelState extends RoomCategoryFields {
   duel_id: string;
   /** The round counter, which is what a board reset keys on. The game number
    *  stays on the server while the round is open (see RoomRevealResult). */
@@ -34,6 +36,8 @@ export interface DuelGuessHistoryEntry {
 export interface NextGameResult {
   round: number;
   total: number;
+  /** The new round's field, when the room shows it. */
+  category?: CategoryInfo | null;
 }
 
 export type DuelWsMessage =

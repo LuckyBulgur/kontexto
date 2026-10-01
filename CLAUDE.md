@@ -459,6 +459,24 @@ no gore, a trick never blocks the input or touches a guess. The shared result ge
 the flag. Held by `lib/event-theme.test.ts`, `lib/events/spooktober.test.ts`,
 `e2e/halloween.spec.ts` and the event runs in `e2e/design-audit.spec.ts`.
 
+### Quips (`lib/quips.ts`, `lib/use-quips.ts`, 2026-10-01)
+The game teases the player in youth slang ("Skill Issue", "Bro", "Good Boy", "Aura +1000"),
+**on by default**, switched off by „Freche Sprüche“ in both settings dialogs (opt-out key
+`kontexto_quips = "off"`, one key for Kontexto and Wördle). Off means the old copy verbatim,
+which lives in `PLAIN` next to the catalogue so on and off are decided in one place
+(`refusalText`). Where: the result card of Kontexto and every solo mode, the guess refusals
+(duplicate, unknown, too common), the Wördle toasts (win per row, loss, too short, not in the
+list, hard mode) and the thank-you after the word rating. Where deliberately not: duel, koop,
+arena, Wördle duel and the live overlay (a line a whole room or a stream reads is no longer a
+wink), and system errors (connection, a failed tip), which stay plain. Three rules, held by
+`lib/quips.test.ts`: cheeky but never insulting (school classes play this), **a refusal still
+carries its fact** (each kind is pinned to a pattern), and the house typography. Lines are picked
+by a seeded hash, never at random, so a reload shows the same line. **The rating teases only
+after the answer and on every verdict**, never in the reason question: the reason "did not know the word"
+takes a word out of the pool, and a tease before it would shift exactly that answer.
+`e2e/fixtures.ts` switches quips off for every spec (`disableQuips`); `e2e/quips.spec.ts`
+switches them on.
+
 ### shadcn/ui: the full set is vendored
 `frontend/components/ui/` holds **every component the shadcn registry offers** (53 files),
 not only the ones in use. They are vendored source, not a dependency, so an unused file

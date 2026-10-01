@@ -64,6 +64,7 @@ const SOLO_KEYS: Record<SoloModeId, string> = {
   limit: "kontexto_limit",
   doppel: "kontexto_doppel",
   suddendeath: "kontexto_suddendeath",
+  categories: "kontexto_categories",
 };
 
 export function loadSoloState<T extends SoloState>(mode: SoloModeId): T | null {

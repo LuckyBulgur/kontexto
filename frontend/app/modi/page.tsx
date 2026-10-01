@@ -9,7 +9,7 @@ export const metadata = buildMetadata({
   path: "/modi/",
   title: "Alle Kontexto-Spielmodi - Duell, Koop, Battle Royale und mehr",
   description:
-    "Jeder Kontexto-Modus auf einen Blick: Duell, Koop, Wördle-Duell, Battle Royale, Blitz-Duell, Zeitbonus-Jagd und vier Solo-Modi. Mit Einladungslink oder gegen zufällige Mitspieler.",
+    "Jeder Kontexto-Modus auf einen Blick: Duell, Koop, Wördle-Duell, Battle Royale, Blitz-Duell, Zeitbonus-Jagd und fünf Solo-Modi. Mit Einladungslink oder gegen zufällige Mitspieler.",
 });
 
 const toc = [

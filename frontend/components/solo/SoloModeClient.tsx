@@ -8,30 +8,41 @@ import GuessSuggestions from "@/components/GuessSuggestions";
 import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
+import GiveUpDialog from "@/components/GiveUpDialog";
 import { AdUnit } from "@/components/AdUnit";
+import CategorySetupPanel from "@/components/solo/CategorySetupPanel";
 import DualGuessBar from "@/components/solo/DualGuessBar";
 import SoloResultCard from "@/components/solo/SoloResultCard";
 import SoloRulesCard from "@/components/solo/SoloRulesCard";
 import SoloStatus from "@/components/solo/SoloStatus";
 import { AD_SLOTS } from "@/lib/adsense";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventGuess, onEventSolve } from "@/lib/events/hooks";
+import { onEventGiveUp, onEventGuess, onEventSolve } from "@/lib/events/hooks";
 import { UnknownWordError } from "@/lib/guess-error";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import { reportCompletion } from "@/lib/analytics";
 import {
   getDualNext,
   getInfiniteGame,
   getSuddenDeath,
+  getTip,
   getWordAtRank,
   revealAnswer,
   submitDualGuess,
   submitGuess,
 } from "@/lib/api";
+import { CategorySetup, DEFAULT_CATEGORY_SETUP, saveCategorySetup } from "@/lib/categories";
 import {
   LEITER_START_RANK,
   SOLO_MODES,
   SoloModeId,
   SoloState,
+  categoryApplyGuess,
+  categoryApplyTip,
+  categoryGiveUp,
+  categoryPlayedAfter,
+  createCategoryRoundState,
   createDoppelState,
   createLeiterState,
   createLimitState,
@@ -63,12 +74,17 @@ interface SoloModeClientProps {
 }
 
 /**
- * The shell shared by all four solo modes.
+ * The shell shared by all five solo modes.
  *
  * The daily game lives in GameClient and carries the daily/archive/endless
  * triple; threading four more rule sets through it would make both harder to
  * change. The rules themselves are pure functions in lib/solo-modes.ts, so this
  * component only loads a round, feeds guesses into the engine and renders.
+ *
+ * Kategorien is the one mode with a step before the round: the player picks the
+ * fields first, and every next round keeps that choice until it is changed. It
+ * is also the one solo mode with tips and a give-up, because its rules are the
+ * normal game's, only the draw is narrowed.
  */
 export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const meta = SOLO_MODES[mode];
@@ -77,6 +93,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const [loading, setLoading] = useState(true);
   const [restarting, setRestarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { enabled: quips } = useQuips();
   const [latestWord, setLatestWord] = useState<string | undefined>();
   const [pendingWord, setPendingWord] = useState<string | undefined>();
   const [podestError, setPodestError] = useState<PodestError | undefined>();
@@ -88,13 +105,28 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [showSettings, setShowSettings] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showGiveUp, setShowGiveUp] = useState(false);
+
+  // Kategorien only: the setup step is open, and the choice and history it
+  // returns to. The history survives a change of fields, so a game played under
+  // the old choice is not dealt again under the new one.
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupDraft, setSetupDraft] = useState<CategorySetup | undefined>();
+  const playedRef = useRef<number[]>([]);
 
   // Guards the once-per-round completion beacon against firing again for a round
   // that was already finished when the page was reopened.
   const reportedRef = useRef<string | null>(null);
 
-  const startRound = useCallback(async (): Promise<SoloState> => {
+  const startRound = useCallback(async (
+    setup: CategorySetup = DEFAULT_CATEGORY_SETUP,
+    played: number[] = []
+  ): Promise<SoloState> => {
     switch (mode) {
+      case "categories": {
+        const next = await getInfiniteGame(played, null, setup.categories);
+        return createCategoryRoundState(next.gameNumber, next.category ?? null, setup, played);
+      }
       case "leiter": {
         const next = await getInfiniteGame([]);
         // The opening rank is clamped to the scale. 5000 is the right distance
@@ -143,6 +175,13 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
       return;
     }
 
+    // Kategorien asks before it deals: no round until the fields are chosen.
+    if (mode === "categories") {
+      setSetupOpen(true);
+      setLoading(false);
+      return;
+    }
+
     startRound()
       .then((fresh) => {
         if (cancelled) return;
@@ -166,6 +205,12 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
   }, [state]);
 
   const revealSolutions = useCallback(async (finished: SoloState) => {
+    // A round given up already fetched its answer; asking again would count a
+    // second reveal for one round.
+    if (finished.mode === "categories" && finished.revealed) {
+      setSolution(finished.revealed);
+      return;
+    }
     try {
       if (finished.mode === "doppel") {
         const [a, b] = finished.gameNumbers;
@@ -220,7 +265,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
       game_number: primaryGame(state),
       outcome: state.status === "won" ? "solved" : "gaveup",
       guesses: Math.max(1, soloGuessCount(state)),
-      tips: 0,
+      tips: state.mode === "categories" ? state.tips : 0,
       duration_seconds: durationSeconds,
       best_rank: soloBestRank(state),
     });
@@ -238,7 +283,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
 
       const word = raw.trim().toLowerCase();
       if (alreadyGuessed(state, word)) {
-        setPodestError({ word, message: "Wort bereits geraten" });
+        setPodestError({ word, message: refusalText("refusalDuplicate", quips, word) });
         return;
       }
 
@@ -247,7 +292,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         if (state.mode === "doppel") {
           const result = await submitDualGuess(word, state.gameNumbers, state.guesses.length === 0);
           if (alreadyGuessed(state, result.word)) {
-            setPodestError({ word: result.word, message: "Wort bereits geraten" });
+            setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
             return;
           }
           setLatestWord(result.word);
@@ -268,7 +313,7 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           state.mode
         );
         if (alreadyGuessed(state, result.word)) {
-          setPodestError({ word: result.word, message: "Wort bereits geraten" });
+          setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
           return;
         }
         setLatestWord(result.word);
@@ -285,6 +330,8 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
           setState(next);
         } else if (state.mode === "limit") {
           setState(limitApplyGuess(state, result));
+        } else if (state.mode === "categories") {
+          setState(categoryApplyGuess(state, result));
         } else {
           setState(suddenDeathApplyGuess(state, result));
         }
@@ -292,11 +339,11 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         if (e instanceof UnknownWordError) {
           setPodestError({
             word,
-            message: "Dieses Wort kenne ich leider nicht",
+            message: refusalText("refusalUnknown", quips, word),
             suggestions: e.suggestions,
           });
         } else if (e instanceof Error && e.message === "stopword") {
-          setPodestError({ word, message: "Dieses Wort zählt nicht, es ist zu allgemein" });
+          setPodestError({ word, message: refusalText("refusalStopword", quips, word) });
         } else {
           setError("Fehler bei der Verbindung");
         }
@@ -304,10 +351,10 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         setPendingWord(undefined);
       }
     },
-    [state]
+    [state, quips]
   );
 
-  const handleRestart = useCallback(async () => {
+  const beginRound = useCallback(async (setup?: CategorySetup, played: number[] = []) => {
     setRestarting(true);
     setError(null);
     setSolution(null);
@@ -316,16 +363,66 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     setPodestError(undefined);
     clearSoloState(mode);
     try {
-      const fresh = await startRound();
+      const fresh = await startRound(setup, played);
       reportedRef.current = null;
       setState(fresh);
       saveSoloState(fresh);
+      setSetupOpen(false);
     } catch {
       setError("Neue Runde konnte nicht geladen werden");
     } finally {
       setRestarting(false);
     }
   }, [mode, startRound]);
+
+  const handleRestart = useCallback(() => {
+    if (state?.mode === "categories") {
+      void beginRound(state.setup, categoryPlayedAfter(state));
+      return;
+    }
+    void beginRound();
+  }, [beginRound, state]);
+
+  const handleSetupStart = useCallback((setup: CategorySetup) => {
+    saveCategorySetup(setup);
+    void beginRound(setup, playedRef.current);
+  }, [beginRound]);
+
+  const handleChangeSetup = useCallback(() => {
+    if (state?.mode !== "categories") return;
+    playedRef.current = categoryPlayedAfter(state);
+    setSetupDraft(state.setup);
+    clearSoloState(mode);
+    setState(null);
+    setError(null);
+    setSetupOpen(true);
+  }, [mode, state]);
+
+  const handleTip = useCallback(async () => {
+    if (state?.mode !== "categories" || state.status !== "running") return;
+    setError(null);
+    const ranks = state.guesses.map((g) => g.rank);
+    const bestRank = ranks.length > 0 ? Math.min(...ranks) : 10000;
+    try {
+      const tip = await getTip(difficulty, bestRank, state.gameNumber, ranks, true, "categories");
+      setLatestWord(tip.word);
+      setState(categoryApplyTip(state, tip));
+    } catch {
+      setError("Tipp konnte nicht geladen werden");
+    }
+  }, [difficulty, state]);
+
+  const handleGiveUp = useCallback(async () => {
+    setShowGiveUp(false);
+    if (state?.mode !== "categories" || state.status !== "running") return;
+    try {
+      const revealed = await revealAnswer(state.gameNumber, true, "categories");
+      onEventGiveUp();
+      setState(categoryGiveUp(state, revealed.word));
+    } catch {
+      setError("Lösungswort konnte nicht geladen werden");
+    }
+  }, [state]);
 
   const handleThemeChange = useCallback((t: "light" | "dark") => {
     setTheme(t);
@@ -343,22 +440,73 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
     saveSortMode(s);
   }, []);
 
-  if (loading || !state) {
+  const dialogs = (
+    <>
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        theme={theme}
+        onThemeChange={handleThemeChange}
+        difficulty={difficulty}
+        onDifficultyChange={handleDifficultyChange}
+        sortMode={sortMode}
+        onSortModeChange={handleSortModeChange}
+        showQuips
+      />
+      <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
+    </>
+  );
+
+  if (loading) {
     return <GameSkeleton />;
   }
 
+  if (setupOpen || !state) {
+    if (mode !== "categories") return <GameSkeleton />;
+    return (
+      <div className="max-w-lg mx-auto min-h-screen flex flex-col">
+        <Header
+          onTip={() => {}}
+          onGiveUp={() => {}}
+          onHowToPlayOpen={() => setShowHowToPlay(true)}
+          onSettingsOpen={() => setShowSettings(true)}
+          onPastGamesOpen={() => {}}
+          hideTip
+          hideGiveUp
+          hidePastGames
+          subtitle={`Modus: ${meta.name}`}
+          backOpensModes
+        />
+        <div className="flex-1 px-4 py-4 flex flex-col gap-4">
+          <CategorySetupPanel
+            mode={meta}
+            initial={setupDraft}
+            onStart={handleSetupStart}
+            starting={restarting}
+            error={error}
+          />
+          <SoloRulesCard mode={meta} />
+        </div>
+        {dialogs}
+      </div>
+    );
+  }
+
   const over = state.status !== "running";
+  const playsNormally = state.mode === "categories";
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col">
       <Header
-        onTip={() => {}}
-        onGiveUp={() => {}}
+        onTip={handleTip}
+        onGiveUp={() => setShowGiveUp(true)}
         onHowToPlayOpen={() => setShowHowToPlay(true)}
         onSettingsOpen={() => setShowSettings(true)}
         onPastGamesOpen={() => {}}
-        hideTip
-        hideGiveUp
+        hideTip={!playsNormally}
+        hideGiveUp={!playsNormally}
+        tipDisabled={over}
+        giveUpDisabled={over}
         hidePastGames
         subtitle={`Modus: ${meta.name}`}
         backOpensModes
@@ -368,13 +516,20 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         {over ? (
           <>
             <SoloResultCard
+              quips={quips}
               mode={meta}
               state={state}
               solution={solution}
               secondSolution={secondSolution}
               onRestart={handleRestart}
               restarting={restarting}
+              onChangeSetup={state.mode === "categories" ? handleChangeSetup : undefined}
             />
+            {error && (
+              <p role="alert" className="text-small text-destructive">
+                {error}
+              </p>
+            )}
             <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
           </>
         ) : (
@@ -443,17 +598,15 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         )}
       </div>
 
-      <SettingsModal
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-        theme={theme}
-        onThemeChange={handleThemeChange}
-        difficulty={difficulty}
-        onDifficultyChange={handleDifficultyChange}
-        sortMode={sortMode}
-        onSortModeChange={handleSortModeChange}
-      />
-      <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
+      {dialogs}
+      {playsNormally && (
+        <GiveUpDialog
+          open={showGiveUp}
+          onClose={() => setShowGiveUp(false)}
+          onConfirm={handleGiveUp}
+          description="Bist du sicher? Das Lösungswort wird angezeigt, danach geht es mit der nächsten Runde weiter."
+        />
+      )}
     </div>
   );
 }

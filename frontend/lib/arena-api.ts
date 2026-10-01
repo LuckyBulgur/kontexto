@@ -8,18 +8,25 @@ import {
 import { DuelGuessHistoryEntry, NextGameResult } from "./duel-types";
 import type { RoomGameSource, RoomRevealResult } from "./types";
 import { throwGuessNotFound } from "./guess-error";
+import { CategorySetup, roomCategoryBody } from "./categories";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function createArena(
   mode: ArenaModeId,
   gameSource: RoomGameSource,
-  nickname: string
+  nickname: string,
+  categories?: CategorySetup | null
 ): Promise<CreateArenaResponse> {
   const res = await fetch(`${API_BASE}/arena`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, game_source: gameSource, nickname }),
+    body: JSON.stringify({
+      mode,
+      game_source: gameSource,
+      nickname,
+      ...(categories ? roomCategoryBody(categories) : {}),
+    }),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();

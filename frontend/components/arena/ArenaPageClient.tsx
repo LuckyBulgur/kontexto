@@ -13,6 +13,7 @@ import JoinDialog from "@/components/duel/JoinDialog";
 import ArenaLobby from "@/components/arena/ArenaLobby";
 import ArenaPlayerBar from "@/components/arena/ArenaPlayerBar";
 import ArenaResultCard from "@/components/arena/ArenaResultCard";
+import RoomCategoryLabel, { hasCategoryRule } from "@/components/categories/RoomCategoryLabel";
 import {
   arenaNextGame,
   getArenaHistory,
@@ -386,6 +387,11 @@ export default function ArenaPageClient() {
 
       <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row">
         <div className="flex flex-1 flex-col gap-4">
+          {hasCategoryRule(state) && state.status !== "finished" && (
+            <p className="-mb-2 text-micro font-medium text-muted-foreground">
+              <RoomCategoryLabel room={state} />
+            </p>
+          )}
           {state.status === "lobby" ? (
             <ArenaLobby
               state={state}

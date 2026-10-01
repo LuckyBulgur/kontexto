@@ -1,0 +1,53 @@
+# The category catalogue: what a solution may be filed under.
+#
+# Why categories exist: since 2026-10-01 a player can pick the fields a round is
+# drawn from (only animals, only food and drink) or play every field and see the
+# round's field above the board. The daily and the standard modes never show
+# one. Where they appear and why: CLAUDE.md, section "Categories".
+#
+# Format, one category per line, in the order the picker shows them:
+#
+#   id = Display name: seed words
+#
+# * id is an ASCII slug and never changes once shipped, because rooms store it
+#   and an old client sends it. The display name is the German UI copy and may
+#   change freely.
+# * The seed words are not read at runtime. scripts/propose-categories.py reads
+#   them to propose a category for every solution (the solution's own rank
+#   array says how close each seed sits), and scripts/measure-categories.py
+#   reads them to measure how much showing the category helps. They are
+#   everyday words a player would type once they know the field.
+#
+# One level, no subcategories. A category must keep at least
+# categories.MIN_PLAYABLE solutions (40) after the struck games are removed, so
+# that a player who picks only that one does not meet the same word again for
+# several evenings; test_categories.py holds it.
+#
+# The abstract words have fields of their own (feelings and thoughts, concepts
+# and ideas), because the player ruled that every solution gets a category.
+
+animals = Tiere: tier hund katze vogel pferd kuh insekt schlange maus affe
+plants = Pflanzen und Garten: pflanze baum blume blatt gras garten rose wurzel strauch samen
+nature = Natur und Wetter: natur berg wald fluss meer regen wind schnee wolke landschaft
+science = Weltall und Wissenschaft: wissenschaft forschung labor chemie physik planet stern weltraum atom experiment
+materials = Stoffe und Materialien: material metall holz stein glas eisen kunststoff stoff papier gold
+food = Essen und Trinken: essen gericht kuchen brot obst gemüse fleisch käse getränk suppe
+body = Körper und Gesundheit: körper kopf hand herz auge arzt krankheit blut knochen medizin
+clothing = Kleidung und Mode: kleidung hose jacke schuh hemd kleid mütze mode schmuck mantel
+home = Haus und Haushalt: haus wohnung küche zimmer möbel bett tisch sofa schrank badezimmer
+technology = Technik und Werkzeug: technik gerät computer maschine handy werkzeug kabel strom hammer bildschirm
+transport = Fahrzeuge und Verkehr: auto fahrzeug zug bus straße fahrrad flugzeug verkehr schiff bahn
+places = Orte und Gebäude: ort gebäude stadt dorf platz turm schloss markt kirche hotel
+people = Familie und Menschen: mensch familie mutter vater kind bruder freund oma baby frau
+jobs = Berufe: beruf lehrer arzt polizist koch handwerker bäcker ingenieur pilot verkäufer
+sport = Sport und Spiel: sport spiel fußball ball mannschaft training tor turnier tennis spieler
+music = Musik und Klang: musik lied gitarre klavier band konzert sänger melodie instrument rock
+arts = Kunst und Medien: kunst film bild theater buch zeitung fernsehen foto maler roman
+school = Schule und Sprache: schule unterricht schüler klasse sprache wort buchstabe prüfung heft lernen
+economy = Arbeit und Geld: arbeit geld firma bank lohn preis kunde markt vertrag steuer
+society = Gesellschaft und Geschichte: staat gesellschaft politik regierung gesetz volk krieg geschichte bürger gericht
+mind = Gefühle und Gedanken: gefühl gedanke freude angst liebe traum glück wut erinnerung seele
+time = Zeit und Feste: zeit tag jahr woche sommer winter fest feier geburtstag weihnachten
+travel = Reisen und Freizeit: reise urlaub ferien koffer hotel ausflug strand zelt wanderung freizeit
+fantasy = Märchen und Fantasie: märchen zauber hexe drache monster geist fantasie prinzessin ritter magie
+concepts = Begriffe und Ideen: begriff idee form system art sache teil prinzip struktur zustand

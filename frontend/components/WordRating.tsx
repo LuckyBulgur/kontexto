@@ -9,6 +9,8 @@ import {
   RATING_VERDICTS,
   type WordRatingPrompt,
 } from "@/lib/word-rating";
+import { pickQuip, ratingOccasion } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 
 /**
  * „War das Wort fair?", asked on every finished round.
@@ -60,11 +62,15 @@ function Tally({ counts, total }: { counts: Record<string, number>; total: numbe
 export default function WordRating({
   prompt,
   className,
+  quipSeed = 0,
 }: {
   prompt: WordRatingPrompt;
   className?: string;
+  /** Picks the quip that replaces the thanks; the game number, so a re-render keeps it. */
+  quipSeed?: number;
 }) {
   const [detail, setDetail] = useState("");
+  const { enabled: quips } = useQuips();
 
   if (!prompt.visible) return null;
 
@@ -114,10 +120,18 @@ export default function WordRating({
     );
   }
 
+  // The quip answers only once the vote is in, never in the questions above:
+  // the reason "did not know the word" decides whether a word leaves the pool,
+  // and a tease before it would shift exactly that answer. Every verdict gets a
+  // line, so no answer is the one that gets mocked.
+  const thanks = quips && prompt.verdict !== null
+    ? pickQuip(ratingOccasion(prompt.verdict), quipSeed)
+    : COPY.thanks;
+
   return (
     <div className={surface}>
       <p className="text-small text-muted-foreground">
-        {COPY.thanks}{" "}
+        {thanks}{" "}
         {prompt.summary?.enough && prompt.summary.total > 0 ? (
           <Tally counts={prompt.summary.counts} total={prompt.summary.total} />
         ) : (

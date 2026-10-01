@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/solo/limit/", freq: "weekly", prio: 0.5 },
     { path: "/solo/doppelziel/", freq: "weekly", prio: 0.5 },
     { path: "/solo/sudden-death/", freq: "weekly", prio: 0.5 },
+    { path: "/solo/kategorien/", freq: "weekly", prio: 0.5 },
     // /duel/create/, /koop/create/, /wordle/duel/create/, /arena/create/ and
     // /suche/ are intentionally omitted: thin functional forms marked noindex.
     // /live/overlay/ too, for a stronger reason: it is an OBS browser source
