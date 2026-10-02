@@ -80,3 +80,6 @@ brag-output-tiktok/
 # Local working copy of production data plus the generated pool artifacts.
 # Holds hundreds of npz files and a copy of prod state; never belongs in git.
 .regen-work/
+
+# Easter egg build cache (scripts/build-easter-eggs.py, scripts/build-egg-sounds.py)
+.cache/

@@ -62,6 +62,27 @@ export async function disableQuips(context: BrowserContext): Promise<void> {
   }, QUIPS_KEY);
 }
 
+/** The QA switch of lib/easter-eggs/play.ts, EGGS_FORCE_KEY. Not a player setting. */
+export const EGGS_FORCE_KEY = "kontexto_eggs_force";
+
+/**
+ * Easter eggs stay off unless a spec asks for them (e2e/easter-eggs.spec.ts).
+ *
+ * Some two thousand words carry one, so ordinary specs would type into flying
+ * pictures, air horns and a shaking page, and every screenshot would depend on
+ * which word a spec happened to use. Written only when the key is absent, so a
+ * spec that removes it in a later init script keeps the eggs.
+ */
+export async function disableEasterEggs(context: BrowserContext): Promise<void> {
+  await context.addInitScript((key) => {
+    try {
+      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, "off");
+    } catch {
+      // Storage blocked: the eggs play, and only easter-eggs.spec.ts relies on either.
+    }
+  }, EGGS_FORCE_KEY);
+}
+
 /**
  * For specs that build their own contexts (duel-realtime needs two isolated
  * players). The context fixture below does not reach those, because a context
@@ -71,6 +92,7 @@ export async function prepareContext(context: BrowserContext): Promise<void> {
   await context.route(THIRD_PARTY, (route) => route.abort());
   await disableSeasonalEvents(context);
   await disableQuips(context);
+  await disableEasterEggs(context);
 }
 
 export const test = base.extend({

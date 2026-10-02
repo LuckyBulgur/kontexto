@@ -247,8 +247,12 @@ jobs:
           tags: ${{ env.IMAGE }}:${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           # Keep the production image review-safe. This must be changed
-          # deliberately after Google has approved the site.
-          build-args: NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
+          # deliberately after Google has approved the site. The build id is
+          # the commit, which open tabs compare with /version.json to notice
+          # this deploy and reload (frontend/lib/update-check.ts).
+          build-args: |
+            NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
+            KONTEXTO_BUILD_ID=${{ github.sha }}
           provenance: false
           sbom: false
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache

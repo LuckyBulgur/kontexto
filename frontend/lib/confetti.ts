@@ -109,6 +109,27 @@ export async function fireBurst(): Promise<void> {
 }
 
 /**
+ * Confetti for an easter egg word (`lib/easter-eggs`): one burst, or two
+ * seconds of firework over the upper half. Plain colours in every season and
+ * no flash text, because a word is not a win.
+ */
+export async function fireEggConfetti(style: "burst" | "fireworks"): Promise<void> {
+  if (prefersReducedMotion()) return;
+  const confetti = await loadConfetti();
+  const base: ConfettiOptions = { disableForReducedMotion: true, zIndex: 41 };
+  if (style === "burst") {
+    confetti({ ...base, particleCount: 110, spread: 80, origin: { y: 0.65 } });
+    return;
+  }
+  const end = Date.now() + 2000;
+  const interval = setInterval(() => {
+    if (Date.now() > end) return clearInterval(interval);
+    const at = { x: 0.12 + Math.random() * 0.76, y: 0.12 + Math.random() * 0.35 };
+    confetti({ ...base, particleCount: 60, spread: 360, startVelocity: 28, ticks: 80, gravity: 0.8, origin: at });
+  }, 350);
+}
+
+/**
  * A small burst for the decorative demo on the home page. No flash, it is an
  * illustration and not a win.
  */

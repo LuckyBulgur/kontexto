@@ -486,7 +486,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
         onDifficultyChange={handleDifficultyChange}
         sortMode={sortMode}
         onSortModeChange={handleSortModeChange}
-        showQuips
       />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
     </>

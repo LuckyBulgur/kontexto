@@ -4,6 +4,7 @@ import { Guess } from "@/lib/types";
 import { DuelPlayer } from "@/lib/duel-types";
 import { Button } from "@/components/ui/button";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
+import { pickQuip, roomResultOccasion } from "@/lib/quips";
 
 interface DuelResultCardProps {
   /** Null until the reveal answers, and after a reveal that failed: the round
@@ -14,6 +15,8 @@ interface DuelResultCardProps {
   currentNickname: string;
   /** When set, shows a prominent "Nächstes Spiel" button (rematch). */
   onNextGame?: () => void;
+  /** Ends the summary on a quip (`lib/quips.ts`), about the reader only. */
+  quips?: boolean;
 }
 
 export default function DuelResultCard({
@@ -22,6 +25,7 @@ export default function DuelResultCard({
   players,
   currentNickname,
   onNextGame,
+  quips = false,
 }: DuelResultCardProps) {
   const sorted = [...players].sort((a, b) => {
     if (a.solved && !b.solved) return -1;
@@ -30,6 +34,10 @@ export default function DuelResultCard({
   });
 
   const solvedWord = guesses.find((g) => g.rank === 1)?.word ?? "";
+  const yourPlace = sorted.findIndex((p) => p.nickname === currentNickname) + 1;
+  const you = sorted[yourPlace - 1];
+  const quip =
+    quips && you ? pickQuip(roomResultOccasion(you.solved, yourPlace), `${solvedWord}:${you.guess_count}`) : undefined;
 
   return (
     <Panel className="animate-result-in">
@@ -40,6 +48,7 @@ export default function DuelResultCard({
             : `Duell, Spiel #${gameNumber}, das Wort war`
         }
         headline={solvedWord}
+        support={quip}
       />
 
       <ResultList>

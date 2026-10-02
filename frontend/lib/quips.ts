@@ -16,10 +16,10 @@
  * 3. System errors (connection lost, a tip that failed to load) are never
  *    teased. Only what the player did gets a line, never what the server did.
  *
- * Applied in Kontexto, the solo modes and solo Wordle. Deliberately not in
- * duel, koop, arena, Wordle duel or the live room: a line read by a whole
- * room or a stream audience is no longer a wink between the game and one
- * player.
+ * Applied in every mode, the player's decision of 2026-10-02: Kontexto, the
+ * solo modes, Wordle, and the rooms (duel, koop, arena, Wordle duel, the live
+ * room). In a room a line is still about the reader alone: it teases what you
+ * did, never another player, and never names anybody.
  */
 
 export type QuipOccasion =
@@ -53,6 +53,11 @@ export type QuipOccasion =
   | "wordleWin5"
   | "wordleWin6"
   | "wordleLoss"
+  | "roomWinFirst"
+  | "roomSolved"
+  | "roomLost"
+  | "teamSolved"
+  | "teamGaveUp"
   | "ratingEasy"
   | "ratingRight"
   | "ratingHard";
@@ -192,6 +197,35 @@ export const QUIPS: Record<QuipOccasion, readonly string[]> = {
   wordleWin5: ["Knapp, aber W.", "Puh. Gerade noch Aura.", "Hat gedauert, Bro."],
   wordleWin6: ["Gerade so, Bro. Puls okay?", "Letzte Zeile. Wild.", "Das war knapp, Digga."],
   wordleLoss: ["Skill Issue.", "L, Bro.", "Sechs Versuche, null Treffer. Aura -500."],
+  roomWinFirst: [
+    "Erster Platz. Aura +1000.",
+    "Platz eins, Bro. Built different.",
+    "Alle abgezogen. Sheesh.",
+    "Main-Character-Energie. W.",
+  ],
+  roomSolved: [
+    "Gelöst. Nicht Erster, aber W.",
+    "Geschafft, Bro. Podest knapp verpasst.",
+    "W, nur nicht das schnellste.",
+    "Solide. Nächstes Mal schneller, Digga.",
+  ],
+  roomLost: [
+    "Nicht gelöst. Skill Issue.",
+    "L, Bro. Revanche?",
+    "Die anderen waren schneller. Aura -500.",
+    "Nächste Runde wird dein W.",
+  ],
+  teamSolved: [
+    "Teamwork makes the dream work. W.",
+    "Gemeinsam gelöst. Sheesh.",
+    "Squad mit Aura.",
+    "Good Boys, alle zusammen.",
+  ],
+  teamGaveUp: [
+    "Team-L. Morgen wieder.",
+    "Weiße Fahne fürs ganze Squad, Bro?",
+    "Skill Issue, aber gemeinsam.",
+  ],
   ratingEasy: [
     "Bro hält sich für ein Genie. Danke.",
     "Zu leicht? Angeber. Danke dir.",
@@ -275,6 +309,12 @@ export function soloResultOccasion(mode: SoloQuipMode, won: boolean): QuipOccasi
 export function wordleWinOccasion(row: number): QuipOccasion {
   const clamped = Math.min(6, Math.max(1, Math.round(row)));
   return `wordleWin${clamped}` as QuipOccasion;
+}
+
+/** A room's result for the reader: solved first, solved, or not solved. */
+export function roomResultOccasion(solved: boolean, place: number): QuipOccasion {
+  if (!solved) return "roomLost";
+  return place <= 1 ? "roomWinFirst" : "roomSolved";
 }
 
 export function ratingOccasion(verdict: "easy" | "right" | "hard"): QuipOccasion {

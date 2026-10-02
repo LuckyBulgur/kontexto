@@ -576,6 +576,47 @@ and `e2e/mascot.spec.ts`.
 **Toasts sit at the bottom centre and a size up** (2026-10-02, the player's decision): Sonner in
 `components/ui/sonner.tsx` and the live support toasts alike.
 
+### Easter eggs (`lib/easter-eggs/`, 2026-10-02)
+**1.759 words with a picture, about 400 with a sound, 153 scene words**, in every mode (Kontexto,
+every solo mode, duel, koop, arena, live room, Wördle, Wördle duel), all year, **always on with
+sound, no switch** (the player's decision). Nothing here is drawn by hand where a published
+source exists: the word list is the German Unicode CLDR emoji annotations joined with Microsoft's
+Fluent Emoji Flat SVGs (MIT, `public/eggs/LICENSE-fluent-emoji.txt`) by
+`scripts/build-easter-eggs.py --core <prod core_words.json>`, which keeps a keyword only on the
+counted scale, drops stop words, the hint blocklist and the profanity engine, and applies three
+hand lists in `frontend/data/easter-eggs/` (`rejects.txt`: wrong pictures, weak words, alcohol,
+tobacco, weapons, religious symbols; `picks.txt`: corrections, additions and the sound of a word;
+`extra-icons.txt`). The 140 sounds are CC0 recordings from BigSoundBank, prepared like the knock
+(`scripts/build-egg-sounds.py`, mono, -25 LUFS, -6 dBTP), sources in `NOTICE.md`. Outputs are
+committed (`catalog.generated.ts`, `public/eggs/svg/`, `public/eggs/sfx/`), the Docker build does
+not run the scripts. **Hand-made scenes** (`scenes.ts`) win over the catalogue: ghost, storm,
+lightning (one flash, WCAG 2.3.1), rain, snow, rainbow, earthquake, night, fireworks, party, rocket,
+love, money, balloons, UFO, dinosaur, magic, pizza, shark, the animal sounds typed as words
+(`miau`, `muh`, `kikeriki`) and **MLG** (`mlg`, `noscope`, `yeet`, `bruh`, `digga`, `sigma`, ...:
+air horns, hitmarkers with shots, a scream, the scope, "deal with it" sunglasses, "Oh baby, a
+triple" through the browser's own speech synthesis). **Two triggers**: what the player typed, on
+submit (`onEventTyped` in `GuessInput` and both Wördle submits, so a refused word like `mlg`
+fires and the submit is the gesture audio needs), and the word the server returns
+(`onEventGuess`, which reaches folded forms). A teammate's koop word plays (`onEventTeamWord`), a
+stream chat word plays as `live`. **The cooldown is per word only** (`gate.ts`: 8 s, 30 s in a
+live room), never global, so new words typed one after the other all play; at most 6 layers
+and 6 voices at once, the oldest gives way. In a live room (`setEventLiveRoom`) still pictures
+and drops keep to the outer quarter and night and shake never run. The word alone decides,
+never the rank. While the Halloween skin shows, a spooky word plays only its spooky effect.
+Under reduced motion nothing moves, the sound still plays. `klopfen` and `erdnuss` keep their
+own eggs. QA switch `kontexto_eggs_force = "off"`, set by `e2e/fixtures.ts` for every spec but
+`e2e/easter-eggs.spec.ts`. Held by `lib/easter-eggs/catalog.test.ts`, `gate.test.ts` and the spec.
+
+### Update notice (`lib/update-check.ts`, `components/UpdateWatcher.tsx`, 2026-10-02)
+An open tab notices a deploy within about 20 s and reloads, instead of running the old code until
+somebody reloads by hand. The image carries its commit (`KONTEXTO_BUILD_ID` build arg from
+`deploy.yml`, inlined as `NEXT_PUBLIC_BUILD_ID`) and serves it as `/version.json`
+(`app/version.json/route.ts`, `force-static`). Two failed checks in a row with the browser online
+read as the container being replaced: a notice in the middle of the screen says an update runs
+and **stays until the page reloads** (no close button, the player's decision), checks every 3 s,
+and reloads once the new id answers; the old id answering means a blip and the notice goes. A
+local or e2e build carries `dev` and the watcher stays off. Held by `lib/update-check.test.ts`.
+
 ### Quips (`lib/quips.ts`, `lib/use-quips.ts`, 2026-10-01)
 The game teases the player in youth slang ("Skill Issue", "Bro", "Good Boy", "Aura +1000"),
 **on by default**, switched off by „Freche Sprüche“ in both settings dialogs (opt-out key
@@ -583,9 +624,12 @@ The game teases the player in youth slang ("Skill Issue", "Bro", "Good Boy", "Au
 which lives in `PLAIN` next to the catalogue so on and off are decided in one place
 (`refusalText`). Where: the result card of Kontexto and every solo mode, the guess refusals
 (duplicate, unknown, too common), the Wördle toasts (win per row, loss, too short, not in the
-list, hard mode) and the thank-you after the word rating. Where deliberately not: duel, koop,
-arena, Wördle duel and the live room (a line a whole room or a stream reads is no longer a
-wink), and system errors (connection, a failed tip), which stay plain. Three rules, held by
+list, hard mode) and the thank-you after the word rating, and **since 2026-10-02 every room as
+well** (duel, koop, arena, Wördle duel, the live room; the player's decision, "alles in jedem
+Modus"): the same refusals there, and a line on each room result card (`roomResultOccasion`:
+first, solved, not solved; `teamSolved`/`teamGaveUp` for koop and live). In a room a line is
+about the reader only, never about another player. The switch sits in every settings dialog
+(`SettingsModal` no longer takes `showQuips`). System errors (connection, a failed tip) stay plain. Three rules, held by
 `lib/quips.test.ts`: cheeky but never insulting (school classes play this), **a refusal still
 carries its fact** (each kind is pinned to a pattern), and the house typography. Lines are picked
 by a seeded hash, never at random, so a reload shows the same line. **The rating teases only

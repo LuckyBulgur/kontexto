@@ -5,6 +5,7 @@ import { Guess } from "@/lib/types";
 import { KoopPlayer } from "@/lib/koop-types";
 import { Button } from "@/components/ui/button";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
+import { pickQuip } from "@/lib/quips";
 
 /** One line of the result list. `label` replaces the plain name where a mode
  *  draws more than a name (the stream chat: logo and badges). */
@@ -37,6 +38,8 @@ interface KoopResultCardProps {
    *  stream chat sets it: the finder is one person out of hundreds and has to
    *  be readable from across the room, on the stream. */
   finder?: ReactNode;
+  /** Ends the summary on a quip (`lib/quips.ts`), about the reader only. */
+  quips?: boolean;
 }
 
 export default function KoopResultCard({
@@ -51,6 +54,7 @@ export default function KoopResultCard({
   groupNoun = "im Team",
   rows,
   finder: finderBlock,
+  quips = false,
 }: KoopResultCardProps) {
   const solvedWord = guesses.find((g) => g.rank === 1)?.word ?? "";
   const sorted = [...players].sort(
@@ -70,13 +74,16 @@ export default function KoopResultCard({
         }
         headline={solvedWord}
         lost={gaveUp}
-        support={
-          gaveUp
+        support={(() => {
+          const base = gaveUp
             ? `Aufgegeben nach ${guesses.length} Versuchen ${groupNoun}.`
             : finderBlock && solvedBy
               ? `Nach ${guesses.length} Versuchen ${groupNoun}.`
-              : finder
-        }
+              : finder;
+          if (!quips) return base;
+          const line = pickQuip(gaveUp ? "teamGaveUp" : "teamSolved", `${solvedWord}:${guesses.length}`);
+          return `${base} ${line}`;
+        })()}
       />
 
       {!gaveUp && solvedBy && finderBlock}

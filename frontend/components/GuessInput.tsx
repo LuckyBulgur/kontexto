@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SPOOKTOBER_2026 } from "@/lib/event-theme";
 import { useEventTheme } from "@/lib/use-event-theme";
 import { isKnockWord, playKnock } from "@/lib/knock-sound";
+import { onEventTyped } from "@/lib/events/hooks";
 
 const DEFAULT_PLACEHOLDER = "Wort eingeben...";
 /**
@@ -40,6 +41,7 @@ export default function GuessInput({ onGuess, disabled, error, placeholder = DEF
     const word = value.trim();
     if (!word || disabled) return;
     if (isKnockWord(word)) playKnock();
+    onEventTyped(word);
     onGuess(word);
     setValue("");
   };

@@ -5,6 +5,7 @@ import { ArenaState } from "@/lib/arena-types";
 import { MULTIPLAYER_MODES } from "@/lib/multiplayer-modes";
 import ModesDialogButton from "@/components/ModesDialogButton";
 import { Panel, ResultHero, ResultList, ResultRow } from "@/components/design";
+import { pickQuip, roomResultOccasion } from "@/lib/quips";
 
 interface ArenaResultCardProps {
   state: ArenaState;
@@ -16,6 +17,8 @@ interface ArenaResultCardProps {
   solution: string | null;
   onNextRound: () => void;
   nextLoading: boolean;
+  /** Ends the summary on a quip (`lib/quips.ts`), about the reader only. */
+  quips?: boolean;
 }
 
 export default function ArenaResultCard({
@@ -25,10 +28,20 @@ export default function ArenaResultCard({
   solution,
   onNextRound,
   nextLoading,
+  quips = false,
 }: ArenaResultCardProps) {
   const meta = MULTIPLAYER_MODES[state.mode];
   const youWon = state.winner !== null && state.winner === currentNickname;
   const standings = [...state.players].sort(byPlace);
+  const youIndex = standings.findIndex((p) => p.nickname === currentNickname);
+  const quip =
+    quips && youIndex >= 0
+      ? pickQuip(
+          youWon ? "roomWinFirst" : roomResultOccasion(standings[youIndex].best_rank === 1, youIndex + 1),
+          `${solution ?? ""}:${standings[youIndex].guess_count}`,
+        )
+      : null;
+  const reveal = solution ? `Das Wort war ${solution}.` : null;
 
   return (
     <Panel className="animate-result-in">
@@ -38,7 +51,7 @@ export default function ArenaResultCard({
         }
         headline={youWon ? "Gewonnen!" : state.winner ? `${state.winner} gewinnt` : "Niemand gewinnt"}
         lost={!youWon && !state.winner}
-        support={solution ? `Das Wort war ${solution}.` : undefined}
+        support={[reveal, quip].filter(Boolean).join(" ") || undefined}
       />
 
       <ResultList>

@@ -7,6 +7,8 @@ import Keyboard from "@/components/wordle/Keyboard";
 import OpponentBoard from "@/components/wordle/duel/OpponentBoard";
 import DuelHeader from "@/components/wordle/duel/DuelHeader";
 import DuelResultCard from "@/components/wordle/duel/DuelResultCard";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import JoinForm from "@/components/wordle/duel/JoinForm";
 import { useWordleDuelWs } from "@/lib/use-wordle-duel-ws";
 import { useWordlePhysicalKeyboard } from "@/lib/use-wordle-physical-keyboard";
@@ -21,10 +23,11 @@ import { WordleBoardGridSkeleton, WordleKeyboardSkeleton } from "@/components/wo
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { fireBurst } from "@/lib/confetti";
-import { onEventWordleRow } from "@/lib/events/hooks";
+import { onEventTyped, onEventWordleRow } from "@/lib/events/hooks";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
+  const { enabled: quips } = useQuips();
   const [duelId, setDuelId] = useState<string | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
@@ -251,17 +254,18 @@ export default function WordleDuelPageClient() {
     if (!duelId || !playerToken || submitting || gameStatus !== "playing") return;
     const word = currentGuess.toLowerCase();
     if (word.length < 5) {
-      toast("Nicht genug Buchstaben");
+      toast(refusalText("wordleTooShort", quips, `${duelId}:${guesses.length}`));
       setShakeRow(guesses.length);
       setTimeout(() => setShakeRow(null), 600);
       return;
     }
 
+    onEventTyped(word);
     setSubmitting(true);
     try {
       const resp = await submitWordleDuelGuess(duelId, word, playerToken);
       if (!resp.valid) {
-        toast(resp.error === "not_in_word_list" ? "Nicht im Wörterbuch" : "Fehler");
+        toast(resp.error === "not_in_word_list" ? refusalText("wordleNotInList", quips, word) : "Fehler");
         setShakeRow(guesses.length);
         setTimeout(() => setShakeRow(null), 600);
         return;
@@ -306,7 +310,7 @@ export default function WordleDuelPageClient() {
     } finally {
       setSubmitting(false);
     }
-  }, [duelId, playerToken, currentGuess, guesses, evaluations, submitting, gameStatus, nickname, round]);
+  }, [duelId, playerToken, currentGuess, guesses, evaluations, submitting, gameStatus, nickname, round, quips]);
 
   const handleKey = useCallback((key: string) => {
     if (gameStatus !== "playing") return;
@@ -427,6 +431,7 @@ export default function WordleDuelPageClient() {
 
       {allFinished && (
         <DuelResultCard
+              quips={quips}
           players={players}
           currentNickname={nickname}
           solution={solution}

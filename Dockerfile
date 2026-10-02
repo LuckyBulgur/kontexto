@@ -13,6 +13,12 @@ COPY frontend/ .
 # post-approval opt-in through docker-compose's build arg.
 ARG NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
 ENV NEXT_PUBLIC_ADSENSE_REVIEW_MODE=${NEXT_PUBLIC_ADSENSE_REVIEW_MODE}
+# The commit this image is built from. Inlined as the build id an open tab
+# compares with /version.json, so a tab notices a deploy and reloads
+# (frontend/lib/update-check.ts). "dev" switches that off. Declared after the
+# install, so a new commit invalidates only the layers from the build on.
+ARG KONTEXTO_BUILD_ID=dev
+ENV NEXT_PUBLIC_BUILD_ID=${KONTEXTO_BUILD_ID}
 # pnpm 11 re-verifies deps before running a script and, finding the just-copied
 # project, tries to reinstall, which aborts in a non-interactive build
 # (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). The frozen-lockfile install above

@@ -12,6 +12,8 @@ import SettingsModal from "@/components/SettingsModal";
 import PlayerBar from "@/components/duel/PlayerBar";
 import JoinDialog from "@/components/duel/JoinDialog";
 import DuelResultCard from "@/components/duel/DuelResultCard";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import DuelSkeleton from "@/components/duel/DuelSkeleton";
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
@@ -47,6 +49,7 @@ function getDuelIdFromPath(): string | null {
 }
 
 export default function DuelPageClient() {
+  const { enabled: quips } = useQuips();
   const [duelId, setDuelId] = useState<string | null>(null);
   const [duelState, setDuelState] = useState<DuelState | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
@@ -272,7 +275,7 @@ export default function DuelPageClient() {
       if (guesses.some((g) => g.word === word.toLowerCase())) {
         setPodestError({
           word: word.toLowerCase(),
-          message: "Wort bereits geraten",
+          message: refusalText("refusalDuplicate", quips, word.toLowerCase()),
         });
         return;
       }
@@ -283,7 +286,7 @@ export default function DuelPageClient() {
         if (guesses.some((g) => g.word === result.word)) {
           setPodestError({
             word: result.word,
-            message: "Wort bereits geraten",
+            message: refusalText("refusalDuplicate", quips, result.word),
           });
           return;
         }
@@ -321,13 +324,13 @@ export default function DuelPageClient() {
         if (e instanceof UnknownWordError) {
           setPodestError({
             word: word.toLowerCase(),
-            message: "Dieses Wort kenne ich leider nicht",
+            message: refusalText("refusalUnknown", quips, word.toLowerCase()),
             suggestions: e.suggestions,
           });
         } else if (e instanceof Error && e.message === "stopword") {
           setPodestError({
             word: word.toLowerCase(),
-            message: "Dieses Wort zählt nicht, es ist zu allgemein",
+            message: refusalText("refusalStopword", quips, word.toLowerCase()),
           });
         } else {
           setError("Fehler bei der Verbindung");
@@ -336,7 +339,7 @@ export default function DuelPageClient() {
         setPendingWord(undefined);
       }
     },
-    [duelId, playerToken, guesses, nickname, duelState?.round]
+    [duelId, playerToken, guesses, nickname, duelState?.round, quips]
   );
 
   // Tip
@@ -476,6 +479,7 @@ export default function DuelPageClient() {
 
           {solved ? (
             <DuelResultCard
+              quips={quips}
               gameNumber={solvedGame}
               guesses={guesses}
               players={players}

@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { fireConfetti } from "@/lib/confetti";
-import { onEventArrival, onEventGuess } from "@/lib/events/hooks";
+import { onEventArrival, onEventGuess, onEventTeamWord, setEventLiveRoom } from "@/lib/events/hooks";
 import Header from "@/components/Header";
 import GuessInput from "@/components/GuessInput";
 import GuessList, { type PodestError } from "@/components/GuessList";
@@ -14,6 +14,8 @@ import GiveUpDialog from "@/components/GiveUpDialog";
 import PlayerBar from "@/components/koop/PlayerBar";
 import JoinDialog from "@/components/koop/JoinDialog";
 import KoopResultCard from "@/components/koop/KoopResultCard";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
 import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
@@ -132,6 +134,7 @@ export default function KoopPageClient({
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
 }: KoopPageClientProps = {}) {
+  const { enabled: quips } = useQuips();
   const [koopId, setKoopId] = useState<string | null>(null);
   const [koopState, setKoopState] = useState<KoopState | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
@@ -175,6 +178,13 @@ export default function KoopPageClient({
 
   const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
   const roundOver = solved || gaveUp;
+
+  // The live room's host page is on stream: easter eggs keep to the edges there.
+  useEffect(() => {
+    if (!arrivalEffects) return;
+    setEventLiveRoom(true);
+    return () => setEventLiveRoom(false);
+  }, [arrivalEffects]);
 
   // Extract koop ID from URL.
   useEffect(() => {
@@ -343,8 +353,9 @@ export default function KoopPageClient({
         if (knocksForArrival({ word: msg.word, by: msg.nickname, isTip: msg.is_tip }, nickname)) {
           playKnock();
         }
-        if (arrivalEffects && !msg.is_tip && (!nickname || msg.nickname !== nickname)) {
-          onEventArrival({ word: msg.word, rank: msg.rank });
+        if (!msg.is_tip && (!nickname || msg.nickname !== nickname)) {
+          if (arrivalEffects) onEventArrival({ word: msg.word, rank: msg.rank });
+          else onEventTeamWord(msg.word);
         }
         appendGuess(msg.word, msg.rank, msg.is_tip, undefined, msg.nickname, {
           source: msg.source ?? null,
@@ -463,7 +474,7 @@ export default function KoopPageClient({
       setPodestError(undefined);
 
       if (guesses.some((g) => g.word === word.toLowerCase())) {
-        setPodestError({ word: word.toLowerCase(), message: "Wort bereits geraten" });
+        setPodestError({ word: word.toLowerCase(), message: refusalText("refusalDuplicate", quips, word.toLowerCase()) });
         return;
       }
 
@@ -471,7 +482,7 @@ export default function KoopPageClient({
       try {
         const result = await submitKoopGuess(koopId, word, playerToken);
         if (result.already_guessed || guesses.some((g) => g.word === result.word)) {
-          setPodestError({ word: result.word, message: "Wort bereits geraten" });
+          setPodestError({ word: result.word, message: refusalText("refusalDuplicate", quips, result.word) });
           return;
         }
         appendGuess(result.word, result.rank, false, result.corrected_from ?? undefined);
@@ -489,11 +500,11 @@ export default function KoopPageClient({
         if (e instanceof UnknownWordError) {
           setPodestError({
             word: word.toLowerCase(),
-            message: "Dieses Wort kenne ich leider nicht",
+            message: refusalText("refusalUnknown", quips, word.toLowerCase()),
             suggestions: e.suggestions,
           });
         } else if (e instanceof Error && e.message === "stopword") {
-          setPodestError({ word: word.toLowerCase(), message: "Dieses Wort zählt nicht, es ist zu allgemein" });
+          setPodestError({ word: word.toLowerCase(), message: refusalText("refusalStopword", quips, word.toLowerCase()) });
         } else {
           setError("Fehler bei der Verbindung");
         }
@@ -501,7 +512,7 @@ export default function KoopPageClient({
         setPendingWord(undefined);
       }
     },
-    [koopId, playerToken, guesses, nickname, appendGuess, setPodestError]
+    [koopId, playerToken, guesses, nickname, appendGuess, setPodestError, quips]
   );
 
   // Tip, shared with the whole team. best_rank/guessed_ranks are derived
@@ -666,6 +677,7 @@ export default function KoopPageClient({
 
           {roundOver ? (
             <KoopResultCard
+              quips={quips}
               gameNumber={roundGame}
               guesses={guesses}
               players={players}

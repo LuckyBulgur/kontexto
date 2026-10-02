@@ -561,7 +561,7 @@ export default function GameClient() {
         )}
         <GuessList guesses={gameState.guesses} latestWord={latestWord} pendingWord={pendingWord} podestError={podestError} onSuggestion={handleGuess} sortMode={sortMode} />
       </div>
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} showQuips />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} theme={theme} onThemeChange={handleThemeChange} difficulty={difficulty} onDifficultyChange={handleDifficultyChange} sortMode={sortMode} onSortModeChange={handleSortModeChange} />
       <HowToPlayDialog open={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
       <GiveUpDialog open={showGiveUp} onClose={() => setShowGiveUp(false)} onConfirm={handleGiveUp} />
       <PastGamesDialog open={showPastGames} onClose={() => setShowPastGames(false)} onSelectGame={handleSelectPastGame} />

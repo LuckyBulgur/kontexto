@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
 import { SideRailAds } from "@/components/SideRailAds";
 import RetiredAdStorage from "@/components/RetiredAdStorage";
+import UpdateWatcher from "@/components/UpdateWatcher";
 import StructuredData from "@/components/StructuredData";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
@@ -116,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <FeedbackFab />
         <Toaster />
+        <UpdateWatcher />
         <Analytics />
         <SideRailAds />
         <RetiredAdStorage />

@@ -13,6 +13,8 @@ import JoinDialog from "@/components/duel/JoinDialog";
 import ArenaLobby from "@/components/arena/ArenaLobby";
 import ArenaPlayerBar from "@/components/arena/ArenaPlayerBar";
 import ArenaResultCard from "@/components/arena/ArenaResultCard";
+import { refusalText } from "@/lib/quips";
+import { useQuips } from "@/lib/use-quips";
 import RoomCategoryLabel, { hasCategoryRule } from "@/components/categories/RoomCategoryLabel";
 import {
   arenaNextGame,
@@ -51,11 +53,16 @@ const REFUSAL_MESSAGES: Record<string, string> = {
   time_up: "Deine Zeit ist abgelaufen",
   eliminated: "Du bist raus, schau der Runde zu",
   not_running: "Die Runde läuft gerade nicht",
-  unknown_word: "Dieses Wort kenne ich leider nicht",
-  stopword: "Dieses Wort zählt nicht, es ist zu allgemein",
+};
+
+/** The refusals the quip layer may tease (`lib/quips.ts`); the others are about time, not the word. */
+const QUIP_REFUSALS: Record<string, "refusalUnknown" | "refusalStopword"> = {
+  unknown_word: "refusalUnknown",
+  stopword: "refusalStopword",
 };
 
 export default function ArenaPageClient() {
+  const { enabled: quips } = useQuips();
   const [arenaId, setArenaId] = useState<string | null>(null);
   const [state, setState] = useState<ArenaState | null>(null);
   const [playerToken, setPlayerToken] = useState<string | null>(null);
@@ -267,7 +274,7 @@ export default function ArenaPageClient() {
       setPodestError(undefined);
 
       if (guesses.some((g) => g.word === word)) {
-        setPodestError({ word, message: "Wort bereits geraten" });
+        setPodestError({ word, message: refusalText("refusalDuplicate", quips, word) });
         return;
       }
 
@@ -289,7 +296,8 @@ export default function ArenaPageClient() {
         void refresh(arenaId);
       } catch (e: unknown) {
         const code = e instanceof Error ? e.message : "";
-        const message = REFUSAL_MESSAGES[code];
+        const quipKind = QUIP_REFUSALS[code];
+        const message = quipKind ? refusalText(quipKind, quips, word) : REFUSAL_MESSAGES[code];
         if (message) {
           setPodestError({
             word,
@@ -307,7 +315,7 @@ export default function ArenaPageClient() {
         setPendingWord(undefined);
       }
     },
-    [arenaId, playerToken, guesses, refresh, state?.round]
+    [arenaId, playerToken, guesses, refresh, state?.round, quips]
   );
 
   const handleNextRound = useCallback(async () => {
@@ -402,6 +410,7 @@ export default function ArenaPageClient() {
             />
           ) : state.status === "finished" ? (
             <ArenaResultCard
+              quips={quips}
               state={state}
               currentNickname={nickname}
               gameNumber={roundGame}
