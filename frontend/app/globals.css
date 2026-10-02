@@ -421,13 +421,13 @@
    the global block makes them stand and vanish at once. The leave duration is
    mirrored as EXIT_MS in the component. Ease-out only, no overshoot (M7). */
 @keyframes support-in {
-  from { opacity: 0; transform: translateY(-1.5rem); }
+  from { opacity: 0; transform: translateY(1.5rem); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes support-out {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-1rem); }
+  to { opacity: 0; transform: translateY(1rem); }
 }
 
 @keyframes support-pop {
@@ -445,6 +445,48 @@
 
 .animate-support-pop {
   animation: support-pop 420ms cubic-bezier(0.22, 0.61, 0.36, 1) 120ms both;
+}
+
+/* Mascot flight (lib/mascot-fly.ts): one pass across the viewport when the
+   mascot's word is guessed, bound to that guess and never repeated, so M13
+   holds. 3,2 s, kept in step with MASCOT_FLIGHT_MS in lib/mascot.ts. The
+   picture is pixel art and stays crisp when scaled. */
+.mascot-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mascot-flight {
+  position: absolute;
+  left: 0;
+  width: clamp(96px, 16vw, 176px);
+  height: auto;
+  image-rendering: pixelated;
+  will-change: transform;
+  animation: mascot-fly 3200ms ease-in-out both;
+}
+
+.mascot-flight-reverse {
+  animation-name: mascot-fly-reverse;
+}
+
+@keyframes mascot-fly {
+  0% { transform: translate(-30vw, 0) rotate(-20deg); }
+  25% { transform: translate(18vw, -6vh) rotate(10deg); }
+  50% { transform: translate(45vw, 2vh) rotate(-8deg); }
+  75% { transform: translate(72vw, -5vh) rotate(14deg); }
+  100% { transform: translate(115vw, 0) rotate(-12deg); }
+}
+
+@keyframes mascot-fly-reverse {
+  0% { transform: translate(115vw, 0) scaleX(-1) rotate(20deg); }
+  25% { transform: translate(72vw, -6vh) scaleX(-1) rotate(-10deg); }
+  50% { transform: translate(45vw, 2vh) scaleX(-1) rotate(8deg); }
+  75% { transform: translate(18vw, -5vh) scaleX(-1) rotate(-14deg); }
+  100% { transform: translate(-30vw, 0) scaleX(-1) rotate(12deg); }
 }
 
 /* =========================================================================

@@ -29,7 +29,7 @@ import type { LiveBadgeCatalog, LiveEvent } from "@/lib/live-types";
 import { cn } from "@/lib/utils";
 
 /**
- * Paid support on the host page: every event is a toast at the top centre
+ * Paid support on the host page: every event is a toast at the bottom centre
  * with confetti, louder the more it cost (`celebrationOf`).
  *
  * One toast at a time, the streamer's decision: everything else waits in one
@@ -40,9 +40,10 @@ import { cn } from "@/lib/utils";
  * give way (`admitToast`), and a long queue shortens each toast
  * (`queuedToastMs`) so the last gift of a burst is thanked while it is news.
  *
- * Top centre and as wide as the board, because most streamers capture the
- * board region only and a corner would fall outside the picture. Nothing
- * stands over the middle of the board, and there is no timer bar: the toast
+ * Bottom centre and as wide as the board, the streamer's decision: most
+ * streamers capture the board region only and a corner would fall outside the
+ * picture. Nothing stands over the middle of the board, and there is no timer
+ * bar: the toast
  * leaves by itself. Only while the tab is visible: what arrives in a hidden tab
  * waits and plays when the host looks again. It celebrates and nothing else:
  * the round, the ranks and the tips never see an event.
@@ -70,10 +71,10 @@ const numberFormat = new Intl.NumberFormat("de-DE");
 const formatNumber = (value: number) => numberFormat.format(value);
 
 const LEVEL_CLASS: Record<Celebration, { box: string; glyph: string; name: string; action: string }> = {
-  small: { box: "gap-2.5 p-2.5", glyph: "size-7", name: "font-semibold", action: "text-small" },
-  banner: { box: "gap-3 p-3", glyph: "size-9", name: "font-display text-lead font-bold", action: "text-small" },
-  big: { box: "gap-3 p-3.5", glyph: "size-10", name: "font-display text-h3 font-bold", action: "text-body" },
-  epic: { box: "gap-4 p-4", glyph: "size-12", name: "font-display text-h2 font-bold", action: "text-body" },
+  small: { box: "gap-3 p-3.5", glyph: "size-9", name: "font-display text-lead font-bold", action: "text-body" },
+  banner: { box: "gap-3.5 p-4", glyph: "size-11", name: "font-display text-h3 font-bold", action: "text-body" },
+  big: { box: "gap-4 p-5", glyph: "size-12", name: "font-display text-h2 font-bold", action: "text-lead" },
+  epic: { box: "gap-5 p-6", glyph: "size-16", name: "font-display text-h1 font-bold", action: "text-lead" },
 };
 
 function FollowToast({ toast, catalog }: { toast: FollowToastItem; catalog: LiveBadgeCatalog }) {
@@ -83,22 +84,22 @@ function FollowToast({ toast, catalog }: { toast: FollowToastItem; catalog: Live
       data-testid="live-follow-toast"
       data-others={follow.others}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-2xl bg-popover px-3 py-2 text-popover-foreground shadow-lg",
+        "flex w-full items-center gap-3 rounded-2xl bg-popover px-4 py-3 text-popover-foreground shadow-lg",
         leaving ? "animate-support-out" : "animate-support-in"
       )}
     >
-      <UserPlus aria-hidden className="size-5 shrink-0" style={{ color: FOLLOW_COLOR }} />
+      <UserPlus aria-hidden className="size-6 shrink-0" style={{ color: FOLLOW_COLOR }} />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5">
         <ChatIdentity
           name={follow.actor}
           platform={follow.platform}
           badges={follow.badges}
           catalog={catalog}
-          size="sm"
-          nameClassName="font-semibold"
+          size="lg"
+          nameClassName="font-semibold text-lead"
           className="max-w-full"
         />
-        <span className="text-small text-foreground">{followAction(follow.others)}</span>
+        <span className="text-body text-foreground">{followAction(follow.others)}</span>
       </div>
     </div>
   );
@@ -158,7 +159,7 @@ function SupportToast({ toast, catalog }: { toast: PaidToast; catalog: LiveBadge
           platform={event.platform}
           badges={event.badges}
           catalog={catalog}
-          size={level === "small" ? "sm" : "lg"}
+          size="lg"
           nameClassName={sizes.name}
           className="max-w-full"
         />
@@ -169,7 +170,7 @@ function SupportToast({ toast, catalog }: { toast: PaidToast; catalog: LiveBadge
           )}
           {parts.after}
         </p>
-        {detail && <p className="text-micro text-muted-foreground">{detail}</p>}
+        {detail && <p className="text-small text-muted-foreground">{detail}</p>}
       </div>
     </div>
   );
@@ -277,12 +278,12 @@ export default function SupportToasts({
       role="status"
       aria-live="polite"
       className={cn(
-        "pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-4 pt-[env(safe-area-inset-top,0px)]",
+        "pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom,0px)]",
         BOARD_GRID
       )}
     >
       {/* The same columns as the page, so the toast is as wide as the board and
-          stands over it, wherever the board sits in this band. */}
+          stands under it, wherever the board sits in this band. */}
       <div className={cn("flex flex-col items-stretch", BOARD_COLUMN)}>
         {toast &&
           (toast.type === "follow" ? (

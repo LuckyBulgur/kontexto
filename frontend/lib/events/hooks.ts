@@ -1,15 +1,38 @@
 /**
- * The seams the game clients call into the seasonal event through.
+ * The seams the game clients call on every guess, for decoration only.
  *
- * Every function is a no-op unless the Halloween skin is showing, and the
- * code behind them (`components/event/halloween/controller.ts`) is imported on
- * first use, so outside October a client pays one class check per guess and
- * nothing else. Callers never await these: an effect is decoration and must
- * never hold up or break a guess.
+ * Two things listen. The mascots (`lib/mascot.ts`) play all year, for their
+ * word only, and their flight code is imported on the first match. The seasonal
+ * event plays only while the Halloween skin is showing, and the code behind it
+ * (`components/event/halloween/controller.ts`) is imported on first use, so
+ * outside October a client pays one map lookup and one class check per guess
+ * and nothing else. Callers never await these: an effect is decoration and
+ * must never hold up or break a guess.
  */
 import { SPOOKTOBER_2026, isSkinOn } from "@/lib/event-theme";
+import { matchMascot } from "@/lib/mascot";
 
 type Controller = typeof import("@/components/event/halloween/controller");
+type MascotFly = typeof import("@/lib/mascot-fly");
+
+let mascotPromise: Promise<MascotFly> | null = null;
+
+function playMascotFor(word: string): void {
+  if (typeof window === "undefined") return;
+  const kind = matchMascot(word);
+  if (!kind) return;
+  if (!mascotPromise) {
+    mascotPromise = import("@/lib/mascot-fly").catch((error: unknown) => {
+      mascotPromise = null;
+      throw error;
+    });
+  }
+  mascotPromise
+    .then((m) => m.flyMascot(kind))
+    .catch(() => {
+      // Decoration only: a missing chunk costs the flight, never the game.
+    });
+}
 
 let controllerPromise: Promise<Controller> | null = null;
 
@@ -39,6 +62,7 @@ function withController(run: (controller: Controller) => void): void {
  * for a tip or for another player's guess.
  */
 export function onEventGuess(guess: { word: string; rank: number }): void {
+  playMascotFor(guess.word);
   withController((c) => c.handleGuess({ word: guess.word, rank: guess.rank, won: guess.rank === 1 }));
 }
 
@@ -48,6 +72,7 @@ export function onEventGuess(guess: { word: string; rank: number }): void {
  * as a find. Never call it for a tip.
  */
 export function onEventArrival(guess: { word: string; rank: number }): void {
+  playMascotFor(guess.word);
   withController((c) => c.handleArrival({ word: guess.word, rank: guess.rank }));
 }
 

@@ -47,6 +47,8 @@ WORDS = [
     # Seasonal event words (e2e/halloween.spec.ts). Appended, so the targets,
     # which are drawn from the first 40 entries, stay the same.
     "spinne", "geist", "nebel",
+    # The mascot word (e2e/mascot.spec.ts), appended for the same reason.
+    "erdnuss",
 ]
 
 # Five-letter German words for the Wordle mock. `WORDLE_SOLUTIONS` holds a single

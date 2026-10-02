@@ -175,12 +175,12 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(bomb).toHaveAttribute("data-level", "big");
     await expect(bomb).toContainText("verschenkt 5 Abos");
 
-    // The toast stands at the top centre, never over the middle of the board.
+    // The toast stands at the bottom centre, never over the middle of the board.
     const viewport = page.viewportSize();
     const box = await bomb.boundingBox();
     if (!viewport || !box) throw new Error("no layout");
     expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
-    expect(box.y + box.height).toBeLessThan(viewport.height / 2);
+    expect(box.y).toBeGreaterThan(viewport.height / 2);
 
     // One toast at a time: a cheer that arrives meanwhile waits its turn.
     await sendPaidEvent(page, roomId, {

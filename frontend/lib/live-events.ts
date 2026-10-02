@@ -25,7 +25,7 @@ export function isFreeEvent(event: Pick<LiveEvent, "kind">): boolean {
 
 /**
  * How loud an event is. Every event is celebrated, because every one cost
- * somebody money: each is a toast at the top centre with confetti, and the
+ * somebody money: each is a toast at the bottom centre with confetti, and the
  * level decides how big the toast is, how long it stays and how much confetti
  * comes with it. `small` is a burst out of the toast, `banner` a strong one,
  * `big` adds cannons from both lower corners, `epic` a firework over the whole

@@ -332,16 +332,17 @@ duplicate frame is an `INSERT OR IGNORE`; totals `bits`, `subs`, `gift_subs`,
 nickname rule, **no free text of an event**, pruned after 24 h and gone with the binding. The host
 poll takes `events_after` and returns at most 20; the first poll of a page fills the
 „Unterstützung“ feed and plays nothing. **Every paid event is celebrated** (2026-10-01, the
-streamer's request), as a toast at the **top centre**, as wide as the board, because most
+streamer's request), as a toast at the **bottom centre** (since 2026-10-02, before that the top), as wide as the board, because most
 streamers capture only the board region (`components/live/SupportToasts.tsx`: **one at a time**
 since 2026-10-02, the rest waits in one queue, paid before follows, a full queue of 12 lets a
 follow and then a small one give way, from 3 waiting each toast stands shorter (`queuedToastMs`),
 only while the tab is visible, **no sound** because streamers run
 their own alerts, and nothing ever over the middle of the board). Loudness is one unit scale
 across both platforms (`lib/live-events.ts`, about 100 Bits = 100 diamonds = 1, a Tier 1 sub 5)
-and lives in the confetti (`fireSupportCelebration` in `lib/confetti.ts`): under 1 a small
-burst, from 1 a strong one, from 25 three seconds of corner cannons, from 100 five seconds of
-firework over the whole screen. Each category has its look, bound to the platform's own
+and lives in the confetti (`fireSupportCelebration` in `lib/confetti.ts`): every paid event
+fires a cannon out of the toast, one shot each up-left, straight up and up-right
+(`CANNON_ANGLES`), fuller and faster the higher the level; from 25 three seconds of corner
+cannons follow, from 100 five seconds of firework over the whole screen. Each category has its look, bound to the platform's own
 (`celebrationStyle`): Bits gems in Twitch's tier colours, purple stars for subs, a star rain for
 a sub bomb, TikTok diamonds, gold coins for a chest. The live board stands centred like every
 other mode (`KoopPageClient` `centerBoard`, bands in `lib/board-layout.ts`): from 70rem the
@@ -561,6 +562,19 @@ count stays 13), one ordinary guess in 25 wakes a random creature, and 25 s with
 eyes blink once per session (Eulenblick). The hover layer sits behind `hover: hover` and changes
 colour or opacity only, never the box of a control (M6). Held by `lib/event-theme.test.ts`, `lib/events/spooktober.test.ts`,
 `e2e/halloween.spec.ts` and the event runs in `e2e/design-audit.spec.ts`.
+
+### Mascots (`lib/mascot.ts`, 2026-10-02)
+The word for peanut sends the mascot of the streamer peanutplay (`public/mascots/peanutplay.png`,
+pixel art cut from its black background) across the screen once: every own guess in every
+Kontexto mode and every chat word of a live room, all year, no seasonal skin needed. It rides on
+the existing seams (`onEventGuess`, `onEventArrival` in `lib/events/hooks.ts`, called before the
+skin gate), the flight code (`lib/mascot-fly.ts`) is imported on the first match only and appends
+a `pointer-events: none` layer to `<body>`. One flight at a time, 15 s cooldown (`MascotGate`), the
+word alone decides and never its rank, nothing under reduced motion. Held by `lib/mascot.test.ts`
+and `e2e/mascot.spec.ts`.
+
+**Toasts sit at the bottom centre and a size up** (2026-10-02, the player's decision): Sonner in
+`components/ui/sonner.tsx` and the live support toasts alike.
 
 ### Quips (`lib/quips.ts`, `lib/use-quips.ts`, 2026-10-01)
 The game teases the player in youth slang ("Skill Issue", "Bro", "Good Boy", "Aura +1000"),

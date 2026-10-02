@@ -170,7 +170,7 @@ export async function fireCandyRain(): Promise<void> {
 /* ------------------------------------------------------------------------- *
  * Paid support on the live host page (components/live/SupportToasts.tsx).
  *
- * Every event is celebrated out of its toast at the top centre; the level
+ * Every event is celebrated out of its toast at the bottom centre; the level
  * decides how much. The category colours win over the seasonal skin here,
  * because they carry meaning (platform, Bits tier). The canvas sits under the
  * toasts and over the board, and canvas-confetti draws it with
@@ -185,6 +185,16 @@ let heavyUntil = 0;
 /** At most one small burst per this many milliseconds. */
 const SMALL_GAP_MS = 400;
 let lastSmall = 0;
+
+/** canvas-confetti counts degrees anticlockwise from the right: up-left, up, up-right. */
+const CANNON_ANGLES = [120, 90, 60] as const;
+/** Particles per shot and launch speed; the speed carries a shot from the bottom to the top. */
+const CANNON: Record<Celebration, { particles: number; velocity: number }> = {
+  small: { particles: 25, velocity: 50 },
+  banner: { particles: 45, velocity: 58 },
+  big: { particles: 60, velocity: 65 },
+  epic: { particles: 80, velocity: 70 },
+};
 
 const supportShapeCache = new Map<CelebrationShape, ConfettiShape[]>();
 function supportShapes(confetti: ConfettiApi, shape: CelebrationShape): ConfettiShape[] {
@@ -240,11 +250,21 @@ export async function fireSupportCelebration(
   if (level === "small") {
     if (now - lastSmall < SMALL_GAP_MS) return;
     lastSmall = now;
-    const y = (origin.top + origin.height / 2) / window.innerHeight;
-    confetti({ ...base, particleCount: 30, spread: 70, startVelocity: 26, ticks: 110, origin: { x, y } });
-  } else {
-    const y = origin.top / window.innerHeight;
-    confetti({ ...base, particleCount: 90, angle: 90, spread: 80, startVelocity: 45, ticks: 160, origin: { x, y } });
+  }
+  // Every paid event, the streamer's decision: a cannon out of the toast at the
+  // bottom, one shot each up-left, straight up and up-right.
+  const cannon = CANNON[level];
+  const y = origin.top / window.innerHeight;
+  for (const angle of CANNON_ANGLES) {
+    confetti({
+      ...base,
+      particleCount: cannon.particles,
+      angle,
+      spread: 45,
+      startVelocity: cannon.velocity,
+      ticks: 220,
+      origin: { x, y },
+    });
   }
 
   if ((level === "big" || level === "epic") && now >= heavyUntil) {
