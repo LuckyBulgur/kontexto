@@ -182,6 +182,7 @@ export default function Header({
         )}
         <ModesButton
           onOpen={() => setShowModePicker(true)}
+          crowded={Boolean(onCopyLink)}
           hintKey="kontexto_modes_button_discovered"
           // Only where a player arrives, never in a room or in a running solo
           // round, where a bubble would talk over the game.

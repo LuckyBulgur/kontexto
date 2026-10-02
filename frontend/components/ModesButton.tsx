@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,10 @@ interface ModesButtonProps {
   /** Whether this page may show the hint at all. A room or a running solo
    *  round is not the place for an unasked-for bubble. */
   hintEnabled?: boolean;
+  /** Keep the label off until `sm`. The header sets it when a copy button
+   *  stands next to this one: three buttons plus the wordmark overflow a
+   *  390 pixel row by a few pixels otherwise. */
+  crowded?: boolean;
 }
 
 /** Long enough that the page has settled, short enough to be part of arriving. */
@@ -52,7 +57,7 @@ const HINT_DELAY_MS = 900;
 /** A hint nobody reacts to goes away by itself rather than sitting there. */
 const HINT_LIFETIME_MS = 12_000;
 
-export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButtonProps) {
+export default function ModesButton({ onOpen, hintKey, hintEnabled, crowded = false }: ModesButtonProps) {
   const { highlight, dismiss } = useFeatureDiscovery(hintKey);
   const [hintOpen, setHintOpen] = useState(false);
 
@@ -94,7 +99,10 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
               work. */}
           <Button
             variant="ghost"
-            className="relative h-10 gap-1.5 rounded-full bg-primary/10 px-2.5 text-primary-ink hover:bg-primary/15 hover:text-primary-ink dark:hover:bg-primary/20 min-[380px]:px-3.5"
+            className={cn(
+              "relative h-10 gap-1.5 rounded-full bg-primary/10 px-2.5 text-primary-ink hover:bg-primary/15 hover:text-primary-ink dark:hover:bg-primary/20",
+              crowded ? "sm:px-3.5" : "min-[380px]:px-3.5"
+            )}
             aria-label="Spielmodi"
             onClick={() => {
               setHintOpen(false);
@@ -103,7 +111,7 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled }: ModesButto
             }}
           >
             <LayoutGrid className="h-5! w-5!" />
-            <span className="hidden font-semibold min-[380px]:inline">Modi</span>
+            <span className={cn("hidden font-semibold", crowded ? "sm:inline" : "min-[380px]:inline")}>Modi</span>
             {highlight && (
               <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden>
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-ink opacity-75 motion-reduce:hidden" />
