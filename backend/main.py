@@ -37,7 +37,7 @@ from duel import reveal_context as reveal_duel_context
 from koop import (
     create_koop, join_koop, get_koop_state, get_koop_guesses,
     record_koop_guess, record_koop_tip, cleanup_stale_koops,
-    give_up_koop, advance_koop_game,
+    give_up_koop, advance_koop_game, KoopRoundChanged,
 )
 from koop import get_player_info as get_koop_player_info
 from koop import reveal_context as reveal_koop_context
@@ -76,6 +76,7 @@ from models import (
     CreateKoopRequest, CreateKoopResponse, JoinKoopRequest, JoinKoopResponse,
     KoopStateResponse, KoopGuessRequest, KoopGuessResponse, KoopGuessesResponse,
     KoopGiveUpRequest, KoopGiveUpResponse, NextGameRequest, NextGameResponse,
+    KoopNextGameRequest,
     RoomRevealRequest, RoomRevealResponse,
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveChannelAddRequest, LiveChannelRemoveRequest, LiveChannelPauseRequest,
@@ -1274,7 +1275,7 @@ async def koop_give_up_endpoint(koop_id: str, req: KoopGiveUpRequest):
 
 
 @app.post("/api/koop/{koop_id}/next-game", response_model=NextGameResponse)
-async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
+async def koop_next_game_endpoint(koop_id: str, req: KoopNextGameRequest):
     gs = _get_game_state()
     db = await get_db(_db_path)
     try:
@@ -1290,7 +1291,15 @@ async def koop_next_game_endpoint(koop_id: str, req: NextGameRequest):
                 status_code=404,
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
-        new_game = await advance_koop_game(db, koop_id, _room_picker(state))
+        try:
+            new_game = await advance_koop_game(
+                db, koop_id, _room_picker(state), expected_round=req.round
+            )
+        except KoopRoundChanged:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "round_changed", "message": "Die Runde wurde schon gewechselt"},
+            )
         if new_game is None:
             return JSONResponse(
                 status_code=404,

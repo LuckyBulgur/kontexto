@@ -123,15 +123,27 @@ export async function giveUpKoop(
   return res.json();
 }
 
+/**
+ * Starts the next round for the whole room. `fromRound` is the round this page
+ * is on: the server advances only from that round and answers 409
+ * `round_changed` when somebody else was faster, so a manual click racing the
+ * live room's automatic start, or two tabs, never skip a round.
+ */
 export async function koopNextGame(
   koopId: string,
-  playerToken: string
+  playerToken: string,
+  fromRound?: number
 ): Promise<NextGameResult> {
   const res = await fetch(`${API_BASE}/koop/${koopId}/next-game`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ player_token: playerToken }),
+    body: JSON.stringify(
+      fromRound === undefined
+        ? { player_token: playerToken }
+        : { player_token: playerToken, round: fromRound }
+    ),
   });
+  if (res.status === 409) throw new Error("round_changed");
   if (res.status === 404) throw new Error("no_games");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();

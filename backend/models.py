@@ -178,6 +178,16 @@ class NextGameRequest(BaseModel):
     player_token: str
 
 
+class KoopNextGameRequest(NextGameRequest):
+    """The koop rematch, optionally guarded by the round it advances from.
+
+    A client that names its round gets a 409 ``round_changed`` instead of a
+    second advance when somebody else was faster, so two clicks never skip a
+    round. Optional, because a page loaded before the guard sends no round.
+    """
+    round: int | None = Field(default=None, ge=1)
+
+
 class NextGameResponse(BaseModel):
     """The answer to the rematch button. It names the round, not the puzzle.
 

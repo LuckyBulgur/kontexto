@@ -40,6 +40,7 @@ import RoomLanding from "@/components/RoomLanding";
 import { BOARD_COLUMN, BOARD_GRID, SIDEBAR_COLUMN } from "@/lib/board-layout";
 import { cn } from "@/lib/utils";
 import { knocksForArrival, playKnock } from "@/lib/knock-sound";
+import { useAutoNextRound } from "@/lib/use-auto-next-round";
 
 function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
@@ -111,6 +112,11 @@ export interface KoopPageClientProps {
    *  chat sets it, so a viewer typing "geist" sends a ghost across the stream;
    *  an invited koop keeps the rule that only your own word does. */
   arrivalEffects?: boolean;
+  /** Start the next round by itself this long after a round ended, or null.
+   *  The stream chat sets it from the streamer's switch: nobody else has to be
+   *  at the keyboard for the evening to go on. The result card counts down and
+   *  can hold the current round. */
+  autoNextDelayMs?: number | null;
 }
 
 export default function KoopPageClient({
@@ -130,6 +136,7 @@ export default function KoopPageClient({
   renderBy,
   renderFinder,
   arrivalEffects = false,
+  autoNextDelayMs = null,
   notFoundMessage = "Koop nicht gefunden",
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
@@ -178,6 +185,16 @@ export default function KoopPageClient({
 
   const solved = guesses.some((g) => g.rank === 1) || !!koopState?.solved;
   const roundOver = solved || gaveUp;
+  const currentRound = koopState?.round ?? null;
+  // The round this page has reset its board to, read by the socket handler,
+  // which must not wipe a board twice for the same round.
+  const roundRef = useRef<number | null>(null);
+  useEffect(() => {
+    roundRef.current = currentRound;
+  }, [currentRound]);
+  // One advance at a time from this page: the button and the automatic start
+  // must not send two requests for one round.
+  const advancing = useRef(false);
 
   // The live room's host page is on stream: easter eggs keep to the edges there.
   useEffect(() => {
@@ -331,7 +348,31 @@ export default function KoopPageClient({
         : prev
     );
     setPlayers((prev) => prev.map((p) => ({ ...p, contribution_count: 0 })));
+    roundRef.current = round;
   }, [setPodestError]);
+
+  // Replaces the board with the server's list when it holds more rows. A word
+  // written in the same poll tick as a round change is seeded by the broadcast
+  // loop instead of announced, so a reset alone would leave it off the board.
+  const catchUpGuesses = useCallback((id: string) => {
+    getKoopGuesses(id)
+      .then((list) => {
+        setGuesses((prev) => {
+          if (list.length <= prev.length) return prev;
+          return list.map((g) => ({
+            word: g.word,
+            rank: g.rank,
+            isTip: g.is_tip,
+            by: g.nickname,
+            source: g.source ?? null,
+            badges: g.badges ?? [],
+          }));
+        });
+      })
+      .catch(() => {
+        // The socket is connected, the next word arrives either way.
+      });
+  }, []);
 
   // Ask for the game number once the round is over, once per round. While it
   // runs the server refuses, which is the whole reason this endpoint exists.
@@ -379,6 +420,12 @@ export default function KoopPageClient({
         setKoopState((prev) => (prev ? { ...prev, gave_up: true } : prev));
         if (msg.word) appendGuess(msg.word, 1, false);
       } else if (msg.type === "next_round") {
+        // This page started that round itself and has already reset its
+        // board; a second reset would drop words that arrived in between.
+        if (roundRef.current !== null && msg.round <= roundRef.current) {
+          if (koopId) catchUpGuesses(koopId);
+          return;
+        }
         resetForNextGame(msg.round);
         // The frame names the round, not its field; the room state does.
         if (koopId) {
@@ -404,7 +451,7 @@ export default function KoopPageClient({
         );
       }
     },
-    [appendGuess, resetForNextGame, koopId, nickname]
+    [appendGuess, resetForNextGame, catchUpGuesses, koopId, nickname, arrivalEffects]
   );
 
   const { connected: wsConnected } = useKoopWebSocket({
@@ -424,25 +471,8 @@ export default function KoopPageClient({
   useEffect(() => {
     if (!wsConnected || !koopId || caughtUp.current) return;
     caughtUp.current = true;
-    getKoopGuesses(koopId)
-      .then((list) => {
-        setGuesses((prev) => {
-          if (list.length <= prev.length) return prev;
-          return list.map((g) => ({
-            word: g.word,
-            rank: g.rank,
-            isTip: g.is_tip,
-            by: g.nickname,
-            source: g.source ?? null,
-            badges: g.badges ?? [],
-          }));
-        });
-      })
-      .catch(() => {
-        // A failed catch-up is not worth an error on screen: the socket is
-        // connected, so the next guess arrives either way.
-      });
-  }, [wsConnected, koopId]);
+    catchUpGuesses(koopId);
+  }, [wsConnected, koopId, catchUpGuesses]);
 
   // Join.
   const handleJoin = useCallback(
@@ -561,19 +591,42 @@ export default function KoopPageClient({
 
   // Start the next game in the same koop room for everyone.
   const handleNextGame = useCallback(async () => {
-    if (!koopId || !playerToken) return;
+    if (!koopId || !playerToken || advancing.current) return;
+    advancing.current = true;
     try {
-      const result = await koopNextGame(koopId, playerToken);
+      const result = await koopNextGame(koopId, playerToken, currentRound ?? undefined);
       resetForNextGame(result.round);
       setKoopState((prev) => (prev ? { ...prev, category: result.category ?? null } : prev));
     } catch (e: unknown) {
-      if (e instanceof Error && e.message === "no_games") {
+      if (e instanceof Error && e.message === "round_changed") {
+        // Somebody else started it first. Follow the room instead of
+        // advancing it a second time.
+        try {
+          const fresh = await getKoopState(koopId);
+          if (roundRef.current === null || fresh.round > roundRef.current) {
+            resetForNextGame(fresh.round);
+            setKoopState((prev) => (prev ? { ...prev, category: fresh.category ?? null } : prev));
+            catchUpGuesses(koopId);
+          }
+        } catch {
+          setError("Nächstes Spiel konnte nicht geladen werden");
+        }
+      } else if (e instanceof Error && e.message === "no_games") {
         toast.error("Keine weiteren Spiele verfügbar");
       } else {
         setError("Nächstes Spiel konnte nicht geladen werden");
       }
+    } finally {
+      advancing.current = false;
     }
-  }, [koopId, playerToken, resetForNextGame]);
+  }, [koopId, playerToken, currentRound, resetForNextGame, catchUpGuesses]);
+
+  const autoNext = useAutoNextRound({
+    delayMs: autoNextDelayMs,
+    round: currentRound,
+    roundOver: roundOver && !!playerToken,
+    onAdvance: () => void handleNextGame(),
+  });
 
   // Copy link.
   const handleCopyLink = useCallback(async () => {
@@ -685,6 +738,8 @@ export default function KoopPageClient({
               currentNickname={nickname ?? ""}
               gaveUp={gaveUp}
               onNextGame={handleNextGame}
+              autoNextSeconds={autoNext.secondsLeft}
+              onStopAutoNext={autoNext.stop}
               label={resultLabel}
               groupNoun={resultGroupNoun}
               rows={resultRows}

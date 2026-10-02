@@ -27,6 +27,10 @@ interface KoopResultCardProps {
   gaveUp?: boolean;
   /** When set, shows a prominent "Nächstes Spiel" button. */
   onNextGame?: () => void;
+  /** Seconds until the next round starts by itself, or null when it does not.
+   *  Drawn under the button together with a way to hold this round. */
+  autoNextSeconds?: number | null;
+  onStopAutoNext?: () => void;
   /** What this round was, for the line above the word. */
   label?: string;
   /** Who "we" were. The stream chat is not a team, it is an audience. */
@@ -50,6 +54,8 @@ export default function KoopResultCard({
   currentNickname,
   gaveUp = false,
   onNextGame,
+  autoNextSeconds = null,
+  onStopAutoNext,
   label = "Koop",
   groupNoun = "im Team",
   rows,
@@ -106,9 +112,30 @@ export default function KoopResultCard({
       </ResultList>
 
       {onNextGame && (
-        <Button size="lg" onClick={onNextGame}>
-          Nächstes Spiel
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button size="lg" onClick={onNextGame}>
+            Nächstes Spiel
+          </Button>
+          {autoNextSeconds !== null && (
+            <div
+              data-testid="auto-next"
+              className="flex items-center justify-between gap-3 text-small text-muted-foreground"
+            >
+              {/* Not a live region: a screen reader would read every second.
+                  The button names what happens, the number is for the eye. */}
+              <span>
+                {"Nächste Runde in "}
+                <span className="font-semibold tabular-nums text-foreground">{autoNextSeconds}</span>
+                {autoNextSeconds === 1 ? " Sekunde" : " Sekunden"}
+              </span>
+              {onStopAutoNext && (
+                <Button variant="outline" size="sm" onClick={onStopAutoNext}>
+                  {"Anhalten"}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </Panel>
   );

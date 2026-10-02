@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Panel, Wordmark } from "@/components/design";
 import CategoryPicker from "@/components/categories/CategoryPicker";
+import AutoNextSetting from "@/components/live/AutoNextSetting";
 import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import {
   CategorySetup,
@@ -370,6 +371,8 @@ export default function LiveCreateClient() {
               <Label htmlFor="tips">{"Tipps erlauben"}</Label>
               <Switch id="tips" checked={tipsAllowed} onCheckedChange={setTipsAllowed} />
             </div>
+
+            <AutoNextSetting />
 
             {busy ? (
               <ChannelBusyNotice

@@ -259,6 +259,62 @@ class TestKoopCRUD:
                 await conn.close()
         self._run(run())
 
+    def test_advance_koop_game_refuses_a_stale_round(self, db):
+        from koop import KoopRoundChanged, advance_koop_game, create_koop, get_koop_state
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                koop_id = created["koop_id"]
+                assert await advance_koop_game(
+                    conn, koop_id, lambda current, played: 2, expected_round=1
+                ) == 2
+                # A second click from the round that is already gone must not
+                # skip round 2.
+                with pytest.raises(KoopRoundChanged):
+                    await advance_koop_game(
+                        conn, koop_id, lambda current, played: 3, expected_round=1
+                    )
+                state = await get_koop_state(conn, koop_id)
+                assert state["round"] == 2
+            finally:
+                await conn.close()
+        self._run(run())
+
+    def test_advance_koop_game_round_guard_holds_against_a_racing_writer(self, db):
+        """Another worker advancing between the read and the write loses nothing."""
+        import sqlite3
+        from koop import KoopRoundChanged, advance_koop_game, create_koop, get_koop_state
+        async def run():
+            conn = await get_db(db)
+            try:
+                created = await create_koop(conn, game_number=1, nickname="Alice", tips_allowed=True)
+                koop_id = created["koop_id"]
+
+                def racing_pick(current, played):
+                    other = sqlite3.connect(db)
+                    try:
+                        other.execute(
+                            "UPDATE koops SET round = round + 1, game_number = 3 WHERE id = ?",
+                            (koop_id,),
+                        )
+                        other.commit()
+                    finally:
+                        other.close()
+                    return 2
+
+                with pytest.raises(KoopRoundChanged):
+                    await advance_koop_game(conn, koop_id, racing_pick, expected_round=1)
+                state = await get_koop_state(conn, koop_id)
+                assert state["round"] == 2
+                cursor = await conn.execute(
+                    "SELECT game_number FROM koops WHERE id = ?", (koop_id,)
+                )
+                assert (await cursor.fetchone())["game_number"] == 3
+            finally:
+                await conn.close()
+        self._run(run())
+
     def test_record_unknown_player(self, db):
         from koop import create_koop, record_koop_guess
         async def run():
@@ -503,6 +559,26 @@ class TestKoopEndpoints:
         assert state["gave_up"] is False
         guesses = api_client.get(f"/api/koop/{created['koop_id']}/guesses").json()["guesses"]
         assert guesses == []
+
+    def test_koop_next_game_refuses_a_second_advance_from_the_same_round(self, api_client):
+        created = self._create(api_client)
+        url = f"/api/koop/{created['koop_id']}/next-game"
+        body = {"player_token": created["player_token"], "round": 1}
+        first = api_client.post(url, json=body)
+        assert first.status_code == 200
+        assert first.json()["round"] == 2
+        second = api_client.post(url, json=body)
+        assert second.status_code == 409
+        assert second.json()["error"] == "round_changed"
+        assert api_client.get(f"/api/koop/{created['koop_id']}").json()["round"] == 2
+
+    def test_koop_next_game_rejects_a_round_below_one(self, api_client):
+        created = self._create(api_client)
+        resp = api_client.post(
+            f"/api/koop/{created['koop_id']}/next-game",
+            json={"player_token": created["player_token"], "round": 0},
+        )
+        assert resp.status_code == 422
 
     def test_koop_next_game_unknown_player(self, api_client):
         created = self._create(api_client)

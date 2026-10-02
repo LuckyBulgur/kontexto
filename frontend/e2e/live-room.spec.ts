@@ -326,6 +326,61 @@ test.describe("Stream-Chat-Modus", () => {
     });
   });
 
+  test("die nächste Runde startet nach zehn Sekunden von selbst", async ({ page, request }) => {
+    const channel = freshChannel();
+    await page.goto("/live/");
+    await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+    await page.getByRole("switch", { name: "Nächste Runde automatisch starten" }).click();
+    await page.getByRole("button", { name: "Heutiges Spiel" }).click();
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+
+    // The choice from the form holds in the sidebar of the running round.
+    await expect(
+      page.getByRole("switch", { name: "Nächste Runde automatisch starten" }).filter({ visible: true })
+    ).toBeChecked();
+
+    const { word } = await (await request.get("/api/reveal")).json();
+    await sendChatMessage(page, roomId, "Finja77", word);
+    const countdown = page.getByTestId("auto-next");
+    await expect(countdown).toBeVisible({ timeout: 20_000 });
+    await expect(countdown).toContainText("Nächste Runde in");
+
+    // Ten seconds plus the poll that brings the solve: the board is empty again.
+    await expect(page.getByTestId("live-finder")).toBeHidden({ timeout: 20_000 });
+    await expect(countdown).toBeHidden();
+    await expect(page.getByTestId("koop-board")).toContainText("Versuche:");
+    const state = await (await request.get(`/api/koop/${roomId}`)).json();
+    expect(state.round).toBe(2);
+  });
+
+  test("Anhalten hält die Runde, der Knopf startet die nächste", async ({ page, request }) => {
+    const channel = freshChannel();
+    await page.goto("/live/");
+    await page.getByLabel("Dein Twitch-Kanal").fill(channel);
+    await page.getByRole("switch", { name: "Nächste Runde automatisch starten" }).click();
+    await page.getByRole("button", { name: "Heutiges Spiel" }).click();
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+
+    const { word } = await (await request.get("/api/reveal")).json();
+    await sendChatMessage(page, roomId, "Finja77", word);
+    await expect(page.getByTestId("auto-next")).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Anhalten" }).click();
+    await expect(page.getByTestId("auto-next")).toBeHidden();
+
+    // Well past the ten seconds, the result still stands.
+    await page.waitForTimeout(11_000);
+    await expect(page.getByTestId("live-finder")).toBeVisible();
+    expect((await (await request.get(`/api/koop/${roomId}`)).json()).round).toBe(1);
+
+    await page.getByRole("button", { name: "Nächstes Spiel" }).click();
+    await expect(page.getByTestId("live-finder")).toBeHidden({ timeout: 10_000 });
+    expect((await (await request.get(`/api/koop/${roomId}`)).json()).round).toBe(2);
+  });
+
   test("ein TikTok-Chat rät genauso mit", async ({ page }) => {
     // The e2e backend carries a dummy Euler key, so TikTok is on offer; with
     // KONTEXTO_LIVE_OFFLINE the key is never sent anywhere.

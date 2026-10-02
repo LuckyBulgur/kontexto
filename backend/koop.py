@@ -355,20 +355,41 @@ async def reveal_context(
     return {"game_number": koop["game_number"], "round": koop["round"]}
 
 
-async def advance_koop_game(db: aiosqlite.Connection, koop_id: str, pick_next) -> int | None:
+class KoopRoundChanged(Exception):
+    """The room left the round the caller asked to advance from.
+
+    Somebody else pressed "Nächstes Spiel" first: a teammate, a second tab of
+    the same host, or the live room's automatic start racing a manual click.
+    Advancing again would skip a round nobody played.
+    """
+
+
+async def advance_koop_game(
+    db: aiosqlite.Connection,
+    koop_id: str,
+    pick_next,
+    expected_round: int | None = None,
+) -> int | None:
     """Advance the koop to a fresh game on the same link.
 
     ``pick_next(current, played)`` returns the next game number (or None when no
     game is available). In one transaction the round counter is bumped, the new
     game set, the old game appended to the played history, the shared list wiped,
     and per-player + team state reset. Returns the new game number or None.
+
+    With ``expected_round`` the advance only happens from that round and raises
+    ``KoopRoundChanged`` otherwise. The round guard sits in the UPDATE itself,
+    because the five workers share nothing but this file and two requests can
+    both read the same round before either writes.
     """
     cursor = await db.execute(
-        "SELECT game_number, played_games FROM koops WHERE id = ?", (koop_id,)
+        "SELECT game_number, played_games, round FROM koops WHERE id = ?", (koop_id,)
     )
     row = await cursor.fetchone()
     if not row:
         return None
+    if expected_round is not None and row["round"] != expected_round:
+        raise KoopRoundChanged()
     current = row["game_number"]
     played = _parse_played(row["played_games"])
     new_game = pick_next(current, played)
@@ -376,12 +397,15 @@ async def advance_koop_game(db: aiosqlite.Connection, koop_id: str, pick_next) -
         return None
 
     played_str = _format_played(played | {current})
-    await db.execute(
+    cursor = await db.execute(
         "UPDATE koops SET game_number = ?, round = round + 1, played_games = ?, "
         "solved = 0, solved_by = NULL, gave_up = 0, best_rank = NULL, "
-        "last_activity = CURRENT_TIMESTAMP WHERE id = ?",
-        (new_game, played_str, koop_id),
+        "last_activity = CURRENT_TIMESTAMP WHERE id = ? AND round = ?",
+        (new_game, played_str, koop_id, row["round"]),
     )
+    if cursor.rowcount == 0:
+        await db.rollback()
+        raise KoopRoundChanged()
     await db.execute("DELETE FROM koop_guesses WHERE koop_id = ?", (koop_id,))
     await db.execute(
         "UPDATE koop_players SET contribution_count = 0 WHERE koop_id = ?", (koop_id,)

@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { HandCoins, Pause, Play, Plus, Radio, Trophy, Unplug } from "lucide-react";
 import { Panel } from "@/components/design";
+import AutoNextSetting from "@/components/live/AutoNextSetting";
 import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import ChatIdentity from "@/components/live/ChatIdentity";
 import PlatformMark from "@/components/live/PlatformMark";
@@ -57,7 +58,8 @@ interface LiveStatusProps {
  * the honest way to show them is the leaderboard below.
  *
  * Every chat can be paused and resumed here, and a second one added or one of
- * two removed, without touching the round. The sidebar is rendered twice, once
+ * two removed, without touching the round. The switch for starting the next
+ * round by itself sits here too, so it can change in the middle of a stream. The sidebar is rendered twice, once
  * per breakpoint, so every id comes from useId.
  */
 export default function LiveStatus({
@@ -102,6 +104,12 @@ export default function LiveStatus({
         addable.map((platform) => (
           <AddChannelPanel key={platform} platform={platform} onAdd={onAdd} />
         ))}
+
+      {!locked && (
+        <Panel padding="sm">
+          <AutoNextSetting compact />
+        </Panel>
+      )}
 
       <Leaderboards boards={boards} catalog={catalog} />
 

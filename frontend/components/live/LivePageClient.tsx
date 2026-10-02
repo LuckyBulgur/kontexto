@@ -12,6 +12,7 @@ import LiveStatus, { type AddRefusal } from "@/components/live/LiveStatus";
 import SupportToasts from "@/components/live/SupportToasts";
 import RoomLanding from "@/components/RoomLanding";
 import { needsAckRetry } from "@/lib/host-messages";
+import { AUTO_NEXT_DELAY_MS, useAutoNextSetting } from "@/lib/live-auto-next";
 import { freshEvents, mergeFeed } from "@/lib/live-events";
 import {
   addLiveChannel,
@@ -113,6 +114,7 @@ export default function LivePageClient() {
   const eventCursor = useRef(0);
   const [feed, setFeed] = useState<LiveEvent[]>([]);
   const [celebrate, setCelebrate] = useState<LiveEvent[]>([]);
+  const { enabled: autoNext } = useAutoNextSetting();
 
   useEffect(() => {
     const id = getRoomIdFromPath();
@@ -349,6 +351,9 @@ export default function LivePageClient() {
         sidebarBelowOnMobile
         centerBoard
         arrivalEffects
+        // Only while a chat still plays: after the binding ended a new round
+        // would have nobody to guess it.
+        autoNextDelayMs={autoNext && !ended ? AUTO_NEXT_DELAY_MS : null}
         renderBy={renderBy}
         renderFinder={renderFinder}
         notFoundMessage="Diese Runde gibt es nicht"
