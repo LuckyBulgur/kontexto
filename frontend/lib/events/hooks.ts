@@ -2,7 +2,7 @@
  * The seams the game clients call on every guess, for decoration only.
  *
  * Three things listen. The easter eggs (`lib/easter-eggs/`) play all year in
- * every mode, for some two thousand words, and their code and catalogue are
+ * every mode, for some hundred and fifty scene words, and their code is
  * imported on the first word. The mascots (`lib/mascot.ts`) play all year, for
  * their word only, and their flight code is imported on the first match. The seasonal
  * event plays only while the Halloween skin is showing, and the code behind it

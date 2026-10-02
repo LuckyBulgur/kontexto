@@ -1,13 +1,14 @@
 import type { EggStep } from "./types";
 
 /**
- * The hand-made easter eggs: scenes that combine several pictures, an overlay
- * and sounds, and the words that set them off. They win over the generated
- * catalogue for the same word.
+ * The easter eggs: scenes that combine pictures, overlays and sounds, and the
+ * words that set them off. There is no generated word list behind them (the
+ * emoji catalogue was removed on 2026-10-02, the player's decision), so a word
+ * plays something only when it is named here.
  *
- * Every picture named here is a file under `/eggs/svg/` (the catalogue's own
- * or listed in `data/easter-eggs/extra-icons.txt`), every sound a file under
- * `/eggs/sfx/` or a synthesised one; `scenes.test.ts` holds both.
+ * Every picture named here is a file under `/eggs/svg/` and a line of
+ * `data/easter-eggs/scene-icons.txt`, every sound a file under `/eggs/sfx/` or
+ * a synthesised one; `scenes.test.ts` holds both.
  *
  * Some words are not words the game ranks (`mlg`, `yeet`, `miau`). They still
  * fire, because the input path matches what the player typed before the server

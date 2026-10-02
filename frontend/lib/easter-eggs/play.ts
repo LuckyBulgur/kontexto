@@ -12,8 +12,8 @@ import type { EggSource, EggStep } from "./types";
 /**
  * Plays the easter egg of a word, if it has one.
  *
- * Loaded on the first word only (`lib/events/hooks.ts`), because the catalogue
- * is some thousand entries. The word alone decides, never its rank, so an egg
+ * Loaded on the first word only (`lib/events/hooks.ts`), so a client that never
+ * types a scene word pays nothing for the scenes. The word alone decides, never its rank, so an egg
  * can never hint at the solution. Under reduced motion nothing moves and the
  * sound still plays; the sound is always on, the player's decision.
  *

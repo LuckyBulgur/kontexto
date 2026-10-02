@@ -577,19 +577,18 @@ and `e2e/mascot.spec.ts`.
 `components/ui/sonner.tsx` and the live support toasts alike.
 
 ### Easter eggs (`lib/easter-eggs/`, 2026-10-02)
-**1.759 words with a picture, about 400 with a sound, 153 scene words**, in every mode (Kontexto,
+**153 scene words**, in every mode (Kontexto,
 every solo mode, duel, koop, arena, live room, Wördle, Wördle duel), all year, **always on with
-sound, no switch** (the player's decision). Nothing here is drawn by hand where a published
-source exists: the word list is the German Unicode CLDR emoji annotations joined with Microsoft's
-Fluent Emoji Flat SVGs (MIT, `public/eggs/LICENSE-fluent-emoji.txt`) by
-`scripts/build-easter-eggs.py --core <prod core_words.json>`, which keeps a keyword only on the
-counted scale, drops stop words, the hint blocklist and the profanity engine, and applies three
-hand lists in `frontend/data/easter-eggs/` (`rejects.txt`: wrong pictures, weak words, alcohol,
-tobacco, weapons, religious symbols; `picks.txt`: corrections, additions and the sound of a word;
-`extra-icons.txt`). The 140 sounds are CC0 recordings from BigSoundBank, prepared like the knock
-(`scripts/build-egg-sounds.py`, mono, -25 LUFS, -6 dBTP), sources in `NOTICE.md`. Outputs are
-committed (`catalog.generated.ts`, `public/eggs/svg/`, `public/eggs/sfx/`), the Docker build does
-not run the scripts. **Hand-made scenes** (`scenes.ts`) win over the catalogue: ghost, storm,
+sound, no switch** (the player's decision). **There is no emoji catalogue** (removed 2026-10-02,
+the player's decision): until then 1.759 words each sent their Fluent emoji across the screen,
+about 400 with a sound, and an ordinary guess like `hund` played something. Now a word plays
+only when a hand-made scene names it. The pictures are Microsoft's Fluent Emoji Flat SVGs (MIT,
+`public/eggs/LICENSE-fluent-emoji.txt`), listed in `frontend/data/easter-eggs/scene-icons.txt`
+and written by `scripts/build-egg-icons.py`; the 43 sounds are CC0 recordings from
+BigSoundBank, prepared like the knock (`scripts/build-egg-sounds.py` from `sounds.json`, mono,
+-25 LUFS, -6 dBTP), sources in `NOTICE.md`. Outputs are committed (`public/eggs/svg/`,
+`public/eggs/sfx/`), the Docker build does not run the scripts, and the test fails on a picture
+or sound no scene uses. **The scenes** (`scenes.ts`): ghost, storm,
 lightning (one flash, WCAG 2.3.1), rain, snow, rainbow, earthquake, night, fireworks, party, rocket,
 love, money, balloons, UFO, dinosaur, magic, pizza, shark, the animal sounds typed as words
 (`miau`, `muh`, `kikeriki`) and **MLG** (`mlg`, `noscope`, `yeet`, `bruh`, `digga`, `sigma`, ...:
@@ -605,7 +604,7 @@ and drops keep to the outer quarter and night and shake never run. The word alon
 never the rank. While the Halloween skin shows, a spooky word plays only its spooky effect.
 Under reduced motion nothing moves, the sound still plays. `klopfen` and `erdnuss` keep their
 own eggs. QA switch `kontexto_eggs_force = "off"`, set by `e2e/fixtures.ts` for every spec but
-`e2e/easter-eggs.spec.ts`. Held by `lib/easter-eggs/catalog.test.ts`, `gate.test.ts` and the spec.
+`e2e/easter-eggs.spec.ts`. Held by `lib/easter-eggs/scenes.test.ts`, `gate.test.ts` and the spec.
 
 ### Update notice (`lib/update-check.ts`, `components/UpdateWatcher.tsx`, 2026-10-02)
 An open tab notices a deploy within about 20 s and reloads, instead of running the old code until

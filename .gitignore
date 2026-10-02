@@ -81,5 +81,5 @@ brag-output-tiktok/
 # Holds hundreds of npz files and a copy of prod state; never belongs in git.
 .regen-work/
 
-# Easter egg build cache (scripts/build-easter-eggs.py, scripts/build-egg-sounds.py)
+# Easter egg build cache (scripts/build-egg-icons.py, scripts/build-egg-sounds.py)
 .cache/

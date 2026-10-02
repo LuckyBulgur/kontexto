@@ -3,9 +3,8 @@
  *
  * An egg is a short timeline of steps, each starting `at` milliseconds after
  * the word: a picture that moves, a full-screen overlay, a sound, a spoken
- * line, confetti. The generated catalogue (`catalog.generated.ts`) gives most
- * words one picture and at most one sound; the hand-made scenes
- * (`scenes.ts`) combine several. Pure data, so it can be tested without a DOM.
+ * line, confetti. Every egg is a hand-made scene (`scenes.ts`). Pure data, so
+ * it can be tested without a DOM.
  */
 
 /** How a picture crosses the screen. Each is one CSS keyframe pass, in `app/globals.css`. */

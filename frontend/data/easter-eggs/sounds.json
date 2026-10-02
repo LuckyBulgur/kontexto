@@ -7,55 +7,6 @@
   "seconds": 2
  },
  {
-  "id": "airplane",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3004.mp3",
-  "page": "https://bigsoundbank.com/sound-3004.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3.5
- },
- {
-  "id": "alarm",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2814.mp3",
-  "page": "https://bigsoundbank.com/sound-2814.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "anvil",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3589.mp3",
-  "page": "https://bigsoundbank.com/sound-3589.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "applause",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2363.mp3",
-  "page": "https://bigsoundbank.com/sound-2363.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "arrow",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0548.mp3",
-  "page": "https://bigsoundbank.com/sound-0548.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "babycry",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0233.mp3",
-  "page": "https://bigsoundbank.com/sound-0233.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "babylaugh",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0980.mp3",
-  "page": "https://bigsoundbank.com/sound-0980.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "balloonblow",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1130.mp3",
   "page": "https://bigsoundbank.com/sound-1130.html",
@@ -77,30 +28,9 @@
   "seconds": 2
  },
  {
-  "id": "bat",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0458.mp3",
-  "page": "https://bigsoundbank.com/sound-0458.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "bee",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1000.mp3",
   "page": "https://bigsoundbank.com/sound-1000.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "bikebell",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0028.mp3",
-  "page": "https://bigsoundbank.com/sound-0028.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "birthday",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2194.mp3",
-  "page": "https://bigsoundbank.com/sound-2194.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
  },
@@ -112,74 +42,11 @@
   "seconds": 1.5
  },
  {
-  "id": "boxingbell",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1926.mp3",
-  "page": "https://bigsoundbank.com/sound-1926.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "bubbles",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0150.mp3",
-  "page": "https://bigsoundbank.com/sound-0150.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "bugle",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3263.mp3",
-  "page": "https://bigsoundbank.com/sound-3263.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "burp",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1708.mp3",
-  "page": "https://bigsoundbank.com/sound-1708.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "bushorn",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3594.mp3",
-  "page": "https://bigsoundbank.com/sound-3594.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "camera",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0307.mp3",
-  "page": "https://bigsoundbank.com/sound-0307.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1
- },
- {
   "id": "carhorn",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/0258.mp3",
   "page": "https://bigsoundbank.com/sound-0258.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 1.5
- },
- {
-  "id": "carstart",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0189.mp3",
-  "page": "https://bigsoundbank.com/sound-0189.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "chain",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0359.mp3",
-  "page": "https://bigsoundbank.com/sound-0359.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "chainsaw",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0454.mp3",
-  "page": "https://bigsoundbank.com/sound-0454.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
  },
  {
   "id": "cheer",
@@ -189,23 +56,9 @@
   "seconds": 3
  },
  {
-  "id": "cheers",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1335.mp3",
-  "page": "https://bigsoundbank.com/sound-1335.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
   "id": "chewing",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1432.mp3",
   "page": "https://bigsoundbank.com/sound-1432.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "chick",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0672.mp3",
-  "page": "https://bigsoundbank.com/sound-0672.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 2
  },
@@ -215,13 +68,6 @@
   "page": "https://bigsoundbank.com/sound-2079.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
- },
- {
-  "id": "churchbell",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0135.mp3",
-  "page": "https://bigsoundbank.com/sound-0135.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3.5
  },
  {
   "id": "clock",
@@ -238,60 +84,11 @@
   "seconds": 2
  },
  {
-  "id": "cork",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0211.mp3",
-  "page": "https://bigsoundbank.com/sound-0211.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "cough",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2183.mp3",
-  "page": "https://bigsoundbank.com/sound-2183.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "creak",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3205.mp3",
-  "page": "https://bigsoundbank.com/sound-3205.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "cricket",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1020.mp3",
   "page": "https://bigsoundbank.com/sound-1020.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
- },
- {
-  "id": "crow",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2766.mp3",
-  "page": "https://bigsoundbank.com/sound-2766.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "crunch",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1114.mp3",
-  "page": "https://bigsoundbank.com/sound-1114.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "cymbal",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2314.mp3",
-  "page": "https://bigsoundbank.com/sound-2314.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "dice",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0581.mp3",
-  "page": "https://bigsoundbank.com/sound-0581.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
  },
  {
   "id": "donkey",
@@ -308,46 +105,11 @@
   "seconds": 2.5
  },
  {
-  "id": "drumroll",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2402.mp3",
-  "page": "https://bigsoundbank.com/sound-2402.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "duck",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0276.mp3",
-  "page": "https://bigsoundbank.com/sound-0276.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "explosion",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1023.mp3",
   "page": "https://bigsoundbank.com/sound-1023.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
- },
- {
-  "id": "faucet",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0652.mp3",
-  "page": "https://bigsoundbank.com/sound-0652.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "fire",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2857.mp3",
-  "page": "https://bigsoundbank.com/sound-2857.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "firecracker",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1137.mp3",
-  "page": "https://bigsoundbank.com/sound-1137.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
  },
  {
   "id": "fireworks",
@@ -357,27 +119,6 @@
   "seconds": 3.5
  },
  {
-  "id": "flush",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0141.mp3",
-  "page": "https://bigsoundbank.com/sound-0141.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "fly",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0759.mp3",
-  "page": "https://bigsoundbank.com/sound-0759.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "footsteps",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0514.mp3",
-  "page": "https://bigsoundbank.com/sound-0514.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "frog",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/0819.mp3",
   "page": "https://bigsoundbank.com/sound-0819.html",
@@ -385,116 +126,11 @@
   "seconds": 2.5
  },
  {
-  "id": "frying",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0145.mp3",
-  "page": "https://bigsoundbank.com/sound-0145.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "gallop",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0611.mp3",
-  "page": "https://bigsoundbank.com/sound-0611.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "gavel",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1590.mp3",
-  "page": "https://bigsoundbank.com/sound-1590.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
   "id": "ghost",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/2046.mp3",
   "page": "https://bigsoundbank.com/sound-2046.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
- },
- {
-  "id": "glass",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0771.mp3",
-  "page": "https://bigsoundbank.com/sound-0771.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "glockenspiel",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0920.mp3",
-  "page": "https://bigsoundbank.com/sound-0920.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "goat",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0279.mp3",
-  "page": "https://bigsoundbank.com/sound-0279.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "golf",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0455.mp3",
-  "page": "https://bigsoundbank.com/sound-0455.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "gong",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1483.mp3",
-  "page": "https://bigsoundbank.com/sound-1483.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3.5
- },
- {
-  "id": "hammer",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0005.mp3",
-  "page": "https://bigsoundbank.com/sound-0005.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "heartbeat",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0218.mp3",
-  "page": "https://bigsoundbank.com/sound-0218.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "helicopter",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0263.mp3",
-  "page": "https://bigsoundbank.com/sound-0263.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "hen",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0453.mp3",
-  "page": "https://bigsoundbank.com/sound-0453.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "ice",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2123.mp3",
-  "page": "https://bigsoundbank.com/sound-2123.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "kettle",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1351.mp3",
-  "page": "https://bigsoundbank.com/sound-1351.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "kick",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1044.mp3",
-  "page": "https://bigsoundbank.com/sound-1044.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
  },
  {
   "id": "kiss",
@@ -525,30 +161,9 @@
   "seconds": 2
  },
  {
-  "id": "microwave",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1631.mp3",
-  "page": "https://bigsoundbank.com/sound-1631.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
   "id": "moo",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/0546.mp3",
   "page": "https://bigsoundbank.com/sound-0546.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "motorcycle",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0603.mp3",
-  "page": "https://bigsoundbank.com/sound-0603.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "musicbox",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0465.mp3",
-  "page": "https://bigsoundbank.com/sound-0465.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
  },
@@ -560,25 +175,11 @@
   "seconds": 2.5
  },
  {
-  "id": "oogah",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2542.mp3",
-  "page": "https://bigsoundbank.com/sound-2542.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
   "id": "owl",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1764.mp3",
   "page": "https://bigsoundbank.com/sound-1764.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
- },
- {
-  "id": "parrot",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2779.mp3",
-  "page": "https://bigsoundbank.com/sound-2779.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
  },
  {
   "id": "partyhorn",
@@ -588,79 +189,9 @@
   "seconds": 1.5
  },
  {
-  "id": "phone",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0253.mp3",
-  "page": "https://bigsoundbank.com/sound-0253.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
   "id": "pig",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1658.mp3",
   "page": "https://bigsoundbank.com/sound-1658.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "pigeon",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0840.mp3",
-  "page": "https://bigsoundbank.com/sound-0840.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "pingpong",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2236.mp3",
-  "page": "https://bigsoundbank.com/sound-2236.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "pistol",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0437.mp3",
-  "page": "https://bigsoundbank.com/sound-0437.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.2
- },
- {
-  "id": "police",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0886.mp3",
-  "page": "https://bigsoundbank.com/sound-0886.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "popcorn",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0413.mp3",
-  "page": "https://bigsoundbank.com/sound-0413.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "pour",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1391.mp3",
-  "page": "https://bigsoundbank.com/sound-1391.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "printer",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0169.mp3",
-  "page": "https://bigsoundbank.com/sound-0169.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "purr",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0436.mp3",
-  "page": "https://bigsoundbank.com/sound-0436.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "radio",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0312.mp3",
-  "page": "https://bigsoundbank.com/sound-0312.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 2.5
  },
@@ -679,13 +210,6 @@
   "seconds": 1.5
  },
  {
-  "id": "robot",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1975.mp3",
-  "page": "https://bigsoundbank.com/sound-1975.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "rockfall",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1022.mp3",
   "page": "https://bigsoundbank.com/sound-1022.html",
@@ -700,20 +224,6 @@
   "seconds": 3
  },
  {
-  "id": "santa",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2077.mp3",
-  "page": "https://bigsoundbank.com/sound-2077.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "saw",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0559.mp3",
-  "page": "https://bigsoundbank.com/sound-0559.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "scream",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1148.mp3",
   "page": "https://bigsoundbank.com/sound-1148.html",
@@ -721,25 +231,11 @@
   "seconds": 2
  },
  {
-  "id": "seagull",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0267.mp3",
-  "page": "https://bigsoundbank.com/sound-0267.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
   "id": "sheep",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/2343.mp3",
   "page": "https://bigsoundbank.com/sound-2343.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 2.5
- },
- {
-  "id": "shiphorn",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0261.mp3",
-  "page": "https://bigsoundbank.com/sound-0261.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
  },
  {
   "id": "shot",
@@ -763,39 +259,11 @@
   "seconds": 3
  },
  {
-  "id": "slurp",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1244.mp3",
-  "page": "https://bigsoundbank.com/sound-1244.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "smallbell",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0292.mp3",
-  "page": "https://bigsoundbank.com/sound-0292.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
   "id": "sneeze",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/0609.mp3",
   "page": "https://bigsoundbank.com/sound-0609.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 2
- },
- {
-  "id": "snore",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0170.mp3",
-  "page": "https://bigsoundbank.com/sound-0170.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "snowsteps",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3363.mp3",
-  "page": "https://bigsoundbank.com/sound-3363.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
  },
  {
   "id": "splash",
@@ -805,41 +273,6 @@
   "seconds": 2
  },
  {
-  "id": "steamtrain",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0228.mp3",
-  "page": "https://bigsoundbank.com/sound-0228.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "stream",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1354.mp3",
-  "page": "https://bigsoundbank.com/sound-1354.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "sword",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0128.mp3",
-  "page": "https://bigsoundbank.com/sound-0128.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "teeth",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0789.mp3",
-  "page": "https://bigsoundbank.com/sound-0789.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "tennis",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0584.mp3",
-  "page": "https://bigsoundbank.com/sound-0584.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
   "id": "thunder",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/3115.mp3",
   "page": "https://bigsoundbank.com/sound-3115.html",
@@ -847,79 +280,9 @@
   "seconds": 3.5
  },
  {
-  "id": "tibetan",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1110.mp3",
-  "page": "https://bigsoundbank.com/sound-1110.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "tires",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2371.mp3",
-  "page": "https://bigsoundbank.com/sound-2371.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2
- },
- {
-  "id": "toothbrush",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0718.mp3",
-  "page": "https://bigsoundbank.com/sound-0718.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "toy",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3333.mp3",
-  "page": "https://bigsoundbank.com/sound-3333.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.2
- },
- {
-  "id": "tractor",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0132.mp3",
-  "page": "https://bigsoundbank.com/sound-0132.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "trainwhistle",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0226.mp3",
-  "page": "https://bigsoundbank.com/sound-0226.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "tram",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/3539.mp3",
-  "page": "https://bigsoundbank.com/sound-3539.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "typewriter",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2841.mp3",
-  "page": "https://bigsoundbank.com/sound-2841.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
   "id": "ufo",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1972.mp3",
   "page": "https://bigsoundbank.com/sound-1972.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "vacuum",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0722.mp3",
-  "page": "https://bigsoundbank.com/sound-0722.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "waterfall",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0219.mp3",
-  "page": "https://bigsoundbank.com/sound-0219.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 3
  },
@@ -931,52 +294,10 @@
   "seconds": 3
  },
  {
-  "id": "whip",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2950.mp3",
-  "page": "https://bigsoundbank.com/sound-2950.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "whistle",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1017.mp3",
-  "page": "https://bigsoundbank.com/sound-1017.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
   "id": "whoosh",
   "source": "https://bigsoundbank.com/UPLOAD/mp3/1796.mp3",
   "page": "https://bigsoundbank.com/sound-1796.html",
   "license": "CC0 1.0 (BigSoundBank)",
   "seconds": 1.5
- },
- {
-  "id": "wind",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0595.mp3",
-  "page": "https://bigsoundbank.com/sound-0595.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 3
- },
- {
-  "id": "yawn",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/1406.mp3",
-  "page": "https://bigsoundbank.com/sound-1406.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
- },
- {
-  "id": "zipper",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/0270.mp3",
-  "page": "https://bigsoundbank.com/sound-0270.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 1.5
- },
- {
-  "id": "zombie",
-  "source": "https://bigsoundbank.com/UPLOAD/mp3/2106.mp3",
-  "page": "https://bigsoundbank.com/sound-2106.html",
-  "license": "CC0 1.0 (BigSoundBank)",
-  "seconds": 2.5
  }
 ]
