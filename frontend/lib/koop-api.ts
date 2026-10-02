@@ -33,16 +33,22 @@ export async function createKoop(
   return res.json();
 }
 
+/** Join a koop. `invite` is the secret of a live room's guest link; an
+ *  invited koop has none. A wrong or outdated secret reads exactly like an
+ *  unknown room (`koop_not_found`), a live room without a free seat is
+ *  `room_full`. */
 export async function joinKoop(
   koopId: string,
-  nickname: string
+  nickname: string,
+  invite?: string | null
 ): Promise<JoinKoopResponse> {
   const res = await fetch(`${API_BASE}/koop/${koopId}/join`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nickname }),
+    body: JSON.stringify(invite ? { nickname, invite } : { nickname }),
   });
   if (res.status === 404) throw new Error("koop_not_found");
+  if (res.status === 409) throw new Error("room_full");
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

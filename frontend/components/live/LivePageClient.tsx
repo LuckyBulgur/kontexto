@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
@@ -11,6 +11,7 @@ import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import LiveStatus, { type AddRefusal } from "@/components/live/LiveStatus";
 import SupportToasts from "@/components/live/SupportToasts";
 import RoomLanding from "@/components/RoomLanding";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { needsAckRetry } from "@/lib/host-messages";
 import { AUTO_NEXT_DELAY_MS, useAutoNextSetting } from "@/lib/live-auto-next";
 import { freshEvents, mergeFeed } from "@/lib/live-events";
@@ -21,9 +22,20 @@ import {
   LiveApiError,
   markHostMessagesSeen,
   removeLiveChannel,
+  renewLiveInvite,
   setLiveChannelPaused,
 } from "@/lib/live-api";
-import { CHANNEL_BUSY_COPY } from "@/lib/live-copy";
+import { CHANNEL_BUSY_COPY, GUEST_LINK_COPY } from "@/lib/live-copy";
+import {
+  buildInviteUrl,
+  guestTokenKey,
+  localStore,
+  pendingInviteKey,
+  readStored,
+  sessionStore,
+  takeInviteFromLocation,
+  writeStored,
+} from "@/lib/live-invite";
 import {
   LIVE_PLATFORMS,
   type LiveEvent,
@@ -34,6 +46,22 @@ import {
 import type { Guess } from "@/lib/types";
 
 const EMPTY_BOARDS = { busy: [], sharp: [], finders: [] };
+
+/** Who this browser is in the room. */
+type LiveRole = "host" | "guest" | "viewer";
+
+const GUEST_JOIN_COPY = {
+  title: GUEST_LINK_COPY.joinTitle,
+  description: GUEST_LINK_COPY.joinDescription,
+  notFound: GUEST_LINK_COPY.expired,
+  full: GUEST_LINK_COPY.full,
+};
+
+/** Copies the guest link. Never prints it: on failure there is no
+ *  `prompt(url)` fallback, because the host page is on stream. */
+function copyGuestLink(koopId: string, secret: string): Promise<boolean> {
+  return copyTextToClipboard(buildInviteUrl(window.location.origin, koopId, secret));
+}
 
 /** "3 Wörter", "1 Wort, 1 gefunden": one line per viewer on the result card. */
 function viewerSummary(hits: number, solves: number): string {
@@ -95,7 +123,10 @@ const POLL_MS = 3000;
 
 export default function LivePageClient() {
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
+  const [role, setRole] = useState<LiveRole>("viewer");
+  const isHost = role === "host";
+  // The guest link this tab arrived with, until the join has used it.
+  const [invite, setInvite] = useState<string | null>(null);
   const [room, setRoom] = useState<LiveRoom | null>(null);
   const [stale, setStale] = useState(false);
   // The chat no longer counts. The board stays playable and revealable, only
@@ -119,17 +150,24 @@ export default function LivePageClient() {
   useEffect(() => {
     const id = getRoomIdFromPath();
     setRoomId(id);
-    // Only the streamer has a token for this room, and nobody else is meant to
-    // have one: a live round has exactly one person at the keyboard and the
-    // rest in the chat. The room URL is on screen during a stream, so viewers
-    // will open it; they are sent to the mode rather than into a board they
-    // cannot use.
-    setIsHost(Boolean(id && localStorage.getItem(`kontexto_koop_${id}`)));
+    if (id) {
+      // Read before anything else renders, so the secret leaves the address
+      // bar on the first frame (lib/live-invite.ts).
+      const pending = takeInviteFromLocation(id);
+      setInvite(pending);
+      // The streamer holds the host key. A guest holds a seat under a key of
+      // its own, or an invite it has not used yet. Everybody else opened the
+      // room URL they saw on stream; they are sent to the mode rather than
+      // into a board they cannot use, because only the guest link lets
+      // anybody in.
+      if (readStored(localStore(), `kontexto_koop_${id}`)) setRole("host");
+      else if (pending || readStored(localStore(), guestTokenKey(id))) setRole("guest");
+    }
     setChecked(true);
   }, []);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !isHost) return;
     const token = localStorage.getItem(`kontexto_koop_${roomId}`);
     if (!token) return;
 
@@ -179,7 +217,7 @@ export default function LivePageClient() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [roomId]);
+  }, [roomId, isHost]);
 
   useEffect(() => {
     if (!roomId || !isHost) return;
@@ -275,6 +313,51 @@ export default function LivePageClient() {
     [roomId]
   );
 
+  const roomInvite = room?.invite ?? null;
+
+  const handleCopyInvite = useCallback(async () => {
+    if (!roomId || !roomInvite) return;
+    if (await copyGuestLink(roomId, roomInvite)) toast.success(GUEST_LINK_COPY.copied);
+    else toast.error(GUEST_LINK_COPY.copyFailed);
+  }, [roomId, roomInvite]);
+
+  const handleRenewInvite = useCallback(async () => {
+    if (!roomId) return;
+    const token = localStorage.getItem(`kontexto_koop_${roomId}`);
+    if (!token) return;
+    let next: LiveRoom;
+    try {
+      next = await renewLiveInvite(roomId, token);
+    } catch (error) {
+      if (error instanceof Error && error.message === "room_not_found") setEnded(true);
+      toast.error(GUEST_LINK_COPY.renewFailed);
+      return;
+    }
+    setRoom(next);
+    setStale(false);
+    const copied = next.invite ? await copyGuestLink(roomId, next.invite) : false;
+    if (copied) toast.success(GUEST_LINK_COPY.renewed);
+    else toast.warning(GUEST_LINK_COPY.renewedNotCopied);
+  }, [roomId]);
+
+  const handleGuestJoined = useCallback(() => {
+    if (!roomId) return;
+    writeStored(sessionStore(), pendingInviteKey(roomId), null);
+    setInvite(null);
+  }, [roomId]);
+
+  const copyLink = useMemo(
+    () =>
+      roomInvite && !ended
+        ? {
+            label: GUEST_LINK_COPY.button,
+            ariaLabel: GUEST_LINK_COPY.buttonLabel,
+            onCopy: () => void handleCopyInvite(),
+          }
+        : undefined,
+    [roomInvite, ended, handleCopyInvite]
+  );
+
   const catalog = room?.badge_catalog ?? {};
 
   const renderBy = useCallback(
@@ -317,6 +400,31 @@ export default function LivePageClient() {
 
   if (!checked) return <KoopSkeleton />;
   if (!roomId) return <LiveCreateClient />;
+  if (role === "guest") {
+    return (
+      <KoopPageClient
+        basePath="live"
+        label={GUEST_LINK_COPY.guestLabel}
+        showInvite={false}
+        shareable={false}
+        createHref="/live/"
+        showNames
+        sidebarBelowOnMobile
+        centerBoard
+        arrivalEffects
+        guestOnly
+        tokenKey={guestTokenKey}
+        joinInvite={invite}
+        onJoined={handleGuestJoined}
+        joinCopy={GUEST_JOIN_COPY}
+        renderBy={renderBy}
+        renderFinder={renderFinder}
+        notFoundMessage="Diese Runde gibt es nicht"
+        resultLabel="Stream-Runde"
+        resultGroupNoun="auf dem Brett"
+      />
+    );
+  }
   if (!isHost) {
     return (
       <RoomLanding
@@ -347,6 +455,7 @@ export default function LivePageClient() {
         showInvite={false}
         shareable={false}
         createHref="/live/"
+        copyLink={copyLink}
         showNames
         sidebarBelowOnMobile
         centerBoard
@@ -394,6 +503,8 @@ export default function LivePageClient() {
               onAdd={handleAdd}
               onRemove={handleRemove}
               onPause={handlePause}
+              guests={room.invite ? (room.guests ?? 0) : null}
+              onRenewInvite={handleRenewInvite}
             />
           ) : null
         }

@@ -84,6 +84,10 @@ CREATE TABLE IF NOT EXISTS koops (
     -- empty for every field; show_category puts the round's field on screen.
     categories TEXT NOT NULL DEFAULT '',
     show_category BOOLEAN NOT NULL DEFAULT 0,
+    -- NULL for an invited koop, whose id is the invitation. A live room sets
+    -- it: its id stands in the streamer's address bar, on stream, so joining
+    -- takes this secret, which only the host's guest link carries.
+    join_secret TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -94,7 +98,10 @@ CREATE TABLE IF NOT EXISTS koop_players (
     nickname TEXT NOT NULL,
     player_token TEXT NOT NULL UNIQUE,
     contribution_count INTEGER NOT NULL DEFAULT 0,
-    connected BOOLEAN NOT NULL DEFAULT 0
+    connected BOOLEAN NOT NULL DEFAULT 0,
+    -- Joined a live room through the host's guest link. A guest only guesses:
+    -- tips, giving up and the next round stay with the streamer.
+    guest BOOLEAN NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS koop_guesses (
@@ -123,12 +130,13 @@ CREATE TABLE IF NOT EXISTS koop_guesses (
 -- are koop's and stay koop's. What is new is only the binding of one room to
 -- its chats (live_channels, one per platform).
 --
--- A live room has two koop_players rows and never more: the host, and one that
+-- A live room has two koop_players rows for its own: the host, and one that
 -- stands for every chat it reads. Viewers do not become players, because a chat
 -- with a few thousand people would produce a few thousand rows and a
 -- player_joined frame per row out of the koop poll loop. Their guesses are
 -- written under the chat's token with the chatter's display name, and their
--- standing lives in live_viewers.
+-- standing lives in live_viewers. The only other rows are guests the host
+-- invited through the guest link (koop_players.guest, koop.MAX_LIVE_GUESTS).
 CREATE TABLE IF NOT EXISTS live_rooms (
     koop_id TEXT PRIMARY KEY REFERENCES koops(id) ON DELETE CASCADE,
     host_token TEXT NOT NULL,
@@ -833,6 +841,24 @@ async def init_db(db_path: str) -> None:
                 )
             except Exception:
                 pass  # column already exists
+        # Migration live guest link (2026-10-03): a live room's join secret and
+        # the guest flag on its players.
+        for table, column in (
+            ("koops", "join_secret TEXT"),
+            ("koop_players", "guest BOOLEAN NOT NULL DEFAULT 0"),
+        ):
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
+            except Exception:
+                pass  # column already exists
+        # A live room on air during the deploy gets a secret of its own now,
+        # because until then its id alone was enough to join, and the id is on
+        # stream. randomblob is evaluated per row; IS NULL makes a second worker's
+        # pass a no-op.
+        await db.execute(
+            "UPDATE koops SET join_secret = lower(hex(randomblob(24))) "
+            "WHERE join_secret IS NULL AND id IN (SELECT koop_id FROM live_rooms)"
+        )
         await db.commit()
     finally:
         await db.close()

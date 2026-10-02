@@ -1,6 +1,6 @@
 // verify-language-fixture: the selectors quote the German UI they drive.
 import type { Page } from "@playwright/test";
-import { test, expect } from "./fixtures";
+import { test, expect, prepareContext } from "./fixtures";
 
 /**
  * The stream-chat mode end to end: open a room from the form, let a viewer
@@ -701,5 +701,79 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(page.getByPlaceholder("Wort eingeben...").first()).toBeVisible();
     expect(failures.get(`/api/koop/${roomId}`)).toBeGreaterThanOrEqual(3);
     expect(await page.evaluate((id) => localStorage.getItem(`kontexto_koop_${id}`), roomId)).toBe(token);
+  });
+
+  test("der Mitspiel-Link wird nur kopiert, nie gezeigt, und lässt Gäste mitraten", async ({
+    page,
+    context,
+    browser,
+    request,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel, true);
+    const { word: answer } = await (await request.get("/api/reveal")).json();
+    const guestWord = ["birne", "kirsche"].find((w) => w !== answer)!;
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    const copyButton = page.getByRole("button", { name: "Mitspiel-Link kopieren" });
+    await copyButton.click();
+    await expect(page.getByText(/Mitspiel-Link kopiert/)).toBeVisible();
+    const link = await page.evaluate(() => navigator.clipboard.readText());
+    const url = new URL(link);
+    expect(url.pathname).toBe(`/live/${roomId}/`);
+    const secret = new URLSearchParams(url.hash.slice(1)).get("mitraten");
+    expect(secret).toBeTruthy();
+    // The host page is on stream: the secret stands nowhere on it.
+    expect(await page.content()).not.toContain(secret!);
+
+    const guestContext = await browser.newContext();
+    await prepareContext(guestContext);
+    const guest = await guestContext.newPage();
+    await guest.goto(link);
+    await expect(guest.getByText("Bei der Stream-Runde mitraten")).toBeVisible({ timeout: 20_000 });
+    // The secret leaves the guest's address bar on arrival.
+    expect(new URL(guest.url()).hash).toBe("");
+    await guest.getByPlaceholder("Dein Nickname...").fill("Mara");
+    await guest.getByRole("button", { name: "Beitreten" }).click();
+    const guestInput = guest.getByPlaceholder("Wort eingeben...").first();
+    await expect(guestInput).toBeVisible({ timeout: 20_000 });
+    await guestInput.fill(guestWord);
+    await guestInput.press("Enter");
+    await expect(page.getByText(guestWord, { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByTestId("guest-count").filter({ visible: true })
+    ).toHaveText("1 Person rät mit.", { timeout: 10_000 });
+    // A reload keeps the guest's seat and does not make them the host.
+    await guest.reload();
+    await expect(guest.getByPlaceholder("Wort eingeben...").first()).toBeVisible({ timeout: 20_000 });
+    await expect(guest.getByTestId("guest-link-panel")).toHaveCount(0);
+
+    // The room URL seen on stream, without the link, still lets nobody in.
+    const viewerContext = await browser.newContext();
+    await prepareContext(viewerContext);
+    const viewer = await viewerContext.newPage();
+    await viewer.goto(`${url.origin}/live/${roomId}/`);
+    await expect(viewer.getByText(/gehört zu einem Stream/)).toBeVisible({ timeout: 20_000 });
+
+    // A renewed link shuts the old one; the guest inside keeps playing.
+    await page.getByRole("button", { name: "Neuen Link erzeugen" }).filter({ visible: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Neuen Link erzeugen" }).click();
+    await expect(page.getByText(/Neuer Mitspiel-Link kopiert/)).toBeVisible();
+    const renewed = await page.evaluate(() => navigator.clipboard.readText());
+    expect(renewed).not.toBe(link);
+    expect(await page.content()).not.toContain(new URL(renewed).hash.slice("#mitraten=".length));
+
+    const lateContext = await browser.newContext();
+    await prepareContext(lateContext);
+    const late = await lateContext.newPage();
+    await late.goto(link);
+    await late.getByPlaceholder("Dein Nickname...").fill("Zu spät");
+    await late.getByRole("button", { name: "Beitreten" }).click();
+    await expect(late.getByText(/gilt nicht mehr/)).toBeVisible({ timeout: 20_000 });
+
+    await Promise.all([guestContext.close(), viewerContext.close(), lateContext.close()]);
   });
 });

@@ -44,6 +44,9 @@ interface HeaderProps {
   /** Duel mode props */
   subtitle?: string;
   onCopyLink?: () => void;
+  /** Visible word and screen-reader name of the copy button. */
+  copyLinkLabel?: string;
+  copyLinkAriaLabel?: string;
   hideTip?: boolean;
   hideGiveUp?: boolean;
   hidePastGames?: boolean;
@@ -81,6 +84,8 @@ export default function Header({
   showCountdown,
   subtitle,
   onCopyLink,
+  copyLinkLabel,
+  copyLinkAriaLabel,
   hideTip,
   hideGiveUp,
   hidePastGames,
@@ -172,7 +177,9 @@ export default function Header({
           </Link>
         </div>
       <div className="flex flex-1 basis-0 items-center justify-end gap-0.5">
-        {onCopyLink && <ShareLinkButton onClick={onCopyLink} />}
+        {onCopyLink && (
+          <ShareLinkButton onClick={onCopyLink} label={copyLinkLabel} ariaLabel={copyLinkAriaLabel} />
+        )}
         <ModesButton
           onOpen={() => setShowModePicker(true)}
           hintKey="kontexto_modes_button_discovered"

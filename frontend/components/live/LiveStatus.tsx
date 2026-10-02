@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { HandCoins, Pause, Play, Plus, Radio, Trophy, Unplug } from "lucide-react";
+import { HandCoins, Pause, Play, Plus, Radio, RefreshCw, Trophy, Unplug, UsersRound } from "lucide-react";
 import { Panel } from "@/components/design";
 import AutoNextSetting from "@/components/live/AutoNextSetting";
 import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
@@ -16,7 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { channelAddress, channelLabel, normaliseChannel } from "@/lib/live-channel";
-import { CHANNEL_BUSY_COPY, PLATFORM_COPY, STOP_HINT_AHEAD } from "@/lib/live-copy";
+import {
+  CHANNEL_BUSY_COPY, GUEST_LINK_COPY, guestCountText, PLATFORM_COPY, STOP_HINT_AHEAD,
+} from "@/lib/live-copy";
 import { eventAction, eventDetail } from "@/lib/live-events";
 import {
   ChatState, LiveBadgeCatalog, LiveBoardId, LiveChannel, LiveEvent, LivePlatform, LiveViewer,
@@ -47,6 +49,11 @@ interface LiveStatusProps {
   onAdd: (platform: LivePlatform, channel: string) => Promise<AddRefusal | null>;
   onRemove: (platform: LivePlatform) => Promise<void>;
   onPause: (platform: LivePlatform, paused: boolean) => Promise<void>;
+  /** People who joined through the guest link, or null when the room has no
+   *  link (a server from before it). */
+  guests: number | null;
+  /** Replaces the guest link and copies the new one. */
+  onRenewInvite: () => Promise<void>;
 }
 
 /**
@@ -73,6 +80,8 @@ export default function LiveStatus({
   onAdd,
   onRemove,
   onPause,
+  guests,
+  onRenewInvite,
 }: LiveStatusProps) {
   const several = channels.length > 1;
   const locked = notice !== null;
@@ -111,10 +120,63 @@ export default function LiveStatus({
         </Panel>
       )}
 
+      {!locked && guests !== null && <GuestLinkPanel guests={guests} onRenew={onRenewInvite} />}
+
       <Leaderboards boards={boards} catalog={catalog} />
 
       <SupportFeed feed={feed} catalog={catalog} />
     </div>
+  );
+}
+
+/**
+ * Who plays along in the browser through the guest link, and the way to shut a
+ * link that went further than meant. The link itself is never shown here: it is
+ * copied by the header button, because this sidebar is on stream.
+ */
+function GuestLinkPanel({ guests, onRenew }: { guests: number; onRenew: () => Promise<void> }) {
+  const [working, setWorking] = useState(false);
+
+  const renew = async () => {
+    setWorking(true);
+    try {
+      await onRenew();
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <Panel padding="sm" className="gap-2" data-testid="guest-link-panel">
+      <div className="flex items-center gap-2">
+        <UsersRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-micro font-semibold text-muted-foreground">
+          {GUEST_LINK_COPY.sectionTitle}
+        </span>
+      </div>
+      <p className="text-small" data-testid="guest-count">{guestCountText(guests)}</p>
+      <p className="text-micro text-muted-foreground/80">{GUEST_LINK_COPY.sectionHint}</p>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm" disabled={working}>
+            <RefreshCw className="size-3.5" aria-hidden />
+            {GUEST_LINK_COPY.renew}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{GUEST_LINK_COPY.renewTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{GUEST_LINK_COPY.renewDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{GUEST_LINK_COPY.renewCancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void renew()}>
+              {GUEST_LINK_COPY.renewConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Panel>
   );
 }
 

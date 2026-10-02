@@ -290,6 +290,9 @@ class CreateKoopResponse(BaseModel):
 
 class JoinKoopRequest(BaseModel):
     nickname: str = Field(..., min_length=1, max_length=20)
+    # The secret from a live room's guest link. An invited koop has none and
+    # ignores it.
+    invite: str | None = Field(None, max_length=128)
 
 
 class KoopPlayerInfo(BaseModel):
@@ -529,6 +532,11 @@ class LiveRoomResponse(BaseModel):
     # Twitch pictures for every badge code this room has shown, keyed
     # `set/version`. Codes without a picture are absent; the page draws its own.
     badge_catalog: dict[str, LiveBadgePicture] = {}
+    # The secret of the guest link, for the host's copy button only. The page
+    # never prints it: the host screen is on stream.
+    invite: str | None = None
+    # How many people joined through the guest link.
+    guests: int = 0
 
 
 class CreateLiveResponse(LiveRoomResponse):
@@ -554,6 +562,12 @@ class LiveChannelStatusResponse(BaseModel):
 
 class LiveStopRequest(BaseModel):
     player_token: str
+
+
+class LiveInviteRenewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    player_token: str = Field(..., min_length=1, max_length=128)
 
 
 class LiveStopResponse(BaseModel):

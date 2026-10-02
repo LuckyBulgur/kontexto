@@ -770,3 +770,138 @@ class TestHostPoll:
             "kind": "cheer", "event_id": "c1", "display_name": "Mara",
         })
         assert res.status_code == 404
+
+
+class TestGuestInvite:
+    """The guest link: a secret only the host poll carries, and guests who only guess."""
+
+    @staticmethod
+    def _host(client):
+        created = _create(client).json()
+        poll = client.get(
+            f"/api/live/{created['koop_id']}", params={"token": created["player_token"]}
+        ).json()
+        return created["koop_id"], created["player_token"], poll
+
+    @staticmethod
+    def _join(client, kid, invite=None, nickname="Gast"):
+        body = {"nickname": nickname}
+        if invite is not None:
+            body["invite"] = invite
+        return client.post(f"/api/koop/{kid}/join", json=body)
+
+    def test_the_host_poll_and_the_create_answer_carry_the_link(self, client):
+        created = _create(client).json()
+        assert created["invite"]
+        poll = client.get(
+            f"/api/live/{created['koop_id']}", params={"token": created["player_token"]}
+        ).json()
+        assert poll["invite"] == created["invite"]
+        assert poll["guests"] == 0
+
+    def test_nothing_else_carries_the_secret(self, client):
+        kid, _, poll = self._host(client)
+        secret = poll["invite"]
+        assert secret not in client.get(f"/api/koop/{kid}").text
+        assert secret not in client.get(f"/api/koop/{kid}/guesses").text
+        joined = self._join(client, kid, secret)
+        assert secret not in joined.text
+
+    def test_the_room_id_alone_no_longer_joins(self, client):
+        kid, _, _ = self._host(client)
+        unknown = self._join(client, "XXXXXX")
+        for res in (self._join(client, kid), self._join(client, kid, "falsch")):
+            # The same answer as for a room that does not exist: the id is on
+            # stream, and telling the two apart would confirm it.
+            assert res.status_code == 404
+            assert res.json() == unknown.json()
+
+    def test_the_link_joins_as_a_guest(self, client):
+        kid, token, poll = self._host(client)
+        res = self._join(client, kid, poll["invite"], nickname="Mara")
+        assert res.status_code == 200
+        assert res.json()["nickname"] == "Mara"
+        again = client.get(f"/api/live/{kid}", params={"token": token}).json()
+        assert again["guests"] == 1
+
+    def test_an_invited_koop_stays_open(self, client):
+        created = client.post("/api/koop", json={"nickname": "Alice"}).json()
+        res = self._join(client, created["koop_id"])
+        assert res.status_code == 200
+
+    def test_a_guest_only_guesses(self, client):
+        kid, _, poll = self._host(client)
+        guest = self._join(client, kid, poll["invite"]).json()["player_token"]
+
+        guess = client.post(f"/api/koop/{kid}/guess", json={"word": "birne", "player_token": guest})
+        assert guess.status_code == 200
+        assert guess.json()["rank"] == 2
+
+        tip = client.get(f"/api/koop/{kid}/tip", params={"token": guest})
+        give_up = client.post(f"/api/koop/{kid}/give-up", json={"player_token": guest})
+        next_game = client.post(f"/api/koop/{kid}/next-game", json={"player_token": guest})
+        for res in (tip, give_up, next_game):
+            assert res.status_code == 403
+            assert res.json()["error"] == "guest_forbidden"
+
+        state = client.get(f"/api/koop/{kid}").json()
+        assert state["gave_up"] is False
+        assert state["round"] == 1
+
+    def test_the_host_keeps_every_button(self, client):
+        kid, token, _ = self._host(client)
+        assert client.get(f"/api/koop/{kid}/tip", params={"token": token}).status_code == 200
+        assert client.post(
+            f"/api/koop/{kid}/give-up", json={"player_token": token}
+        ).status_code == 200
+
+    def test_a_renewed_link_shuts_the_old_one(self, client):
+        kid, token, poll = self._host(client)
+        old = poll["invite"]
+        guest = self._join(client, kid, old).json()["player_token"]
+
+        renewed = client.post(f"/api/live/{kid}/invite", json={"player_token": token})
+        assert renewed.status_code == 200
+        new = renewed.json()["invite"]
+        assert new and new != old
+        assert renewed.json()["guests"] == 1
+
+        assert self._join(client, kid, old).status_code == 404
+        assert self._join(client, kid, new).status_code == 200
+        # Who is inside stays inside.
+        res = client.post(f"/api/koop/{kid}/guess", json={"word": "kirsche", "player_token": guest})
+        assert res.status_code == 200
+
+    def test_only_the_host_renews(self, client):
+        kid, _, poll = self._host(client)
+        guest = self._join(client, kid, poll["invite"]).json()["player_token"]
+        for token in ("fremd", guest):
+            res = client.post(f"/api/live/{kid}/invite", json={"player_token": token})
+            assert res.status_code == 404
+        assert client.post(
+            "/api/live/XXXXXX/invite", json={"player_token": "x"}
+        ).status_code == 404
+
+    def test_an_unbound_room_keeps_its_lock(self, client):
+        kid, token, poll = self._host(client)
+        client.post(f"/api/live/{kid}/stop", json={"player_token": token})
+        # The board stays open after a stop, so the lock must stay too.
+        assert self._join(client, kid).status_code == 404
+        assert self._join(client, kid, poll["invite"]).status_code == 200
+        # A room that reads no chat has no link left to renew.
+        assert client.post(
+            f"/api/live/{kid}/invite", json={"player_token": token}
+        ).status_code == 404
+
+    def test_the_seats_are_capped(self, client):
+        from koop import MAX_LIVE_GUESTS
+
+        kid, token, poll = self._host(client)
+        for n in range(MAX_LIVE_GUESTS):
+            assert self._join(client, kid, poll["invite"], nickname=f"Gast{n}").status_code == 200
+        full = self._join(client, kid, poll["invite"], nickname="Einer zu viel")
+        assert full.status_code == 409
+        assert full.json()["error"] == "room_full"
+        assert client.get(
+            f"/api/live/{kid}", params={"token": token}
+        ).json()["guests"] == MAX_LIVE_GUESTS

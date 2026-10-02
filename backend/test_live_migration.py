@@ -148,3 +148,36 @@ def test_the_one_chat_rule_survives(old_db):
             await conn.close()
 
     asyncio.run(run())
+
+
+def test_rooms_on_air_get_a_guest_link_secret_of_their_own(old_db):
+    """Until the guest link, a live room's id alone let anybody join, and the id
+    is on stream. A room on air during the deploy is closed at once."""
+
+    async def secrets_by_room(path: str) -> dict[str, str | None]:
+        conn = await get_db(path)
+        try:
+            cursor = await conn.execute("SELECT id, join_secret FROM koops ORDER BY id")
+            return {row["id"]: row["join_secret"] for row in await cursor.fetchall()}
+        finally:
+            await conn.close()
+
+    async def run():
+        await init_db(old_db)
+        first = await secrets_by_room(old_db)
+        assert first["a"] and first["b"]
+        assert first["a"] != first["b"]
+
+        # An invited koop is not a live room and stays open; a second pass
+        # leaves the secrets it already wrote alone.
+        conn = await get_db(old_db)
+        try:
+            await conn.execute("INSERT INTO koops (id, game_number) VALUES ('c', 1)")
+            await conn.commit()
+        finally:
+            await conn.close()
+        await init_db(old_db)
+        second = await secrets_by_room(old_db)
+        assert second == {**first, "c": None}
+
+    asyncio.run(run())

@@ -82,22 +82,55 @@ async def create_koop(
     return {"koop_id": koop_id, "player_token": player_token}
 
 
+# How many people may join one live room through its guest link. A link that
+# leaked onto the stream must not turn into hundreds of player rows and one
+# player_joined frame each on the host's socket.
+MAX_LIVE_GUESTS = 12
+
+
+class KoopFull(Exception):
+    """The live room already holds MAX_LIVE_GUESTS guests."""
+
+
+def join_secret_matches(stored: str | None, offered: str | None) -> bool:
+    """Whether a join may pass the room's secret. No secret, no check."""
+    if stored is None:
+        return True
+    return secrets.compare_digest(stored.encode(), (offered or "").encode())
+
+
 async def join_koop(
-    db: aiosqlite.Connection, koop_id: str, nickname: str
+    db: aiosqlite.Connection, koop_id: str, nickname: str, invite: str | None = None
 ) -> dict | None:
-    cursor = await db.execute("SELECT id FROM koops WHERE id = ?", (koop_id,))
-    if not await cursor.fetchone():
+    """Add a player to a koop. None for an unknown room or a wrong secret.
+
+    The two refusals are one on purpose: a live room's id is on stream, and an
+    answer that told "no such room" from "wrong link" would confirm the id to
+    whoever is probing it. Raises KoopFull when a live room has no guest seat
+    left.
+    """
+    cursor = await db.execute("SELECT join_secret FROM koops WHERE id = ?", (koop_id,))
+    koop = await cursor.fetchone()
+    if not koop or not join_secret_matches(koop["join_secret"], invite):
         return None
+    guest = koop["join_secret"] is not None
 
     # One rule for every room, invite links included: an abusive name is not
     # rejected, it comes back masked and pointed at its author.
     nickname = sanitize_nickname(nickname)
     player_token = _generate_token()
     unique = await _unique_nickname(db, koop_id, nickname)
-    await db.execute(
-        "INSERT INTO koop_players (koop_id, nickname, player_token) VALUES (?, ?, ?)",
-        (koop_id, unique, player_token),
+    # The seat count sits inside the INSERT, so two joins racing for the last
+    # seat cannot both take it: SQLite runs one write at a time.
+    cursor = await db.execute(
+        "INSERT INTO koop_players (koop_id, nickname, player_token, guest) "
+        "SELECT ?, ?, ?, ? WHERE NOT ? OR "
+        "(SELECT COUNT(*) FROM koop_players WHERE koop_id = ? AND guest = 1) < ?",
+        (koop_id, unique, player_token, int(guest), int(guest), koop_id, MAX_LIVE_GUESTS),
     )
+    if cursor.rowcount == 0:
+        await db.rollback()
+        raise KoopFull()
     await db.commit()
 
     state = await get_koop_state(db, koop_id)
@@ -412,6 +445,23 @@ async def advance_koop_game(
     )
     await db.commit()
     return new_game
+
+
+async def is_guest(db: aiosqlite.Connection, koop_id: str, player_token: str) -> bool:
+    """Whether this token joined the room through a live guest link."""
+    cursor = await db.execute(
+        "SELECT 1 FROM koop_players WHERE koop_id = ? AND player_token = ? AND guest = 1",
+        (koop_id, player_token),
+    )
+    return await cursor.fetchone() is not None
+
+
+async def count_guests(db: aiosqlite.Connection, koop_id: str) -> int:
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS n FROM koop_players WHERE koop_id = ? AND guest = 1", (koop_id,)
+    )
+    row = await cursor.fetchone()
+    return row["n"]
 
 
 async def get_player_info(db: aiosqlite.Connection, player_token: str) -> dict | None:

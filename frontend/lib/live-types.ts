@@ -122,6 +122,11 @@ export interface LiveRoom {
   /** Paid support newer than the poll's `events_after`, oldest first. */
   events: LiveEvent[];
   badge_catalog: LiveBadgeCatalog;
+  /** The secret of the guest link, for the copy button only. Never rendered:
+   *  the host page is on stream. Absent on a server from before the link. */
+  invite?: string | null;
+  /** How many people joined through the guest link. */
+  guests?: number;
 }
 
 export interface CreateLiveResponse extends LiveRoom {

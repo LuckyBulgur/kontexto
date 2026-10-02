@@ -96,6 +96,11 @@ async function postLive(path: string, body: Record<string, unknown>): Promise<Li
   return readLive<LiveRoom>(res);
 }
 
+/** Replace the guest link; the old one admits nobody afterwards. Host token only. */
+export function renewLiveInvite(koopId: string, playerToken: string): Promise<LiveRoom> {
+  return postLive(`${koopId}/invite`, { player_token: playerToken });
+}
+
 /** Bind one more chat to a running room. Host token only. */
 export function addLiveChannel(
   koopId: string,

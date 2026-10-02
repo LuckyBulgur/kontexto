@@ -62,3 +62,38 @@ export const CHANNEL_BUSY_COPY = {
 /** The same, said in advance on the host page, before anybody is locked out. */
 export const STOP_HINT_AHEAD =
   "Kommst du nicht mehr auf diese Seite, schreib „stop“ in deinen eigenen Chat. Dann ist die Runde beendet.";
+
+/**
+ * The guest link (`lib/live-invite.ts`): the host's copy button, its renewal in
+ * the sidebar and what a guest reads. No sentence here contains the link
+ * itself, because the host page is on stream.
+ */
+export const GUEST_LINK_COPY = {
+  button: "Mitspiel-Link",
+  buttonLabel: "Mitspiel-Link kopieren",
+  copied: "Mitspiel-Link kopiert. Wer ihn öffnet, rät im Browser mit.",
+  copyFailed: "Kopieren hat nicht geklappt. Erlaub der Seite den Zugriff auf die Zwischenablage.",
+  sectionTitle: "Mitspieler im Browser",
+  sectionHint:
+    "Den Mitspiel-Link oben kannst du privat weitergeben. Wer ihn öffnet, rät auf deinem Brett mit, ohne Chat.",
+  renew: "Neuen Link erzeugen",
+  renewTitle: "Neuen Mitspiel-Link erzeugen?",
+  renewDescription:
+    "Der bisherige Link lässt danach niemanden mehr herein. Wer schon miträt, bleibt dabei. Der neue Link landet direkt in deiner Zwischenablage.",
+  renewConfirm: "Neuen Link erzeugen",
+  renewCancel: "Abbrechen",
+  renewed: "Neuer Mitspiel-Link kopiert. Der alte gilt nicht mehr.",
+  renewedNotCopied: "Neuer Mitspiel-Link erzeugt. Kopier ihn oben mit „Mitspiel-Link“.",
+  renewFailed: "Der Link konnte nicht erneuert werden.",
+  joinTitle: "Bei der Stream-Runde mitraten",
+  joinDescription: "Du rätst auf dem Brett des Streams mit, neben dem Chat. Nur Raten, die Runde steuert der Streamer.",
+  expired: "Dieser Mitspiel-Link gilt nicht mehr. Frag nach einem neuen.",
+  full: "Die Runde ist voll. Frag später noch mal.",
+  guestLabel: "Stream-Runde",
+} as const;
+
+/** "Noch niemand", "1 Person", "3 Personen": the guest count in the sidebar. */
+export function guestCountText(guests: number): string {
+  if (guests <= 0) return "Noch niemand dabei.";
+  return guests === 1 ? "1 Person rät mit." : `${guests} Personen raten mit.`;
+}

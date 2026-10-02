@@ -119,7 +119,25 @@ export interface KoopPageClientProps {
    *  at the keyboard for the evening to go on. The result card counts down and
    *  can hold the current round. */
   autoNextDelayMs?: number | null;
+  /** Replaces the header's copy button. The live host page copies its guest
+   *  link with it; the default handler would fall back to `prompt(url)`, which
+   *  prints the link on a screen that is on stream. */
+  copyLink?: { label: string; ariaLabel: string; onCopy: () => void };
+  /** Where this browser keeps its seat in the room. A live guest keeps it apart
+   *  from the host's key, by which the live page recognises its host. */
+  tokenKey?: (koopId: string) => string;
+  /** The secret a join sends along: a live room's guest link. */
+  joinInvite?: string | null;
+  /** Called once a join succeeded. */
+  onJoined?: () => void;
+  /** What the join form says, and what it says when the server refuses. */
+  joinCopy?: { title: string; description: string; notFound: string; full: string };
+  /** A live guest: guesses only. No tip, no give-up, no next round; the server
+   *  refuses all three for a guest anyway. */
+  guestOnly?: boolean;
 }
+
+const defaultTokenKey = (koopId: string) => `kontexto_koop_${koopId}`;
 
 export default function KoopPageClient({
   basePath = "koop",
@@ -139,6 +157,12 @@ export default function KoopPageClient({
   renderFinder,
   arrivalEffects = false,
   autoNextDelayMs = null,
+  copyLink,
+  tokenKey = defaultTokenKey,
+  joinInvite = null,
+  onJoined,
+  joinCopy,
+  guestOnly = false,
   notFoundMessage = "Koop nicht gefunden",
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
@@ -214,11 +238,11 @@ export default function KoopPageClient({
     }
     setKoopId(id);
 
-    const storedToken = localStorage.getItem(`kontexto_koop_${id}`);
+    const storedToken = localStorage.getItem(tokenKey(id));
     if (storedToken) {
       setPlayerToken(storedToken);
     }
-  }, [basePath]);
+  }, [basePath, tokenKey]);
 
   // Inject noindex for ephemeral koop-id pages so they don't bloat the search
   // index; the static /koop/ landing page stays indexable.
@@ -276,7 +300,7 @@ export default function KoopPageClient({
                 setLoading(false);
                 return;
               }
-              localStorage.removeItem(`kontexto_koop_${koopId}`);
+              localStorage.removeItem(tokenKey(koopId));
               setPlayerToken(null);
               setNeedsJoin(true);
               setLoading(false);
@@ -292,7 +316,7 @@ export default function KoopPageClient({
         setLoading(false);
       });
     return () => controller.abort();
-  }, [koopId, playerToken]);
+  }, [koopId, playerToken, tokenKey]);
 
   const setPodestError = useCallback((next: PodestError | undefined) => {
     if (podestErrorTimer.current !== null) {
@@ -497,19 +521,27 @@ export default function KoopPageClient({
       setJoinLoading(true);
       setJoinError(null);
       try {
-        const result = await joinKoop(koopId, nick);
-        localStorage.setItem(`kontexto_koop_${koopId}`, result.player_token);
+        const result = await joinKoop(koopId, nick, joinInvite);
+        try {
+          localStorage.setItem(tokenKey(koopId), result.player_token);
+        } catch {
+          // Storage blocked: the seat holds for this page only.
+        }
         setPlayerToken(result.player_token);
         setNickname(result.nickname);
         setPlayers(result.players);
         setNeedsJoin(false);
-      } catch {
-        setJoinError("Fehler beim Beitreten");
+        onJoined?.();
+      } catch (e: unknown) {
+        const code = e instanceof Error ? e.message : "";
+        if (joinCopy && code === "koop_not_found") setJoinError(joinCopy.notFound);
+        else if (joinCopy && code === "room_full") setJoinError(joinCopy.full);
+        else setJoinError("Fehler beim Beitreten");
       } finally {
         setJoinLoading(false);
       }
     },
-    [koopId]
+    [koopId, joinInvite, tokenKey, onJoined, joinCopy]
   );
 
   // Guess.
@@ -564,7 +596,7 @@ export default function KoopPageClient({
   // Tip, shared with the whole team. best_rank/guessed_ranks are derived
   // server-side from the shared list.
   const handleTip = useCallback(async () => {
-    if (!koopId || !playerToken || !koopState?.tips_allowed) return;
+    if (!koopId || !playerToken || !koopState?.tips_allowed || guestOnly) return;
     setError(null);
     try {
       const result = await getKoopTip(koopId, difficulty, playerToken);
@@ -586,12 +618,12 @@ export default function KoopPageClient({
         setError("Tipp konnte nicht geladen werden");
       }
     }
-  }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess]);
+  }, [koopId, playerToken, koopState, guesses, difficulty, nickname, appendGuess, guestOnly]);
 
   // Give up, reveals the word for the whole team.
   const handleGiveUp = useCallback(async () => {
     setShowGiveUp(false);
-    if (!koopId || !playerToken) return;
+    if (!koopId || !playerToken || guestOnly) return;
     setError(null);
     try {
       const result = await giveUpKoop(koopId, playerToken);
@@ -603,11 +635,11 @@ export default function KoopPageClient({
     } catch {
       setError("Lösungswort konnte nicht geladen werden");
     }
-  }, [koopId, playerToken, appendGuess]);
+  }, [koopId, playerToken, appendGuess, guestOnly]);
 
   // Start the next game in the same koop room for everyone.
   const handleNextGame = useCallback(async () => {
-    if (!koopId || !playerToken || advancing.current) return;
+    if (!koopId || !playerToken || advancing.current || guestOnly) return;
     advancing.current = true;
     try {
       const result = await koopNextGame(koopId, playerToken, currentRound ?? undefined);
@@ -635,10 +667,10 @@ export default function KoopPageClient({
     } finally {
       advancing.current = false;
     }
-  }, [koopId, playerToken, currentRound, resetForNextGame, catchUpGuesses]);
+  }, [koopId, playerToken, currentRound, resetForNextGame, catchUpGuesses, guestOnly]);
 
   const autoNext = useAutoNextRound({
-    delayMs: autoNextDelayMs,
+    delayMs: guestOnly ? null : autoNextDelayMs,
     round: currentRound,
     roundOver: roundOver && !!playerToken,
     onAdvance: () => void handleNextGame(),
@@ -692,7 +724,13 @@ export default function KoopPageClient({
 
   if (needsJoin) {
     return (
-      <JoinDialog onJoin={handleJoin} loading={joinLoading} error={joinError} />
+      <JoinDialog
+        onJoin={handleJoin}
+        loading={joinLoading}
+        error={joinError}
+        title={joinCopy?.title}
+        description={joinCopy?.description}
+      />
     );
   }
 
@@ -708,8 +746,11 @@ export default function KoopPageClient({
         onPastGamesOpen={() => {}}
         tipDisabled={roundOver || !koopState?.tips_allowed}
         giveUpDisabled={roundOver}
-        onCopyLink={shareable ? handleCopyLink : undefined}
-        hideTip={!koopState?.tips_allowed}
+        onCopyLink={copyLink ? copyLink.onCopy : shareable ? handleCopyLink : undefined}
+        copyLinkLabel={copyLink?.label}
+        copyLinkAriaLabel={copyLink?.ariaLabel}
+        hideTip={!koopState?.tips_allowed || guestOnly}
+        hideGiveUp={guestOnly}
         hidePastGames
         backHref="/"
       />
@@ -755,7 +796,7 @@ export default function KoopPageClient({
               solvedBy={finderName}
               currentNickname={nickname ?? ""}
               gaveUp={gaveUp}
-              onNextGame={handleNextGame}
+              onNextGame={guestOnly ? undefined : handleNextGame}
               autoNextSeconds={autoNext.secondsLeft}
               onStopAutoNext={autoNext.stop}
               label={resultLabel}

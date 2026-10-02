@@ -13,8 +13,9 @@ its chats (one per platform, so Twitch and TikTok can play the same round), the
 rule that turns a chat line into a guess, and the throttle. Three tables
 (``live_rooms``, ``live_channels``, ``live_viewers``) hang off ``koops``.
 
-**Viewers are not players.** A live room has two ``koop_players`` rows and never
-more: the host, and one that stands for the whole chat. A chat with a few
+**Viewers are not players.** A live room has two ``koop_players`` rows of its
+own: the host, and one that stands for the whole chat (plus the few guests the
+host invites through the guest link, ``koop.MAX_LIVE_GUESTS``). A chat with a few
 thousand people would otherwise produce a few thousand player rows and one
 ``player_joined`` frame per row out of the koop poll loop, which would drown the
 host's socket in the first minute. A viewer's guess is written under the chat's
@@ -690,6 +691,45 @@ def _token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def new_join_secret() -> str:
+    """The secret in a live room's guest link. URL-safe, so it fits a fragment
+    without escaping."""
+    return secrets.token_urlsafe(24)
+
+
+async def guest_link(db: aiosqlite.Connection, koop_id: str) -> tuple[str | None, int]:
+    """The room's join secret and how many guests joined with it.
+
+    Only the host view reads this; no koop state, socket frame or other
+    response carries the secret.
+    """
+    cursor = await db.execute(
+        "SELECT k.join_secret AS secret, "
+        "(SELECT COUNT(*) FROM koop_players p WHERE p.koop_id = k.id AND p.guest = 1) AS guests "
+        "FROM koops k WHERE k.id = ?",
+        (koop_id,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None, 0
+    return row["secret"], row["guests"]
+
+
+async def rotate_join_secret(db: aiosqlite.Connection, koop_id: str) -> bool:
+    """Replace a bound room's guest link. False when the room is not bound.
+
+    The old link stops admitting anybody at once. Guests who already joined
+    keep their seat: their token is a player row, not the secret.
+    """
+    cursor = await db.execute(
+        "UPDATE koops SET join_secret = ? WHERE id = ? "
+        "AND EXISTS (SELECT 1 FROM live_rooms WHERE koop_id = ?)",
+        (new_join_secret(), koop_id, koop_id),
+    )
+    await db.commit()
+    return cursor.rowcount > 0
+
+
 async def create_live_room(
     db: aiosqlite.Connection,
     koop_id: str,
@@ -737,6 +777,11 @@ async def create_live_room(
     await db.execute(
         "INSERT INTO koop_players (koop_id, nickname, player_token) VALUES (?, ?, ?)",
         (koop_id, chat_player_name, chat_token),
+    )
+    # From here on the room id alone no longer lets anybody in: it stands in
+    # the streamer's address bar, on stream. Joining takes the guest link.
+    await db.execute(
+        "UPDATE koops SET join_secret = ? WHERE id = ?", (new_join_secret(), koop_id)
     )
     await db.commit()
     room = await get_live_room(db, koop_id)

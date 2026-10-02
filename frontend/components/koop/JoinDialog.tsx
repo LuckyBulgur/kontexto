@@ -9,9 +9,17 @@ interface JoinDialogProps {
   onJoin: (nickname: string) => void;
   loading?: boolean;
   error?: string | null;
+  title?: string;
+  description?: string;
 }
 
-export default function JoinDialog({ onJoin, loading, error }: JoinDialogProps) {
+export default function JoinDialog({
+  onJoin,
+  loading,
+  error,
+  title = "Koop beitreten",
+  description = "Sucht gemeinsam dasselbe geheime Wort.",
+}: JoinDialogProps) {
   const [nickname, setNickname] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,10 +30,8 @@ export default function JoinDialog({ onJoin, loading, error }: JoinDialogProps) 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center px-4">
       <Panel className="w-full gap-4 p-6">
-        <h2 className="text-h3 font-bold text-center">Koop beitreten</h2>
-        <p className="text-small text-muted-foreground text-center">
-          Sucht gemeinsam dasselbe geheime Wort.
-        </p>
+        <h2 className="text-h3 font-bold text-center">{title}</h2>
+        <p className="text-small text-muted-foreground text-center">{description}</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             value={nickname}

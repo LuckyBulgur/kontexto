@@ -37,7 +37,7 @@ from duel import reveal_context as reveal_duel_context
 from koop import (
     create_koop, join_koop, get_koop_state, get_koop_guesses,
     record_koop_guess, record_koop_tip, cleanup_stale_koops,
-    give_up_koop, advance_koop_game, KoopRoundChanged,
+    give_up_koop, advance_koop_game, KoopRoundChanged, KoopFull, is_guest as is_koop_guest,
 )
 from koop import get_player_info as get_koop_player_info
 from koop import reveal_context as reveal_koop_context
@@ -80,7 +80,7 @@ from models import (
     RoomRevealRequest, RoomRevealResponse,
     CreateLiveRequest, CreateLiveResponse, LiveRoomResponse,
     LiveChannelAddRequest, LiveChannelRemoveRequest, LiveChannelPauseRequest,
-    LiveStopRequest, LiveStopResponse, LiveDebugEventRequest,
+    LiveStopRequest, LiveStopResponse, LiveDebugEventRequest, LiveInviteRenewRequest,
     LiveDebugMessageRequest, LivePlatformsResponse, LiveChannelStatusResponse,
     LiveMessagesSeenRequest, LiveMessagesSeenResponse,
     AdminHostMessageRequest, AdminHostMessageResponse, AdminLiveStreamsResponse,
@@ -1077,6 +1077,16 @@ async def duel_websocket(websocket: WebSocket, duel_id: str, token: str = Query(
 
 # --- Koop (cooperative Kontexto) endpoints ---
 
+# A guest of a live room only guesses. Tips put words on the streamer's board,
+# giving up shows the answer on stream and the next round is the streamer's
+# evening; all three stay with the host. A 403 and not a 404, because the
+# guest holds a valid seat and its page hides the buttons anyway.
+def _guest_forbidden() -> JSONResponse:
+    return JSONResponse(
+        status_code=403,
+        content={"error": "guest_forbidden", "message": "Gäste können in dieser Runde nur raten"},
+    )
+
 @app.post("/api/koop", response_model=CreateKoopResponse)
 async def create_koop_endpoint(req: CreateKoopRequest):
     game_number = _room_game_number(req.game_source, req.categories)
@@ -1100,7 +1110,13 @@ async def join_koop_endpoint(koop_id: str, req: JoinKoopRequest):
     gs = _get_game_state()
     db = await get_db(_db_path)
     try:
-        result = await join_koop(db, koop_id, req.nickname)
+        try:
+            result = await join_koop(db, koop_id, req.nickname, req.invite)
+        except KoopFull:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "room_full", "message": "Die Runde ist voll"},
+            )
         if result is None:
             return JSONResponse(
                 status_code=404,
@@ -1216,6 +1232,8 @@ async def koop_tip_endpoint(
                 status_code=403,
                 content={"error": "tips_disabled", "message": "Tipps sind in diesem Koop deaktiviert"},
             )
+        if await is_koop_guest(db, koop_id, token):
+            return _guest_forbidden()
         game_num = state["game_number"]
         gs = _get_game_state()
         gs.load_game(game_num)
@@ -1255,6 +1273,8 @@ async def koop_give_up_endpoint(koop_id: str, req: KoopGiveUpRequest):
                 status_code=404,
                 content={"error": "koop_not_found", "message": "Koop nicht gefunden"},
             )
+        if await is_koop_guest(db, koop_id, req.player_token):
+            return _guest_forbidden()
         game_num = state["game_number"]
         target = gs.get_target_word(game_num)
         result = await give_up_koop(db, koop_id, req.player_token, target)
@@ -1291,6 +1311,8 @@ async def koop_next_game_endpoint(koop_id: str, req: KoopNextGameRequest):
                 status_code=404,
                 content={"error": "player_not_found", "message": "Spieler nicht gefunden"},
             )
+        if await is_koop_guest(db, koop_id, req.player_token):
+            return _guest_forbidden()
         try:
             new_game = await advance_koop_game(
                 db, koop_id, _room_picker(state), expected_round=req.round
@@ -1398,6 +1420,8 @@ def _live_room_payload(
     messages: list[dict] | None = None,
     events: list[dict] | None = None,
     catalog: dict | None = None,
+    invite: str | None = None,
+    guests: int = 0,
 ) -> dict:
     channels = room["channels"]
     # A bound room always reads at least one chat (remove_live_channel refuses
@@ -1420,6 +1444,8 @@ def _live_room_payload(
         "messages": messages or [],
         "events": [_decoded_badges(event) for event in events or []],
         "badge_catalog": catalog or {},
+        "invite": invite,
+        "guests": guests,
     }
 
 
@@ -1453,12 +1479,15 @@ async def _room_badge_catalog(db, room: dict) -> dict:
 async def _host_view(db, room: dict, events_after: int = 0) -> dict:
     """Everything the host page's poll shows, in one place for every endpoint."""
     koop_id = room["koop_id"]
+    invite, guests = await live_chat.guest_link(db, koop_id)
     return _live_room_payload(
         room,
         await live_chat.viewer_boards(db, koop_id),
         await live_chat.pending_host_messages(db, koop_id),
         await live_chat.events_after(db, koop_id, events_after),
         await _room_badge_catalog(db, room),
+        invite,
+        guests,
     )
 
 
@@ -1611,7 +1640,8 @@ async def create_live_endpoint(req: CreateLiveRequest):
         for platform, channel in channels:
             await live_chat.record_stream_event(db, platform, channel, "sessions")
             await live_chat.record_stream_event(db, platform, channel, "rounds")
-        return {**_live_room_payload(live), "player_token": room["player_token"]}
+        invite, _ = await live_chat.guest_link(db, room["koop_id"])
+        return {**_live_room_payload(live, invite=invite), "player_token": room["player_token"]}
     finally:
         await db.close()
 
@@ -1772,6 +1802,21 @@ async def pause_live_channel_endpoint(koop_id: str, req: LiveChannelPauseRequest
         if await _hosted_live_room(db, koop_id, req.player_token) is None:
             return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
         if not await live_chat.set_channel_paused(db, koop_id, req.platform, req.paused):
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        return await _host_payload(db, koop_id)
+    finally:
+        await db.close()
+
+
+@app.post("/api/live/{koop_id}/invite", response_model=LiveRoomResponse)
+async def renew_live_invite_endpoint(koop_id: str, req: LiveInviteRenewRequest):
+    """Replace the guest link. The old one admits nobody from now on; guests
+    who already joined keep playing."""
+    db = await get_db(_db_path)
+    try:
+        if await _hosted_live_room(db, koop_id, req.player_token) is None:
+            return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
+        if not await live_chat.rotate_join_secret(db, koop_id):
             return JSONResponse(status_code=404, content=_ROOM_NOT_FOUND)
         return await _host_payload(db, koop_id)
     finally:
