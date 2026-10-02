@@ -8,7 +8,7 @@ German emoji names and keywords from Unicode CLDR (`unicode-org/cldr-json`, `cld
 
 ## Pictures
 
-Microsoft Fluent Emoji, flat style (https://github.com/microsoft/fluentui-emoji), MIT License, Copyright (c) Microsoft Corporation, as packaged by Iconify (`@iconify-json/fluent-emoji-flat`). The license text ships next to the files: `frontend/public/eggs/LICENSE-fluent-emoji.txt`.
+Microsoft Fluent Emoji, flat style (https://github.com/microsoft/fluentui-emoji), MIT License, Copyright (c) Microsoft Corporation, as packaged by Iconify (`@iconify-json/fluent-emoji-flat`, version 1.2.6, fetched 2026-10-02). The license text ships next to the files: `frontend/public/eggs/LICENSE-fluent-emoji.txt`.
 
 The hitmarker, the pixel sunglasses, the scope and the rainbow arc are drawn in `frontend/lib/easter-eggs/stage.ts`. The hitmarker tick is synthesised in the browser (`sound.ts`), and the spoken lines use the browser's own voices.
 
