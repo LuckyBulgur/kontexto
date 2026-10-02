@@ -48,4 +48,12 @@ test.describe("Raum erstellen", () => {
 
     await expect(page).toHaveURL(/\/arena\/[^/]+\/$/, { timeout: 30_000 });
   });
+
+  test("ein Raum, den es nicht gibt, sagt es sofort und wartet nicht auf den Server", async ({ page }) => {
+    // The retry for a restarting backend (lib/room-load.ts) must not hold up
+    // a real 404: that answer is final and comes within the first attempt.
+    await page.goto("/koop/gibtesnicht123/");
+    await expect(page.getByText("Koop nicht gefunden")).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByRole("button", { name: "Neu laden" })).toHaveCount(0);
+  });
 });

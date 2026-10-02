@@ -291,6 +291,23 @@ viewer's 2 s cooldown and one room token per word (`GuessGate.admit`); a solve e
 word already on the board does not. Held by `TestWordExtraction` and `TestGuessGate` in
 `test_live_chat.py`, the sentence cases in `test_live_ingest.py` and `e2e/live-room.spec.ts`.
 
+**The next round can start by itself (2026-10-02, the streamer's request).** A switch
+„Nächste Runde automatisch starten“ (`components/live/AutoNextSetting.tsx`) sits in the create
+form and in the sidebar of a running round, off by default, one key for every live room on the
+browser (`kontexto_live_auto_next = "on"`, `lib/live-auto-next.ts`, with an in-memory fallback
+when storage is blocked). When on, the result card counts down `AUTO_NEXT_DELAY_MS` (10 s) under
+the „Nächstes Spiel“ button and starts the round; „Anhalten“ holds the current round only. The
+countdown is `lib/use-auto-next-round.ts` on `KoopPageClient`'s `autoNextDelayMs` prop: wall-clock
+deadline (a background tab's slowed timers still fire, at once when it becomes visible), at most
+one advance per round, so a refused one (no game left) never retries. Off once the binding ended.
+Because a manual click can race the timer, **`POST koop/{id}/next-game` takes an optional
+`round`** (`KoopNextGameRequest`): the advance happens only from that round, guarded in the
+UPDATE itself, and a late second request is a 409 `round_changed` instead of a skipped round;
+the client then follows the room. Every koop client sends it now, invited rooms included. A
+`next_round` frame for a round the page already reset to no longer wipes the board a second time,
+it catches up the list instead. Held by the round-guard cases in `backend/test_koop.py`,
+`lib/live-auto-next.test.ts` and two cases in `e2e/live-room.spec.ts`.
+
 **There is no OBS overlay (removed 2026-10-01).** The player's decision: everything a stream
 shows is the host page, `/live/<id>/`. Route, `GET /api/live/overlay/state`, its models and
 the nginx block are gone; `live_rooms.overlay_token` stays as a column (SQLite cannot drop a

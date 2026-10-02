@@ -37,6 +37,8 @@ import { loadDifficulty, loadSortMode, loadTheme, saveDifficulty, saveSortMode, 
 import { Difficulty, Guess, SortMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import RoomLanding from "@/components/RoomLanding";
+import RoomUnreachable from "@/components/rooms/RoomUnreachable";
+import { LoadAbortedError, ROOM_UNREACHABLE_MESSAGE, isFinalLoadError, isNotFound, loadWithRetry } from "@/lib/room-load";
 
 /** `/arena/<id>/` carries the room; `/arena/` and `/arena/create/` do not. */
 function getArenaIdFromPath(): string | null {
@@ -135,12 +137,14 @@ export default function ArenaPageClient() {
 
   useEffect(() => {
     if (!arenaId) return;
-    let cancelled = false;
+    // A page reloaded by a deploy asks before the API is back; every request
+    // waits for it instead of calling a running round gone (lib/room-load.ts).
+    const controller = new AbortController();
+    const { signal } = controller;
 
     (async () => {
       try {
-        const fresh = await getArenaState(arenaId);
-        if (cancelled) return;
+        const fresh = await loadWithRetry(() => getArenaState(arenaId), signal);
         setState(fresh);
 
         if (!playerToken) {
@@ -148,8 +152,12 @@ export default function ArenaPageClient() {
           setLoading(false);
           return;
         }
-        const info = await getArenaPlayerInfo(playerToken).catch(() => null);
-        if (cancelled) return;
+        // Only the server saying so ends a token, never a backend that is
+        // still starting: that error leaves the catch below with the token kept.
+        const info = await loadWithRetry(() => getArenaPlayerInfo(playerToken), signal).catch((error: unknown) => {
+          if (isFinalLoadError(error)) return null;
+          throw error;
+        });
         if (!info || info.arena_id !== arenaId) {
           // The stored token belongs to another room, or the room was cleaned
           // up and rebuilt. Asking again is better than a silent dead end.
@@ -160,21 +168,17 @@ export default function ArenaPageClient() {
           return;
         }
         setNickname(info.nickname);
-        const history = await getArenaHistory(arenaId, playerToken);
-        if (cancelled) return;
+        const history = await loadWithRetry(() => getArenaHistory(arenaId, playerToken), signal);
         setGuesses(history.map((g) => ({ word: g.word, rank: g.rank, isTip: false })));
         setLoading(false);
-      } catch {
-        if (!cancelled) {
-          setError("Runde nicht gefunden");
-          setLoading(false);
-        }
+      } catch (error) {
+        if (error instanceof LoadAbortedError) return;
+        setError(isNotFound(error) || isFinalLoadError(error) ? "Runde nicht gefunden" : ROOM_UNREACHABLE_MESSAGE);
+        setLoading(false);
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [arenaId, playerToken]);
 
   const handleWsMessage = useCallback(
@@ -363,6 +367,8 @@ export default function ArenaPageClient() {
   if (needsJoin) {
     return <JoinDialog onJoin={handleJoin} loading={joinLoading} error={joinError} />;
   }
+
+  if (error === ROOM_UNREACHABLE_MESSAGE) return <RoomUnreachable />;
 
   if (!state) {
     return (

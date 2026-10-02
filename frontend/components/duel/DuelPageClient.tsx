@@ -34,6 +34,8 @@ import { loadDifficulty, loadSortMode, loadTheme, saveTheme, saveDifficulty, sav
 import { toast } from "sonner";
 import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
+import RoomUnreachable from "@/components/rooms/RoomUnreachable";
+import { LoadAbortedError, ROOM_UNREACHABLE_MESSAGE, isFinalLoadError, isNotFound, loadWithRetry } from "@/lib/room-load";
 
 function getDuelIdFromPath(): string | null {
   if (typeof window === "undefined") return null;
@@ -115,16 +117,20 @@ export default function DuelPageClient() {
   useEffect(() => {
     if (!duelId) return;
 
-    getDuelState(duelId)
+    // A page reloaded by a deploy asks before the API is back; the load waits
+    // for it instead of calling a running duel gone (lib/room-load.ts).
+    const controller = new AbortController();
+    const { signal } = controller;
+    loadWithRetry(() => getDuelState(duelId), signal)
       .then((state) => {
         setDuelState(state);
         setPlayers(state.players);
 
         if (playerToken) {
-          Promise.all([
-            getDuelHistory(duelId, playerToken),
-            getPlayerInfo(playerToken),
-          ])
+          loadWithRetry(
+            () => Promise.all([getDuelHistory(duelId, playerToken), getPlayerInfo(playerToken)]),
+            signal
+          )
             .then(([history, info]) => {
               setNickname(info.nickname);
               const loaded = history.map((h) => ({
@@ -136,7 +142,15 @@ export default function DuelPageClient() {
               if (loaded.some((g) => g.rank === 1)) setTimeout(fireConfetti, 300);
               setLoading(false);
             })
-            .catch(() => {
+            .catch((error: unknown) => {
+              if (error instanceof LoadAbortedError) return;
+              // Only the server saying so ends a token, never a backend that
+              // is still starting.
+              if (!isFinalLoadError(error)) {
+                setError(ROOM_UNREACHABLE_MESSAGE);
+                setLoading(false);
+                return;
+              }
               localStorage.removeItem(`kontexto_duel_${duelId}`);
               setPlayerToken(null);
               setNeedsJoin(true);
@@ -147,10 +161,12 @@ export default function DuelPageClient() {
           setLoading(false);
         }
       })
-      .catch(() => {
-        setError("Duell nicht gefunden");
+      .catch((error: unknown) => {
+        if (error instanceof LoadAbortedError) return;
+        setError(isNotFound(error) ? "Duell nicht gefunden" : ROOM_UNREACHABLE_MESSAGE);
         setLoading(false);
       });
+    return () => controller.abort();
   }, [duelId, playerToken]);
 
   // Reset all local round state for a freshly advanced duel game (triggered by
@@ -427,6 +443,8 @@ export default function DuelPageClient() {
       />
     );
   }
+
+  if (error === ROOM_UNREACHABLE_MESSAGE) return <RoomUnreachable />;
 
   if (error && !duelState) {
     return (

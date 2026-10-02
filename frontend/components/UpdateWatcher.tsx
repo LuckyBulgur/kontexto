@@ -15,6 +15,8 @@ import {
   parseVersion,
 } from "@/lib/update-check";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+
 /**
  * Keeps an open tab on the deployed version (`lib/update-check.ts`).
  *
@@ -23,15 +25,31 @@ import {
  * OUTAGE_INTERVAL_MS while the server is away. When an update runs or a new
  * version is there, a notice stands in the middle of the screen until the page
  * reloads: it has no close button on purpose, because the page behind it is
- * about to be replaced. Off for a local or e2e build, which carry no build id.
+ * about to be replaced. A new version reloads the page only once `/api` answers
+ * as well, so a room page does not come back into a backend still starting. Off for a local or e2e build, which carry no build id.
  */
 async function check(): Promise<CheckResult> {
   try {
     const response = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
     const build = response.ok ? parseVersion(await response.json()) : null;
-    return build ? { kind: "ok", build } : { kind: "failed", online: navigator.onLine };
+    if (!build) return { kind: "failed", online: navigator.onLine };
+    // nginx serves the new version.json before the API workers have loaded
+    // their data. A reload in that window met a 502 on every room load, so a
+    // new version counts only once the API answers too; until then the check
+    // reads as the server being away and the notice keeps waiting.
+    if (build !== BUILD_ID && !(await apiReady())) return { kind: "failed", online: navigator.onLine };
+    return { kind: "ok", build };
   } catch {
     return { kind: "failed", online: navigator.onLine };
+  }
+}
+
+async function apiReady(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/game?t=${Date.now()}`, { cache: "no-store" });
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 

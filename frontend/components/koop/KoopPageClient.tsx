@@ -41,6 +41,8 @@ import { BOARD_COLUMN, BOARD_GRID, SIDEBAR_COLUMN } from "@/lib/board-layout";
 import { cn } from "@/lib/utils";
 import { knocksForArrival, playKnock } from "@/lib/knock-sound";
 import { useAutoNextRound } from "@/lib/use-auto-next-round";
+import RoomUnreachable from "@/components/rooms/RoomUnreachable";
+import { LoadAbortedError, ROOM_UNREACHABLE_MESSAGE, isFinalLoadError, isNotFound, loadWithRetry } from "@/lib/room-load";
 
 function getKoopIdFromPath(basePath: string): string | null {
   if (typeof window === "undefined") return null;
@@ -237,7 +239,11 @@ export default function KoopPageClient({
   useEffect(() => {
     if (!koopId) return;
 
-    Promise.all([getKoopState(koopId), getKoopGuesses(koopId)])
+    // A page reloaded by a deploy asks before the API is back; the load waits
+    // for it instead of calling a running round gone (lib/room-load.ts).
+    const controller = new AbortController();
+    const { signal } = controller;
+    loadWithRetry(() => Promise.all([getKoopState(koopId), getKoopGuesses(koopId)]), signal)
       .then(([state, shared]) => {
         setKoopState(state);
         setPlayers(state.players);
@@ -255,13 +261,21 @@ export default function KoopPageClient({
         setGuesses(loaded);
 
         if (playerToken) {
-          getKoopPlayerInfo(playerToken)
+          loadWithRetry(() => getKoopPlayerInfo(playerToken), signal)
             .then((info) => {
               setNickname(info.nickname);
               if (state.solved && !state.gave_up) setTimeout(fireConfetti, 300);
               setLoading(false);
             })
-            .catch(() => {
+            .catch((error: unknown) => {
+              if (error instanceof LoadAbortedError) return;
+              // Only the server saying so ends a token. A host whose page
+              // reloaded into a restarting backend keeps the seat.
+              if (!isFinalLoadError(error)) {
+                setError(ROOM_UNREACHABLE_MESSAGE);
+                setLoading(false);
+                return;
+              }
               localStorage.removeItem(`kontexto_koop_${koopId}`);
               setPlayerToken(null);
               setNeedsJoin(true);
@@ -272,10 +286,12 @@ export default function KoopPageClient({
           setLoading(false);
         }
       })
-      .catch(() => {
-        setError(notFoundMessage);
+      .catch((error: unknown) => {
+        if (error instanceof LoadAbortedError) return;
+        setError(isNotFound(error) ? notFoundMessage : ROOM_UNREACHABLE_MESSAGE);
         setLoading(false);
       });
+    return () => controller.abort();
   }, [koopId, playerToken]);
 
   const setPodestError = useCallback((next: PodestError | undefined) => {
@@ -660,6 +676,8 @@ export default function KoopPageClient({
       )
     );
   }
+
+  if (error === ROOM_UNREACHABLE_MESSAGE) return <RoomUnreachable />;
 
   if (error && !koopState) {
     return (

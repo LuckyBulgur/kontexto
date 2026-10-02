@@ -24,6 +24,8 @@ import ShareInviteBar from "@/components/ShareInviteBar";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { fireBurst } from "@/lib/confetti";
 import { onEventTyped, onEventWordleRow } from "@/lib/events/hooks";
+import RoomUnreachable from "@/components/rooms/RoomUnreachable";
+import { LoadAbortedError, isFinalLoadError, loadWithRetry } from "@/lib/room-load";
 
 export default function WordleDuelPageClient() {
   // Extract duel_id from URL path: /wordle/duel/{id}/
@@ -40,7 +42,7 @@ export default function WordleDuelPageClient() {
   // The word, once this player has no move left and nobody solved it.
   const [solution, setSolution] = useState<string | null>(null);
   const revealedRound = useRef<number | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<"failed" | "unreachable" | null>(null);
 
   // Own game state
   const [guesses, setGuesses] = useState<string[]>([]);
@@ -97,9 +99,13 @@ export default function WordleDuelPageClient() {
   // Load initial state
   useEffect(() => {
     if (!duelId || !playerToken) return;
+    // A page reloaded by a deploy asks before the API is back; every request
+    // waits for it instead of failing the duel (lib/room-load.ts).
+    const controller = new AbortController();
+    const { signal } = controller;
 
     const load = async () => {
-      const state = await getWordleDuelState(duelId);
+      const state = await loadWithRetry(() => getWordleDuelState(duelId), signal);
       setPlayers(state.players);
       setRound(state.round);
 
@@ -119,7 +125,7 @@ export default function WordleDuelPageClient() {
         return next;
       });
 
-      const history = await getWordleDuelHistory(duelId, playerToken);
+      const history = await loadWithRetry(() => getWordleDuelHistory(duelId, playerToken), signal);
       const gs: string[] = [];
       const evs: TileColor[][] = [];
       for (const g of history.guesses) {
@@ -147,7 +153,11 @@ export default function WordleDuelPageClient() {
       }
       setLetterStates(states);
     };
-    load().catch(() => setLoadError(true));
+    load().catch((error: unknown) => {
+      if (error instanceof LoadAbortedError) return;
+      setLoadError(isFinalLoadError(error) ? "failed" : "unreachable");
+    });
+    return () => controller.abort();
   }, [duelId, playerToken]);
 
   // Reset all local round state for a freshly advanced duel game (triggered by
@@ -360,6 +370,8 @@ export default function WordleDuelPageClient() {
   if (needsJoin) {
     return <JoinForm onJoin={handleJoin} loading={joinLoading} error={joinError} />;
   }
+
+  if (loadError === "unreachable") return <RoomUnreachable />;
 
   if (loadError) {
     return (

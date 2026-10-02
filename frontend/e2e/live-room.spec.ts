@@ -667,4 +667,39 @@ test.describe("Stream-Chat-Modus", () => {
     // The board stays, so the word can still be revealed there.
     await expect(page.getByPlaceholder("Wort eingeben...").first()).toBeVisible();
   });
+
+  test("ein Neuladen in einen startenden Server behält Runde und Platz des Streamers", async ({ page }) => {
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    const token = await page.evaluate((id) => localStorage.getItem(`kontexto_koop_${id}`), roomId);
+    expect(token).toBeTruthy();
+
+    // What a deploy looks like from the page: nginx is back, the API workers
+    // are not, so the room loads meet a 502 and then a dropped connection
+    // before the API answers. Each request fails twice, then passes.
+    const failures = new Map<string, number>();
+    await page.route(
+      (url) => url.pathname === `/api/koop/${roomId}` || url.pathname === `/api/koop/${roomId}/guesses` || url.pathname === "/api/koop/player-info",
+      async (route) => {
+        const path = new URL(route.request().url()).pathname;
+        const seen = failures.get(path) ?? 0;
+        failures.set(path, seen + 1);
+        if (seen === 0) await route.fulfill({ status: 502, body: "Bad Gateway" });
+        else if (seen === 1) await route.abort("connectionrefused");
+        else await route.continue();
+      }
+    );
+    await page.reload();
+
+    await expect(
+      page.getByText(channel, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Diese Runde gibt es nicht")).toHaveCount(0);
+    await expect(page.getByPlaceholder("Wort eingeben...").first()).toBeVisible();
+    expect(failures.get(`/api/koop/${roomId}`)).toBeGreaterThanOrEqual(3);
+    expect(await page.evaluate((id) => localStorage.getItem(`kontexto_koop_${id}`), roomId)).toBe(token);
+  });
 });
