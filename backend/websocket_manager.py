@@ -484,10 +484,18 @@ class KoopConnectionManager:
         Only a writer in this process can use this, which today means the chat
         ingest, and that runs in this very worker. The high-water mark is moved
         along with it so the poll does not send the same row a second time.
+
+        The id is remembered, not the high-water mark moved. Moving it was a
+        bug: a word written by an API worker (the host typing, an invited
+        guest) holds a lower id than a chat word pushed a moment later, and
+        the poll, asking only for ids above the mark, never sent it. On a busy
+        stream that was nearly every guest word.
         """
         state = self._known_state.get(koop_id)
-        if state is not None and guess["id"] > state["last_guess_id"]:
-            state["last_guess_id"] = guess["id"]
+        if state is not None:
+            if guess["id"] <= state["last_guess_id"]:
+                return  # the poll already sent this row
+            state["pushed"].add(guess["id"])
         await self.broadcast(
             koop_id,
             {
@@ -536,6 +544,8 @@ class KoopConnectionManager:
         players = {p["player_token"]: bool(p["connected"]) for p in await cursor.fetchall()}
         return {
             "last_guess_id": row["max_id"],
+            # Rows above the mark that push_guess has already sent.
+            "pushed": set(),
             "solved": bool(koop["solved"]) if koop else False,
             "gave_up": bool(koop["gave_up"]) if koop else False,
             "round": koop["round"] if koop else 1,
@@ -586,6 +596,7 @@ class KoopConnectionManager:
                 (koop_id,),
             )
             prev["last_guess_id"] = (await cursor.fetchone())["max_id"]
+            prev["pushed"] = {i for i in prev["pushed"] if i > prev["last_guess_id"]}
 
         # New shared guesses since the last poll → broadcast each (excluding the
         # author, who already has it from the REST response).
@@ -595,6 +606,10 @@ class KoopConnectionManager:
             (koop_id, prev["last_guess_id"]),
         )
         for g in await cursor.fetchall():
+            prev["last_guess_id"] = g["id"]
+            if g["id"] in prev["pushed"]:
+                prev["pushed"].discard(g["id"])
+                continue
             await self.broadcast(
                 koop_id,
                 {
@@ -610,7 +625,6 @@ class KoopConnectionManager:
                 },
                 exclude_token=g["player_token"],
             )
-            prev["last_guess_id"] = g["id"]
 
         # Team solved transition.
         if koop and bool(koop["solved"]) and not prev["solved"]:
