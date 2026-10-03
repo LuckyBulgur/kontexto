@@ -18,6 +18,7 @@ import {
   isSupportPinnedPage,
 } from "@/lib/support";
 import { closeSupport, openSupport, useSupportOpen } from "@/lib/support-dialog";
+import { useSupportBoardPinned } from "@/lib/support-anchor";
 
 /** Tailwind's `lg`. The button is pinned top right from here on a game page. */
 const PINNED_QUERY = "(min-width: 1024px)";
@@ -34,6 +35,10 @@ const PINNED_QUERY = "(min-width: 1024px)";
  * Inside the header row it was rejected as squeezed in, and pinned to the
  * viewport's top right corner as too far away to notice.
  *
+ * The live board (host and invited guest) gets the same place beside its menu
+ * button from `lg` (the player's decision). Its header column moves with the
+ * sidebar, so the offset follows `lib/board-layout.ts` band by band.
+ *
  * It stands on every page and in every mode, the live host page and the admin
  * dashboard included (the player's decision). It carries its word at every
  * width, because a cup alone is not recognisable as "support", and it never
@@ -47,9 +52,10 @@ export default function SupportHost() {
   const pathname = usePathname();
   const open = useSupportOpen();
   const pinnedPage = isSupportPinnedPage(pathname);
+  const liveBoard = useSupportBoardPinned() && !pinnedPage;
 
   const onTrigger = () => {
-    const pinned = pinnedPage && window.matchMedia(PINNED_QUERY).matches;
+    const pinned = (pinnedPage || liveBoard) && window.matchMedia(PINNED_QUERY).matches;
     openSupport(pinned ? "pinned" : "corner");
   };
 
@@ -68,6 +74,12 @@ export default function SupportHost() {
           // reads as part of that row. Absolute, not fixed, so it scrolls away
           // with the header it belongs to.
           pinnedPage && "lg:absolute lg:bottom-auto lg:right-auto lg:top-5 lg:h-10 lg:left-[calc(50%+16rem)]",
+          // The live board's header column (`BOARD_COLUMN`): from lg up to 70rem
+          // it is the left half of a centred pair, 32rem board plus 1.5rem gap
+          // plus 16rem sidebar, so its right edge is 50% + 7.25rem; from 70rem
+          // it is the solo column again. In both bands the button stands above
+          // the sidebar, which begins below the header row.
+          liveBoard && "lg:absolute lg:bottom-auto lg:right-auto lg:top-5 lg:h-10 lg:left-[calc(50%+7.25rem)] min-[70rem]:left-[calc(50%+16rem)]",
           // Wördle's keyboard is the bottom row of a phone screen. Measured: from
           // 740 pixels of height 52 pixels are free under it, so on a phone the
           // button is flatter and closer to the edge there and stays clear of

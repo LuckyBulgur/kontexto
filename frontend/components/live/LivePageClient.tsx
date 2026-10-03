@@ -6,6 +6,7 @@ import KoopPageClient from "@/components/koop/KoopPageClient";
 import KoopSkeleton from "@/components/koop/KoopSkeleton";
 import ChatIdentity from "@/components/live/ChatIdentity";
 import HostMessageBanner from "@/components/live/HostMessageBanner";
+import LatestActivity from "@/components/live/LatestActivity";
 import LiveCreateClient from "@/components/live/LiveCreateClient";
 import ChannelBusyNotice from "@/components/live/ChannelBusyNotice";
 import LiveStatus, { type AddRefusal } from "@/components/live/LiveStatus";
@@ -14,7 +15,12 @@ import RoomLanding from "@/components/RoomLanding";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { needsAckRetry } from "@/lib/host-messages";
 import { AUTO_NEXT_DELAY_MS, useAutoNextSetting } from "@/lib/live-auto-next";
-import { freshEvents, mergeFeed } from "@/lib/live-events";
+import {
+  freshEvents,
+  mergeFeed,
+  mergeLatestActivity,
+  type LatestActivity as LatestActivityState,
+} from "@/lib/live-events";
 import {
   addLiveChannel,
   fetchLivePlatforms,
@@ -145,6 +151,9 @@ export default function LivePageClient() {
   const eventCursor = useRef(0);
   const [feed, setFeed] = useState<LiveEvent[]>([]);
   const [celebrate, setCelebrate] = useState<LiveEvent[]>([]);
+  // The newest follow, donation and sub, above the guess input. Unlike the
+  // toasts, the first poll fills it: a reloaded tab shows where things stand.
+  const [latest, setLatest] = useState<LatestActivityState>({});
   const { enabled: autoNext } = useAutoNextSetting();
 
   useEffect(() => {
@@ -184,6 +193,7 @@ export default function LivePageClient() {
         if (incoming.length > 0) {
           eventCursor.current = incoming[incoming.length - 1].id;
           setFeed((current) => mergeFeed(current, incoming));
+          setLatest((current) => mergeLatestActivity(current, incoming));
           if (!first) setCelebrate(incoming);
         } else if (first) {
           // Nothing yet: from here on every event is new and celebrated.
@@ -470,6 +480,7 @@ export default function LivePageClient() {
         giveUpDescription="Bist du sicher? Das Lösungswort steht danach auf dem Brett, also auch im Stream. Danach kannst du eine nächste Runde starten."
         resultLabel="Stream-Chat"
         resultGroupNoun="aus dem Chat"
+        inputMeta={<LatestActivity latest={latest} catalog={catalog} />}
         resultRows={(room?.boards?.busy ?? room?.top ?? []).map((viewer) => ({
           name: viewer.nickname,
           detail: viewerSummary(viewer.hits, viewer.solves),

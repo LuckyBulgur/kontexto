@@ -283,6 +283,50 @@ test.describe("Stream-Chat-Modus", () => {
     expect(await noSideScroll()).toBe(true);
   });
 
+  test("der Unterstützen-Knopf steht ab lg neben dem Menü, über der Seitenleiste", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const channel = freshChannel();
+    const roomId = await openRoom(page, channel);
+    const chatCard = page.getByText(channel, { exact: true }).filter({ visible: true });
+    await expect(chatCard).toBeVisible({ timeout: 20_000 });
+    const fab = page.getByTestId("support-fab");
+    const menu = page.locator("header").first().getByRole("button", { name: /Menü/ });
+
+    // 1440: the solo column, 1100: the centred pair, 1024: the first pinned width.
+    for (const width of [1440, 1100, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(async () => {
+          const pinned = await fab.boundingBox();
+          const button = await menu.boundingBox();
+          if (!pinned || !button) return false;
+          const gap = pinned.x - (button.x + button.width);
+          const rowOffset = Math.abs(pinned.y + pinned.height / 2 - (button.y + button.height / 2));
+          return gap > 0 && gap < 32 && rowOffset <= 2;
+        })
+        .toBe(true);
+      const pinned = await fab.boundingBox();
+      const side = await chatCard.boundingBox();
+      if (!pinned || !side) throw new Error("no button or sidebar");
+      expect(pinned.x + pinned.width).toBeLessThanOrEqual(width);
+      expect(pinned.y + pinned.height).toBeLessThan(side.y);
+    }
+
+    const beacon = page.waitForRequest((r) => r.url().endsWith("/api/collect/support"));
+    await fab.click();
+    expect(JSON.parse((await beacon).postData() ?? "{}").source).toBe("pinned");
+    await page.keyboard.press("Escape");
+
+    // A viewer's landing has no header, so the button stays in its corner.
+    await page.evaluate((id) => localStorage.removeItem(`kontexto_koop_${id}`), roomId);
+    await page.goto(`/live/${roomId}/`);
+    await expect(page.getByText(/gehört zu einem Stream/)).toBeVisible({ timeout: 20_000 });
+    const corner = await fab.boundingBox();
+    if (!corner) throw new Error("no button");
+    expect(corner.x).toBeLessThan(60);
+    expect(corner.y + corner.height).toBeGreaterThan(900 - 60);
+  });
+
   test("bei reduzierter Bewegung kommt der Toast ohne Konfetti", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const channel = freshChannel();
@@ -775,5 +819,66 @@ test.describe("Stream-Chat-Modus", () => {
     await expect(late.getByText(/gilt nicht mehr/)).toBeVisible({ timeout: 20_000 });
 
     await Promise.all([guestContext.close(), viewerContext.close(), lateContext.close()]);
+  });
+
+  test("über dem Eingabefeld stehen der letzte Follow, die letzte Spende und das letzte Abo", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const handle = `la.${Date.now().toString().slice(-8)}`;
+    await page.goto("/live/");
+    const tiktok = page.getByRole("button", { name: "TikTok" });
+    await expect(tiktok).toBeEnabled({ timeout: 20_000 });
+    await tiktok.click();
+    await page.getByRole("button", { name: "Twitch" }).click();
+    await page.getByLabel("Dein TikTok-Name").fill(handle);
+    await page.getByRole("button", { name: "Runde starten" }).click();
+    await page.waitForURL(/\/live\/[^/]+\/$/, { timeout: 20_000 });
+    const roomId = new URL(page.url()).pathname.split("/").filter(Boolean)[1];
+    await expect(
+      page.getByText(`@${handle}`, { exact: true }).filter({ visible: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    const activity = page.getByRole("list", { name: "Letzte Aktivitäten" });
+    await expect(activity).toHaveCount(0);
+
+    const longName = "Max Mustermann Lang";
+    await sendPaidEvent(page, roomId, {
+      kind: "tiktok_follow", event_id: `la-f-${roomId}`, display_name: "Fanny",
+      external_id: "tt:la1", platform: "tiktok",
+    });
+    await sendPaidEvent(page, roomId, {
+      kind: "tiktok_gift", event_id: `la-g-${roomId}`, display_name: longName,
+      external_id: "tt:la2", platform: "tiktok", amount: 1, gift_name: "Rose", gift_count: 1,
+    });
+    await sendPaidEvent(page, roomId, {
+      kind: "tiktok_sub", event_id: `la-s1-${roomId}`, display_name: "Erster",
+      external_id: "tt:la3", platform: "tiktok", amount: 1,
+    });
+
+    await expect(activity.locator('[data-activity="follow"]')).toContainText("Fanny", { timeout: 20_000 });
+    await expect(activity.locator('[data-activity="donation"]')).toContainText(longName);
+    await expect(activity.locator('[data-activity="sub"]')).toContainText("Erster");
+
+    // A newer sub takes the slot.
+    await sendPaidEvent(page, roomId, {
+      kind: "tiktok_sub", event_id: `la-s2-${roomId}`, display_name: "Zweiter",
+      external_id: "tt:la4", platform: "tiktok", amount: 1,
+    });
+    await expect(activity.locator('[data-activity="sub"]')).toContainText("Zweiter", { timeout: 20_000 });
+    await expect(activity).not.toContainText("Erster");
+
+    // On a phone the row stays inside the board: no sideways scroll, the long
+    // name is cut with an ellipsis, and the list ends at the board's right edge.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    const name = activity.locator('[data-activity="donation"]').getByText(longName, { exact: true });
+    expect(await name.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    const listBox = await activity.boundingBox();
+    const inputBox = await page.getByPlaceholder("Wort eingeben...").first().boundingBox();
+    if (!listBox || !inputBox) throw new Error("no layout");
+    expect(Math.abs(listBox.x + listBox.width - (inputBox.x + inputBox.width))).toBeLessThanOrEqual(2);
   });
 });

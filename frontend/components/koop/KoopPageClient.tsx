@@ -39,6 +39,7 @@ import RoomCategoryLabel from "@/components/categories/RoomCategoryLabel";
 import RoomLanding from "@/components/RoomLanding";
 import { BOARD_COLUMN, BOARD_GRID, SIDEBAR_COLUMN } from "@/lib/board-layout";
 import { cn } from "@/lib/utils";
+import { SupportBoardPin } from "@/lib/support-anchor";
 import { knocksForArrival, playKnock } from "@/lib/knock-sound";
 import { useAutoNextRound } from "@/lib/use-auto-next-round";
 import RoomUnreachable from "@/components/rooms/RoomUnreachable";
@@ -135,6 +136,11 @@ export interface KoopPageClientProps {
   /** A live guest: guesses only. No tip, no give-up, no next round; the server
    *  refuses all three for a guest anyway. */
   guestOnly?: boolean;
+  /** Extra content at the right end of the row above the guess input. The live
+   *  host page puts the newest follow, donation and sub there, where the
+   *  streamer looks while reading the chat. It shrinks, it never pushes the
+   *  attempt count off the row. */
+  inputMeta?: ReactNode;
 }
 
 const defaultTokenKey = (koopId: string) => `kontexto_koop_${koopId}`;
@@ -163,6 +169,7 @@ export default function KoopPageClient({
   onJoined,
   joinCopy,
   guestOnly = false,
+  inputMeta,
   notFoundMessage = "Koop nicht gefunden",
   tipsDisabledMessage = "Tipps sind in diesem Koop deaktiviert",
   giveUpDescription = "Bist du sicher? Das Lösungswort wird dem ganzen Team angezeigt. Danach könnt ihr ein nächstes Spiel starten.",
@@ -738,6 +745,7 @@ export default function KoopPageClient({
     <div className={cn("mx-auto min-h-screen flex flex-col", centerBoard ? "w-full" : "max-w-4xl")}>
       <div className={centerBoard ? cn("md:px-4", BOARD_GRID) : undefined}>
       <div className={centerBoard ? BOARD_COLUMN : undefined}>
+      {centerBoard && <SupportBoardPin />}
       <Header
         onTip={handleTip}
         onGiveUp={() => setShowGiveUp(true)}
@@ -811,12 +819,17 @@ export default function KoopPageClient({
           ) : (
             <>
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 -mt-2 -mb-2 text-micro font-medium text-muted-foreground">
-                <span>{label}</span>
-                <RoomCategoryLabel room={koopState} />
-                <span>
-                  Versuche:{" "}
-                  <span className="text-lead font-bold">{guesses.length}</span>
-                </span>
+                <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span>{label}</span>
+                  <RoomCategoryLabel room={koopState} />
+                  <span>
+                    Versuche:{" "}
+                    <span className="text-lead font-bold">{guesses.length}</span>
+                  </span>
+                </div>
+                {/* A full line of its own on a phone, the rest of the row from
+                    sm on; either way flush right, shrinking rather than wrapping. */}
+                {inputMeta && <div className="min-w-0 flex-1 basis-full sm:basis-0">{inputMeta}</div>}
               </div>
               <GuessInput onGuess={handleGuess} disabled={roundOver} error={error} />
             </>

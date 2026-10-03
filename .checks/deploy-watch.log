@@ -1,0 +1,1254 @@
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push less than a minute ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+* image (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  * Set up Buildx
+  * Log in to ghcr.io
+  * Build and push
+  * Remove untagged image versions
+  * Post Set up Buildx
+  * Post Checkout
+* test (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  * Install the small spaCy model
+  * Run tests
+  * Post Set up uv
+  * Post Set up Python
+  * Post Checkout
+* frontend (5) (ID 111281087684)
+* frontend (1) (ID 111281087719)
+* frontend (2) (ID 111281087726)
+* frontend (6) (ID 111281087750)
+* frontend (3) (ID 111281087767)
+* frontend (4) (ID 111281087796)
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push less than a minute ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+* image (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  * Build and push
+  * Remove untagged image versions
+  * Post Build and push
+  * Post Log in to ghcr.io
+  * Post Set up Buildx
+  * Post Checkout
+* test (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  * Run tests
+  * Post Set up uv
+  * Post Set up Python
+  * Post Checkout
+* frontend (5) (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (1) (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (2) (ID 111281087726)
+  ✓ Set up job
+  * Initialize containers
+  * Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Stop containers
+* frontend (6) (ID 111281087750)
+  ✓ Set up job
+  * Initialize containers
+  * Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Stop containers
+* frontend (3) (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (4) (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  * Install pnpm
+  * Set up Node
+  * Set up uv and Python
+  * Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push about 1 minute ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+* image (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  * Post Set up Buildx
+  * Post Checkout
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+* frontend (5) (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (1) (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (2) (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  * Install frontend dependencies
+  * Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (6) (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (3) (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  * Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (4) (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  * Build static export
+  * SEO checks
+  * Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push about 1 minute ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+✓ image in 1m21s (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  ✓ Post Set up Buildx
+  ✓ Post Checkout
+  ✓ Complete job
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+* frontend (5) (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (1) (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  ✓ Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  ✓ SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (2) (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (6) (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (3) (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (4) (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+✓ image in 1m21s (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  ✓ Post Set up Buildx
+  ✓ Post Checkout
+  ✓ Complete job
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+✓ frontend (5) in 2m2s (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+* frontend (1) (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  ✓ Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  ✓ SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+* frontend (2) (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+✓ frontend (6) in 1m52s (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+* frontend (3) (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  * E2E tests (Playwright)
+  * Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+✓ frontend (4) in 1m53s (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+✓ image in 1m21s (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  ✓ Post Set up Buildx
+  ✓ Post Checkout
+  ✓ Complete job
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+✓ frontend (5) in 2m2s (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (1) in 2m27s (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  ✓ Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  ✓ SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+* frontend (2) (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  * Stop containers
+✓ frontend (6) in 1m52s (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+* frontend (3) (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  * Post Restore the Next build cache
+  * Post Set up uv and Python
+  * Post Set up Node
+  * Post Install pnpm
+  * Post Checkout
+  * Stop containers
+✓ frontend (4) in 1m53s (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* master CI/CD · 37149808053
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+✓ image in 1m21s (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  ✓ Post Set up Buildx
+  ✓ Post Checkout
+  ✓ Complete job
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+✓ frontend (5) in 2m2s (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (1) in 2m27s (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  ✓ Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  ✓ SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (2) in 2m43s (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (6) in 1m52s (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (3) in 2m50s (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (4) in 1m53s (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+* deploy (ID 111281640052)
+  ✓ Set up job
+  * Deploy via SSH
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+✓ master CI/CD · 37149808053
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ playwright-version in 6s (ID 111281058909)
+  ✓ Set up job
+  ✓ Checkout the lockfile
+  ✓ Read the Playwright version
+  ✓ Post Checkout the lockfile
+  ✓ Complete job
+✓ image in 1m21s (ID 111281059057)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Buildx
+  ✓ Log in to ghcr.io
+  ✓ Build and push
+  ✓ Remove untagged image versions
+  ✓ Post Build and push
+  ✓ Post Log in to ghcr.io
+  ✓ Post Set up Buildx
+  ✓ Post Checkout
+  ✓ Complete job
+✓ test in 1m0s (ID 111281059242)
+  ✓ Set up job
+  ✓ Checkout
+  ✓ Set up Python
+  ✓ Set up uv
+  ✓ Install dependencies
+  ✓ Install the small spaCy model
+  ✓ Run tests
+  ✓ Post Set up uv
+  ✓ Post Set up Python
+  ✓ Post Checkout
+  ✓ Complete job
+✓ frontend (5) in 2m2s (ID 111281087684)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (1) in 2m27s (ID 111281087719)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  ✓ Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  ✓ SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (2) in 2m43s (ID 111281087726)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (6) in 1m52s (ID 111281087750)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (3) in 2m50s (ID 111281087767)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ frontend (4) in 1m53s (ID 111281087796)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install pnpm
+  ✓ Set up Node
+  ✓ Set up uv and Python
+  ✓ Install backend dependencies
+  ✓ Install frontend dependencies
+  - Unit tests (vitest)
+  ✓ Restore the Next build cache
+  ✓ Build static export
+  - SEO checks
+  ✓ Generate E2E mock data
+  ✓ E2E tests (Playwright)
+  - Upload Playwright report
+  ✓ Post Restore the Next build cache
+  ✓ Post Set up uv and Python
+  ✓ Post Set up Node
+  ✓ Post Install pnpm
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+✓ deploy in 25s (ID 111281640052)
+  ✓ Set up job
+  ✓ Deploy via SSH
+  ✓ Complete job
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+playwright-version: .github#1
+
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+deploy: .github#1
+

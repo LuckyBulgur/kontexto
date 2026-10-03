@@ -10,6 +10,8 @@ import {
   MAX_WAITING_TOASTS,
   TOAST_MS,
   admitToast,
+  activityKindOf,
+  mergeLatestActivity,
   bitsColor,
   celebrationOf,
   celebrationStyle,
@@ -28,7 +30,7 @@ import {
   type Celebration,
   type ToastLevel,
 } from "./live-events";
-import type { LiveEvent } from "./live-types";
+import type { LiveEvent, LiveEventKind } from "./live-types";
 
 function event(fields: Partial<LiveEvent>): LiveEvent {
   return {
@@ -256,5 +258,41 @@ describe("the feed", () => {
     const capped = mergeFeed([], many);
     expect(capped).toHaveLength(FEED_LENGTH);
     expect(capped[0].id).toBe(FEED_LENGTH + 5);
+  });
+});
+
+describe("latest activity", () => {
+  it.each<[LiveEventKind, string]>([
+    ["tiktok_follow", "follow"],
+    ["cheer", "donation"],
+    ["tiktok_gift", "donation"],
+    ["tiktok_chest", "donation"],
+    ["sub", "sub"],
+    ["resub", "sub"],
+    ["gift_sub", "sub"],
+    ["gift_bomb", "sub"],
+    ["upgrade", "sub"],
+    ["tiktok_sub", "sub"],
+  ])("files %s under %s", (kind, slot) => {
+    expect(activityKindOf(kind)).toBe(slot);
+  });
+
+  it("keeps the newest event per slot", () => {
+    const latest = mergeLatestActivity({}, [
+      event({ id: 1, kind: "cheer", actor: "Alt" }),
+      event({ id: 2, kind: "sub", actor: "Abo" }),
+      event({ id: 3, kind: "tiktok_gift", platform: "tiktok", actor: "Neu" }),
+    ]);
+    expect(latest.donation?.actor).toBe("Neu");
+    expect(latest.sub?.actor).toBe("Abo");
+    expect(latest.follow).toBeUndefined();
+  });
+
+  it("ignores an older event and is idempotent", () => {
+    const newer = event({ id: 9, kind: "sub", actor: "Neu" });
+    const latest = mergeLatestActivity({}, [newer]);
+    expect(mergeLatestActivity(latest, [event({ id: 4, kind: "resub", actor: "Alt" })])).toBe(latest);
+    expect(mergeLatestActivity(latest, [newer])).toBe(latest);
+    expect(mergeLatestActivity(latest, [])).toBe(latest);
   });
 });

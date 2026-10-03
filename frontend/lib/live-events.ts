@@ -364,6 +364,64 @@ export function freshEvents(events: readonly LiveEvent[], newestSeen: number): L
   return events.filter((event) => event.id > newestSeen).sort((a, b) => a.id - b.id);
 }
 
+// ---------------------------------------------------------------------------
+// Latest activity: the newest event per category, above the guess input
+// ---------------------------------------------------------------------------
+
+/** The three slots the host page shows above the guess input. */
+export type ActivityKind = "follow" | "donation" | "sub";
+
+/** The order the slots stand in, left to right. */
+export const ACTIVITY_ORDER: readonly ActivityKind[] = ["follow", "donation", "sub"];
+
+export const ACTIVITY_LABELS: Record<ActivityKind, string> = {
+  follow: "Follow",
+  donation: "Spende",
+  sub: "Sub",
+};
+
+/** Which slot an event fills. */
+export function activityKindOf(kind: LiveEventKind): ActivityKind {
+  switch (kind) {
+    case "tiktok_follow":
+      return "follow";
+    case "cheer":
+    case "tiktok_gift":
+    case "tiktok_chest":
+      return "donation";
+    case "sub":
+    case "resub":
+    case "gift_sub":
+    case "gift_bomb":
+    case "upgrade":
+    case "tiktok_sub":
+      return "sub";
+  }
+}
+
+/** The newest event per slot; a slot without any event is absent. */
+export type LatestActivity = Partial<Record<ActivityKind, LiveEvent>>;
+
+/**
+ * The slots after a poll: each keeps the event with the highest id, so an
+ * older event arriving late, or the same poll merged twice, changes nothing.
+ * Returns `current` itself when nothing changed, so a poll without news does
+ * not re-render the row.
+ */
+export function mergeLatestActivity(
+  current: LatestActivity,
+  incoming: readonly LiveEvent[]
+): LatestActivity {
+  let next: LatestActivity | null = null;
+  for (const event of incoming) {
+    const slot = activityKindOf(event.kind);
+    const held = (next ?? current)[slot];
+    if (held && held.id >= event.id) continue;
+    next = { ...(next ?? current), [slot]: event };
+  }
+  return next ?? current;
+}
+
 /** The feed keeps this many rows, newest first. */
 export const FEED_LENGTH = 20;
 

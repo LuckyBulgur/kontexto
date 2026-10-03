@@ -1,0 +1,20 @@
+$ next dev
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.178.148:3001
+- Environments: .env.development
+✓ Ready in 314ms
+⚠ Specified "rewrites" will not automatically work with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+✓ Running next.config.ts took 29ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          53244
+- Dir:          C:\Users\ugura\develop\kontexto\frontend
+- Log:          .next\dev\logs\next-development.log
+
+You can access the existing server at http://localhost:3000,
+or run taskkill /PID 53244 /F to stop it and start a new one.
+[?25h
+[ELIFECYCLE] Command failed with exit code 1.

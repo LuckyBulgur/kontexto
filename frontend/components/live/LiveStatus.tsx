@@ -58,7 +58,9 @@ interface LiveStatusProps {
 
 /**
  * The sidebar of a stream-chat room: which chats are read, what they have to
- * do, who is carrying the evening, and who supported the stream.
+ * do, who is carrying the evening, and who supported the stream. The
+ * leaderboards come right after the chat card, before the rarely touched
+ * settings, so they stay in view beside the board.
  *
  * It stands where the koop board shows its player list, because a live room has
  * exactly one player row, the host. The people playing are in the chats, and
@@ -109,6 +111,10 @@ export default function LiveStatus({
         {!locked && <p className="text-micro text-muted-foreground/80">{STOP_HINT_AHEAD}</p>}
       </Panel>
 
+      {/* Second, right beside the board: the boards are what the streamer reads
+          out while the round runs, the settings below are touched rarely. */}
+      <Leaderboards boards={boards} catalog={catalog} />
+
       {!locked &&
         addable.map((platform) => (
           <AddChannelPanel key={platform} platform={platform} onAdd={onAdd} />
@@ -121,8 +127,6 @@ export default function LiveStatus({
       )}
 
       {!locked && guests !== null && <GuestLinkPanel guests={guests} onRenew={onRenewInvite} />}
-
-      <Leaderboards boards={boards} catalog={catalog} />
 
       <SupportFeed feed={feed} catalog={catalog} />
     </div>

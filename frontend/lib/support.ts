@@ -4,8 +4,8 @@
  * Three ways in, none of them a prompt (the player's decision: easy to find,
  * never asked for):
  * - a button that is always there: bottom left on phones and on most pages,
- *   pinned top right next to the board on the single-column game pages from `lg`
- *   (`components/SupportHost.tsx`);
+ *   pinned top right next to the board on the single-column game pages and the
+ *   live board from `lg` (`components/SupportHost.tsx`);
  * - one quiet line on the result card after a solved round, the moment the
  *   evidence names as the right one to mention it (`components/SupportPrompt.tsx`);
  * - the footer link.
