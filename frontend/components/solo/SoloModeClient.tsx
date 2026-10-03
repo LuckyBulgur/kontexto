@@ -9,13 +9,11 @@ import GameSkeleton from "@/components/GameSkeleton";
 import SettingsModal from "@/components/SettingsModal";
 import HowToPlayDialog from "@/components/HowToPlayDialog";
 import GiveUpDialog from "@/components/GiveUpDialog";
-import { AdUnit } from "@/components/AdUnit";
 import CategorySetupPanel from "@/components/solo/CategorySetupPanel";
 import DualGuessBar from "@/components/solo/DualGuessBar";
 import SoloResultCard from "@/components/solo/SoloResultCard";
 import SoloRulesCard from "@/components/solo/SoloRulesCard";
 import SoloStatus from "@/components/solo/SoloStatus";
-import { AD_SLOTS } from "@/lib/adsense";
 import { fireConfetti } from "@/lib/confetti";
 import { onEventGiveUp, onEventGuess } from "@/lib/events/hooks";
 import { UnknownWordError } from "@/lib/guess-error";
@@ -564,7 +562,6 @@ export default function SoloModeClient({ mode }: SoloModeClientProps) {
                 {error}
               </p>
             )}
-            <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
           </>
         ) : (
           <>

@@ -5,14 +5,9 @@ import { test, expect } from "./fixtures";
 // Tageslösung ist damit deterministisch.
 test.describe("Wördle Einzelspieler", () => {
   test("löst das Tagesrätsel mit der bekannten Lösung", async ({ page }) => {
-    // Die Antwort wird VOR der Navigation scharfgestellt. page.goto wartet auf
-    // das load-Ereignis, und dazu zaehlt der AdSense-Loader: Er steht seit
-    // August 2026 als echtes <script async> im <head>, weil Googles Anleitung
-    // den Anzeigencode dort verlangt und er vorher (next/script mit
-    // afterInteractive) ueberhaupt nicht im ausgelieferten HTML stand. Sein
-    // externer Abruf verzoegert load so weit, dass die Spielabfrage laengst
-    // durch ist, bevor goto zurueckkehrt. Ein waitForResponse danach wartet auf
-    // ein Ereignis der Vergangenheit und laeuft in den Timeout.
+    // Arm the wait before navigating: page.goto returns on the load event, and
+    // the game request can finish before that. A waitForResponse registered
+    // afterwards would wait for an event in the past and time out.
     const gameLoaded = page.waitForResponse(
       (r) => r.url().includes("/api/wordle/game") && r.ok(),
     );

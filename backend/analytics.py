@@ -153,6 +153,11 @@ HEARTBEAT_SECONDS = 20
 START_METRIC = "starts"                   # a game was actually begun
 SHARE_METRIC = "shares"                   # the share button was pressed
 SHARE_ARRIVAL_METRIC = "share_arrivals"   # somebody came in through a shared link
+SUPPORT_METRIC = "support_opens"         # the Ko-fi panel was opened, per entry point
+
+# Where the Ko-fi panel can be opened from. Measured because no study answers
+# where a support button belongs on a game page; the dimension is the answer.
+SUPPORT_SOURCES = frozenset({"corner", "pinned", "result_kontexto", "result_wordle", "footer"})
 ATTENTION_METRIC = "attention"            # heartbeats on a visible tab, per page
 
 # Every game mode that may appear as a counter dimension. Kept in one place so a
@@ -1088,6 +1093,40 @@ async def record_share_click(
     return (True, "ok") if accepted else (False, "write_failed")
 
 
+async def record_support_open(
+    db: aiosqlite.Connection,
+    *,
+    ip: str,
+    user_agent: str,
+    token: str,
+    source: str,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    """Count one opening of the Ko-fi panel, by the place it was opened from.
+
+    Token-gated and bot-filtered like the share click, and like it an intention,
+    not a payment: whether anybody pays happens on ko-fi.com and is never seen
+    here. No ledger and no fingerprint is stored, only the daily sum per source.
+    """
+    now = now or datetime.now(timezone.utc)
+    fp_hash = compute_fingerprint(ip, user_agent, now)
+
+    if not verify_beacon_token(token, fp_hash, now):
+        return False, "invalid_token"
+    if classify_user_agent(user_agent)[0] == "bot":
+        return False, "bot"
+    if source not in SUPPORT_SOURCES:
+        return False, "bad_payload"
+
+    date_str = local_date(now)
+
+    async def _write(conn: aiosqlite.Connection) -> None:
+        await _bump(conn, "analytics_counters", date_str, SUPPORT_METRIC, source, 1)
+
+    accepted = await _commit_with_retry(db, _write, description="record_support_open")
+    return (True, "ok") if accepted else (False, "write_failed")
+
+
 # --- Attribution survey ------------------------------------------------------
 
 def sanitize_survey_detail(detail: str | None) -> str | None:
@@ -1837,6 +1876,15 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
 
     cur = await db.execute(
         "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
+        (SUPPORT_METRIC,))
+    support_by_source = {dim: total for dim, total in await cur.fetchall()}
+    support = {
+        "opens_by_source": support_by_source,
+        "opens_total": sum(support_by_source.values()),
+    }
+
+    cur = await db.execute(
+        "SELECT dimension, SUM(value) FROM analytics_counters WHERE metric = ? GROUP BY dimension",
         (ATTENTION_METRIC,))
     attention_by_page = {
         dim: total * HEARTBEAT_SECONDS for dim, total in await cur.fetchall()
@@ -2184,6 +2232,7 @@ async def get_stats(db: aiosqlite.Connection, now: datetime | None = None,
         "word_ratings": ratings,
         "funnel": funnel,
         "sharing": sharing,
+        "support": support,
         "attention": attention,
         "bots_filtered": bots_filtered,
         "note": (

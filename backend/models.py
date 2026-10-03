@@ -821,3 +821,21 @@ class MatchmakingLiveResponse(BaseModel):
     modes: dict[str, ModeLoad]
     waiting_total: int
     playing_total: int
+
+
+class SupportersResponse(BaseModel):
+    """Public Ko-fi supporters of the last 30 days, newest first, names only."""
+
+    names: list[str]
+
+
+class KofiWebhookResponse(BaseModel):
+    ok: bool
+
+
+class SupporterReviewRequest(BaseModel):
+    """The operator's decision on one supporter name."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approve: bool

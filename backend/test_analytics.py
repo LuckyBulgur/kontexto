@@ -1532,6 +1532,50 @@ class TestGrowthFunnel:
         assert bad_mode == (False, "bad_payload")
         assert rows == [("kontexto", 1)]
 
+    def test_support_open_counted_per_source(self, db_path):
+        token = self._token()
+
+        async def go():
+            db = await get_db(db_path)
+            try:
+                corner = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    source="corner", now=JAN)
+                result = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    source="result_kontexto", now=JAN)
+                again = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    source="corner", now=JAN)
+                bad_token = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent=self.UA, token="garbage",
+                    source="corner", now=JAN)
+                bad_source = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent=self.UA, token=token,
+                    source="popup", now=JAN)
+                bot = await analytics.record_support_open(
+                    db, ip="1.2.3.4", user_agent="Googlebot/2.1", token=token,
+                    source="corner", now=JAN)
+                cur = await db.execute(
+                    "SELECT dimension, value FROM analytics_counters WHERE metric = ? "
+                    "ORDER BY dimension",
+                    (analytics.SUPPORT_METRIC,))
+                rows = [tuple(r) for r in await cur.fetchall()]
+                stats = await analytics.get_stats(db, now=JAN)
+                return corner, result, again, bad_token, bad_source, bot, rows, stats["support"]
+            finally:
+                await db.close()
+        corner, result, again, bad_token, bad_source, bot, rows, support = run(go())
+        assert corner == result == again == (True, "ok")
+        assert bad_token == (False, "invalid_token")
+        assert bad_source == (False, "bad_payload")
+        assert bot[0] is False
+        assert rows == [("corner", 2), ("result_kontexto", 1)]
+        assert support == {
+            "opens_by_source": {"corner": 2, "result_kontexto": 1},
+            "opens_total": 3,
+        }
+
     def test_share_arrival_counted_per_page(self, db_path):
         async def pv(db, ip, share):
             fp = analytics.compute_fingerprint(ip, self.UA, JAN)

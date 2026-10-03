@@ -1,21 +1,15 @@
 import { test as base, expect, type BrowserContext } from "@playwright/test";
 
 /**
- * Gemeinsame Test-Basis: Drittanbieter-Requests werden abgewiesen.
+ * Shared test base: every third-party request is aborted.
  *
- * Warum das noetig ist: Der AdSense-Loader steht seit August 2026 als echtes
- * <script async> im <head> (Googles Anleitung verlangt den Anzeigencode dort,
- * und vorher stand er ueberhaupt nicht im ausgelieferten HTML). Ein externes
- * Script in der initialen Antwort zaehlt zum load-Ereignis, und page.goto
- * wartet darauf. Damit haengt ohne diese Sperre jeder einzelne Test an der
- * Erreichbarkeit von pagead2.googlesyndication.com: Ist Google langsam, laeuft
- * die Navigation in ihren 30-Sekunden-Timeout, voellig unabhaengig von der
- * getesteten Aenderung. Genau diese Klasse Fehlschlag hat schon einen CI-Lauf
- * gekostet.
- *
- * Die Sperre ist bewusst breit: alles, was nicht an den lokalen E2E-Proxy geht,
- * wird abgebrochen. Die Anwendung selbst laedt nichts von aussen (Schriften
- * liegen im Export), ein Treffer ist also immer ein Drittanbieter.
+ * The app loads nothing from outside on its own (fonts ship in the export), so
+ * a request that does not go to the local e2e proxy is always a third party:
+ * the Ko-fi frame behind the support button, a Twitch badge, a link a test
+ * follows by accident. Letting one through ties a spec to that service's
+ * uptime, and an external resource in the initial response delays the load
+ * event that page.goto waits for. That class of failure has cost a CI run
+ * before, back when the AdSense loader sat in <head>.
  */
 const THIRD_PARTY = /^https?:\/\/(?!127\.0\.0\.1|localhost)/;
 

@@ -10,9 +10,8 @@ export interface Faq {
  * Die Startseite verwendet bewusst NICHT diese Liste, sondern `homeFaqs`
  * (sechs Kernfragen in eigenstaendig formulierten Kurzfassungen). Vorher
  * rendered beide Seiten dieselbe Liste, wodurch /faq/ zu 92 Prozent aus
- * Startseitentext bestand. Doppelter Inhalt auf zwei indexierten URLs ist der
- * am haeufigsten genannte Grund fuer die AdSense-Ablehnung "minderwertige
- * Inhalte", und Google waehlt in so einem Fall selbst eine kanonische Seite.
+ * Startseitentext bestand. Bei doppeltem Inhalt auf zwei indexierten URLs
+ * waehlt Google selbst eine kanonische Seite und wertet die andere ab.
  * Beide Listen muessen deshalb verschieden formuliert bleiben: gleiche Fragen,
  * andere Antworten. Der Test in faqs.test.ts haelt das fest.
  */
@@ -59,7 +58,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Für die Finanzierung ist Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Nach einer Freischaltung sollen Anzeigen ausschließlich auf den beiden Einzelspieler-Seiten laufen. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Tracking- und Werbe-Cookies werden erst gesetzt, wenn du eingewilligt hast, und die Einwilligung lässt sich über den Link in der Fußzeile jederzeit ändern oder widerrufen. Ohne Einwilligung läuft das Spiel unverändert weiter.`,
+    a: `Das Spiel ist vollständig kostenlos, es gibt keine Bezahlschranke, keinen Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Werbung gibt es keine: Kein Werbenetzwerk lädt auf diesen Seiten, und es entstehen keine Werbe- oder Trackingcookies. Wer das Projekt unterstützen möchte, kann das freiwillig über Ko-fi tun, über den Knopf „Unterstützen“. Eine Unterstützung schaltet nichts frei und ändert nichts am Spiel, und aufgedrängt wird sie nie: Es öffnet sich nichts von selbst.`,
   },
   {
     q: `Was ist der Unterschied zwischen Kontexto und Wordle?`,
@@ -107,7 +106,7 @@ export const faqs: Faq[] = [
   },
   {
     q: `Werden meine eingegebenen Wörter gespeichert?`,
-    a: `Deine Rateliste liegt lokal in deinem Browser. An den Server geht nur das einzelne Wort, um seinen Rang nachzuschlagen, und dieser Aufruf wird nicht personenbezogen gespeichert. Für die Reichweitenmessung werden ausschließlich anonymisierte Summen geführt, etwa wie viele Rateversuche insgesamt stattgefunden haben. Eine wiedererkennbare Kennung entsteht dabei nicht: Die Besucherschätzung läuft über einen nicht umkehrbaren Fingerabdruck in einer HyperLogLog-Struktur, Rohereignisse werden nach 35 Tagen gelöscht. Cookies für Werbung und Statistik werden erst nach deiner Einwilligung gesetzt.`,
+    a: `Deine Rateliste liegt lokal in deinem Browser. An den Server geht nur das einzelne Wort, um seinen Rang nachzuschlagen, und dieser Aufruf wird nicht personenbezogen gespeichert. Für die Reichweitenmessung werden ausschließlich anonymisierte Summen geführt, etwa wie viele Rateversuche insgesamt stattgefunden haben. Eine wiedererkennbare Kennung entsteht dabei nicht: Die Besucherschätzung läuft über einen nicht umkehrbaren Fingerabdruck in einer HyperLogLog-Struktur, Rohereignisse werden nach 35 Tagen gelöscht. Cookies setzt Kontexto weder für Werbung noch für Statistik.`,
   },
 ];
 
@@ -143,7 +142,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: `Ist Kontexto kostenlos? Gibt es Werbung?`,
-    a: `Das Spiel kostet nichts. Bezahlt wird der Betrieb über Werbebanner neben dem Spiel, die erst nach deiner Zustimmung laden. Die Zustimmung kannst du jederzeit zurücknehmen, und ohne sie spielst du einfach ohne Werbung.`,
+    a: `Das Spiel kostet nichts, und Werbung gibt es keine. Wer mag, unterstützt das Projekt freiwillig über Ko-fi, mit dem Knopf „Unterstützen“. Dafür bekommt man nichts extra, und es öffnet sich nie etwas von selbst.`,
   },
 ];
 

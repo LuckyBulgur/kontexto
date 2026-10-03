@@ -17,8 +17,8 @@ export default function robots(): MetadataRoute.Robots {
           // Seitentext, aber weder Titel noch Canonical. Wer eine davon
           // crawlt, indexiert ein titelloses Duplikat der Seite. Verlinkt sind
           // sie nirgends, gesperrt gehoeren sie trotzdem: Duplikate zaehlen in
-          // der Suche wie im AdSense-Review gegen die Site. ads.txt, llms.txt
-          // und robots.txt treffen die Muster nicht.
+          // der Suche gegen die Site. llms.txt und robots.txt treffen die
+          // Muster nicht.
           // Kein $-Anker: Der Client-Router haengt ?_rsc=... an, und Googles
           // robots-Syntax laesst $ nur am tatsaechlichen URL-Ende gelten.
           "/*index.txt",

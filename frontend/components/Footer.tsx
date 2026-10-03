@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import ConsentSettingsLink from "@/components/ConsentSettingsLink";
 import { AUTHOR_PROFILES } from "@/lib/author";
 import { SITE_PROFILES } from "@/lib/social";
+import SupportFooterLink from "@/components/SupportFooterLink";
 import { Wordmark } from "@/components/design";
 
 const socials = [...SITE_PROFILES, ...AUTHOR_PROFILES];
+
+type FooterLink = { href: string; label: string };
 
 const playLinks = [
   { href: "/", label: "Kontexto" },
@@ -30,7 +32,7 @@ const readingLinks = [
   { href: "/changelog/", label: "Änderungen" },
 ];
 
-const projectLinks = [
+const projectLinks: FooterLink[] = [
   { href: "/ueber/", label: "Über" },
   { href: "/redaktion/", label: "Redaktion" },
   { href: "/mitmachen/", label: "Clip einreichen" },
@@ -51,11 +53,11 @@ const legalLinks = [
 function FooterGroup({
   title,
   links,
-  showConsentSettings = false,
+  withSupport = false,
 }: {
   title: string;
-  links: { href: string; label: string }[];
-  showConsentSettings?: boolean;
+  links: FooterLink[];
+  withSupport?: boolean;
 }) {
   return (
     <div>
@@ -68,9 +70,9 @@ function FooterGroup({
             </Link>
           </li>
         ))}
-        {showConsentSettings && (
+        {withSupport && (
           <li>
-            <ConsentSettingsLink className="cursor-pointer transition-colors hover:text-foreground" />
+            <SupportFooterLink className="transition-colors hover:text-foreground" />
           </li>
         )}
       </ul>
@@ -81,7 +83,9 @@ function FooterGroup({
 export default function Footer() {
   return (
     <footer className="border-t border-border text-muted-foreground">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      {/* pb-24 below lg: the support and feedback buttons float in the two bottom
+          corners, and the last row of the footer has to scroll out from under them. */}
+      <div className="mx-auto max-w-6xl px-4 pt-8 pb-24 sm:px-6 sm:pt-10 lg:pb-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.25fr_repeat(3,1fr)] lg:gap-10">
           <div className="col-span-2 lg:col-span-1">
             <Wordmark size="md" />
@@ -92,8 +96,8 @@ export default function Footer() {
           <FooterGroup title="Spielen" links={playLinks} />
           <FooterGroup title="Lesen" links={readingLinks} />
           <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-8 lg:col-span-1 lg:grid-cols-1 lg:gap-8">
-            <FooterGroup title="Projekt" links={projectLinks} />
-            <FooterGroup title="Rechtliches" links={legalLinks} showConsentSettings />
+            <FooterGroup title="Projekt" links={projectLinks} withSupport />
+            <FooterGroup title="Rechtliches" links={legalLinks} />
           </div>
         </div>
 

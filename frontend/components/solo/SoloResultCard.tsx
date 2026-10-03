@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import ModesDialogButton from "@/components/ModesDialogButton";
 import { Panel, ResultHero } from "@/components/design";
+import SupportPrompt from "@/components/SupportPrompt";
 import {
   SoloModeMeta,
   SoloState,
@@ -72,6 +73,8 @@ export default function SoloResultCard({
         )}
         <ModesDialogButton className="flex-1">Andere Modi</ModesDialogButton>
       </div>
+
+      {won && <SupportPrompt source="result_kontexto" />}
     </Panel>
   );
 }

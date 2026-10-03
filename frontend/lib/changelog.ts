@@ -24,6 +24,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-03",
+    kind: "Verbessert",
+    title: "Werbefrei, dafür ein Knopf zum Unterstützen",
+    body:
+      "Kontexto lädt kein Werbenetzwerk mehr, auch nicht im Hintergrund. Wer das Spiel " +
+      "unterstützen möchte, findet einen Knopf „Unterstützen“, der " +
+      "Ko-fi öffnet. Er ist freiwillig, schaltet nichts frei und fragt nie von selbst.",
+    href: "/ueber/#finanzierung",
+    hrefLabel: "Wie das Spiel finanziert wird",
+  },
+  {
     date: "2026-10-01",
     kind: "Neu",
     title: "Kategorien: Du wählst das Wortfeld",

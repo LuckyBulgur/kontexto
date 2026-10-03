@@ -8,6 +8,7 @@ import StructuredData from "@/components/StructuredData";
 import { aboutPageSchema } from "@/lib/structured-data";
 import { buildMetadata } from "@/lib/seo";
 import { AUTHOR_NAME } from "@/lib/author";
+import { SUPPORT_URL } from "@/lib/support";
 
 export const metadata = buildMetadata({
   path: "/ueber/",
@@ -178,8 +179,8 @@ export default function UeberPage() {
         <Prose>
           <h2 id="wer">Wer dahintersteht</h2>
           <p>
-            Kontexto ist ein unabhängiges Projekt aus Deutschland. Finanziert wird es über Werbung,
-            damit das Spiel für alle kostenlos bleiben kann. Entwickelt und
+            Kontexto ist ein unabhängiges Projekt aus Deutschland, werbefrei und für alle kostenlos.
+            Entwickelt und
             gepflegt wird es von {AUTHOR_NAME}, ohne Verlag im Rücken. Er beschäftigt sich mit
             Worteinbettungen und natürlicher Sprachverarbeitung und schreibt im{" "}
             <Link href="/blog/">Blog</Link> über die Technik und Strategie hinter dem Spiel.
@@ -219,16 +220,18 @@ export default function UeberPage() {
           <h2 id="finanzierung">Wie das Spiel finanziert wird</h2>
           <p>
             Kontexto ist kostenlos und soll es bleiben. Es gibt keine Bezahlschranke, keinen
-            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Der Betrieb soll nach
-            einer Freischaltung über Werbung finanziert werden, und zwar ausschließlich auf den
-            beiden Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume
-            bleiben werbefrei, weil eine
-            Anzeige dort neben zu wenig eigenem Inhalt stünde.
+            Abo-Bereich und keine Funktion, die hinter einer Zahlung liegt. Es gibt auch keine
+            Werbung: Kein Werbenetzwerk lädt auf diesen Seiten, und es entstehen keine Werbe- oder
+            Trackingcookies.
           </p>
           <p>
-            Werbe- und Trackingcookies werden erst nach deiner Einwilligung gesetzt. Sie lässt sich
-            über den Link „Cookie-Einstellungen“ in der Fußzeile jederzeit ändern oder vollständig
-            widerrufen, ohne dass das Spiel dadurch eingeschränkt wird. Verkauft werden weder
+            Wer das Projekt unterstützen möchte, kann das über{" "}
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+              Ko-fi
+            </a>{" "}
+            tun, über den Knopf „Unterstützen“. Das ist freiwillig, schaltet nichts frei und ändert
+            nichts am Spiel. Aufgedrängt wird es nicht: Es öffnet sich nichts von selbst, und
+            nach einer gelösten Runde steht nur eine ruhige Zeile unter dem Ergebnis. Verkauft werden weder
             Daten noch Adressen, und es gibt keine Newsletter-Liste, in die man versehentlich
             geraten könnte. Was genau erhoben wird, steht in der{" "}
             <Link href="/datenschutz/">Datenschutzerklärung</Link>.

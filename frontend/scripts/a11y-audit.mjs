@@ -5,9 +5,8 @@
 //
 // Warum ein eigenes Skript und keine Testsuite: axe braucht einen echten
 // Browser und eine gerenderte Seite, das gehoert nicht in vitest. Und warum
-// ueberhaupt: "nutzerfreundlich und navigierbar" ist ein ausdrueckliches
-// Kriterium der AdSense-Pruefung, und Landmarken, Kontraste und
-// Tastaturbedienbarkeit sind der messbare Teil davon.
+// ueberhaupt: Landmarken, Kontraste und Tastaturbedienbarkeit sind der
+// messbare Teil davon, ob eine Seite nutzerfreundlich und navigierbar ist.
 //
 // Stand 2026-08-31: 0 Verstoesse auf 21 Seiten. Vorher waren es 8 Regeltypen,
 // darunter fehlende main-Landmarken auf 17 Seiten, nicht erreichbare

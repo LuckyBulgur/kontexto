@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Figtree, Bricolage_Grotesque, Creepster } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
-import { SideRailAds } from "@/components/SideRailAds";
 import RetiredAdStorage from "@/components/RetiredAdStorage";
 import UpdateWatcher from "@/components/UpdateWatcher";
 import StructuredData from "@/components/StructuredData";
@@ -11,6 +10,8 @@ import { AUTHOR_NAME, AUTHOR_PROFILE_PATH, AUTHOR_SAME_AS } from "@/lib/author";
 import { SITE_SAME_AS } from "@/lib/social";
 import Footer from "@/components/Footer";
 import FeedbackFab from "@/components/FeedbackFab";
+import SupportHost from "@/components/SupportHost";
+import SupporterRails from "@/components/SupporterRails";
 import MotionProvider from "@/components/motion/MotionProvider";
 import EventRuntime from "@/components/event/EventRuntime";
 import { EVENT_THEME_SCRIPT } from "@/lib/event-theme";
@@ -64,7 +65,7 @@ export const metadata: Metadata = {
     index: true, follow: true,
     googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
-  other: { "theme-color": "#f8f9fc", "google-adsense-account": "ca-pub-3545758989514084" },
+  other: { "theme-color": "#f8f9fc" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -80,27 +81,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f8f9fc" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#16181f" media="(prefers-color-scheme: dark)" />
-        {/*
-          Der AdSense-Loader steht als echtes Script-Tag im <head> und nicht als
-          next/script mit strategy="afterInteractive".
-
-          Grund: Bei afterInteractive rendert Next ins HTML nur ein
-          <link rel="preload">; das Script-Tag selbst haengt der Client-Runtime
-          erst nach der Hydration an. Im ausgelieferten HTML stand damit gar kein
-          Anzeigencode, und AdSense meldete in der Konsole "AdSense head tag
-          doesn't support data-nscript attribute". Googles eigene Anleitung
-          verlangt den Codeschnipsel im <head> jeder Seite; wer ihn dort ohne
-          JavaScript nicht findet, kann die Website nicht verifizieren.
-
-          Kein next/script hier, weil dessen beforeInteractive-Variante im
-          Static Export ihre eigenen Attribute anhaengt. Das async-Attribut
-          entspricht exakt dem Snippet, das AdSense ausgibt.
-        */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3545758989514084"
-          crossOrigin="anonymous"
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("kontexto_theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
@@ -115,11 +95,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <EventRuntime />
         </MotionProvider>
         <Footer />
+        <SupporterRails />
+        <SupportHost />
         <FeedbackFab />
         <Toaster />
         <UpdateWatcher />
         <Analytics />
-        <SideRailAds />
         <RetiredAdStorage />
       </body>
     </html>

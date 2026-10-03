@@ -23,6 +23,7 @@ import {
 import { StatsSidebar, type StatsNavGroup } from "@/components/admin/StatsSidebar";
 import LiveStreams from "@/components/admin/LiveStreams";
 import CreatorSubmissions from "@/components/admin/CreatorSubmissions";
+import SupporterReview from "@/components/admin/SupporterReview";
 import WordQuality from "@/components/admin/WordQuality";
 import {
   formatDecimal, formatDuration, formatHour, formatNumber, formatPercent, formatStamp, fullDate, greeting,
@@ -458,13 +459,22 @@ function SurveySection({ stats }: SectionProps) {
   );
 }
 
+/** Where the Ko-fi panel was opened from (`SupportSource` in lib/support.ts). */
+const SUPPORT_SOURCE_LABELS: Record<string, string> = {
+  corner: "Knopf unten links",
+  pinned: "Knopf oben rechts",
+  result_kontexto: "Ergebnis Kontexto",
+  result_wordle: "Ergebnis Wördle",
+  footer: "Fußzeile",
+};
+
 /** The growth funnel: started versus finished games, sharing, attention.
  *
  * These three answer what the visitor counts cannot: how many games are begun
  * and dropped, whether results are shared and whether those shares bring anyone
  * back, and how long a page is actually looked at. */
 function FunnelSection({ stats }: SectionProps) {
-  const { funnel, sharing, attention } = stats;
+  const { funnel, sharing, support, attention } = stats;
   const pageviews = Object.values(stats.pageviews_by_page).reduce((a, b) => a + b, 0);
 
   return (
@@ -513,6 +523,20 @@ function FunnelSection({ stats }: SectionProps) {
             <p className="mt-3 text-micro text-muted-foreground">
               Der Klick auf „Teilen“ wird vom Browser gemeldet, die Ankunft am Link serverseitig
               gezählt. Ein Klick ist eine Absicht, kein Besuch.
+            </p>
+          </>
+        )}
+      </Panel>
+
+      <Panel title="Unterstützen" hint="Ko-fi-Fenster geöffnet, je Einstieg" className="lg:col-span-2">
+        {support.opens_total === 0 ? (
+          <p className="py-6 text-center text-small text-muted-foreground">Noch nicht geöffnet</p>
+        ) : (
+          <>
+            <BarRanking data={support.opens_by_source} accent={0} labelMap={SUPPORT_SOURCE_LABELS} />
+            <p className="mt-3 text-micro text-muted-foreground">
+              {formatNumber(support.opens_total)} Mal geöffnet. Gezählt wird das Öffnen, ob jemand
+              zahlt, sieht nur Ko-fi.
             </p>
           </>
         )}
@@ -725,6 +749,7 @@ const SECTIONS: SectionDef[] = [
     Component: ({ token }) => (
       <div className="space-y-6">
         <LiveStreams token={token} />
+        <SupporterReview token={token} />
         <CreatorSubmissions token={token} />
       </div>
     ),

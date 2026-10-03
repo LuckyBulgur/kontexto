@@ -6,6 +6,7 @@ import type { TileColor } from "@/lib/wordle-types";
 import { CalendarHeatmap, DistributionBars, StatTile } from "@/components/stats/PlayerStatViews";
 import { formatDecimal } from "@/lib/format";
 import ShareButton from "./ShareButton";
+import SupportPrompt from "@/components/SupportPrompt";
 
 interface StatsModalProps {
   open: boolean;
@@ -65,6 +66,8 @@ export default function StatsModal({ open, onOpenChange, gameNumber, guesses, ev
             hardMode={hardMode}
           />
         )}
+
+        {won && <SupportPrompt source="result_wordle" onBeforeOpen={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   );

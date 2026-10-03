@@ -7,7 +7,7 @@ export const metadata = buildMetadata({
   path: "/datenschutz/",
   title: "Datenschutz",
   description:
-    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies und vorgesehene Google-AdSense-Werbung mit Einwilligung vor der Auslieferung.",
+    "Datenschutzerklärung für Kontexto, das deutsche Wort-Ratespiel: lokale Speicherung, anonyme Reichweitenmessung, Daten in den Mehrspieler-Modi, Cookies und die freiwillige Unterstützung über Ko-fi. Ohne Werbung.",
 });
 
 export default function DatenschutzPage() {
@@ -20,7 +20,7 @@ export default function DatenschutzPage() {
               Der Schutz deiner Daten ist uns wichtig. Diese Datenschutzerklärung informiert dich darüber, welche Daten beim Besuch von Kontexto erhoben werden und wie sie verwendet werden.
             </p>
             <p>
-              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Für die spätere Finanzierung ist Google-AdSense-Werbung vorgesehen; im aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Falls Anzeigen freigeschaltet werden, werden werbebezogene Cookies und personalisierte Anzeigen <strong className="text-foreground">nur mit deiner Einwilligung</strong> über das Consent-Banner verarbeitet (siehe den Abschnitt zu Google AdSense).
+              <strong className="text-foreground">Kurzfassung:</strong> Dein Spielstand wird ausschließlich lokal in deinem Browser gespeichert, und unsere Reichweitenmessung ist anonym und cookiefrei. Kontexto zeigt <strong className="text-foreground">keine Werbung</strong>. Daten an einen anderen Anbieter gehen nur, wenn du selbst das Ko-fi-Fenster zum Unterstützen öffnest (siehe den Abschnitt zu Ko-fi).
             </p>
           </section>
 
@@ -155,7 +155,7 @@ export default function DatenschutzPage() {
               Für den Betrieb des Spiels und die anonyme Reichweitenmessung (Abschnitt „Anonyme Reichweitenmessung“) setzt Kontexto <strong className="text-foreground">keine Cookies</strong>. Dein Spielstand wird ausschließlich im lokalen Speicher (localStorage) deines Browsers abgelegt; dies ist technisch erforderlich und bedarf keiner Einwilligung (§ 25 Abs. 2 Nr. 2 TDDDG).
             </p>
             <p>
-              <strong className="text-foreground">Werbe-Cookies</strong> und vergleichbare Einträge auf deinem Gerät entstehen ausschließlich durch Google AdSense (siehe den Abschnitt zu Google AdSense) und <strong className="text-foreground">nur nach deiner ausdrücklichen Einwilligung</strong> über das Einwilligungsbanner. Ohne deine Einwilligung werden keine werbebezogenen Cookies gesetzt. Was Kontexto selbst auf deinem Gerät ablegt, steht auf der Seite{" "}
+              Es gibt <strong className="text-foreground">keine Werbe-Cookies</strong>. Cookies eines anderen Anbieters kann nur Ko-fi setzen, und nur wenn du das Ko-fi-Fenster öffnest (siehe den Abschnitt zu Ko-fi). Was Kontexto selbst auf deinem Gerät ablegt, steht auf der Seite{" "}
               <Link href="/cookies/" className="underline underline-offset-2 hover:no-underline">Cookies und lokaler Speicher</Link>.
             </p>
           </section>
@@ -163,74 +163,33 @@ export default function DatenschutzPage() {
           <section className="space-y-2">
             <h2 className="text-body font-semibold text-foreground">9. Externe Dienste</h2>
             <p>
-              Kontexto verwendet die Schriftart <strong className="text-foreground">Inter</strong>. Diese wird beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
+              Kontexto verwendet die Schriftarten <strong className="text-foreground">Figtree</strong> und <strong className="text-foreground">Bricolage Grotesque</strong>. Sie werden beim Erstellen der Website heruntergeladen und direkt von unserem Server ausgeliefert. Es findet <strong className="text-foreground">keine Verbindung zu Google-Servern</strong> statt.
             </p>
             <p>
-              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Für die spätere Finanzierung des kostenlosen Angebots ist <strong className="text-foreground">Google AdSense</strong> als Werbedienst vorgesehen. Der Verifizierungscode ist bereits eingebunden, im aktuellen Prüfmodus werden jedoch keine Anzeigenslots ausgeliefert. Einzelheiten dazu stehen im Abschnitt zu Google AdSense.
+              Für die <strong className="text-foreground">Reichweitenmessung</strong> werden keine externen Analyse-Tools oder Tracking-Dienste von Drittanbietern (z. B. Google Analytics) eingesetzt; sie erfolgt ausschließlich anonym auf unserem eigenen Server (siehe „Anonyme Reichweitenmessung“). Kontexto zeigt <strong className="text-foreground">keine Werbung</strong> und bindet kein Werbenetzwerk ein.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-body font-semibold text-foreground">10. Vorgesehene Werbung durch Google AdSense</h2>
+            <h2 className="text-body font-semibold text-foreground">10. Freiwillige Unterstützung über Ko-fi</h2>
             <p>
-              Für die geplante Finanzierung dieses kostenlosen Angebots ist Google AdSense vorgesehen,
-              ein Dienst der <strong className="text-foreground">Google Ireland Limited</strong>, Gordon House,
-              Barrow Street, Dublin 4, Irland („Google“). Im aktuellen Prüfmodus ist der
-              Verifizierungscode eingebunden, es werden jedoch keine Anzeigenslots ausgeliefert.
+              Wer Kontexto freiwillig unterstützen möchte, kann das über <strong className="text-foreground">Ko-fi</strong> tun, einen Dienst der Ko-fi Labs Limited, Suite 501, The Nexus Building, Broadway, Letchworth Garden City, Hertfordshire, SG6 9BL, Vereinigtes Königreich („Ko-fi“). Dafür gibt es den Knopf „Unterstützen“ (am Handy unten links, am Desktop oben neben dem Menü), eine Zeile unter dem Ergebnis einer gelösten Runde und den Link „Kontexto unterstützen“ in der Fußzeile.
             </p>
             <p>
-              <strong className="text-foreground">Drittanbieter-Cookies:</strong> Falls Anzeigen
-              freigeschaltet und ausgeliefert werden, können Drittanbieter, einschließlich Google,
-              Cookies in deinem Browser setzen und lesen oder Web Beacons und IP-Adressen verwenden,
-              um Informationen zu erheben. Google kann Cookies verwenden, um Anzeigen auf Grundlage
-              früherer Besuche auf dieser und anderen Websites auszuliefern und deren Auslieferung zu
-              messen. Neben Google können weitere Anbieter und Werbenetzwerke beteiligt sein, die
-              über die Einwilligungsverwaltung namentlich aufgeführt werden. Verarbeitet werden dabei
-              unter anderem deine gekürzte IP-Adresse, Geräte- und Browserdaten sowie Interaktionen
-              mit Anzeigen.
+              <strong className="text-foreground">Vor dem Klick:</strong> Kontexto lädt beim Seitenaufruf nichts von Ko-fi, weder Skripte noch Bilder. Es werden keine Daten an Ko-fi übertragen, solange du den Knopf nicht benutzt. Wir zählen nur anonym, wie oft das Ko-fi-Fenster geöffnet wird und von welcher Stelle aus (Knopf, Ergebnis, Fußzeile), als Tagessumme ohne Kennung, genauso wie die übrige Reichweitenmessung (siehe „Anonyme Reichweitenmessung“).
             </p>
             <p>
-              <strong className="text-foreground">Einwilligung (Consent Management Platform):</strong> Vor
-              einer künftigen Anzeigenauslieferung erhältst du über ein von Google bereitgestelltes,
-              nach dem IAB Transparency &amp; Consent Framework (TCF, aktuell v2.3) zertifiziertes
-              Einwilligungsbanner die Möglichkeit, der Verarbeitung zuzustimmen oder sie abzulehnen.
-              Rechtsgrundlage ist deine Einwilligung gemäß <strong className="text-foreground">Art. 6 Abs. 1 lit. a DSGVO</strong>
-              sowie § 25 Abs. 1 TDDDG.
+              <strong className="text-foreground">Nach dem Klick:</strong> Der Knopf öffnet ein Fenster, in dem die Seite von Ko-fi eingebettet ist (iframe); der Link in der Fußzeile öffnet ko-fi.com in einem neuen Tab. In beiden Fällen ruft dein Browser die Seite direkt bei Ko-fi ab. Ko-fi erhält dabei deine IP-Adresse, Browser- und Geräteangaben und kann eigene Cookies setzen. Unterstützt du Kontexto, verarbeitet Ko-fi außerdem die Angaben, die du dort eingibst, und wickelt die Zahlung über seine Zahlungsdienstleister (PayPal oder Stripe) ab. Wir erhalten von Ko-fi die Angaben, die Ko-fi an Empfänger einer Unterstützung weitergibt, etwa Betrag, den angegebenen Namen und eine Nachricht, falls du eine schreibst. Zahlungsdaten wie Konto- oder Kartennummer sehen wir nicht.
             </p>
             <p>
-              <strong className="text-foreground">Datenübermittlung in die USA:</strong> Im Rahmen einer
-              AdSense-Auslieferung können Daten an Server von Google übermittelt werden, auch an
-              Server in den USA. Google ist unter dem EU-US Data Privacy Framework zertifiziert. Ein
-              Zugriff durch US-Behörden kann dabei nicht vollständig ausgeschlossen werden. Mit deiner
-              Einwilligung willigst du auch in diese Übermittlung gemäß Art. 49 Abs. 1 lit. a DSGVO ein.
+              <strong className="text-foreground">Rechtsgrundlage:</strong> Das Fenster wird nur auf deine ausdrückliche Anforderung geöffnet. Grundlage ist unser berechtigtes Interesse, eine freiwillige Unterstützung ohne Umweg über eine fremde Seite zu ermöglichen (Art. 6 Abs. 1 lit. f DSGVO); für den Zugriff auf dein Endgerät gilt § 25 Abs. 2 Nr. 2 TDDDG, weil er für den von dir angeforderten Dienst unbedingt erforderlich ist. Für die Abwicklung einer Unterstützung ist Ko-fi selbst verantwortlich. Für das Vereinigte Königreich besteht ein Angemessenheitsbeschluss der EU-Kommission.
             </p>
             <p>
-              <strong className="text-foreground">Widerruf und Deaktivierung:</strong> Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder anpassen, indem du deine Auswahl im Einwilligungsbanner änderst. Dafür genügt der Link „Cookie-Einstellungen“ in der Fußzeile jeder Seite. Unabhängig davon kannst du personalisierte Werbung dauerhaft abschalten:
-            </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>
-                in den{" "}
-                <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Google-Anzeigeneinstellungen</a>{" "}
-                für die Anzeigen von Google,
-              </li>
-              <li>
-                gesammelt für viele Anbieter über{" "}
-                <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">www.aboutads.info/choices</a>{" "}
-                und{" "}
-                <a href="https://www.youronlinechoices.com/de/praferenzmanagement/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">youronlinechoices.com</a>{" "}
-                (europäische Fassung),
-              </li>
-              <li>
-                oder einzeln auf den Websites der jeweiligen Anbieter und Werbenetzwerke, die in der Einwilligungsverwaltung aufgeführt sind.
-              </li>
-            </ul>
-            <p>
-              Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt und es werden keine personalisierten Anzeigen ausgeliefert. Das Spiel bleibt in vollem Umfang nutzbar.
+              <strong className="text-foreground">Danke-Liste neben dem Spielfeld:</strong> Lässt du bei Ko-fi die Einstellung an, dass deine Unterstützung öffentlich sein darf, schickt uns Ko-fi den Namen, den du dort angegeben hast. Wir speichern davon nur den Namen, Ko-fis Kennung der Zahlung und den Zeitpunkt, keinen Betrag, keine Nachricht und keine E-Mail-Adresse, und zeigen den Namen 30 Tage lang auf großen Bildschirmen neben dem Spielfeld. Danach wird der Eintrag gelöscht. Namen, die nach einer E-Mail-Adresse, einem Link oder einer Beleidigung aussehen, werden nicht gespeichert. Jeder Name, der nicht eindeutig ein Vor- oder Nachname ist, erscheint erst, nachdem wir ihn von Hand geprüft und freigegeben haben; lehnen wir ihn ab, wird er gelöscht. Wer die öffentliche Einstellung bei Ko-fi ausschaltet, erscheint nirgends. Rechtsgrundlage ist deine Entscheidung für die öffentliche Nennung (Art. 6 Abs. 1 lit. a DSGVO); eine vorzeitige Löschung kannst du jederzeit über die Kontaktseite verlangen.
             </p>
             <p>
-              Weitere Informationen findest du in der{" "}
-              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Datenschutzerklärung von Google</a>{" "}sowie unter{" "}
-              <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">„Wie Google Daten bei der Anzeigenschaltung verwendet“</a>.
+              Welche Daten Ko-fi im Einzelnen verarbeitet und welche Cookies es setzt, steht in der{" "}
+              <a href="https://more.ko-fi.com/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Datenschutzerklärung von Ko-fi</a>.
             </p>
           </section>
 
@@ -240,7 +199,7 @@ export default function DatenschutzPage() {
               Kontexto richtet sich an ein allgemeines Publikum und ist kein Angebot, das sich gezielt an Kinder wendet. Zum Spielen ist keine Anmeldung nötig. Wir fragen weder nach Name, Alter, E-Mail-Adresse noch Anschrift und erheben wissentlich keine personenbezogenen Daten von Kindern unter 16 Jahren.
             </p>
             <p>
-              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden. Falls Werbung freigeschaltet wird, wird sie ohne erteilte Einwilligung nicht personalisiert ausgeliefert.
+              Die einzige freie Eingabe, die für andere sichtbar wird, ist der Spitzname in den Mehrspieler-Modi. Wir weisen dort ausdrücklich darauf hin, keinen echten Namen zu verwenden.
             </p>
             <p>
               Erziehungsberechtigte, die vermuten, dass ein Kind uns personenbezogene Daten übermittelt hat, erreichen uns über die{" "}
@@ -254,7 +213,7 @@ export default function DatenschutzPage() {
               Du hast gemäß DSGVO das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten, das Recht auf Datenübertragbarkeit, das Recht auf Widerruf erteilter Einwilligungen sowie das Recht auf Beschwerde bei einer Aufsichtsbehörde. Gegen Verarbeitungen, die auf einem berechtigten Interesse beruhen (Art. 6 Abs. 1 lit. f DSGVO), steht dir zudem das Widerspruchsrecht nach Art. 21 DSGVO zu.
             </p>
             <p>
-              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) und die mit deiner Einwilligung über Google AdSense (Abschnitt „Vorgesehene Werbung durch Google AdSense“) verarbeiteten Daten hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die im Rahmen von Google AdSense verarbeiteten Daten ist Google (mit-)verantwortlich; die entsprechenden Betroffenenrechte kannst du auch direkt bei Google geltend machen.
+              Über die kurzfristigen Server-Logs (Abschnitt „Server-Logdaten“) hinaus speichert Kontexto selbst nur die Daten einer laufenden Mehrspieler-Runde (Abschnitt „Mehrspieler-Modi“), und auch diese nur bis zu ihrer automatischen Löschung. Ein Nutzerkonto, ein Profil oder eine dauerhafte Kennung entsteht dabei nicht. Für die Daten, die Ko-fi bei einer Unterstützung verarbeitet, kannst du deine Betroffenenrechte auch direkt bei Ko-fi geltend machen.
             </p>
           </section>
 
@@ -266,7 +225,7 @@ export default function DatenschutzPage() {
           </section>
       </>
 
-      <p className="text-micro">Stand: September 2026</p>
+      <p className="text-micro">Stand: Oktober 2026</p>
     </TextPage>
   );
 }

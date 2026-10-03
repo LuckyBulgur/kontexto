@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFeatureDiscovery } from "@/lib/feature-discovery";
+import { useSupportOpen } from "@/lib/support-dialog";
 
 /**
  * The door to the modes, as a button in the header rather than a line in the
@@ -88,9 +89,13 @@ export default function ModesButton({ onOpen, hintKey, hintEnabled, crowded = fa
     };
   }, [hintOpen, dismiss]);
 
+  // The hint is timed from arrival, so a visitor who opens the support dialog
+  // within the first second got the bubble drawn over that dialog.
+  const supportOpen = useSupportOpen();
+
   return (
     <TooltipProvider>
-      <Tooltip open={hintOpen || undefined}>
+      <Tooltip open={(hintOpen && !supportOpen) || undefined}>
         <TooltipTrigger asChild>
           {/* A tinted surface in the accent, and the glyph in the accent ink
               rather than in `--primary`, which is a fill and measures 2,9:1

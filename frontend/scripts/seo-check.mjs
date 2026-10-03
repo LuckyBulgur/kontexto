@@ -119,37 +119,6 @@ for (const [file] of routes) {
   ok(html.includes('hreflang="de-de"'), `${file}: missing de-DE hreflang`);
 }
 
-// --- AdSense: der Codeschnipsel muss ohne JavaScript im HTML stehen ---
-// Mit next/script strategy="afterInteractive" rendert Next nur ein
-// <link rel="preload">, das Script-Tag entsteht erst nach der Hydration. Fuer
-// eine Website-Pruefung, die kein JavaScript ausfuehrt, gibt es dann keinen
-// Anzeigencode auf der Seite. Beides wird hier festgehalten: der Loader und das
-// Verifizierungs-Meta-Tag, auf jeder Seite, die Anzeigen tragen darf.
-// Bewusst als Regex und nicht als fester String: React gibt boolesche
-// Attribute als async="" aus und die Attributreihenfolge ist nicht zugesichert.
-// Gesucht wird ein echtes <script>-Tag mit dieser Quelle, ein
-// <link rel="preload"> darf nicht durchgehen.
-const ADS_LOADER =
-  /<script[^>]+src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-3545758989514084"/;
-for (const file of ["index.html", "wordle/index.html", "faq/index.html"]) {
-  const html = await read(file);
-  const m = html.match(ADS_LOADER);
-  ok(m !== null, `${file}: AdSense loader not in the static HTML (a preload link is not the snippet)`);
-  if (m) {
-    ok(
-      m.index < html.indexOf("</head>"),
-      `${file}: AdSense loader is not inside <head>`,
-    );
-  }
-  ok(
-    html.includes('name="google-adsense-account" content="ca-pub-3545758989514084"'),
-    `${file}: missing google-adsense-account verification meta tag`,
-  );
-}
-ok(await exists("ads.txt"), "ads.txt missing");
-const adsTxt = await read("ads.txt");
-ok(adsTxt.includes("pub-3545758989514084"), "ads.txt: publisher id missing");
-
 const robotsTxt = await read("robots.txt");
 ok(robotsTxt.includes("Disallow: /admin/"), "robots.txt: /admin/ not disallowed");
 const sm = await read("sitemap.xml");
@@ -204,10 +173,9 @@ const visibleWords = (html) =>
     .filter(Boolean).length;
 
 const contentPages = [
-  // Die Startseite steht hier mit drin, weil sie eine der beiden Seiten ist,
-  // die später manuelle Anzeigen tragen dürfen, und deshalb nie versehentlich
-  // zu einer reinen Widget-Seite werden darf. Diese Wortzahlen sind interne
-  // Regression-Schwellen, keine Google-Mindestanforderungen.
+  // The home page is listed so it never turns into a bare widget page by
+  // accident. These word counts are internal regression thresholds, not
+  // Google minimums.
   { file: "index.html", path: "/", minWords: 1000, schema: '"@type":"FAQPage"' },
   { file: "anleitung/index.html", path: "/anleitung/", minWords: 800, schema: '"@type":"HowTo"' },
   { file: "strategie/index.html", path: "/strategie/", minWords: 900 },
@@ -219,15 +187,13 @@ const contentPages = [
   { file: "glossar/index.html", path: "/glossar/", minWords: 700, schema: '"@type":"DefinedTermSet"' },
   { file: "blog/index.html", path: "/blog/", minWords: 250 },
   { file: "kontakt/index.html", path: "/kontakt/", minWords: 250 },
-  // Nutzungsbedingungen gehoeren zu den Vertrauenssignalen, auf die eine
-  // AdSense-Pruefung achtet (About, Kontakt, Datenschutz, Terms). Die Seite
-  // darf deshalb nicht zur Formsache schrumpfen.
+  // Terms belong to the trust pages (about, contact, privacy, terms) and must
+  // not shrink into a formality.
   { file: "nutzungsbedingungen/index.html", path: "/nutzungsbedingungen/", minWords: 500 },
   { file: "cookies/index.html", path: "/cookies/", minWords: 600 },
   { file: "changelog/index.html", path: "/changelog/", minWords: 400 },
   { file: "zahlen/index.html", path: "/zahlen/", minWords: 800 },
-  // Spielseiten. /wordle/ traegt Anzeigen und darf deshalb nie wieder duenn werden:
-  // Googles Richtlinie verbietet Anzeigen auf Seiten ohne Publisher-Inhalt.
+  // Game pages: the board alone is a thin page for search.
   { file: "wordle/index.html", path: "/wordle/", minWords: 800, schema: '"@type":"FAQPage"' },
   { file: "duel/index.html", path: "/duel/", minWords: 600, schema: '"@type":"FAQPage"' },
   { file: "koop/index.html", path: "/koop/", minWords: 600, schema: '"@type":"FAQPage"' },
@@ -277,8 +243,8 @@ for (const file of gameLandingPages) {
 // --- Duplikatswaechter: keine zwei indexierten Seiten mit demselben Text ---
 // Anlass: /faq/ teilte 92 Prozent seiner Acht-Wort-Folgen mit der Startseite,
 // beide indexiert, beide mit identischem FAQPage-Markup. Google waehlt in so
-// einem Fall selbst eine kanonische Seite und wertet die andere als redundant;
-// im AdSense-Review faellt das unter "minderwertige Inhalte". Gemessen wird am
+// einem Fall selbst eine kanonische Seite und wertet die andere als redundant.
+// Gemessen wird am
 // kleineren der beiden Mengen, damit eine kurze Seite, die vollstaendig in
 // einer langen aufgeht, nicht durchrutscht.
 const SHINGLE_N = 8;
@@ -365,7 +331,6 @@ for (const [file, path] of functionalPages) {
   const html = await read(file);
   ok(html.toLowerCase().includes("noindex"), `${file}: functional page must be noindex`);
   ok(!sm.includes(path), `sitemap: functional URL must stay omitted ${path}`);
-  ok(!html.includes('class="adsbygoogle"'), `${file}: functional page must not contain an ad slot`);
 }
 
 // Google veröffentlicht keine belastbare Mindestwortzahl. Diese Schwelle ist
@@ -453,16 +418,18 @@ for (const file of await htmlFiles(OUT)) {
   ok(!text.includes('"'), `${rel}: straight double quote in visible text (use „…“)`);
 }
 
-// Im Prüfmodus bleibt das AdSense-Verifizierungs-Script erhalten, aber es darf
-// keine manuelle Anzeigenfläche im statischen Export auftauchen. Der Modus wird
-// erst durch den expliziten Build-Wert `false` verlassen.
-if (process.env.NEXT_PUBLIC_ADSENSE_REVIEW_MODE !== "false") {
-  for (const file of await htmlFiles(OUT)) {
-    const rel = relative(OUT, file).replace(/\\/g, "/");
-    const html = await readFile(file, "utf8");
-    ok(!html.includes('class="adsbygoogle"'), `${rel}: review mode must not render manual ad slots`);
+// AdSense was removed on 2026-10-03. No page may load an ad network again
+// without a decision: neither the loader, nor a slot, nor the verification tag,
+// and no ads.txt that declares a publisher.
+const AD_TRACES = ["googlesyndication.com", 'class="adsbygoogle"', "google-adsense-account"];
+for (const file of await htmlFiles(OUT)) {
+  const rel = relative(OUT, file).replace(/\\/g, "/");
+  const html = await readFile(file, "utf8");
+  for (const trace of AD_TRACES) {
+    ok(!html.includes(trace), `${rel}: ad network trace "${trace}" in the static export`);
   }
 }
+ok(!(await exists("ads.txt")), "ads.txt is published although no ad network is in use");
 
 if (process.env.KONTEXTO_REQUIRE_IMPRESSUM === "1") {
   const imp = await read("impressum/index.html");

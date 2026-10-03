@@ -180,7 +180,6 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_API_URL: /api
-          NEXT_PUBLIC_ADSENSE_REVIEW_MODE: "true"
 
       - name: SEO checks
         if: ${{ matrix.shard == 1 }}
@@ -246,12 +245,10 @@ jobs:
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          # Keep the production image review-safe. This must be changed
-          # deliberately after Google has approved the site. The build id is
-          # the commit, which open tabs compare with /version.json to notice
-          # this deploy and reload (frontend/lib/update-check.ts).
+          # The build id is the commit, which open tabs compare with
+          # /version.json to notice this deploy and reload
+          # (frontend/lib/update-check.ts).
           build-args: |
-            NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
             KONTEXTO_BUILD_ID=${{ github.sha }}
           provenance: false
           sbom: false
@@ -295,6 +292,7 @@ jobs:
           # same way: repository secrets, written into the server .env.
           TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          KOFI_VERIFICATION_TOKEN: ${{ secrets.KOFI_VERIFICATION_TOKEN }}
           DEPLOY_SHA: ${{ github.sha }}
           # Valid for this job only, used for one pull and logged out again,
           # so no registry credential stays on the server.
@@ -304,7 +302,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: EULER_API_KEY,TWITCH_CLIENT_ID,TWITCH_CLIENT_SECRET,DEPLOY_SHA,REGISTRY_USER,REGISTRY_TOKEN
+          envs: EULER_API_KEY,TWITCH_CLIENT_ID,TWITCH_CLIENT_SECRET,KOFI_VERIFICATION_TOKEN,DEPLOY_SHA,REGISTRY_USER,REGISTRY_TOKEN
           script: |
             set -e
             cd /opt/kontexto
@@ -337,6 +335,10 @@ jobs:
             if [ -n "$TWITCH_CLIENT_ID" ] && [ -n "$TWITCH_CLIENT_SECRET" ]; then
               upsert_env KONTEXTO_TWITCH_CLIENT_ID "$TWITCH_CLIENT_ID"
               upsert_env KONTEXTO_TWITCH_CLIENT_SECRET "$TWITCH_CLIENT_SECRET"
+            fi
+            # The Ko-fi webhook token (backend/supporters.py), same rule.
+            if [ -n "$KOFI_VERIFICATION_TOKEN" ]; then
+              upsert_env KONTEXTO_KOFI_VERIFICATION_TOKEN "$KOFI_VERIFICATION_TOKEN"
             fi
             # docker-compose.yml reads the image tag from .env, so a manual
             # `docker compose up -d` on the server runs what was deployed, and
@@ -404,13 +406,7 @@ jobs:
             wait_for_status https://kontexto.de/404.html 404
             wait_for_status https://kontexto.de/404/ 404
             wait_for_status https://kontexto.de/_not-found/ 404
-            wait_for_header https://kontexto.de/duel/adsense-review-check 'X-Robots-Tag: noindex, nofollow'
-            wait_for_status https://kontexto.de/ads.txt 200
-            ads_txt=$(curl -fsSL https://kontexto.de/ads.txt)
-            if ! echo "$ads_txt" | grep -Fq 'google.com, pub-3545758989514084, DIRECT'; then
-              echo 'ads.txt does not declare the Kontexto publisher' >&2
-              exit 1
-            fi
+            wait_for_header https://kontexto.de/duel/noindex-check 'X-Robots-Tag: noindex, nofollow'
             sitemap=$(curl -fsSL https://kontexto.de/sitemap.xml)
             sitemap_count=$(echo "$sitemap" | grep -c '<loc>')
             # Twin of expectedStaticSitemapPaths in frontend/scripts/seo-check.mjs.
@@ -424,8 +420,8 @@ jobs:
               exit 1
             fi
             home_html=$(curl -fsSL https://kontexto.de/)
-            if echo "$home_html" | grep -Fq 'class="adsbygoogle"'; then
-              echo 'Review build unexpectedly contains a manual AdSense slot' >&2
+            if echo "$home_html" | grep -Fq 'googlesyndication.com'; then
+              echo 'The deployed home page loads an ad network again' >&2
               exit 1
             fi
             echo "Deploy successful!"

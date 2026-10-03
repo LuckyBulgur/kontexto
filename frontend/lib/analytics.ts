@@ -67,6 +67,7 @@ export async function sendHeartbeat(page: string, visible = false): Promise<void
 import type { CompletionPayload } from "./types";
 import type { SurveySource } from "./survey";
 import type { RatingReason, RatingSummary, RatingVerdict } from "./word-rating";
+import type { SupportSource } from "./support";
 
 // Reports a finished game (solved or given up) to feed the server-side
 // distribution histograms (attempts, time-to-solve, give-up rank). Only
@@ -124,6 +125,24 @@ export async function reportShare(mode: "kontexto" | "infinite" | "wordle"): Pro
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: t, mode }),
+      keepalive: true,
+    });
+  } catch {
+    // Analytics must never disrupt the user experience.
+  }
+}
+
+// Counts one opening of the Ko-fi panel by where it was opened from. The panel
+// is Ko-fi's own page, so the server sees nothing of it otherwise, and whether
+// anybody pays is never visible here: this is an intention, like a share click.
+export async function reportSupportOpen(source: SupportSource): Promise<void> {
+  try {
+    const t = await ensureToken();
+    if (!t) return;
+    await fetch(`${API_BASE}/collect/support`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t, source }),
       keepalive: true,
     });
   } catch {

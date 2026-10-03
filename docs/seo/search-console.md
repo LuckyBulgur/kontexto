@@ -115,21 +115,6 @@ After a frontend deployment:
   Search Console fetches it again on its own schedule. Use URL Inspection for
   the small number of pages where a quicker crawl is important.
 
-### 7. AdSense review handoff
-
-Before requesting another AdSense review:
-
-1. Deploy the current frontend with `NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true`.
-   This leaves Google's verification script in the document head but renders
-   no manual `adsbygoogle` slots.
-2. Verify that `ads.txt` is reachable at the domain root and that the Google
-   consent message is published in AdSense for European users.
-3. If the site entry itself appears stale, remove and re-add the site once in
-   AdSense. Do not create a second publisher account.
-4. Wait until the new HTML is visible in URL Inspection, then request one
-   review. Repeatedly changing the site while a review is pending makes the
-   result harder to interpret.
-
 ---
 
 ## Bing Webmaster Tools

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CountUp, Panel, ResultHero } from "@/components/design";
 import { PLAIN, kontextoResultOccasion, pickQuip } from "@/lib/quips";
 import ShareButton from "./ShareButton";
+import SupportPrompt from "./SupportPrompt";
 
 interface GameResultCardProps {
   gameNumber: number;
@@ -151,6 +152,8 @@ export default function GameResultCard({ gameNumber, guesses, tipCount, isWin, o
           </Button>
         </div>
       </div>
+
+      {isWin && <SupportPrompt source="result_kontexto" />}
     </Panel>
   );
 }

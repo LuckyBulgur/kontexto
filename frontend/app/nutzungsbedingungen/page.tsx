@@ -15,8 +15,8 @@ export const metadata = buildMetadata({
  *
  * Bewusst getrennt vom Impressum (Anbieterkennzeichnung nach § 5 DDG) und von
  * der Datenschutzerklaerung (Art. 13 DSGVO): Die drei beantworten
- * unterschiedliche Fragen, und "Terms" gehoert zu den Vertrauenssignalen, auf
- * die eine AdSense-Pruefung ausdruecklich achtet. Der Ton bleibt der des
+ * unterschiedliche Fragen, und "Terms" gehoert zu den Vertrauenssignalen einer
+ * Website. Der Ton bleibt der des
  * uebrigen Angebots, also "du", und der Text sagt, was wirklich gilt, statt
  * eine Vorlage zu uebernehmen.
  */
@@ -119,19 +119,17 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-body font-semibold text-foreground">5. Werbung</h2>
+        <h2 className="text-body font-semibold text-foreground">5. Werbung und Unterstützung</h2>
         <p>
-          Das Angebot ist aktuell werbefrei. Für die Finanzierung ist Werbung vorgesehen, die nach
-          einer Freischaltung ausschließlich auf den beiden Einzelspieler-Seiten angezeigt wird.
-          Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben werbefrei. Werbe- und
-          Trackingcookies werden nur nach deiner Einwilligung gesetzt, die
-          sich über den Link „Cookie-Einstellungen“ in der Fußzeile jederzeit widerrufen lässt.
-          Einzelheiten stehen in der{" "}
+          Das Angebot ist werbefrei und bindet kein Werbenetzwerk ein. Wer Kontexto unterstützen
+          möchte, kann das freiwillig über Ko-fi tun. Eine Unterstützung ist keine Bezahlung für
+          eine Leistung: Sie schaltet nichts frei, begründet keinen Anspruch auf Funktionen, Inhalte
+          oder Support und ändert nichts am Spiel. Für die Abwicklung gelten die Bedingungen von
+          Ko-fi. Was beim Öffnen des Ko-fi-Fensters übertragen wird, steht in der{" "}
           <Link href="/datenschutz/" className="underline underline-offset-2 hover:no-underline">
             Datenschutzerklärung
           </Link>
-          . Für die Inhalte der ausgelieferten Anzeigen sind die jeweiligen Werbetreibenden
-          verantwortlich.
+          .
         </p>
       </section>
 

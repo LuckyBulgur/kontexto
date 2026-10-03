@@ -20,11 +20,6 @@ services:
     image: ghcr.io/luckybulgur/kontexto:${KONTEXTO_IMAGE_TAG:-latest}
     build:
       context: .
-      args:
-        # Keep the static export free of ad slots during the AdSense review.
-        # Set this to false only after the site has been approved and ads are
-        # intentionally being enabled.
-        NEXT_PUBLIC_ADSENSE_REVIEW_MODE: ${NEXT_PUBLIC_ADSENSE_REVIEW_MODE:-true}
     expose:
       - "8080"
     volumes:
@@ -51,6 +46,9 @@ services:
       # the host page drawing its own icons; the chat itself needs neither.
       - KONTEXTO_TWITCH_CLIENT_ID=${KONTEXTO_TWITCH_CLIENT_ID:-}
       - KONTEXTO_TWITCH_CLIENT_SECRET=${KONTEXTO_TWITCH_CLIENT_SECRET:-}
+      # Ko-fi's webhook verification token for the supporter rails. Empty
+      # switches the webhook off; the support button works without it.
+      - KONTEXTO_KOFI_VERIFICATION_TOKEN=${KONTEXTO_KOFI_VERIFICATION_TOKEN:-}
     restart: unless-stopped
 
 volumes:

@@ -182,6 +182,22 @@ CREATE TABLE IF NOT EXISTS live_channels (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_live_channels_channel
     ON live_channels(platform, channel);
 
+-- Ko-fi supporters who chose to be public, shown by name beside the board
+-- (supporters.py). Name, Ko-fi's transaction id for idempotent retries, time,
+-- and the review state: only 'approved' is public, 'pending' waits for the
+-- operator with a reason code, 'rejected' keeps the id with an empty name.
+-- No amount, no message, no email. Pruned after 30 days by the cleanup loop.
+CREATE TABLE IF NOT EXISTS supporters (
+    transaction_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'approved', 'rejected')),
+    reason TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_supporters_created ON supporters(created_at);
+
 -- A short note from the operator to the streamer ("thanks for the stream"),
 -- delivered through the host's own poll and shown only on the host page.
 -- seen_at is set by the
@@ -753,6 +769,17 @@ async def init_db(db_path: str) -> None:
             await db.execute("ALTER TABLE duel_players ADD COLUMN tip_count INTEGER NOT NULL DEFAULT 0")
         except Exception:
             pass  # column already exists
+        # Migration: the supporters table shipped to development databases for a
+        # day without review columns. A row from then is unreviewed, so the
+        # default 'pending' is the safe reading of it.
+        for column in (
+            "status TEXT NOT NULL DEFAULT 'pending'",
+            "reason TEXT",
+        ):
+            try:
+                await db.execute(f"ALTER TABLE supporters ADD COLUMN {column}")
+            except Exception:
+                pass  # column already exists
         # Migration: add per-event OS class for the operating-system breakdown.
         try:
             await db.execute("ALTER TABLE analytics_events ADD COLUMN os TEXT")

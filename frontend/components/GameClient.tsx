@@ -20,7 +20,6 @@ import StatsDialog from "@/components/StatsDialog";
 import SourceSurvey from "@/components/SourceSurvey";
 import WordRating from "@/components/WordRating";
 import SourceSurveyDialog from "@/components/SourceSurveyDialog";
-import { AdUnit } from "@/components/AdUnit";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelHeader } from "@/components/design";
 import OpeningDemo, { OPENING_DEMO_TARGET } from "@/components/OpeningDemo";
@@ -32,7 +31,6 @@ import { reportCompletion } from "@/lib/analytics";
 import { useSourceSurvey } from "@/lib/survey";
 import { useWordRating } from "@/lib/word-rating";
 import { submitWordRating, fetchWordRatingSummary } from "@/lib/analytics";
-import { AD_SLOTS } from "@/lib/adsense";
 import { GameState, Guess, Difficulty, SortMode } from "@/lib/types";
 import { UnknownWordError } from "@/lib/guess-error";
 import { refusalText } from "@/lib/quips";
@@ -509,7 +507,6 @@ export default function GameClient() {
               infiniteSolvedCount={infiniteSolved}
               noMoreGames={noMoreGames}
             />
-            <AdUnit slot={AD_SLOTS.kontextoResult} className="mt-2" />
           </>
         ) : (
           <>

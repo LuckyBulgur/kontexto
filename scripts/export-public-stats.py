@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Exportiert veröffentlichbare Kennzahlen aus der Analytics-Datenbank.
 
-Hintergrund: Die AdSense-Prüfung bemängelt fehlenden eigenständigen Inhalt.
-Echte, nur hier verfügbare Zahlen sind das stärkste Gegenmittel, weil sie
-kein Wettbewerber reproduzieren kann. Dieses Skript erzeugt daraus einen
+Background: real numbers that exist only here are the strongest original
+content a page can carry, because no competitor can reproduce them. Dieses Skript erzeugt daraus einen
 statischen Datenstand, den das Frontend zur Buildzeit einbindet.
 
 Bewusst nur aggregierte Tabellen:

@@ -24,7 +24,8 @@ from analytics_models import (
     AdminSessionResponse, BeaconRequest, BeaconResponse, BeaconTokenResponse,
     CompletionRequest, HeartbeatRequest, LiveStatsResponse,
     RegisterOptionsRequest, RegisterVerifyRequest, ShareClickRequest,
-    SurveyAnswerRequest, WebAuthnVerifyRequest, WordRatingRequest, WordRatingSummary,
+    SupportOpenRequest, SurveyAnswerRequest, WebAuthnVerifyRequest, WordRatingRequest,
+    WordRatingSummary,
 )
 from database import init_db, get_db
 from server_secret import server_secret
@@ -64,8 +65,10 @@ from matchmaking import (
     waiting_counts as matchmaking_waiting,
 )
 import room_bots
+import supporters
 from game import GameState
 from models import (
+    KofiWebhookResponse, SupporterReviewRequest, SupportersResponse,
     GuessRequest, GuessResponse, TipResponse, GameInfoResponse,
     RevealResponse, PastGamesResponse, ClosestWordsResponse,
     InfiniteNextResponse, CategoriesResponse,
@@ -407,6 +410,7 @@ async def _cleanup_loop():
                 await analytics.aggregate_daily(db)
                 await analytics.prune_old_events(db)
                 await analytics.prune_presence(db)
+                await supporters.prune(db, _now())
             finally:
                 await db.close()
         except Exception:
@@ -2816,6 +2820,91 @@ async def collect_share(req: ShareClickRequest, request: Request):
             now=_now(),
         )
         return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.post("/api/collect/support", response_model=BeaconResponse)
+async def collect_support(req: SupportOpenRequest, request: Request):
+    """Count one opening of the Ko-fi panel by entry point (token-gated, bot-filtered)."""
+    db = await get_db(_db_path)
+    try:
+        accepted, _reason = await analytics.record_support_open(
+            db,
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", ""),
+            token=req.token,
+            source=req.source,
+            now=_now(),
+        )
+        return {"ok": accepted}
+    finally:
+        await db.close()
+
+
+@app.post("/api/kofi/webhook", response_model=KofiWebhookResponse)
+async def kofi_webhook(request: Request):
+    """Ko-fi's payment notification (supporters.py).
+
+    Answers 200 for every verified payload, stored or not, because Ko-fi retries
+    anything else; a private supporter or a filtered name is a deliberate no-op.
+    Off (404) while KONTEXTO_KOFI_VERIFICATION_TOKEN is unset.
+    """
+    token = supporters.configured_token()
+    if token is None:
+        return JSONResponse({"detail": "not_found"}, status_code=404)
+    body = await request.body()
+    try:
+        data = supporters.parse_webhook(body, token)
+    except supporters.WebhookRejected as exc:
+        logger.warning("Ko-fi webhook rejected: %s", exc.reason)
+        return JSONResponse({"detail": exc.reason}, status_code=exc.status)
+    db = await get_db(_db_path)
+    try:
+        outcome = await supporters.record_payment(db, data, _now())
+    finally:
+        await db.close()
+    logger.info("Ko-fi webhook: %s", outcome)
+    return {"ok": True}
+
+
+@app.get("/api/supporters", response_model=SupportersResponse)
+async def supporters_endpoint():
+    """Names of the public supporters of the last 30 days, for the rails beside the board."""
+    db = await get_db(_db_path)
+    try:
+        names = await supporters.recent_names(db, _now())
+    finally:
+        await db.close()
+    return JSONResponse(
+        {"names": names},
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/api/admin/supporters")
+async def admin_supporters(authorization: str = Header(default="")):
+    """Names waiting for review, and the approved ones on the wall."""
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    db = await get_db(_db_path)
+    try:
+        return await supporters.review_queue(db, _now())
+    finally:
+        await db.close()
+
+
+@app.post("/api/admin/supporters/{transaction_id}/review")
+async def admin_review_supporter(transaction_id: str, req: SupporterReviewRequest,
+                                 authorization: str = Header(default="")):
+    """Approve a waiting name, or reject a waiting or approved one."""
+    if not _verify_admin(authorization):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    db = await get_db(_db_path)
+    try:
+        if not await supporters.review(db, transaction_id, req.approve):
+            return JSONResponse(status_code=409, content={"error": "not_reviewable"})
+        return {"ok": True}
     finally:
         await db.close()
 

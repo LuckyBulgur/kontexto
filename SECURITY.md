@@ -32,7 +32,7 @@ also der Kopf von `master`. Ältere Stände werden nicht nachgepflegt.
 Nicht im Rahmen sind Berichte, die sich allein auf fehlende Header ohne
 belegbare Auswirkung stützen, Ergebnisse automatischer Scanner ohne
 nachvollziehbaren Angriff, Lastspitzen und Denial of Service sowie Probleme in
-Diensten Dritter (AdSense, das Impressum-Adressbüro).
+Diensten Dritter (Ko-fi, das Impressum-Adressbüro).
 
 Wenn du testest: keine Lasttests, keine fremden Konten, keine Daten anderer
 Leute. Ein einzelner Nachweis reicht.

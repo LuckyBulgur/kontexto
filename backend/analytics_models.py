@@ -65,6 +65,14 @@ class ShareClickRequest(BaseModel):
     mode: Literal["kontexto", "infinite", "wordle"]
 
 
+class SupportOpenRequest(BaseModel):
+    """The Ko-fi panel was opened. Client-reported by necessity: the panel is
+    Ko-fi's own page, and opening it produces no hit on this server."""
+
+    token: str = Field(..., max_length=64)
+    source: Literal["corner", "pinned", "result_kontexto", "result_wordle", "footer"]
+
+
 class SurveyAnswerRequest(BaseModel):
     """One answer to the attribution survey ("Woher kennst du Kontexto?").
 

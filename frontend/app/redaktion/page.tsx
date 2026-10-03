@@ -10,7 +10,7 @@ export const metadata = buildMetadata({
   path: "/redaktion/",
   title: "Redaktionelle Grundsätze",
   description:
-    "Wer die Texte auf kontexto.de schreibt, woher die veröffentlichten Zahlen stammen, wie Fehler korrigiert werden und warum Werbung und Inhalt hier strikt getrennt sind.",
+    "Wer die Texte auf kontexto.de schreibt, woher die veröffentlichten Zahlen stammen, wie Fehler korrigiert werden und warum es hier keine Werbung gibt.",
 });
 
 /**
@@ -20,7 +20,7 @@ export const metadata = buildMetadata({
  * andere Frage ist als "was ist das Spiel" (/ueber/) oder "welche Daten werden
  * verarbeitet" (/datenschutz/). Sie beantwortet die Fragen, die ueber
  * Vertrauenswuerdigkeit entscheiden: Herkunft der Zahlen, Umgang mit Fehlern,
- * Unabhaengigkeit von Werbung.
+ * Unabhaengigkeit von Geld.
  *
  * Jede Aussage hier ist im Repository nachpruefbar. Nichts davon ist eine
  * Absichtserklaerung.
@@ -29,7 +29,7 @@ const toc = [
   { id: "wer", label: "Wer die Texte schreibt" },
   { id: "zahlen", label: "Woher die Zahlen stammen" },
   { id: "fehler", label: "Wie Fehler korrigiert werden" },
-  { id: "werbung", label: "Trennung von Werbung und Inhalt" },
+  { id: "werbung", label: "Keine Werbung, keine Gegenleistung" },
   { id: "nicht", label: "Was hier nicht passiert" },
 ];
 
@@ -37,7 +37,7 @@ export default function RedaktionPage() {
   return (
     <ArticleLayout
       title="Redaktionelle Grundsätze"
-      lead="Wer die Texte schreibt, woher die Zahlen stammen, wie Fehler korrigiert werden und warum Werbung und Inhalt hier getrennt bleiben."
+      lead="Wer die Texte schreibt, woher die Zahlen stammen, wie Fehler korrigiert werden und warum es hier keine Werbung gibt."
       breadcrumbName="Redaktion"
       path="/redaktion/"
       toc={toc}
@@ -119,25 +119,24 @@ export default function RedaktionPage() {
 
       <Reveal as="section" className="space-y-4">
         <Prose>
-          <h2 id="werbung">Trennung von Werbung und Inhalt</h2>
+          <h2 id="werbung">Keine Werbung, keine Gegenleistung</h2>
           <p>
-            Für die Finanzierung ist Werbung vorgesehen. Während der AdSense-Prüfung werden keine
-            Anzeigenflächen ausgeliefert. Damit Werbung die Inhalte auch später nicht berührt,
-            gelten drei Festlegungen, die im Code verankert sind und nicht nur hier versprochen werden:
+            Kontexto zeigt keine Werbung. Wer das Projekt unterstützen möchte, kann das freiwillig
+            über Ko-fi tun. Damit Geld die Inhalte nicht berührt, gelten drei Festlegungen, die im
+            Code verankert sind und nicht nur hier versprochen werden:
           </p>
           <ul>
             <li>
-              Nach einer Freischaltung erscheinen Anzeigen ausschließlich auf den beiden
-              Einzelspieler-Seiten. Inhaltsseiten, Rechtsseiten und die Mehrspieler-Räume bleiben
-              werbefrei.
+              Eine Unterstützung schaltet nichts frei. Es gibt keine Funktion, keinen Tipp und keine
+              Statistik, die hinter einer Zahlung liegt.
             </li>
             <li>
-              Jede Anzeigenfläche trägt sichtbar die Kennzeichnung „Anzeige“ und ist als eigener
-              Bereich ausgezeichnet, auch für Screenreader.
+              Eine Unterstützung kauft keinen Einfluss: nicht auf Lösungswörter, nicht auf Texte und
+              nicht auf die Reihenfolge von irgendetwas auf dieser Website.
             </li>
             <li>
-              Werbe- und Trackingcookies werden erst nach ausdrücklicher Einwilligung gesetzt, die
-              sich jederzeit über die Fußzeile widerrufen lässt.
+              Das Spiel drängt nicht: kein Banner, kein Fenster, das sich von selbst öffnet. Es gibt
+              einen Knopf, und nach einer gelösten Runde eine ruhige Zeile unter dem Ergebnis.
             </li>
           </ul>
           <p>

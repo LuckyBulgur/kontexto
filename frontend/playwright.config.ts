@@ -101,6 +101,9 @@ export default defineConfig({
         // and count the players in the room, and a seat the server filled
         // would make that count depend on timing. See backend/room_bots.py.
         KONTEXTO_BOTS: "0",
+        // Switches the Ko-fi webhook on, so e2e/support.spec.ts can send a
+        // payment the way Ko-fi does and find the name beside the board.
+        KONTEXTO_KOFI_VERIFICATION_TOKEN: "e2e-kofi",
       },
       url: `http://127.0.0.1:${BACKEND_PORT}/api/game`,
       reuseExistingServer: !process.env.CI,

@@ -8,11 +8,6 @@ COPY frontend/package.json frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml 
 RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
-# The static export inlines public environment variables at build time. Keep
-# the review-safe default in the image build, while allowing an intentional
-# post-approval opt-in through docker-compose's build arg.
-ARG NEXT_PUBLIC_ADSENSE_REVIEW_MODE=true
-ENV NEXT_PUBLIC_ADSENSE_REVIEW_MODE=${NEXT_PUBLIC_ADSENSE_REVIEW_MODE}
 # The commit this image is built from. Inlined as the build id an open tab
 # compares with /version.json, so a tab notices a deploy and reloads
 # (frontend/lib/update-check.ts). "dev" switches that off. Declared after the

@@ -18,6 +18,15 @@ export async function getCreatorSpot(): Promise<CreatorSpot | null> {
   return (await res.json()).creator;
 }
 
+/** Public Ko-fi supporters of the last 30 days, newest first (backend/supporters.py). */
+export async function getSupporters(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/supporters`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const body: unknown = await res.json();
+  const names = (body as { names?: unknown }).names;
+  return Array.isArray(names) ? names.filter((n): n is string => typeof n === "string") : [];
+}
+
 export async function submitCreatorClip(data: { clip_url: string; channel_url: string; channel_name: string; email?: string }): Promise<void> {
   const res = await fetch(`${API_BASE}/creator-submissions`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
@@ -40,6 +49,30 @@ export async function showCreatorToday(token: string, id: number): Promise<void>
 
 export async function reviewCreatorSubmission(token: string, id: number, approve: boolean): Promise<void> {
   const res = await fetch(`${API_BASE}/admin/creator-submissions/${id}/review`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ approve }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
+export interface SupporterEntry {
+  /** Ko-fi's transaction id. */
+  id: string;
+  name: string;
+  created_at: string;
+  status: "pending" | "approved";
+  /** Why a name waits: a code from backend/supporters.py, null once approved. */
+  reason: string | null;
+}
+
+export async function getSupporterQueue(token: string): Promise<{ pending: SupporterEntry[]; approved: SupporterEntry[] }> {
+  const res = await fetch(`${API_BASE}/admin/supporters`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function reviewSupporter(token: string, id: string, approve: boolean): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/supporters/${encodeURIComponent(id)}/review`, {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ approve }),
   });

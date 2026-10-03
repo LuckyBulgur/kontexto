@@ -271,6 +271,12 @@ export interface SharingStats {
   arrivals_per_share: number | null;
 }
 
+/** Openings of the Ko-fi panel by entry point. An intention, never a payment. */
+export interface SupportStats {
+  opens_by_source: Record<string, number>;
+  opens_total: number;
+}
+
 /** Attention time per page, summed from heartbeats of visible tabs. */
 export interface AttentionStats {
   seconds_by_page: Record<string, number>;
@@ -348,6 +354,7 @@ export interface StatsData {
   word_ratings: WordRatingStats;
   funnel: FunnelStats;
   sharing: SharingStats;
+  support: SupportStats;
   attention: AttentionStats;
   /** Finished games per month split by mode (popularity trend). The backend
    *  fills one key per known mode, so the shape grows with analytics.GAME_MODES

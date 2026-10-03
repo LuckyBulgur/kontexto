@@ -36,7 +36,7 @@ export default function CookiesPage() {
       toc={[
         { id: "kurz", label: "Die Kurzfassung" },
         { id: "spiel", label: "Was das Spiel speichert" },
-        { id: "werbung", label: "Cookies durch Werbung" },
+        { id: "kofi", label: "Cookies von Ko-fi" },
         { id: "keine", label: "Was nicht gespeichert wird" },
         { id: "loeschen", label: "Alles löschen" },
       ]}
@@ -47,8 +47,9 @@ export default function CookiesPage() {
           <p>
             Für das Spiel selbst setzt Kontexto <strong>keine Cookies</strong>. Alles, was das Spiel
             sich merkt, liegt im lokalen Speicher deines Browsers, verlässt dein Gerät nicht und
-            gehört zu keinem Konto. Cookies gibt es nur im Zusammenhang mit Werbung, und die erst
-            nach deiner Einwilligung.
+            gehört zu keinem Konto. Werbung gibt es keine, und damit auch keine Werbe-Cookies.
+            Cookies eines anderen Anbieters entstehen nur, wenn du selbst das Fenster „Kontexto
+            unterstützen“ öffnest, und dann setzt sie Ko-fi.
           </p>
           <p>
             Der Unterschied ist nicht nur juristisch: Ein Cookie wird bei jeder Anfrage an den Server
@@ -97,25 +98,24 @@ export default function CookiesPage() {
 
       <Reveal as="section" className="space-y-4">
         <Prose>
-          <h2 id="werbung">Cookies durch Werbung</h2>
+          <h2 id="kofi">Cookies von Ko-fi</h2>
           <p>
-            Für die spätere Finanzierung des kostenlosen Angebots ist Google AdSense vorgesehen. Im
-            aktuellen Prüfmodus werden keine Anzeigenflächen ausgeliefert. Erst wenn Anzeigen nach
-            einer Freischaltung tatsächlich erscheinen, kommen Werbe-Cookies ins Spiel, und zwar
-            ausschließlich nach deiner Einwilligung über das Einwilligungsbanner.
+            Kontexto zeigt keine Werbung und bindet kein Werbenetzwerk ein. Wer das Spiel
+            unterstützen möchte, kann das freiwillig über Ko-fi tun.
           </p>
           <p>
-            Wenn Anzeigen ausgeliefert werden, werden die Cookies nicht von uns, sondern von Google
-            und weiteren Anbietern gesetzt, die an der Anzeigenauslieferung beteiligt sind. Sie
-            dienen der Auswahl und Messung von Anzeigen und der Begrenzung, wie oft dieselbe Anzeige
-            erscheint. Welche Anbieter das im Einzelnen sind, listet das Einwilligungsbanner auf;
-            die Rechtsgrundlagen und die Übermittlung in die USA stehen in der{" "}
+            Der Knopf „Unterstützen“ öffnet ein Fenster, in dem die Seite von Ko-fi
+            eingebettet ist. Solange du das Fenster nicht öffnest, lädt Kontexto nichts von Ko-fi
+            und auf deinem Gerät landet nichts von dort. Erst mit dem Öffnen ruft dein Browser die
+            Seite von Ko-fi ab, und Ko-fi kann dabei eigene Cookies setzen, etwa um die Zahlung
+            abzuwickeln oder sich vor Missbrauch zu schützen. Diese Cookies gehören zu ko-fi.com,
+            nicht zu kontexto.de, und wir können sie weder lesen noch steuern.
+          </p>
+          <p>
+            Wer das nicht möchte, öffnet das Fenster einfach nicht: Das Spiel funktioniert ohne
+            Einschränkung weiter. Was Ko-fi speichert, steht in der Datenschutzerklärung von Ko-fi,
+            der Verweis darauf und die Rechtsgrundlage in unserer{" "}
             <Link href="/datenschutz/">Datenschutzerklärung</Link>.
-          </p>
-          <p>
-            Wichtig: Ohne Einwilligung werden keine werbebezogenen Cookies gesetzt, und das Spiel
-            funktioniert vollständig weiter. Die Einwilligung lässt sich jederzeit über den Link
-            „Cookie-Einstellungen“ in der Fußzeile ändern oder widerrufen.
           </p>
         </Prose>
       </Reveal>
@@ -130,7 +130,7 @@ export default function CookiesPage() {
               Server über einen nicht umkehrbaren Hashwert, aus dem sich keine Person
               wiederherstellen lässt.
             </li>
-            <li>Keine Cookies von Schriftarten oder eingebetteten Diensten. Die Schrift wird von unserem Server ausgeliefert.</li>
+            <li>Keine Werbe-Cookies und keine Cookies von Schriftarten. Die Schrift wird von unserem Server ausgeliefert.</li>
             <li>Keine geräteübergreifende Wiedererkennung, weil es nichts gibt, woran sie ansetzen könnte.</li>
           </ul>
         </Prose>
@@ -146,10 +146,8 @@ export default function CookiesPage() {
             wiederherstellen ließe.
           </p>
           <p>
-            Wer nur die Werbeeinwilligung zurücknehmen möchte, braucht dafür nichts zu löschen. Der
-            Link „Cookie-Einstellungen“ in der Fußzeile öffnet das Banner erneut. Wie du
-            personalisierte Werbung darüber hinaus dauerhaft abschaltest, steht in der{" "}
-            <Link href="/datenschutz/">Datenschutzerklärung</Link>.
+            Cookies, die Ko-fi gesetzt hat, löschst du über die Website-Einstellungen für
+            ko-fi.com, nicht für kontexto.de.
           </p>
         </Prose>
       </Reveal>

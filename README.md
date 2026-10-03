@@ -249,8 +249,8 @@ Vor jeder Fertigmeldung, aus `frontend/`:
 
 `pnpm test:e2e` gehört dazu, sobald `app/layout.tsx`, ein Spielclient oder
 irgendetwas am Seitenaufbau angefasst wurde. Die Liste darüber hat einmal eine
-Änderung am AdSense-Loader im `<head>` durchgelassen, die hier überall grün war
-und in CI rot.
+Änderung an einem externen Skript im `<head>` durchgelassen, die hier überall grün
+war und in CI rot.
 
 **`pnpm lint` benutzt du nicht.** ESLint 10 verträgt sich nicht mit
 eslint-plugin-react 7.x und stürzt projektweit an der ersten Datei ab,
@@ -327,9 +327,7 @@ Backend, vollständig in [`.env.example`](.env.example):
 | `KONTEXTO_TRUSTED_PROXY_HOPS` | Wie viele Proxys vor dem Server stehen, für die echte Client-IP. |
 
 Frontend, zur Bauzeit eingebacken, siehe [`frontend/.env.development`](frontend/.env.development):
-`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AD_SLOT_*` und
-`NEXT_PUBLIC_ADSENSE_REVIEW_MODE` (steht auf `true` und blockt alle
-Anzeigenflächen, bis es ausdrücklich auf `false` gesetzt wird).
+`NEXT_PUBLIC_API_URL`.
 
 ### Screenshots neu machen
 
